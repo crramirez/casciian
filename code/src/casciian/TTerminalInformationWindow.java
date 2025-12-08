@@ -150,8 +150,7 @@ public class TTerminalInformationWindow extends TWindow {
         label = addLabel(i18n.getString("imageFormats"), labelColumn, row);
         copyText += label.getLabel() + " ";
         if (swingTerminal != null) {
-            label = addLabel("sixel iTerm2 jexer", infoColumn, row, "ttext",
-                false);
+            label = addLabel("", infoColumn, row, "ttext", false);
         }
         if (ecmaTerminal != null) {
             label = addLabel(String.format("%s%s%s",

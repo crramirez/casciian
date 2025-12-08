@@ -14,11 +14,8 @@
  */
 package casciian.terminal;
 
-import java.awt.Graphics;
-import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
 import java.io.CharArrayWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -34,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import javax.imageio.ImageIO;
 
 import casciian.TKeypress;
 import casciian.backend.Backend;
@@ -44,7 +40,6 @@ import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.ComplexCell;
 import casciian.bits.ExtendedGraphemeClusterUtils;
-import casciian.bits.ImageUtils;
 import casciian.bits.StringUtils;
 import casciian.event.TInputEvent;
 import casciian.event.TKeypressEvent;
@@ -137,7 +132,6 @@ public class ECMA48 implements Runnable {
         DCS_PARAM,
         DCS_PASSTHROUGH,
         DCS_IGNORE,
-        DCS_SIXEL,
         DCS_XTGETTCAP,
         SOSPMAPC_STRING,
         OSC_STRING,
@@ -547,26 +541,6 @@ public class ECMA48 implements Runnable {
      * The available Xterm copy/paste buffers.
      */
     private HashMap<Character, String> selectBuffers;
-
-    /**
-     * Sixel collection buffer.
-     */
-    private StringBuilder sixelParseBuffer = new StringBuilder(2048);
-
-    /**
-     * Sixel shared palette.
-     */
-    private HashMap<Integer, java.awt.Color> sixelPalette;
-
-    /**
-     * Sixel scrolling option.
-     */
-    private boolean sixelScrolling = true;
-
-    /**
-     * Sixel cursor on right option.
-     */
-    private boolean sixelCursorOnRight = false;
 
     /**
      * XTGETTCAP collection buffer.
@@ -1119,14 +1093,12 @@ public class ECMA48 implements Runnable {
 
         case VT220:
         case XTERM:
-            // "I am a VT220" - 7 bit version, with sixel and Casciian image
-            // support, and OSC 52.
+            // "I am a VT220" - 7 bit version, with OSC 52.
             if (!s8c1t) {
-                return "\033[?62;1;6;9;4;22;52;444c";
+                return "\033[?62;1;6;9;22;52c";
             }
-            // "I am a VT220" - 8 bit version, with sixel and Casciian image
-            // support, and OSC 52.
-            return "\u009b?62;1;6;9;4;22;52;444c";
+            // "I am a VT220" - 8 bit version, with OSC 52.
+            return "\u009b?62;1;6;9;22;52c";
         default:
             throw new IllegalArgumentException("Invalid device type: " + type);
         }
@@ -3658,36 +3630,6 @@ public class ECMA48 implements Runnable {
 
                 break;
 
-            case 80:
-                if (type == DeviceType.XTERM) {
-                    if (decPrivateModeFlag == true) {
-                        if (value == true) {
-                            // Set DECSDM: Disable sixel scrolling.
-
-                            /*
-                             * This was actually recorded incorrectly in the
-                             * DEC VT330/340 programmer's guide
-                             * (https://vt100.net/docs/vt3xx-gp/chapter14.html).
-                             *
-                             * On real hardware, setting 80 DISABLES
-                             * scrolling.  Much thanks to James Holderness
-                             * for finding this and sharing it with several
-                             * terminals:
-                             *
-                             * https://github.com/hackerb9/lsix/issues/41
-                             */
-                            sixelScrolling = false;
-                            // System.err.println("DECSDM activated");
-                        } else {
-                            // Reset DECSDM: Enable sixel scrolling (default).
-                            sixelScrolling = true;
-                            // System.err.println("DECSDM de-activated");
-                        }
-                    }
-                }
-
-                break;
-
             case 1000:
                 if ((type == DeviceType.XTERM)
                     && (decPrivateModeFlag == true)
@@ -3802,23 +3744,6 @@ public class ECMA48 implements Runnable {
                 }
                 break;
 
-            case 1070:
-                if (type == DeviceType.XTERM) {
-                    if (decPrivateModeFlag == true) {
-                        if (value == true) {
-                            // Use private color registers for each sixel
-                            // graphic (default).
-                            sixelPalette = null;
-                        } else {
-                            // Use shared color registers for each sixel
-                            // graphic.
-                            sixelPalette = new HashMap<Integer, java.awt.Color>();
-                            SixelDecoder.initializePaletteVT340(sixelPalette);
-                        }
-                    }
-                }
-                break;
-
             case 2026:
                 if ((type == DeviceType.XTERM)
                     && (decPrivateModeFlag == true)
@@ -3850,22 +3775,6 @@ public class ECMA48 implements Runnable {
                                 terminalListener.postUpdate(captureState());
                                 doNotUpdateDisplay = true;
                             }
-                        }
-                    }
-                }
-                break;
-
-            case 8452:
-                if (type == DeviceType.XTERM) {
-                    if (decPrivateModeFlag == true) {
-                        if (value == true) {
-                            // Leave text cursor on the right of sixel
-                            // graphic.
-                            sixelCursorOnRight = true;
-                        } else {
-                            // Leave text cursor at the bottom of sixel
-                            // graphic (default).
-                            sixelCursorOnRight = false;
                         }
                     }
                 }
@@ -5543,23 +5452,6 @@ public class ECMA48 implements Runnable {
                         }
                     }
                 }
-
-                if (p[0].equals("444")) {
-                    if ((p.length == 6) && p[1].equals("0")) {
-                        // Jexer image - RGB
-                        parseJexerImageRGB(p[2], p[3], p[4], p[5]);
-                    } else if ((p.length == 4) && p[1].equals("1")) {
-                        // Jexer image - PNG
-                        parseJexerImageFile(1, p[2], p[3]);
-                    } else if ((p.length == 4) && p[1].equals("2")) {
-                        // Jexer image - JPG
-                        parseJexerImageFile(2, p[2], p[3]);
-                    }
-                }
-
-                if (p[0].equals("1337")) {
-                    parseIterm2Image(p);
-                }
             }
 
             // Go to SCAN_GROUND state
@@ -5651,58 +5543,6 @@ public class ECMA48 implements Runnable {
             default:
                 break;
             }
-        }
-    }
-
-    /**
-     * Respond to xterm sixel query.
-     */
-    private void xtermSixelQuery() {
-        if (csiParams.size() > 3) {
-            // This is an invalid query, disregard it.
-            return;
-        }
-
-        int item = getCsiParam(0, 0);
-        int action = getCsiParam(1, 0);
-        int value = getCsiParam(2, 0);
-
-        switch (item) {
-        case 1:
-            if (action == 1) {
-                // Report number of color registers.  Though we can support
-                // effectively unlimited colors, report the same max as stock
-                // xterm (MAX_COLOR_REGISTERS).
-                if (s8c1t == true) {
-                    writeRemote(String.format("\u009b?%d;%d;%dS", item, 0, 1024));
-                } else {
-                    writeRemote(String.format("\033[?%d;%d;%dS", item, 0, 1024));
-                }
-                return;
-            }
-            break;
-        case 2:
-            if (action == 1) {
-                // Report maximum sixel geometry.  Match xterm default of
-                // 1000x1000.
-                if (s8c1t == true) {
-                    writeRemote(String.format("\u009b?%d;%d;%d;%dS", item, 0,
-                            1000, 1000));
-                } else {
-                    writeRemote(String.format("\033[?%d;%d;%d;%dS", item, 0,
-                            1000, 1000));
-                }
-                return;
-            }
-            break;
-        default:
-            break;
-        }
-        // We will not support this option.
-        if (s8c1t == true) {
-            writeRemote(String.format("\u009b?%d;%dS", item, action));
-        } else {
-            writeRemote(String.format("\033[?%d;%dS", item, action));
         }
     }
 
@@ -5908,12 +5748,6 @@ public class ECMA48 implements Runnable {
                 // Not supported, assume permanently reset.
                 Ps = 4;
                 break;
-            case 80:
-                // DECSDM
-                if (sixelScrolling == false) {
-                    Ps = 1;     // Set
-                }
-                break;
             case 1000:
                 // Mouse: normal tracking mode
                 if (mouseProtocol == MouseProtocol.NORMAL) {
@@ -5950,22 +5784,9 @@ public class ECMA48 implements Runnable {
                     Ps = 1;     // Set
                 }
                 break;
-            case 1070:
-                // Sixe: Use private color registers for each sixel graphic
-                // (default).
-                if (sixelPalette == null) {
-                    Ps = 1;     // Set
-                }
-                break;
             case 2026:
                 // Report Synchronized Updates support
                 if (withinSynchronizedUpdate) {
-                    Ps = 1;     // Set
-                }
-                break;
-            case 8452:
-                // Report sixel cursor position option
-                if (sixelCursorOnRight) {
                     Ps = 1;     // Set
                 }
                 break;
@@ -6040,7 +5861,6 @@ public class ECMA48 implements Runnable {
         if (ch == 0x1B) {
             if ((type == DeviceType.XTERM)
                 && ((scanState == ScanState.OSC_STRING)
-                    || (scanState == ScanState.DCS_SIXEL)
                     || (scanState == ScanState.DCS_XTGETTCAP)
                     || (scanState == ScanState.SOSPMAPC_STRING))
             ) {
@@ -7230,7 +7050,7 @@ public class ECMA48 implements Runnable {
                             }
                         }
                         if (xtermPrivateModeFlag) {
-                            xtermSixelQuery();
+                            // NOP
                         } else {
                             su();
                         }
@@ -7522,7 +7342,7 @@ public class ECMA48 implements Runnable {
                             }
                         }
                         if (xtermPrivateModeFlag) {
-                            xtermSixelQuery();
+                            // NOP
                         } else {
                             su();
                         }
@@ -7868,11 +7688,7 @@ public class ECMA48 implements Runnable {
                 scanState = ScanState.DCS_IGNORE;
             }
 
-            // 0x71 goes to DCS_SIXEL
-            if (ch == 0x71) {
-                sixelParseBuffer.setLength(0);
-                scanState = ScanState.DCS_SIXEL;
-            } else if ((ch >= 0x40) && (ch <= 0x7E)) {
+            if ((ch >= 0x40) && (ch <= 0x7E)) {
                 // 0x40-7E goes to DCS_PASSTHROUGH
                 scanState = ScanState.DCS_PASSTHROUGH;
             }
@@ -7961,21 +7777,7 @@ public class ECMA48 implements Runnable {
                 scanState = ScanState.DCS_IGNORE;
             }
 
-            // 0x71 goes to DCS_SIXEL
-            if (ch == 0x71) {
-                sixelParseBuffer.setLength(0);
-                // Params contains the sixel introducer string, include it
-                // and the trailing 'q'.
-                for (Integer ps: csiParams) {
-                    sixelParseBuffer.append(ps.toString());
-                    sixelParseBuffer.append(';');
-                }
-                if (sixelParseBuffer.length() > 0) {
-                    sixelParseBuffer.setLength(sixelParseBuffer.length() - 1);
-                    sixelParseBuffer.append('q');
-                }
-                scanState = ScanState.DCS_SIXEL;
-            } else if ((ch >= 0x40) && (ch <= 0x7E)) {
+            if ((ch >= 0x40) && (ch <= 0x7E)) {
                 // 0x40-7E goes to DCS_PASSTHROUGH
                 scanState = ScanState.DCS_PASSTHROUGH;
             }
@@ -8001,19 +7803,19 @@ public class ECMA48 implements Runnable {
 
             // 00-17, 19, 1C-1F, 20-7E   --> put
             if (ch <= 0x17) {
-                // We ignore all DCS except sixel.
+                // We ignore all DCS.
                 return;
             }
             if (ch == 0x19) {
-                // We ignore all DCS except sixel.
+                // We ignore all DCS.
                 return;
             }
             if ((ch >= 0x1C) && (ch <= 0x1F)) {
-                // We ignore all DCS except sixel.
+                // We ignore all DCS.
                 return;
             }
             if ((ch >= 0x20) && (ch <= 0x7E)) {
-                // We ignore all DCS except sixel.
+                // We ignore all DCS.
                 return;
             }
 
@@ -8029,41 +7831,6 @@ public class ECMA48 implements Runnable {
                 toGround();
             }
 
-            return;
-
-        case DCS_SIXEL:
-            // 0x9C goes to GROUND
-            if (ch == 0x9C) {
-                parseSixel();
-                toGround();
-                return;
-            }
-
-            // 0x1B 0x5C goes to GROUND
-            if (ch == 0x1B) {
-                collect((char) ch);
-                return;
-            }
-            if (ch == 0x5C) {
-                if ((collectBuffer.length() > 0)
-                    && (collectBuffer.charAt(collectBuffer.length() - 1) == 0x1B)
-                ) {
-                    parseSixel();
-                    toGround();
-                    return;
-                }
-            }
-
-            // 00-17, 19, 1C-1F, 20-7E   --> put
-            if ((ch <= 0x17)
-                || (ch == 0x19)
-                || ((ch >= 0x1C) && (ch <= 0x1F))
-                || ((ch >= 0x20) && (ch <= 0x7E))
-            ) {
-                sixelParseBuffer.append((char) ch);
-            }
-
-            // 7F                        --> ignore
             return;
 
         case DCS_XTGETTCAP:
@@ -8318,668 +8085,6 @@ public class ECMA48 implements Runnable {
         }
         response.append("\033\\");
         writeRemote(response.toString());
-    }
-
-    /**
-     * Parse a sixel string into a bitmap image, and overlay that image onto
-     * the text cells.
-     */
-    private void parseSixel() {
-        /*
-        System.err.println("parseSixel(): '" + sixelParseBuffer.toString()
-            + "'");
-        */
-
-        boolean maybeTransparent = false;
-        // The check below is forced to always enable maybeTransparent.  Even
-        // when imagesOverText is disabled, we can still process sixel images
-        // with missing pixels by way of checking for entirely empty text
-        // cell regions and removing them.  The effect is to have a blocky
-        // black outline around the image rather than an entire black
-        // rectangle.
-        if (true || ((backend != null) && backend.isImagesOverText())) {
-            maybeTransparent = true;
-        }
-        SixelDecoder sixel = new SixelDecoder(sixelParseBuffer.toString(),
-            sixelPalette, backend.attrToBackgroundColor(currentState.attr),
-            maybeTransparent);
-        BufferedImage image = sixel.getImage();
-
-        // System.err.println("parseSixel(): image " + image);
-
-        if (image == null) {
-            // Sixel data was malformed in some way, bail out.
-            return;
-        }
-        if ((image.getWidth() < 1)
-            || (image.getWidth() > 10000)
-            || (image.getHeight() < 1)
-            || (image.getHeight() > 10000)
-        ) {
-            return;
-        }
-
-        if (maybeTransparent) {
-            maybeTransparent = sixel.isTransparent();
-        }
-
-        int oldCursorX = currentState.cursorX;
-        int oldCursorY = currentState.cursorY;
-        if (!sixelScrolling) {
-            currentState.cursorX = 0;
-            currentState.cursorY = 0;
-            imageToCells(image, false, maybeTransparent);
-            currentState.cursorX = oldCursorX;
-            currentState.cursorY = oldCursorY;
-        } else {
-            imageToCells(image, true, maybeTransparent);
-            if (sixelCursorOnRight) {
-                currentState.cursorX = oldCursorX + (image.getWidth() /
-                    textWidth);
-                if ((image.getWidth() % textWidth) != 0) {
-                    currentState.cursorX++;
-                }
-                currentState.cursorX = Math.min(currentState.cursorX, width - 1);
-            } else {
-                currentState.cursorX = oldCursorX;
-            }
-            // Cursor always on bottom row of pixel data.
-            currentState.cursorY = oldCursorY;
-            int downY = image.getHeight() / textHeight;
-            if ((image.getHeight() % textHeight) == 0) {
-                downY--;
-            }
-            cursorDown(downY, true);
-        }
-
-    }
-
-    /**
-     * Parse a "Jexer" RGB image string into a bitmap image, and overlay that
-     * image onto the text cells.
-     *
-     * @param pw width token
-     * @param ph height token
-     * @param ps scroll token
-     * @param data pixel data
-     */
-    private void parseJexerImageRGB(final String pw, final String ph,
-        final String ps, final String data) {
-
-        int imageWidth = 0;
-        int imageHeight = 0;
-        boolean scroll = false;
-        try {
-            imageWidth = Integer.parseInt(pw);
-            imageHeight = Integer.parseInt(ph);
-        } catch (NumberFormatException e) {
-            // SQUASH
-            return;
-        }
-        if ((imageWidth < 1)
-            || (imageWidth > 10000)
-            || (imageHeight < 1)
-            || (imageHeight > 10000)
-        ) {
-            return;
-        }
-        if (ps.equals("1")) {
-            scroll = true;
-        } else if (ps.equals("0")) {
-            scroll = false;
-        } else {
-            return;
-        }
-
-        byte [] bytes = StringUtils.fromBase64(data.getBytes());
-        if (bytes.length != (imageWidth * imageHeight * 3)) {
-            return;
-        }
-
-        BufferedImage image = new BufferedImage(imageWidth, imageHeight,
-            BufferedImage.TYPE_INT_ARGB);
-
-        for (int x = 0; x < imageWidth; x++) {
-            for (int y = 0; y < imageHeight; y++) {
-                int red   = bytes[(y * imageWidth * 3) + (x * 3)    ];
-                if (red < 0) {
-                    red += 256;
-                }
-                int green = bytes[(y * imageWidth * 3) + (x * 3) + 1];
-                if (green < 0) {
-                    green += 256;
-                }
-                int blue  = bytes[(y * imageWidth * 3) + (x * 3) + 2];
-                if (blue < 0) {
-                    blue += 256;
-                }
-                int rgb = 0xFF000000 | (red << 16) | (green << 8) | blue;
-                image.setRGB(x, y, rgb);
-            }
-        }
-
-        imageToCells(image, scroll, false);
-    }
-
-    /**
-     * Parse a "Jexer" PNG or JPG image string into a bitmap image, and
-     * overlay that image onto the text cells.
-     *
-     * @param type 1 for PNG, 2 for JPG
-     * @param ps scroll token
-     * @param data pixel data
-     */
-    private void parseJexerImageFile(final int type, final String ps,
-        final String data) {
-
-        int imageWidth = 0;
-        int imageHeight = 0;
-        boolean scroll = false;
-        BufferedImage image = null;
-        boolean maybeTransparent = false;
-        try {
-            byte [] bytes = StringUtils.fromBase64(data.getBytes());
-
-            switch (type) {
-            case 1:
-                if ((bytes[0] != (byte) 0x89)
-                    || (bytes[1] != 'P')
-                    || (bytes[2] != 'N')
-                    || (bytes[3] != 'G')
-                    || (bytes[4] != (byte) 0x0D)
-                    || (bytes[5] != (byte) 0x0A)
-                    || (bytes[6] != (byte) 0x1A)
-                    || (bytes[7] != (byte) 0x0A)
-                ) {
-                    // File does not have PNG header, bail out.
-                    return;
-                }
-                maybeTransparent = true;
-                break;
-
-            case 2:
-                if ((bytes[0] != (byte) 0XFF)
-                    || (bytes[1] != (byte) 0xD8)
-                    || (bytes[2] != (byte) 0xFF)
-                ) {
-                    // File does not have JPG header, bail out.
-                    return;
-                }
-                break;
-
-            default:
-                // Unsupported type, bail out.
-                return;
-            }
-
-            image = ImageIO.read(new ByteArrayInputStream(bytes));
-        } catch (IOException e) {
-            // SQUASH
-            return;
-        }
-        assert (image != null);
-        imageWidth = image.getWidth();
-        imageHeight = image.getHeight();
-        if ((imageWidth < 1)
-            || (imageWidth > 10000)
-            || (imageHeight < 1)
-            || (imageHeight > 10000)
-        ) {
-            return;
-        }
-        if (ps.equals("1")) {
-            scroll = true;
-        } else if (ps.equals("0")) {
-            scroll = false;
-        } else {
-            return;
-        }
-        if (maybeTransparent) {
-            if (image.getTransparency() == java.awt.Transparency.OPAQUE) {
-                maybeTransparent = false;
-            }
-        }
-
-        imageToCells(image, scroll, maybeTransparent);
-    }
-
-    /**
-     * Parse a iTerm2 image string into a bitmap image, and overlay that
-     * image onto the text cells.  See reference at:
-     * https://iterm2.com/documentation-images.html
-     *
-     * @param args the arguments of the OSC 1337 sequence.  args[0] will be
-     * "1337".
-     */
-    private void parseIterm2Image(final String [] args) {
-        // If the file data is opaque, pass that to imageToCells().
-        boolean maybeTransparent = true;
-
-        // See: https://github.com/wez/wezterm/issues/1424
-        boolean doNotMoveCursor = false;
-
-        // We MUST see "inline=1".  This terminal does NOT EVER write to the
-        // filesystem.  Ever.
-        boolean sawInline = false;
-
-        boolean preserveAspectRatio = false;
-
-        // Image dimension options.
-        String iTerm2Width = "auto";
-        String iTerm2Height = "auto";
-
-        // File size.  This is optional to most terminals.  If it is
-        // specified, then we will limit to 4MB.
-        boolean gotSize = false;
-        int size = -1;
-
-        if ((args.length < 2) || !args[0].equals("1337")
-            || !args[1].startsWith("File=")
-        ) {
-            return;
-        }
-
-        // Separate the arguments into key/values, and the base64-encoded
-        // data payload.
-
-        // Remove the "File=" from the first argument.
-        args[1] = args[1].substring(5);
-        // System.err.println("args[1]: '" + args[1] + "'");
-
-        // Separate the last argument from the ":{base64}" part.
-        String lastArg = args[args.length - 1];
-        if (!lastArg.contains(":")) {
-            return;
-        }
-        String data = lastArg.substring(lastArg.indexOf(':') + 1);
-        if (data.length() == 0) {
-            return;
-        }
-
-        lastArg = lastArg.substring(0, lastArg.length() - data.length() - 1);
-        // System.err.println("lastArg: '" + lastArg + "'");
-        HashMap<String, String> pairs = new HashMap<String, String>();
-        for (int i = 1; i < args.length - 1; i++) {
-            String [] pair = args[i].split("=");
-            if (pair.length != 2) {
-                return;
-            }
-            pairs.put(pair[0], pair[1]);
-        }
-        String [] pair = lastArg.split("=");
-        if (pair.length != 2) {
-            return;
-        }
-        pairs.put(pair[0], pair[1]);
-
-        // Now check the arguments
-        for (String name: pairs.keySet()) {
-            String value = pairs.get(name);
-
-            // System.err.println("name='" + name + "' value='" + value + "'");
-
-            if (name.equals("size")) {
-                try {
-                    size = Integer.parseInt(value);
-                    gotSize = true;
-                } catch (NumberFormatException e) {
-                    // SQUASH
-                }
-            }
-            if (name.equals("inline") && value.equals("1")) {
-                sawInline = true;
-            }
-            if (name.equals("width")) {
-                iTerm2Width = value;
-            }
-            if (name.equals("height")) {
-                iTerm2Height = value;
-            }
-            if (name.equals("preserveAspectRatio") && value.equals("1")) {
-                preserveAspectRatio = true;
-            }
-            if (name.equals("doNotMoveCursor") && value.equals("1")) {
-                doNotMoveCursor = true;
-            }
-        }
-        if (!sawInline) {
-            return;
-        }
-        if (gotSize) {
-            if ((size < 1) || (size > 16777216)) {
-                return;
-            }
-        }
-
-        // We have the options and image data, and it will be displayed.  Now
-        // try to decode it into a bitmap.  We go blindly into the night as
-        // far as image format is concerned.
-        BufferedImage image = null;
-        byte [] bytes = StringUtils.fromBase64(data.getBytes());
-        if (bytes == null) {
-            return;
-        }
-        try {
-            image = ImageIO.read(new ByteArrayInputStream(bytes));
-        } catch (IOException e) {
-            // SQUASH
-            return;
-        }
-        assert (image != null);
-        int fileImageWidth = image.getWidth();
-        int fileImageHeight = image.getHeight();
-        if ((fileImageWidth < 1)
-            || (fileImageWidth > 10000)
-            || (fileImageHeight < 1)
-            || (fileImageHeight > 10000)
-        ) {
-            return;
-        }
-        if (maybeTransparent) {
-            if (image.getTransparency() == java.awt.Transparency.OPAQUE) {
-                maybeTransparent = false;
-            }
-        }
-
-        // Scale the image according to the width/height arguments.
-        int displayWidth = fileImageWidth;
-        int displayHeight = fileImageHeight;
-        try {
-            if (iTerm2Width.equals("auto")) {
-                // NOP
-            } else if (iTerm2Width.endsWith("%")) {
-                // Percent of screen
-                iTerm2Width = iTerm2Width.substring(0, iTerm2Width.length() - 1);
-                int n = Integer.parseInt(iTerm2Width);
-                if ((n < 0) || (n > 100)) {
-                    return;
-                }
-                displayWidth = (n * textWidth * width) / 100;
-            } else if (iTerm2Width.endsWith("px")) {
-                // Pixels
-                iTerm2Width = iTerm2Width.substring(0, iTerm2Width.length() - 2);
-                int n = Integer.parseInt(iTerm2Width);
-                if (n < 0) {
-                    return;
-                }
-                displayWidth = n;
-            } else {
-                // Number of text cells
-                int n = Integer.parseInt(iTerm2Width);
-                if (n < 0) {
-                    return;
-                }
-                displayWidth = n * textWidth;
-            }
-            // Truncate images to fit the screen.
-            displayWidth = Math.min(width * textWidth, displayWidth);
-
-            if (iTerm2Height.equals("auto")) {
-                // NOP
-            } else if (iTerm2Height.endsWith("%")) {
-                // Percent of screen
-                iTerm2Height = iTerm2Height.substring(0, iTerm2Height.length() - 1);
-                int n = Integer.parseInt(iTerm2Height);
-                if ((n < 0) || (n > 100)) {
-                    return;
-                }
-                displayHeight = (n * textHeight * height) / 100;
-            } else if (iTerm2Height.endsWith("px")) {
-                // Pixels
-                iTerm2Height = iTerm2Height.substring(0, iTerm2Height.length() - 2);
-                int n = Integer.parseInt(iTerm2Height);
-                if (n < 0) {
-                    return;
-                }
-                displayHeight = n;
-            } else {
-                // Number of text cells
-                int n = Integer.parseInt(iTerm2Height);
-                if (n < 0) {
-                    return;
-                }
-                displayHeight = n * textHeight;
-            }
-        } catch (NumberFormatException e) {
-            // Invalid number, done.
-            return;
-        }
-
-        /*
-        System.err.println("File dims " + fileImageWidth + "x" +
-            fileImageHeight +
-            "Disp dims " + displayWidth + "x" + displayHeight);
-        */
-
-        if (doNotMoveCursor) {
-            // Truncate image height to fit the screen.
-            displayHeight = Math.min(height * textHeight, displayHeight);
-        }
-
-        if (preserveAspectRatio
-            && ((displayWidth != fileImageWidth)
-                || (displayHeight != fileImageHeight))
-        ) {
-            // Scale the image to fit the requested dimensions.
-            image = ImageUtils.scaleImage(image, displayWidth, displayHeight,
-                ImageUtils.Scale.SCALE,
-                backend.attrToBackgroundColor(currentState.attr));
-        } else if ((displayWidth != fileImageWidth)
-            || (displayHeight != fileImageHeight)
-        ) {
-            // Scale the image to fit the requested dimensions.
-            image = ImageUtils.scaleImage(image, displayWidth, displayHeight,
-                ImageUtils.Scale.STRETCH,
-                backend.attrToBackgroundColor(currentState.attr));
-        }
-
-        imageToCells(image, !doNotMoveCursor, maybeTransparent);
-    }
-
-    /**
-     * Break up an image into the cells at the current cursor.
-     *
-     * @param image the image to display
-     * @param scroll if true, scroll the image and move the cursor
-     * @param maybeTransparent if true, this image format might have
-     * transparency
-     */
-    private void imageToCells(BufferedImage image, final boolean scroll,
-        final boolean maybeTransparent) {
-
-        assert (image != null);
-
-        screenIsDirty = true;
-
-        /*
-         * Procedure:
-         *
-         * Break up the image into text cell sized pieces as a new array of
-         * Cells.
-         *
-         * Note original column position x0.
-         *
-         * For each cell:
-         *
-         * 1. Advance (printCharacter(' ')) for horizontal increment, or
-         *    index (linefeed() + cursorPosition(y, x0)) for vertical
-         *    increment.
-         *
-         * 2. Set (x, y) cell image data.
-         *
-         * 3. For the right and bottom edges (not yet done):
-         *
-         *   a. Render the text to pixels using Terminus font.
-         *
-         *   b. Blit the image on top of the text, using alpha channel.
-         */
-
-        // If the backend supports transparent images, then we will not
-        // draw the black underneath the cells.
-        boolean transparent = false;
-
-        if ((backend != null) && backend.isImagesOverText()) {
-            transparent = true;
-        }
-
-        int cellColumns = image.getWidth() / textWidth;
-        while (cellColumns * textWidth < image.getWidth()) {
-            cellColumns++;
-        }
-        int cellRows = image.getHeight() / textHeight;
-        while (cellRows * textHeight < image.getHeight()) {
-            cellRows++;
-        }
-
-        // See the comment in parseSixel().  The partially-transparent cell
-        // will be rendered over a black background below inside the loop.
-        if (false && !transparent && maybeTransparent) {
-            // Re-render the image against a black background, so that alpha
-            // in the image does not lead to bleed-through artifacts.
-            BufferedImage newImage;
-            newImage = new BufferedImage(cellColumns * textWidth,
-                cellRows * textHeight, BufferedImage.TYPE_INT_ARGB);
-
-            java.awt.Graphics gr = newImage.getGraphics();
-            gr.setColor(java.awt.Color.BLACK);
-            gr.fillRect(0, 0, newImage.getWidth(), newImage.getHeight());
-            gr.drawImage(image, 0, 0, null, null);
-            gr.dispose();
-            image = newImage;
-        }
-
-        // Break the image up into an array of cells.
-        int imageId = System.identityHashCode(this);
-        imageId ^= (int) System.currentTimeMillis();
-        ComplexCell [][] cells = new ComplexCell[cellColumns][cellRows];
-        for (int x = 0; x < cellColumns; x++) {
-            for (int y = 0; y < cellRows; y++) {
-                int width = textWidth;
-                if ((x + 1) * textWidth > image.getWidth()) {
-                    width = image.getWidth() - (x * textWidth);
-                }
-                int height = textHeight;
-                if ((y + 1) * textHeight > image.getHeight()) {
-                    height = image.getHeight() - (y * textHeight);
-                }
-
-                // I'm genuinely not sure if making many small cells with
-                // array copy is better than lots of subImages.  Memory
-                // pressure is killing it at high animation rates.  For now,
-                // we will ALWAYS make a copy.
-                ComplexCell cell = new ComplexCell(currentState.attr);
-
-                BufferedImage imageSlice = image.getSubimage(x * textWidth,
-                    y * textHeight, width, height);
-
-                if (ImageUtils.isFullyTransparent(imageSlice)) {
-                    // There is nothing more to do, this entire image is
-                    // empty.
-
-                    // NOP
-                } else {
-                    BufferedImage newImage;
-                    newImage = new BufferedImage(textWidth, textHeight,
-                        BufferedImage.TYPE_INT_ARGB);
-                    java.awt.Graphics gr = newImage.getGraphics();
-                    if (!transparent) {
-                        gr.setColor(java.awt.Color.BLACK);
-                    } else {
-                        gr.setColor(backend.attrToBackgroundColor(currentState.attr));
-                    }
-                    gr.fillRect(0, 0, newImage.getWidth(),
-                        newImage.getHeight());
-
-                    gr.drawImage(imageSlice, 0, 0, null, null);
-                    gr.dispose();
-
-                    imageId++;
-                    cell.setImage(newImage, imageId & 0x7FFFFFFF);
-
-                    if (maybeTransparent) {
-                        // Check now if this cell has transparent pixels.
-                        // This will slow down the reader thread but unload
-                        // the render thread.
-                        //
-                        // Truth is performance is going to be bad for a
-                        // while...
-                        cell.isTransparentImage();
-                    } else {
-                        // We support transparency, but this image doesn't
-                        // have any transparent pixels.  Force the cell to
-                        // never check transparency.
-                        cell.setOpaqueImage();
-                    }
-                }
-                cells[x][y] = cell;
-            }
-        }
-
-        int x0 = currentState.cursorX;
-        int y0 = currentState.cursorY;
-        for (int y = 0; y < cellRows; y++) {
-            DisplayLine line = display.get(currentState.cursorY);
-            BufferedImage newImage;
-
-            for (int x = 0; x < cellColumns; x++) {
-                assert (currentState.cursorX <= rightMargin);
-
-                // Keep the character data from the old cell, putting the
-                // image data over it.
-                ComplexCell oldCell = line.charAt(currentState.cursorX);
-                cells[x][y].setCodePoints(oldCell.getCodePoints());
-                cells[x][y].setAttr(oldCell, true);
-                if (transparent && maybeTransparent
-                    && cells[x][y].isTransparentImage()
-                ) {
-                    if (oldCell.isImage()) {
-                        // Blit the old cell image underneath this cell's
-                        // image.
-                        newImage = new BufferedImage(textWidth,
-                            textHeight, BufferedImage.TYPE_INT_ARGB);
-
-                        java.awt.Graphics gr = newImage.getGraphics();
-                        gr.setColor(java.awt.Color.BLACK);
-                        gr.drawImage(oldCell.getImage(), 0, 0, null, null);
-                        gr.drawImage(cells[x][y].getImage(), 0, 0, null, null);
-                        gr.dispose();
-                        cells[x][y].setImage(newImage);
-                        cells[x][y].isTransparentImage();
-                    }
-                }
-                if (cells[x][y].isImage()) {
-                    line.replace(currentState.cursorX, cells[x][y]);
-                }
-
-                // If at the end of the visible screen, stop.
-                if (currentState.cursorX == rightMargin) {
-                    break;
-                }
-                // Room for more image on the visible screen.
-                currentState.cursorX++;
-            }
-
-            if (currentState.cursorY < scrollRegionBottom) {
-                // Not at the bottom, down a line.
-                linefeed();
-            } else if ((scroll == true) && (y < cellRows - 1)) {
-                assert (currentState.cursorY == scrollRegionBottom);
-
-                // At the bottom, scroll as needed.
-                linefeed();
-            } else {
-                // At the bottom, no more scrolling, done.
-                break;
-            }
-
-            cursorPosition(currentState.cursorY, x0);
-
-        } // for (int y = 0; y < cellRows; y++)
-
-        if (scroll == false) {
-            cursorPosition(y0, x0);
-        }
-
     }
 
 }
