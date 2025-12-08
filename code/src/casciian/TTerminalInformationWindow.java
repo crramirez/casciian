@@ -59,7 +59,7 @@ public class TTerminalInformationWindow extends TWindow {
     public TTerminalInformationWindow(final TApplication application) {
 
         // Register with the TApplication
-        super(application, "", 0, 0, 70, 18, MODAL);
+        super(application, "", 0, 0, 70, 17, MODAL);
         i18n = ResourceBundle.getBundle(TTerminalInformationWindow.class.getName(),
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -107,14 +107,6 @@ public class TTerminalInformationWindow extends TWindow {
         copyText += label.getLabel() + " ";
         label = addLabel(String.format("%d x %d", getScreen().getWidth(),
                 getScreen().getHeight()), infoColumn, row, "ttext", false);
-        copyText += label.getLabel() + "\n";
-        row++;
-
-        label = addLabel(i18n.getString("cellPixelSize"), labelColumn, row);
-        copyText += label.getLabel() + " ";
-        label = addLabel(String.format("%d x %d",
-                getScreen().getTextWidth(),
-                getScreen().getTextHeight()), infoColumn, row, "ttext", false);
         copyText += label.getLabel() + "\n";
         row++;
 

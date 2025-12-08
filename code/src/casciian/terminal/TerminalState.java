@@ -77,11 +77,6 @@ public class TerminalState {
     private boolean hideMousePointer;
 
     /**
-     * If true, single-pixel mouse movements are being reported.
-     */
-    private boolean pixelMouse;
-
-    /**
      * The mouse protocol, one of MouseProtocol.OFF, MouseProtocol.X10, etc.
      */
     private ECMA48.MouseProtocol mouseProtocol;
@@ -126,8 +121,6 @@ public class TerminalState {
      * @param cursorY current cursor Y
      * @param hideMousePointer if true, the terminal has requested the mouse
      * pointer be hidden
-     * @param pixelMouse if true, single-pixel mouse movements are being
-     * reported
      * @param mouseProtocol the mouse protocol, one of MouseProtocol.OFF,
      * MouseProtocol.X10, etc.
      * @param screenTitle the screen title as set by the xterm OSC sequence
@@ -142,8 +135,8 @@ public class TerminalState {
         final List<DisplayLine> scrollbackBuffer,
         final List<DisplayLine> displayBuffer, final boolean cursorVisible,
         final int cursorX, final int cursorY, final boolean hideMousePointer,
-        final boolean pixelMouse, final ECMA48.MouseProtocol mouseProtocol,
-        final String screenTitle, final boolean withinSynchronizedUpdate,
+        final ECMA48.MouseProtocol mouseProtocol, final String screenTitle,
+        final boolean withinSynchronizedUpdate,
         final List<DisplayLine> lastVisibleDisplay,
         final long lastVisibleUpdateTime) {
 
@@ -156,7 +149,6 @@ public class TerminalState {
         this.cursorX          = cursorX;
         this.cursorY          = cursorY;
         this.hideMousePointer = hideMousePointer;
-        this.pixelMouse       = pixelMouse;
         this.mouseProtocol    = mouseProtocol;
         this.screenTitle      = screenTitle;
         this.withinSynchronizedUpdate = withinSynchronizedUpdate;
@@ -314,15 +306,6 @@ public class TerminalState {
      */
     public boolean hasHiddenMousePointer() {
         return hideMousePointer;
-    }
-
-    /**
-     * Check if terminal is reporting pixel-based mouse position.
-     *
-     * @return true if single-pixel mouse movements are reported
-     */
-    public boolean isPixelMouse() {
-        return pixelMouse;
     }
 
     /**

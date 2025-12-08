@@ -79,13 +79,6 @@ public class TApplication implements Runnable {
     // ------------------------------------------------------------------------
 
     /**
-     * If true, do not confirm on exit, and leave the terminal in its final
-     * state (do not restore the console).  This is used for generating
-     * captures to test terminals that advertise images support.
-     */
-    public static final boolean imageSupportTest = false;
-
-    /**
      * If true, emit thread stuff to System.err.
      */
     private static final boolean debugThreads = false;
@@ -735,13 +728,6 @@ public class TApplication implements Runnable {
         final int windowHeight, final int fontSize)
         throws UnsupportedEncodingException {
 
-        if (imageSupportTest) {
-            backend = new ECMA48Backend(this, null, null, windowWidth,
-                windowHeight, fontSize);
-            TApplicationImpl();
-            return;
-        }
-
         switch (backendType) {
         case SWING:
             backend = new SwingBackend(this, windowWidth, windowHeight,
@@ -771,12 +757,6 @@ public class TApplication implements Runnable {
     @SuppressWarnings("this-escape")
     public TApplication(final BackendType backendType)
         throws UnsupportedEncodingException {
-
-        if (imageSupportTest) {
-            backend = new ECMA48Backend(this, null, null);
-            TApplicationImpl();
-            return;
-        }
 
         switch (backendType) {
         case SWING:
@@ -1114,11 +1094,6 @@ public class TApplication implements Runnable {
     protected boolean onCommand(final TCommandEvent command) {
         // Default: handle cmExit
         if (command.equals(cmExit)) {
-            if (imageSupportTest) {
-                exit();
-                return true;
-            }
-
             if (messageBox(i18n.getString("exitDialogTitle"),
                     i18n.getString("exitDialogText"),
                     TMessageBox.Type.YESNO).isYes()) {
@@ -1204,11 +1179,6 @@ public class TApplication implements Runnable {
 
         // Default: handle MID_EXIT
         if (menu.getId() == TMenu.MID_EXIT) {
-            if (imageSupportTest) {
-                exit();
-                return true;
-            }
-
             if (messageBox(i18n.getString("exitDialogTitle"),
                     i18n.getString("exitDialogText"),
                     TMessageBox.Type.YESNO).isYes()) {
@@ -2566,21 +2536,15 @@ public class TApplication implements Runnable {
          * Use pixel-level mouse events if the active widget or window has
          * requested it.
          */
-        boolean pixelMouse = false;
         String mouseStyle = System.getProperty("casciian.Swing.mouseStyle",
             "default");
 
         TWidget activeWidget = getWidgetUnderMouse(mouse);
         if (activeWidget == null) {
             // Reset to default.
-            backend.setPixelMouse(pixelMouse);
             backend.setMouseStyle(mouseStyle);
             return;
         }
-        if (activeWidget.isPixelMouse()) {
-            pixelMouse = true;
-        }
-        backend.setPixelMouse(pixelMouse);
         backend.setMouseStyle(mouseStyle);
     }
 
@@ -2596,12 +2560,6 @@ public class TApplication implements Runnable {
      */
     protected void onPreDraw() {
         // Default does nothing
-
-        if (imageSupportTest) {
-            menuTrayText = String.format("%d x %d cells, %d x %d cell size",
-                getScreen().getWidth(), getScreen().getHeight(),
-                getScreen().getTextWidth(), getScreen().getTextHeight());
-        }
     }
 
     /**
@@ -2735,30 +2693,9 @@ public class TApplication implements Runnable {
                         System.currentTimeMillis(), Thread.currentThread(),
                         oldDrawnMouseX, oldDrawnMouseY);
                 }
-                oldDrawnMouseCell.restoreImage();
                 getScreen().putCharXY(oldDrawnMouseX, oldDrawnMouseY,
                     oldDrawnMouseCell);
                 oldDrawnMouseCell = getScreen().getCharXY(mouseX, mouseY);
-                if (backend instanceof ECMA48Backend) {
-                    // Special case: the entire row containing the mouse has
-                    // to be re-drawn if it has any image data, AND any rows
-                    // in between.
-                    if (oldDrawnMouseY != mouseY) {
-                        for (int i = oldDrawnMouseY; ;) {
-                            getScreen().unsetImageRow(i);
-                            if (i == mouseY) {
-                                break;
-                            }
-                            if (oldDrawnMouseY < mouseY) {
-                                i++;
-                            } else {
-                                i--;
-                            }
-                        }
-                    } else {
-                        getScreen().unsetImageRow(mouseY);
-                    }
-                }
 
                 if (inScreenSelection) {
                     getScreen().setSelection(screenSelectionX0,
@@ -2932,25 +2869,6 @@ public class TApplication implements Runnable {
                 oldDrawnMouseX, oldDrawnMouseY);
         }
         oldDrawnMouseCell = getScreen().getCharXY(mouseX, mouseY);
-        if (backend instanceof ECMA48Backend) {
-            // Special case: the entire row containing the mouse has to be
-            // re-drawn if it has any image data, AND any rows in between.
-            if (oldDrawnMouseY != mouseY) {
-                for (int i = oldDrawnMouseY; ;) {
-                    getScreen().unsetImageRow(i);
-                    if (i == mouseY) {
-                        break;
-                    }
-                    if (oldDrawnMouseY < mouseY) {
-                        i++;
-                    } else {
-                        i--;
-                    }
-                }
-            } else {
-                getScreen().unsetImageRow(mouseY);
-            }
-        }
 
         if (inScreenSelection) {
             getScreen().setSelection(screenSelectionX0, screenSelectionY0,

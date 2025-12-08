@@ -404,14 +404,13 @@ public class LogicalScreen implements Screen {
         }
 
         if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
-            logical[X][Y].setAttr(attr, true);
+            logical[X][Y].setAttr(attr);
 
             // If this happens to be the cursor position, make the position
             // dirty.
             if ((cursorX == X) && (cursorY == Y)) {
                 synchronized (this) {
                     physical[cursorX][cursorY].unset();
-                    unsetImageRow(cursorY);
                 }
             }
         }
@@ -487,7 +486,6 @@ public class LogicalScreen implements Screen {
             if ((cursorX == X) && (cursorY == Y)) {
                 synchronized (this) {
                     physical[cursorX][cursorY].unset();
-                    unsetImageRow(cursorY);
                 }
             }
         }
@@ -572,7 +570,7 @@ public class LogicalScreen implements Screen {
             return;
         }
 
-        if ((ch.getDisplayWidth() == 2) && (!ch.isImage()) && !direct) {
+        if ((ch.getDisplayWidth() == 2) && !direct) {
             if (ch instanceof ComplexCell) {
                 putFullwidthCharXY(x, y, (ComplexCell) ch);
             } else {
@@ -589,10 +587,8 @@ public class LogicalScreen implements Screen {
         if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
 
             // Do not put control characters on the display
-            if (!ch.isImage()) {
-                assert (ch.getChar() >= 0x20);
-                assert (ch.getChar() != 0x7F);
-            }
+            assert (ch.getChar() >= 0x20);
+            assert (ch.getChar() != 0x7F);
             logical[X][Y].setTo(ch);
 
             // If this happens to be the cursor position, make the position
@@ -600,7 +596,6 @@ public class LogicalScreen implements Screen {
             if ((cursorX == X) && (cursorY == Y)) {
                 synchronized (this) {
                     physical[cursorX][cursorY].unset();
-                    unsetImageRow(cursorY);
                 }
             }
         }
@@ -649,7 +644,6 @@ public class LogicalScreen implements Screen {
             if ((cursorX == X) && (cursorY == Y)) {
                 synchronized (this) {
                     physical[cursorX][cursorY].unset();
-                    unsetImageRow(cursorY);
                 }
             }
         }
@@ -689,7 +683,6 @@ public class LogicalScreen implements Screen {
             if ((cursorX == X) && (cursorY == Y)) {
                 synchronized (this) {
                     physical[cursorX][cursorY].unset();
-                    unsetImageRow(cursorY);
                 }
             }
         }
@@ -1093,14 +1086,14 @@ public class LogicalScreen implements Screen {
         for (int i = 0; i < boxHeight; i++) {
             Cell cell = getCharXY(offsetX + boxLeft + boxWidth,
                 offsetY + boxTop + 1 + i);
-            if ((cell.getWidth() == Cell.Width.SINGLE) && (!cell.isImage())) {
+            if (cell.getWidth() == Cell.Width.SINGLE) {
                 putAttrXY(boxLeft + boxWidth, boxTop + 1 + i, shadowAttr);
             } else {
                 putCharXY(boxLeft + boxWidth, boxTop + 1 + i, ' ', shadowAttr);
             }
             cell = getCharXY(offsetX + boxLeft + boxWidth + 1,
                 offsetY + boxTop + 1 + i);
-            if ((cell.getWidth() == Cell.Width.SINGLE) && (!cell.isImage())) {
+            if (cell.getWidth() == Cell.Width.SINGLE) {
                 putAttrXY(boxLeft + boxWidth + 1, boxTop + 1 + i, shadowAttr);
             } else {
                 putCharXY(boxLeft + boxWidth + 1, boxTop + 1 + i, ' ',
@@ -1110,7 +1103,7 @@ public class LogicalScreen implements Screen {
         for (int i = 0; i < boxWidth; i++) {
             Cell cell = getCharXY(offsetX + boxLeft + 2 + i,
                 offsetY + boxTop + boxHeight);
-            if ((cell.getWidth() == Cell.Width.SINGLE) && (!cell.isImage())) {
+            if (cell.getWidth() == Cell.Width.SINGLE) {
                 putAttrXY(boxLeft + 2 + i, boxTop + boxHeight, shadowAttr);
             } else {
                 putCharXY(boxLeft + 2 + i, boxTop + boxHeight, ' ', shadowAttr);
@@ -1141,7 +1134,6 @@ public class LogicalScreen implements Screen {
             // Make the current cursor position dirty
             synchronized (this) {
                 physical[cursorX][cursorY].unset();
-                unsetImageRow(cursorY);
             }
         }
 
@@ -1251,23 +1243,6 @@ public class LogicalScreen implements Screen {
     }
 
     /**
-     * Unset every image cell on one row of the physical screen, forcing
-     * images on that row to be redrawn.
-     *
-     * @param y row coordinate.  0 is the top-most row.
-     */
-    public final void unsetImageRow(final int y) {
-        if ((y < 0) || (y >= height)) {
-            return;
-        }
-        for (int x = 0; x < width; x++) {
-            if (logical[x][y].isImage()) {
-                physical[x][y].unset();
-            }
-        }
-    }
-
-    /**
      * Render one fullwidth cell.
      *
      * @param x column coordinate.  0 is the left-most column.
@@ -1339,9 +1314,6 @@ public class LogicalScreen implements Screen {
         final boolean onlyThisCell) {
 
         Cell cell = getCharXY(x, y);
-        if (cell.isImage()) {
-            cell.invertImage();
-        }
         if (cell.getForeColorRGB() < 0) {
             cell.setForeColor(cell.getForeColor().invert());
         } else {
@@ -1821,69 +1793,36 @@ public class LogicalScreen implements Screen {
                     thisCell.setBackColorRGB(thisBg | OPAQUE);
                     thisCell.setForeColorRGB(thisFg | OPAQUE);
 
-                    if (!overCell.isImage() && overCell.isSpaceChar()
-                        && !overCell.isUnderline()
-                    ) {
+                    if (overCell.isSpaceChar() && !overCell.isUnderline()) {
                         // The overlaying cell is invisible.
 
-                        if (thisCell.isImage()) {
-                            // Our image will show through.  We need to blend
-                            // otherBg at alpha < 255 over this image.
-                            ComplexCell thisCopy = new ComplexCell(thisCell);
-                            thisCopy.flattenImage(false, backend);
-                            BufferedImage image = thisCopy.getImage();
-                            BufferedImage newImage;
-                            newImage = new BufferedImage(image.getWidth(),
-                                image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-                            g2d = newImage.createGraphics();
-                            g2d.drawImage(image, 0, 0, null);
+                        // Our character will show through.  If the contrast
+                        // between our foreground and background is small,
+                        // then drop the character.
+                        if (ImageUtils.rgbDistance(thisFg, thisBg) < 5) {
+                            thisCell.setChar(' ');
+                            thisCell.setWidth(Cell.Width.SINGLE);
+                        }
 
-                            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
-                                    fAlpha));
-                            g2d.setColor(new java.awt.Color(overBg));
-                            g2d.fillRect(0, 0, image.getWidth(),
-                                image.getHeight());
-                            g2d.dispose();
-                            // Retain imageId mixed with overBg
-                            int imageId = thisCell.getImageId();
-                            if (imageId > 0) {
-                                thisCell.setImage(newImage, imageId);
-                                thisCell.mixImageId(overBg);
-                                thisCell.mixImageId(alpha);
-                            } else {
-                                thisCell.setImage(newImage);
-                            }
-                            thisCell.setOpaqueImage();
-                        } else {
-                            // Our character will show through.  If the
-                            // contrast between our foreground and background
-                            // is small, then drop the character.
-                            if (ImageUtils.rgbDistance(thisFg, thisBg) < 5) {
-                                thisCell.setChar(' ');
-                                thisCell.setWidth(Cell.Width.SINGLE);
-                            }
-
-                            if (filterHatch) {
-                                // Special case: the hatch characters are not
-                                // allowed to show through.
-                                if (thisCell.isCodePoint(0x2591)
-                                    || thisCell.isCodePoint(0x2592)
-                                    || thisCell.isCodePoint(0x2593)
-                                ) {
-                                    thisCell.setChar(' ');
-                                    thisCell.setWidth(Cell.Width.SINGLE);
-                                }
-                            }
-                            if (cursorVisible &&
-                                (col == cursorX) &&
-                                (row == cursorY)
+                        if (filterHatch) {
+                            // Special case: the hatch characters are not
+                            // allowed to show through.
+                            if (thisCell.isCodePoint(0x2591)
+                                || thisCell.isCodePoint(0x2592)
+                                || thisCell.isCodePoint(0x2593)
                             ) {
-                                // Don't surface the character behind the
-                                // cursor.
-                                thisCell.setForeColorRGB(overFg);
                                 thisCell.setChar(' ');
                                 thisCell.setWidth(Cell.Width.SINGLE);
                             }
+                        }
+                        if (cursorVisible &&
+                            (col == cursorX) &&
+                            (row == cursorY)
+                        ) {
+                            // Don't surface the character behind the cursor.
+                            thisCell.setForeColorRGB(overFg);
+                            thisCell.setChar(' ');
+                            thisCell.setWidth(Cell.Width.SINGLE);
                         }
                         continue;
                     }
@@ -1898,164 +1837,6 @@ public class LogicalScreen implements Screen {
                     thisCell.setAnimations(overCell.getAnimations());
                     thisCell.setPulse(false, false, 0);
                     thisCell.setWidth(overCell.getWidth());
-
-                    if (!overCell.isImage()) {
-                        // If we had an image, destroy it.  Text ALWAYS
-                        // overwrites images.
-                        thisCell.setImage(null);
-                        thisCell.setWidth(overCell.getWidth());
-                        continue;
-                    }
-
-                    if (!thisCell.isImage()
-                        && overCell.isImage()
-                        && !overCell.isTransparentImage()
-                    ) {
-                        // The image from the new cell will fully cover this
-                        // cell's background or glyph.
-
-                        // We need to blit overCell's image over thisOldBg at
-                        // alpha < 255.
-                        ComplexCell overCopy = new ComplexCell(overCell);
-                        overCopy.flattenImage(false, backend);
-                        BufferedImage image = overCopy.getImage();
-                        BufferedImage newImage;
-                        newImage = new BufferedImage(image.getWidth(),
-                            image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-                        g2d = newImage.createGraphics();
-                        g2d.setColor(new java.awt.Color(thisOldBg));
-                        g2d.fillRect(0, 0, image.getWidth(), image.getHeight());
-                        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
-                                fAlpha));
-                        g2d.drawImage(image, 0, 0, null);
-                        g2d.dispose();
-                        // Retain overCell.imageId with thisOldBg and set
-                        int imageId = overCell.getImageId();
-                        if (imageId > 0) {
-                            thisCell.setImage(newImage, imageId);
-                            thisCell.mixImageId(thisOldBg);
-                            thisCell.mixImageId(alpha);
-                        } else {
-                            thisCell.setImage(newImage);
-                        }
-                        thisCell.setOpaqueImage();
-                        thisCell.setWidth(overCell.getWidth());
-                        continue;
-                    }
-
-                    if (thisCell.isImage()
-                        && overCell.isImage()
-                        && !overCell.isTransparentImage()
-                    ) {
-                        // The image from the new cell will fully cover this
-                        // cell's image.
-
-                        // We need to blit overCell's image over this image
-                        // at alpha < 255.
-                        ComplexCell overCopy = new ComplexCell(overCell);
-                        overCopy.flattenImage(false, backend);
-                        BufferedImage image = overCopy.getImage();
-                        BufferedImage newImage;
-                        newImage = new BufferedImage(image.getWidth(),
-                            image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-                        g2d = newImage.createGraphics();
-                        ComplexCell thisCopy = new ComplexCell(thisCell);
-                        thisCopy.flattenImage(false, backend);
-                        g2d.drawImage(thisCopy.getImage(), 0, 0, null);
-                        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
-                                fAlpha));
-                        g2d.drawImage(image, 0, 0, null);
-                        g2d.dispose();
-                        // Retain overCell.imageId with thisCell.imageId
-                        int imageId = thisCell.getImageId();
-                        if (imageId > 0) {
-                            thisCell.setImage(newImage, imageId);
-                            thisCell.mixImageId(overCell);
-                            thisCell.mixImageId(alpha);
-                        } else {
-                            thisCell.setImage(newImage);
-                        }
-                        thisCell.setOpaqueImage();
-                        thisCell.setWidth(overCell.getWidth());
-                        continue;
-                    }
-
-                    if (thisCell.isImage()
-                        && overCell.isImage()
-                        && overCell.isTransparentImage()
-                    ) {
-                        // We need to blit overCell's image over a rectangle
-                        // of otherBg at alpha = 255, and then blit that over
-                        // thisCell's image at alpha < 255.
-
-                        ComplexCell overCopy = new ComplexCell(overCell);
-                        overCopy.flattenImage(false, backend);
-                        BufferedImage image = overCopy.getImage();
-                        BufferedImage newImage;
-                        newImage = new BufferedImage(image.getWidth(),
-                            image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-                        g2d = newImage.createGraphics();
-                        g2d.drawImage(thisCell.getImage(), 0, 0, null);
-                        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
-                                fAlpha));
-                        g2d.drawImage(image, 0, 0, null);
-                        g2d.dispose();
-                        // Retain overCell.imageId with overBg, then
-                        // thisCell.imageId
-                        int imageId = thisCell.getImageId();
-                        if (imageId > 0) {
-                            thisCell.setImage(newImage, imageId);
-                            thisCell.mixImageId(overCell);
-                            thisCell.mixImageId(overBg);
-                            thisCell.mixImageId(alpha);
-                        } else {
-                            thisCell.setImage(newImage);
-                        }
-                        thisCell.setOpaqueImage();
-                        thisCell.setWidth(overCell.getWidth());
-                        continue;
-                    }
-
-                    if (!thisCell.isImage()
-                        && overCell.isImage()
-                        && overCell.isTransparentImage()
-                    ) {
-                        // We need to blit overCell's image over a rectangle
-                        // of overBg at alpha = 255, and blit that over
-                        // thisOldBg at alpha < 255.
-
-                        ComplexCell overCopy = new ComplexCell(overCell);
-                        overCopy.flattenImage(false, backend);
-                        BufferedImage image = overCopy.getImage();
-                        BufferedImage newImage;
-                        newImage = new BufferedImage(image.getWidth(),
-                            image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-                        g2d = newImage.createGraphics();
-                        g2d.setColor(new java.awt.Color(thisOldBg));
-                        g2d.fillRect(0, 0, image.getWidth(), image.getHeight());
-                        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
-                                fAlpha));
-                        g2d.drawImage(image, 0, 0, null);
-                        g2d.dispose();
-                        // Retain overCell.imageId with overBg, then
-                        // thisOldBg, then set
-                        int imageId = overCell.getImageId();
-                        if (imageId > 0) {
-                            thisCell.setImage(newImage, imageId);
-                            thisCell.mixImageId(overBg);
-                            thisCell.mixImageId(thisOldBg);
-                            thisCell.mixImageId(alpha);
-                        } else {
-                            thisCell.setImage(newImage);
-                        }
-                        thisCell.setOpaqueImage();
-                        thisCell.setWidth(overCell.getWidth());
-                        continue;
-                    }
-
-                    // There should be nothing to do now.  We have set the
-                    // character, or set the image, and blended backgrounds
-                    // for each case.
                 }
             }
         }

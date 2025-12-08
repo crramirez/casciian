@@ -417,12 +417,6 @@ public class TTerminal extends TScrollable
                     emulator.writeRemote("\033[8;" + getHeight() + ";" +
                         getWidth() + "t");
                 }
-
-                // Pass the correct text cell width/height to the emulator
-                if (getScreen() != null) {
-                    emulator.setTextWidth(getScreen().getTextWidth());
-                    emulator.setTextHeight(getScreen().getTextHeight());
-                }
             }
             return;
 
@@ -629,12 +623,6 @@ public class TTerminal extends TScrollable
             }
             for (int i = 0; i < widthMax; i++) {
                 ComplexCell ch = line.charAt(i);
-
-                if (ch.isImage()) {
-                    putCharXY(i, row, ch);
-                    continue;
-                }
-
                 ComplexCell newCell = new ComplexCell(ch);
                 boolean reverse = line.isReverseColor() ^ ch.isReverse();
                 newCell.setReverse(false);
@@ -799,19 +787,6 @@ public class TTerminal extends TScrollable
                 setMouseStyle("text");
             }
             return hiddenMouse;
-        }
-        return false;
-    }
-
-    /**
-     * Check if per-pixel mouse events are requested.
-     *
-     * @return true if per-pixel mouse events are requested
-     */
-    @Override
-    public boolean isPixelMouse() {
-        if (terminalState != null) {
-            return terminalState.isPixelMouse();
         }
         return false;
     }

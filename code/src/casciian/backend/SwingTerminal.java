@@ -388,11 +388,6 @@ public class SwingTerminal extends LogicalScreen
     private boolean imagesOverText = true;
 
     /**
-     * If true, report mouse events per-pixel rather than per-text-cell.
-     */
-    private boolean pixelMouse = false;
-
-    /**
      * If true, this terminal has the mouse/keyboard focus.
      */
     private boolean hasFocus = false;
@@ -1539,38 +1534,6 @@ public class SwingTerminal extends LogicalScreen
     }
 
     /**
-     * Draw one cell's image to the screen.
-     *
-     * @param gr the Swing Graphics context
-     * @param cell the Cell to draw
-     * @param xPixel the x-coordinate to render to.  0 means the
-     * left-most pixel column.
-     * @param yPixel the y-coordinate to render to.  0 means the top-most
-     * pixel row.
-     */
-    private void drawImage(final Graphics gr, final Cell cell,
-        final int xPixel, final int yPixel) {
-
-        /*
-        System.err.println("drawImage(): " + xPixel + " " + yPixel +
-            " " + cell);
-        */
-
-        assert (cell.isImage());
-
-        BufferedImage image = cell.getImage();
-        assert (image != null);
-
-        if (swing.getFrame() != null) {
-            gr.drawImage(image, xPixel, yPixel, textWidth,
-                textHeight, swing.getFrame());
-        } else {
-            gr.drawImage(image, xPixel, yPixel, textWidth,
-                textHeight, swing.getComponent());
-        }
-    }
-
-    /**
      * Obtain RGB values for a cell.
      *
      * @param a cell to display
@@ -1704,9 +1667,7 @@ public class SwingTerminal extends LogicalScreen
         if ((SwingComponent.tripleBuffer) && (swing.getFrame() != null)) {
             gr2.dispose();
 
-            if (!cell.isImage()) {
-                cacheCell(cell, tempBuffer);
-            }
+            cacheCell(cell, tempBuffer);
 
             if (swing.getFrame() != null) {
                 gr.drawImage(tempBuffer, xPixel, yPixel, swing.getFrame());
@@ -1929,18 +1890,7 @@ public class SwingTerminal extends LogicalScreen
                         || reallyCleared
                         || (swing.getFrame() == null)) {
 
-                        if (lCell.isImage()) {
-                            if (imagesOverText) {
-                                if (lCell.isTransparentImage()) {
-                                    // Draw the glyph underneath the image.
-                                    drawGlyph(tempBuffer, gr, lCell,
-                                        xPixel, yPixel);
-                                }
-                            }
-                            drawImage(gr, lCell, xPixel, yPixel);
-                        } else {
-                            drawGlyph(tempBuffer, gr, lCell, xPixel, yPixel);
-                        }
+                        drawGlyph(tempBuffer, gr, lCell, xPixel, yPixel);
 
                         // Physical is always updated
                         physical[x][y].setTo(lCell);
@@ -2110,35 +2060,6 @@ public class SwingTerminal extends LogicalScreen
      */
     public SwingComponent getSwingComponent() {
         return swing;
-    }
-
-    /**
-     * Check if screen will support incomplete image fragments over text
-     * display.
-     *
-     * @return true if images can partially obscure text
-     */
-    public boolean isImagesOverText() {
-        return imagesOverText;
-    }
-
-    /**
-     * Check if terminal is reporting pixel-based mouse position.
-     *
-     * @return true if single-pixel mouse movements are reported
-     */
-    public boolean isPixelMouse() {
-        return pixelMouse;
-    }
-
-    /**
-     * Set request for terminal to report pixel-based mouse position.
-     *
-     * @param pixelMouse if true, single-pixel mouse movements will be
-     * reported
-     */
-    public void setPixelMouse(final boolean pixelMouse) {
-        this.pixelMouse = pixelMouse;
     }
 
     /**
@@ -2650,7 +2571,7 @@ public class SwingTerminal extends LogicalScreen
         mouse3 = eventMouse3;
         int x = textColumn(mouse.getX());
         int y = textRow(mouse.getY());
-        if ((x == oldMouseX) && (y == oldMouseY) && (pixelMouse == false)) {
+        if ((x == oldMouseX) && (y == oldMouseY)) {
             // Bail out, we've moved some pixels but not a whole text cell.
             return;
         }
@@ -2683,7 +2604,7 @@ public class SwingTerminal extends LogicalScreen
     public void mouseMoved(final MouseEvent mouse) {
         int x = textColumn(mouse.getX());
         int y = textRow(mouse.getY());
-        if ((x == oldMouseX) && (y == oldMouseY) && (pixelMouse == false)) {
+        if ((x == oldMouseX) && (y == oldMouseY)) {
             // Bail out, we've moved some pixels but not a whole text cell.
             return;
         }

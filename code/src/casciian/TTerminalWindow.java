@@ -441,19 +441,6 @@ public class TTerminalWindow extends TScrollableWindow {
     }
 
     /**
-     * Check if per-pixel mouse events are requested.
-     *
-     * @return true if per-pixel mouse events are requested
-     */
-    @Override
-    public boolean isPixelMouse() {
-        if (terminal != null) {
-            return terminal.isPixelMouse();
-        }
-        return false;
-    }
-
-    /**
      * Claim the keystrokes the emulator will need.
      */
     private void addShortcutKeys() {

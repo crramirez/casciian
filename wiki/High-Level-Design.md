@@ -131,7 +131,7 @@ running Casciian inside itself), font chooser, color theme editor, Java
 exception dialog, modal message box, and modal file chooser.  Some
 elements come in both flavors -- as a widget that can be put anywhere,
 and as a window that provides a good out-of-the-box experience: a text
-editor, image viewer, and data table.
+editor, terminal, and data table.
 
 Window Management
 -----------------
@@ -144,86 +144,18 @@ Text Cells
 
 The text cell model is this:
 
-* A Cell can have text AND image data.  The text is one or more
-  codepoints.  The image is a "cell-sized" RGBA bitmap.  When an image
-  is set on a Cell, the hash code for that image is removed, and the
-  flag indicating whether it has transparent pixels is reset to
-  "unknown".
-
-* The internal cell size in pixels for single-head applications is the
-  same as that provided by the terminal.  For multi-head applications,
-  it is a virtual size that is the smallest size in each height/width
-  dimension for all the attached heads.  The result of this is that
-  images can get bigger when scaled to an output screen, but never
-  smaller -- hopefully preventing missing information.
+* A Cell can have text that is one or more codepoints.
 
 * The logical screen is built up on every frame by having every
   widget/window draw in reverse-Z-order (the coordinate space is
   right-handed, so positive Z is away from the user).  Any Cell can
-  cover any other Cell during this.  During this phase the Cell might
-  have an image transparency check: if it does then the result of that
-  is cached.  This puts all the penalty on the first frame: on
-  subsequent frames each widget will "know" which Cells are
-  transparent.
-
-* Currently there are three paths for a partially-transparent image to
-  cover another image: in the "tackboard" which can place arbitrary
-  bitmaps anywhere; in the terminal widget; and when blending
-  translucent windows on the screen.  At these points it blits one
-  image over the other, and handles alpha blending too.  All other
-  paths to generate image data will either set a Cell to text, or an
-  image, but not an image-over-image.  This is just an artifact of how
-  Casciian got here though and not a specific design choice.  If Casciian
-  gets another widget/object that can put image-over-image, then it
-  will need to handle image-over-image at that spot too.
-
-* Once the logical screen is fully assembled, the image goes to the
-  output heads which can be a mix of GUI/Swing or Xterm screens.
+  cover any other Cell during this.
 
 * For a GUI/Swing screen, Casciian has to build the whole frame (Swing by
   default is triple-buffered) and then push the frame to the actual
   OS.
 
-* For an Xterm screen, ideally only the changed Cells (text or image)
-  will be output.  Casciian outputs all images first, and then all text -
-  this seems to produce the least flicker on real terminals.  It will
-  also do Synchronized Output when it detects support for that.
+* For an Xterm screen, ideally only the changed Cells will be output.
+  Casciian will use Synchronized Output when it detects support for
+  that.
 
-* For Cells containing images, consecutive horizontal Cells with
-  images are concatenated into one image.  At this time the hash code
-  for the image cells is computed and checked against the LRU cache.
-  For single-head applications, if the image is in cache, then that
-  result is pulled out, wrapped in the cursor position and DCS/ST, and
-  sent out.
-
-* For multi-head applications, at each head the image is first
-  rescaled to match the cell aspect ratio of the user-facing terminal.
-  The (maybe-rescaled) image is then converted to sixel/Casciian/iTerm2,
-  and the final string (minus cursor position and DCS/ST start/end) in
-  put into a LRU cache.
-
-* The result is that no image is ever taller than a single text cell,
-  but can extend across the entire screen (or 1000 max pixels due to
-  xterm).  The image can also be as small as a single text cell.
-
-* Any rows that contained image data that have any different Cells on
-  _this_ frame will have _all_ of the images on that row re-drawn, in
-  case some of the text that was drawn earlier obscured an image from
-  _some_ previous frame.  It's really unknowable what the terminal
-  will do to partially-overwritten images, so Casciian takes that choice
-  away from them and blows away every potentially-different image.
-
-Casciian settled on the horizontal strips option because it is not
-easy to figure out a damage map that would produce an optimal number
-of rectangular images to cover the changed Cells, while also ensuring
-that images from _any_ previous frame that were covered by text in
-_this_ frame are also _fully_ included in said damage map.  With the
-strips, it is easier to reason about what will actually need to be
-redrawn.
-
-A very nice side effect of the horizontal strips output is that
-different sixel palettes can be generated for every consecutive
-horizontal run of image cells in any text row.  For sixel encoders
-that generate their own per-image palettes (including
-casciian.backend.HQSixelEncoder), it results in an apparent bit depth
-_much_ higher that the maximum per-image bit depth.

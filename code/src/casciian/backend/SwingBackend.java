@@ -168,40 +168,6 @@ public class SwingBackend extends GenericBackend {
     }
 
     /**
-     * Check if backend will support incomplete image fragments over text
-     * display.
-     *
-     * @return true if images can partially obscure text
-     */
-    @Override
-    public boolean isImagesOverText() {
-        return ((SwingTerminal) terminal).isImagesOverText();
-    }
-
-    /**
-     * Check if backend is reporting pixel-based mouse position.
-     *
-     * @return true if single-pixel mouse movements are reported
-     */
-    @Override
-    public boolean isPixelMouse() {
-        return ((SwingTerminal) terminal).isPixelMouse();
-    }
-
-    /**
-     * Set request for backend to report pixel-based mouse position.
-     *
-     * @param pixelMouse if true, single-pixel mouse movements will be
-     * reported, if the backend supports it
-     */
-    @Override
-    public void setPixelMouse(final boolean pixelMouse) {
-        if (pixelMouse != ((SwingTerminal) terminal).isPixelMouse()) {
-            ((SwingTerminal) terminal).setPixelMouse(pixelMouse);
-        }
-    }
-
-    /**
      * Set the mouse pointer (cursor) style.
      *
      * @param mouseStyle the pointer style string, one of: "default", "none",

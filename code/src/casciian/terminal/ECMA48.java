@@ -239,8 +239,7 @@ public class ECMA48 implements Runnable {
     private enum MouseEncoding {
         X10,
         UTF8,
-        SGR,
-        SGR_PIXELS
+        SGR
     }
 
     /**
@@ -344,11 +343,6 @@ public class ECMA48 implements Runnable {
      * Which mouse encoding is active.
      */
     private MouseEncoding mouseEncoding = MouseEncoding.X10;
-
-    /**
-     * If true, report mouse events per-pixel rather than per-text-cell.
-     */
-    private boolean pixelMouse = false;
 
     /**
      * If true, onFocus() and onUnfocus() will send XTerm FOCUS_MOUSE_MODE
@@ -546,16 +540,6 @@ public class ECMA48 implements Runnable {
      * XTGETTCAP collection buffer.
      */
     private StringBuilder xtgettcapBuffer = new StringBuilder();
-
-    /**
-     * The width of a character cell in pixels.
-     */
-    private int textWidth = 16;
-
-    /**
-     * The height of a character cell in pixels.
-     */
-    private int textHeight = 20;
 
     /**
      * Input queue for keystrokes and mouse events to send to the remote
@@ -999,7 +983,7 @@ public class ECMA48 implements Runnable {
         return new TerminalState(currentState.attr, width, height,
             scrollback, display, cursorVisible,
             currentState.cursorX, currentState.cursorY,
-            hideMousePointer, pixelMouse, mouseProtocol, screenTitle,
+            hideMousePointer, mouseProtocol, screenTitle,
             withinSynchronizedUpdate, lastVisibleDisplay,
             lastVisibleUpdateTime);
     }
@@ -2107,9 +2091,7 @@ public class ECMA48 implements Runnable {
 
         // Now encode the event
         StringBuilder sb = new StringBuilder(6);
-        if ((mouseEncoding == MouseEncoding.SGR)
-            || (mouseEncoding == MouseEncoding.SGR_PIXELS)
-        ) {
+        if (mouseEncoding == MouseEncoding.SGR) {
             sb.append((char) 0x1B);
             sb.append("[<");
             int buttons = 0;
@@ -2152,10 +2134,6 @@ public class ECMA48 implements Runnable {
 
             int cols = mouse.getX() + 1;
             int rows = mouse.getY() + 1;
-            if (mouseEncoding == MouseEncoding.SGR_PIXELS) {
-                cols = (mouse.getX() * textWidth) + mouse.getPixelOffsetX() + 1;
-                rows = (mouse.getY() * textHeight) + mouse.getPixelOffsetY() + 1;
-            }
             sb.append(String.format("%d;%d;%d", buttons, cols, rows));
 
             if (mouse.getType() == TMouseEvent.Type.MOUSE_UP) {
@@ -3704,22 +3682,6 @@ public class ECMA48 implements Runnable {
                         mouseEncoding = MouseEncoding.SGR;
                     } else {
                         mouseEncoding = MouseEncoding.X10;
-                    }
-                }
-                break;
-
-            case 1016:
-                if ((type == DeviceType.XTERM)
-                    && (decPrivateModeFlag == true)
-                ) {
-                    // Mouse: SGR coordinates in pixels
-                    if (value == true) {
-                        mouseEncoding = MouseEncoding.SGR_PIXELS;
-                        // We need our host widget to report in pixels too.
-                        pixelMouse = true;
-                    } else {
-                        mouseEncoding = MouseEncoding.X10;
-                        pixelMouse = false;
                     }
                 }
                 break;
@@ -5523,18 +5485,6 @@ public class ECMA48 implements Runnable {
 
         if (!xtermPrivateModeFlag) {
             switch (i) {
-            case 14:
-                // Report xterm text area size in pixels as CSI 4 ; height ;
-                // width t
-                writeRemote(String.format("%s4;%d;%dt", CSI,
-                            textHeight * height, textWidth * width));
-                break;
-            case 16:
-                // Report character size in pixels as CSI 6 ; height ; width
-                // t
-                writeRemote(String.format("%s6;%d;%dt", CSI,
-                            textHeight, textWidth));
-                break;
             case 18:
                 // Report the text are size in characters as CSI 8 ; height ;
                 // width t
@@ -5775,12 +5725,6 @@ public class ECMA48 implements Runnable {
             case 1006:
                 // Mouse: SGR coordinates
                 if (mouseEncoding == MouseEncoding.SGR) {
-                    Ps = 1;     // Set
-                }
-                break;
-            case 1016:
-                // Mouse: SGR-Pixels mode
-                if (mouseEncoding == MouseEncoding.SGR_PIXELS) {
                     Ps = 1;     // Set
                 }
                 break;
@@ -7983,24 +7927,6 @@ public class ECMA48 implements Runnable {
         ComplexCell right = new ComplexCell(cell);
         right.setWidth(Cell.Width.RIGHT);
         display.get(rightY).replace(rightX, right);
-    }
-
-    /**
-     * Set the width of a character cell in pixels.
-     *
-     * @param textWidth the width in pixels of a character cell
-     */
-    public void setTextWidth(final int textWidth) {
-        this.textWidth = textWidth;
-    }
-
-    /**
-     * Set the height of a character cell in pixels.
-     *
-     * @param textHeight the height in pixels of a character cell
-     */
-    public void setTextHeight(final int textHeight) {
-        this.textHeight = textHeight;
     }
 
     /**

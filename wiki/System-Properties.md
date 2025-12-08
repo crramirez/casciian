@@ -25,7 +25,6 @@ default values, below which is a more detailed outline.
 | casciian.Swing.mouseStyle    | none    | Swing: mouse pointer selection      |
 | casciian.Swing.mouseImage    |         | Swing: image to use for mouse icon  |
 | casciian.Swing.tripleBuffer  | true    | Swing: use triple-buffering         |
-| casciian.Swing.imagesOverText | false  | Swing: transparent image pixels     |
 | casciian.Swing.color0        | #000000 | Swing: color for black              |
 | casciian.Swing.color1        | #a80000 | Swing: color for red                |
 | casciian.Swing.color2        | #00a800 | Swing: color for green              |
@@ -227,18 +226,6 @@ which reduces screen tearing but may also be slower to draw on slower
 systems.  If false, use naive Swing thread drawing, which may be
 faster on slower systems but also more likely to have screen tearing.
 Default: true.
-
-casciian.Swing.imagesOverText
------------------------------
-
-Used by casciian.backend.SwingTerminal.  If true, render text glyphs
-underneath images, allowing the using of text and images to both show
-in one cell.  This is _very_ cool looking, but currently hideously
-expensive when covering large parts of the screen or doing animations
-with partially-transparent images.  (And I have no shame in admitting
-that the notcurses project was the inspiration for me to finally try
-this out.  If you want to mix a lot of text-and-images, check out
-notcurses, it's really wicked.)  Default: false.
 
 casciian.TEditor.hideMouseWhenTyping
 ------------------------------------

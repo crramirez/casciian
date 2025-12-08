@@ -5,10 +5,7 @@ Casciian can use the following features of a terminal if available:
 
 * Mouse clicks.
 
-* Mouse motion, including dragging and resizing windows, and
-  SGR-Pixels mode (1016).
-  [DECRQM/DECRPM](https://vt100.net/docs/vt510-rm/DECRQM.html) is used
-  to detect SGR-Pixels support.
+* Mouse motion, including dragging and resizing windows.
 
 * 24-bit ("true color") RGB.
 

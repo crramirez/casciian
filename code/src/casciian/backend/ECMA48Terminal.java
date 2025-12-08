@@ -171,26 +171,6 @@ public class ECMA48Terminal extends LogicalScreen
     private TResizeEvent windowResize = null;
 
     /**
-     * Window width in pixels.  Used for image support.
-     */
-    private int widthPixels = 640;
-
-    /**
-     * Window height in pixels.  Used for image support.
-     */
-    private int heightPixels = 400;
-
-    /**
-     * Text cell width in pixels.
-     */
-    private int textWidthPixels = -1;
-
-    /**
-     * Text cell height in pixels.
-     */
-    private int textHeightPixels = -1;
-
-    /**
      * Text blink option.
      */
     private TextBlinkOption textBlinkOption = TextBlinkOption.AUTO;
@@ -271,22 +251,6 @@ public class ECMA48Terminal extends LogicalScreen
      * The string being built by OSC.
      */
     private StringBuilder oscResponse = new StringBuilder();
-
-    /**
-     * If true, draw text glyphs underneath images on cells.  This is
-     * expensive.
-     */
-    private boolean imagesOverText = false;
-
-    /**
-     * If true, report mouse events per-pixel rather than per-text-cell.
-     */
-    private boolean pixelMouse = false;
-
-    /**
-     * If true, this terminal supports SGR-Pixel mouse mode (1016).
-     */
-    private boolean hasPixelMouse = false;
 
     /**
      * If true, this terminal has the mouse/keyboard focus.  We default to
@@ -480,17 +444,11 @@ public class ECMA48Terminal extends LogicalScreen
         // Request Device Attributes
         this.output.printf("\033[c");
 
-        // Request xterm report window/cell dimensions in pixels
-        this.output.printf("%s", xtermReportPixelDimensions());
-
         // Enable mouse reporting and metaSendsEscape
         this.output.printf("%s%s", mouse(true), xtermMetaSendsEscape(true));
 
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
-
-        // Request xterm report SGR-Pixel mouse support
-        this.output.printf("%s", xtermQueryMode(1016));
 
         // Request xterm report its ANSI colors
         this.output.printf("%s", xtermQueryAnsiColors());
@@ -599,17 +557,11 @@ public class ECMA48Terminal extends LogicalScreen
         // Request Device Attributes
         this.output.printf("\033[c");
 
-        // Request xterm report window/cell dimensions in pixels
-        this.output.printf("%s", xtermReportPixelDimensions());
-
         // Enable mouse reporting and metaSendsEscape
         this.output.printf("%s%s", mouse(true), xtermMetaSendsEscape(true));
 
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
-
-        // Request xterm report SGR-Pixel mouse support
-        this.output.printf("%s", xtermQueryMode(1016));
 
         // Request xterm report its ANSI colors
         this.output.printf("%s", xtermQueryAnsiColors());
@@ -834,11 +786,9 @@ public class ECMA48Terminal extends LogicalScreen
         // Disable mouse reporting and show cursor.  Defensive null check
         // here in case closeTerminal() is called twice.
         if (output != null) {
-            if (!casciian.TApplication.imageSupportTest) {
-                output.printf("%s%s%s", mouse(false), cursor(true),
-                    defaultColor());
-                output.printf("\033[>4m");
-            }
+            output.printf("%s%s%s", mouse(false), cursor(true),
+                defaultColor());
+            output.printf("\033[>4m");
             output.flush();
         }
 
@@ -1169,36 +1119,6 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Get the width of a character cell in pixels.
-     *
-     * @return the width in pixels of a character cell
-     */
-    public int getTextWidth() {
-        if (textWidthPixels > 0) {
-            return textWidthPixels;
-        }
-        if (sessionInfo.getWindowWidth() > 0) {
-            return (widthPixels / sessionInfo.getWindowWidth());
-        }
-        return 10;
-    }
-
-    /**
-     * Get the height of a character cell in pixels.
-     *
-     * @return the height in pixels of a character cell
-     */
-    public int getTextHeight() {
-        if (textHeightPixels > 0) {
-            return textHeightPixels;
-        }
-        if (sessionInfo.getWindowHeight() > 0) {
-            return (heightPixels / sessionInfo.getWindowHeight());
-        }
-        return 20;
-    }
-
-    /**
      * Getter for sessionInfo.
      *
      * @return the SessionInfo
@@ -1321,8 +1241,6 @@ public class ECMA48Terminal extends LogicalScreen
             Cell lCell = logical[x][y];
             if (!lCell.isBlank()) {
                 textEnd = x;
-            } else {
-                assert (!lCell.isImage());
             }
         }
         // Push textEnd to first column beyond the text area
@@ -1336,10 +1254,6 @@ public class ECMA48Terminal extends LogicalScreen
         for (int x = 0; x < width; x++) {
             ComplexCell lCell = logical[x][y];
             ComplexCell pCell = physical[x][y];
-
-            if (lCell.isImage()) {
-                continue;
-            }
 
             if (lCell.isBlink()) {
                 switch (textBlinkOption) {
@@ -1382,14 +1296,12 @@ public class ECMA48Terminal extends LogicalScreen
 
                 // Place the cell
                 if ((lastX != (x - 1)) || (lastX == -1)) {
-                    if (!lCell.isImage()) {
-                        if (debugToStderr && reallyDebug) {
-                            System.err.println("1 gotoXY() " + x + " " + y +
-                                " lastX " + lastX);
-                        }
-                        // Advancing at least one cell, or the first gotoXY
-                        sb.append(gotoXY(x, y));
+                    if (debugToStderr && reallyDebug) {
+                        System.err.println("1 gotoXY() " + x + " " + y +
+                            " lastX " + lastX);
                     }
+                    // Advancing at least one cell, or the first gotoXY
+                    sb.append(gotoXY(x, y));
                 }
 
                 assert (lastAttr != null);
@@ -1414,19 +1326,6 @@ public class ECMA48Terminal extends LogicalScreen
                     lastAttr.reset();
                     return;
                 }
-
-                // Image cell: bypass the rest of the loop, it is not
-                // rendered here.
-                if (lCell.isImage()) {
-                    // Save the last rendered cell
-                    lastX = x;
-
-                    // Physical is always updated
-                    physical[x][y].setTo(lCell);
-                    continue;
-                }
-
-                assert (!lCell.isImage());
 
                 if (debugToStderr && reallyDebug) {
                     System.err.println("3 gotoXY() " + x + " " + y +
@@ -1575,27 +1474,6 @@ public class ECMA48Terminal extends LogicalScreen
             System.err.printf("flushString(): %s\n", result);
         }
         return result;
-    }
-
-    /**
-     * Check if terminal is reporting pixel-based mouse position.
-     *
-     * @return true if single-pixel mouse movements are reported
-     */
-    public boolean isPixelMouse() {
-        return pixelMouse;
-    }
-
-    /**
-     * Set request for terminal to report pixel-based mouse position.
-     *
-     * @param pixelMouse if true, single-pixel mouse movements will be
-     * reported
-     */
-    public void setPixelMouse(final boolean pixelMouse) {
-        if (hasPixelMouse) {
-            xtermRequestPixelMouse(pixelMouse);
-        }
     }
 
     /**
@@ -1907,14 +1785,6 @@ public class ECMA48Terminal extends LogicalScreen
         int offsetX = 0;
         int offsetY = 0;
 
-        if (pixelMouse) {
-            // x and y are pixels, not text cells.
-            offsetX = x % getTextWidth();
-            offsetY = y % getTextHeight();
-            x = x / getTextWidth();
-            y = y / getTextHeight();
-        }
-
         // Clamp X and Y to the physical screen coordinates.
         if (x >= windowResize.getWidth()) {
             x = windowResize.getWidth() - 1;
@@ -2043,30 +1913,6 @@ public class ECMA48Terminal extends LogicalScreen
                 if ((newWidth != windowResize.getWidth())
                     || (newHeight != windowResize.getHeight())
                 ) {
-
-                    // Request xterm report window dimensions in pixels
-                    // again.  Between now and then, ensure that the reported
-                    // text cell size is the same by setting widthPixels and
-                    // heightPixels to match the new dimensions.
-                    widthPixels = oldTextWidth * newWidth;
-                    heightPixels = oldTextHeight * newHeight;
-
-                    if (debugToStderr) {
-                        System.err.println("Screen size changed, old size " +
-                            windowResize);
-                        System.err.println("                     new size " +
-                            newWidth + " x " + newHeight);
-                        System.err.println("                old cell sixe " +
-                            oldTextWidth + " x " + oldTextHeight);
-                        System.err.println("                new cell size " +
-                            getTextWidth() + " x " + getTextHeight());
-                    }
-
-                    if (output != null) {
-                        output.printf("%s", xtermReportPixelDimensions());
-                        output.flush();
-                    }
-
                     TResizeEvent event = new TResizeEvent(backend,
                         TResizeEvent.Type.SCREEN, newWidth, newHeight);
                     windowResize = new TResizeEvent(backend,
@@ -2691,54 +2537,6 @@ public class ECMA48Terminal extends LogicalScreen
                     return;
                 case 't':
                     // windowOps
-                    if ((params.size() > 2) && (params.get(0).equals("4"))) {
-                        if (debugToStderr) {
-                            System.err.printf("windowOp 4t pixels: " +
-                                "height %s width %s\n",
-                                params.get(1), params.get(2));
-                        }
-                        try {
-                            widthPixels = Integer.parseInt(params.get(2));
-                            heightPixels = Integer.parseInt(params.get(1));
-                        } catch (NumberFormatException e) {
-                            if (debugToStderr) {
-                                e.printStackTrace();
-                            }
-                        }
-                        if (widthPixels <= 0) {
-                            widthPixels = 640;
-                        }
-                        if (heightPixels <= 0) {
-                            heightPixels = 400;
-                        }
-                        if (debugToStderr) {
-                            System.err.printf("   screen pixels: %d x %d",
-                                widthPixels, heightPixels);
-                            System.err.println("  new cell size: " +
-                                getTextWidth() + " x " + getTextHeight());
-                        }
-                    }
-                    if ((params.size() > 2) && (params.get(0).equals("6"))) {
-                        if (debugToStderr) {
-                            System.err.printf("windowOp 6t text cell pixels: " +
-                                "cell height %s cell width %s\n",
-                                params.get(1), params.get(2));
-                            System.err.printf("             old screen size: " +
-                                "%d x %d cells\n", width, height);
-                        }
-                        try {
-                            textWidthPixels = Integer.parseInt(params.get(2));
-                            textHeightPixels = Integer.parseInt(params.get(1));
-                        } catch (NumberFormatException e) {
-                            if (debugToStderr) {
-                                e.printStackTrace();
-                            }
-                        }
-                        if (debugToStderr) {
-                            System.err.println("  new cell size: " +
-                                textWidthPixels + " x " + textHeightPixels);
-                        }
-                    }
                     if ((params.size() > 2) && (params.get(0).equals("8"))) {
                         if (debugToStderr) {
                             System.err.printf("windowOp 8t screen size: " +
@@ -2811,13 +2609,6 @@ public class ECMA48Terminal extends LogicalScreen
                             ) {
                                 // This option was recognized, and is in some
                                 // state.
-                                if (Pd.equals("1016")) {
-                                    if (debugToStderr) {
-                                        System.err.println("DECRPM: " +
-                                            "has SGR-Pixel mouse support");
-                                    }
-                                    hasPixelMouse = true;
-                                }
                                 if (Pd.equals("2026")) {
                                     if (debugToStderr) {
                                         System.err.println("DECRPM: " +
@@ -2918,18 +2709,6 @@ public class ECMA48Terminal extends LogicalScreen
     private String xtermReportVersion() {
         xtversionQuery = true;
         return "\033[>0q";
-    }
-
-    /**
-     * Request (u)xterm to report the current window and cell size dimensions
-     * in pixels.
-     *
-     * @return the string to emit to xterm
-     */
-    private String xtermReportPixelDimensions() {
-        // We will ask for both text cell and window dimensions (in that
-        // order!), and hopefully one of them will work.
-        return "\033[16t\033[14t";
     }
 
     /**
@@ -3682,25 +3461,6 @@ public class ECMA48Terminal extends LogicalScreen
             return "\033[?1004h\033[?1002;1003;1005;1006h\033[?1049h\033^hideMousePointer\033\\";
         }
         return "\033[?1004l\033[?1002;1003;1006;1005l\033[?1049l\033^showMousePointer\033\\";
-    }
-
-    /**
-     * Tell (u)xterm that we want to receive SGR-Pixel mouse events.
-     *
-     * See
-     * http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
-     * @param on If true, enable SGR-Pixel mouse reporting
-     */
-    private void xtermRequestPixelMouse(final boolean on) {
-        if (on) {
-            this.output.printf("\033[?1016h");
-            pixelMouse = true;
-        } else {
-            // Turn off SGR-Pixel, and go back to normal mouse.
-            this.output.printf("\033[?1016l\033[?1002;1003;1005;1006h");
-            pixelMouse = false;
-        }
-        this.output.flush();
     }
 
     /**

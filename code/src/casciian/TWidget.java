@@ -1412,16 +1412,6 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
-     * Check if per-pixel mouse events are requested.
-     *
-     * @return true if per-pixel mouse events are requested
-     */
-    public boolean isPixelMouse() {
-        // Default: do not request per-pixel mouse events.
-        return false;
-    }
-
-    /**
      * Get the global color theme.
      *
      * @return the ColorTheme

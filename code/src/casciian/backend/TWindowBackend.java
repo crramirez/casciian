@@ -115,26 +115,6 @@ public class TWindowBackend extends TWindow implements Backend {
             window.setHeight(getHeight() + 2);
         }
 
-        /**
-         * Get the width of a character cell in pixels.
-         *
-         * @return the width in pixels of a character cell
-         */
-        @Override
-        public int getTextWidth() {
-            return window.getScreen().getTextWidth();
-        }
-
-        /**
-         * Get the height of a character cell in pixels.
-         *
-         * @return the height in pixels of a character cell
-         */
-        @Override
-        public int getTextHeight() {
-            return window.getScreen().getTextHeight();
-        }
-
     }
 
 
@@ -565,35 +545,6 @@ public class TWindowBackend extends TWindow implements Backend {
     public void setReadOnly(final boolean readOnly) {
         this.readOnly = readOnly;
         setHiddenMouse(!readOnly);
-    }
-
-    /**
-     * Check if backend will support incomplete image fragments over text
-     * display.
-     *
-     * @return true if images can partially obscure text
-     */
-    public boolean isImagesOverText() {
-        return getApplication().getBackend().isImagesOverText();
-    }
-
-    /**
-     * Check if backend is reporting pixel-based mouse position.
-     *
-     * @return true if single-pixel mouse movements are reported
-     */
-    public boolean isPixelMouse() {
-        return getApplication().getBackend().isPixelMouse();
-    }
-
-    /**
-     * Set request for backend to report pixel-based mouse position.
-     *
-     * @param pixelMouse if true, single-pixel mouse movements will be
-     * reported, if the backend supports it
-     */
-    public void setPixelMouse(final boolean pixelMouse) {
-        getApplication().getBackend().setPixelMouse(pixelMouse);
     }
 
     /**

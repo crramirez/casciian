@@ -466,14 +466,6 @@ public interface Screen {
     public void clearPhysical();
 
     /**
-     * Unset every image cell on one row of the physical screen, forcing
-     * images on that row to be redrawn.
-     *
-     * @param y row coordinate.  0 is the top-most row.
-     */
-    public void unsetImageRow(final int y);
-
-    /**
      * Classes must provide an implementation to push the logical screen to
      * the physical device.
      */
@@ -520,20 +512,6 @@ public interface Screen {
      * @param title the new title
      */
     public void setTitle(final String title);
-
-    /**
-     * Get the width of a character cell in pixels.
-     *
-     * @return the width in pixels of a character cell
-     */
-    public int getTextWidth();
-
-    /**
-     * Get the height of a character cell in pixels.
-     *
-     * @return the height in pixels of a character cell
-     */
-    public int getTextHeight();
 
     /**
      * Invert the cell color at a position, including both halves of a
