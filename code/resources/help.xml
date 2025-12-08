@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<help>
+  <name>Casciian Help File</name>
+  <author>Autumn Lamonte</author>
+  <version>2.0.0</version>
+  <date>Jan 1, 2026</date>
+  <topics>
+    <topic title="Help">
+      <text>
+        This [window](Windows) does not have a specific help topic.
+        See [here](Help On Help) for general information on using the
+        help system.
+      </text>
+    </topic>
+    <topic title="Help On Help">
+      <text>
+        The #{help} system...
+
+      </text>
+    </topic>
+
+    <topic title="Menus">
+      <text>
+        #{Menus} do ...
+      </text>
+    </topic>
+
+    <topic title="Windows">
+      <text>
+        #{Windows} do ...
+      </text>
+    </topic>
+
+    <topic title="Editing Text">
+      <text>
+        The #{text editing} [window](Windows)...
+      </text>
+    </topic>
+
+    <topic title="Editing Tables">
+      <text></text>
+    </topic>
+
+    <topic title="Terminal Window">
+      <text>
+        The terminal window ...
+      </text>
+    </topic>
+
+    <topic title="Copyright Infomation">
+      <text>
+        Written 2013-2025 by Autumn Lamonte
+
+        Dedicated to the public domain.
+    </text>
+    </topic>
+
+  </topics>
+</help>
