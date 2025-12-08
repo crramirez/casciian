@@ -40,7 +40,6 @@ import casciian.TKeypress;
 import casciian.backend.Backend;
 import casciian.bits.Clipboard;
 import casciian.bits.Color;
-import casciian.bits.ColorEmojiGlyphMaker;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.ComplexCell;
@@ -1950,17 +1949,12 @@ public class ECMA48 implements Runnable {
 
         BufferedImage image = null;
         ComplexCell cell = new ComplexCell(codePoints, currentState.attr);
-        if (ColorEmojiGlyphMaker.canDisplay(codePoints)) {
-            image = ColorEmojiGlyphMaker.getImage(cell,
-                textWidth * 2, textHeight, backend, true);
-        } else {
-            if (lastTextHeight != textHeight) {
-                glyphMaker = GlyphMaker.getInstance(textHeight);
-                lastTextHeight = textHeight;
-            }
-            image = glyphMaker.getImage(cell,
-                textWidth * wcWidth, textHeight, backend, true);
+        if (lastTextHeight != textHeight) {
+            glyphMaker = GlyphMaker.getInstance(textHeight);
+            lastTextHeight = textHeight;
         }
+        image = glyphMaker.getImage(cell,
+            textWidth * wcWidth, textHeight, backend, true);
         BufferedImage leftImage = image.getSubimage(0, 0, textWidth,
             textHeight);
         ComplexCell left = new ComplexCell(cell);
@@ -8249,17 +8243,12 @@ public class ECMA48 implements Runnable {
 
         BufferedImage image = null;
         ComplexCell cell = new ComplexCell(ch, currentState.attr);
-        if (ColorEmojiGlyphMaker.canDisplay(ch)) {
-            image = ColorEmojiGlyphMaker.getImage(cell,
-                textWidth * 2, textHeight, backend, true);
-        } else {
-            if (lastTextHeight != textHeight) {
-                glyphMaker = GlyphMaker.getInstance(textHeight);
-                lastTextHeight = textHeight;
-            }
-            image = glyphMaker.getImage(cell,
-                textWidth * 2, textHeight, backend, true);
+        if (lastTextHeight != textHeight) {
+            glyphMaker = GlyphMaker.getInstance(textHeight);
+            lastTextHeight = textHeight;
         }
+        image = glyphMaker.getImage(cell,
+            textWidth * 2, textHeight, backend, true);
         BufferedImage leftImage = image.getSubimage(0, 0, textWidth,
             textHeight);
         BufferedImage rightImage = image.getSubimage(textWidth, 0, textWidth,

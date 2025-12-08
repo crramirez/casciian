@@ -51,8 +51,6 @@ Screenshots
 
 ![Gradients in translucent windows with images](/screenshots/gradient1.png?raw=true "Gradients in translucent windows with images")
 
-![Color emoji menu icons](/screenshots/emoji1.png?raw=true "Color emoji menu icons")
-
 ![Casciian with Spanish-language translations, CJK text in terminal, the libsixel snake image, and an ANSI art screen](/screenshots/casciian_espanol.png?raw=true "Casciian with Spanish-language translations, CJK text in terminal, the libsixel snake image, and an ANSI art screen")
 
 

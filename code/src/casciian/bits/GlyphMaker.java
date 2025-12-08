@@ -581,13 +581,6 @@ public class GlyphMaker {
             }
         }
         if (ExtendedGraphemeClusterUtils.isEmoji(ch)) {
-            // Pull from color emoji's first.
-            if (ColorEmojiGlyphMaker.canDisplay(cell)) {
-                ComplexCell complexCell = new ComplexCell(cell);
-                return ColorEmojiGlyphMaker.getImage(complexCell,
-                    cellWidth, cellHeight, backend, blinkVisible, widthEnum);
-            }
-
             if (makerEmoji.canDisplay(ch)) {
                 // System.err.println("emoji: " + String.format("0x%x", ch));
                 return makerEmoji.getImage(cell, cellWidth, cellHeight, backend,

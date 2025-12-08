@@ -32,7 +32,6 @@ import casciian.TEditorWindow;
 import casciian.TWidget;
 import casciian.TWindow;
 import casciian.bits.BorderStyle;
-import casciian.bits.ColorEmojiGlyphMaker;
 import casciian.backend.ECMA48Terminal;
 import casciian.event.TMenuEvent;
 import casciian.menu.TMenu;
@@ -457,26 +456,6 @@ public class DemoApplication extends TApplication {
         TSubMenu languageMenu = demoMenu.addSubMenu(i18n.getString("selectLanguage"));
         TMenuItem en = languageMenu.addItem(10005, i18n.getString("english"));
         TMenuItem es = languageMenu.addItem(10006, i18n.getString("espanol"));
-
-        // If we have color emojis, display the language flags.
-
-        int [] enFlag = new int[2];
-        // Great Britain, because I will not use the USA flag in this project
-        // and Irish is its own great language.
-        enFlag[0] = 0x1F1EC;
-        enFlag[1] = 0x1F1E7;
-        if (ColorEmojiGlyphMaker.canDisplay(enFlag)) {
-            en.setIcon(enFlag);
-        }
-
-        // Mexico, because these translations are (crossing fingers) Latin
-        // American dialect.
-        int [] esFlag = new int[2];
-        esFlag[0] = 0x1F1F2;
-        esFlag[1] = 0x1F1FD;
-        if (ColorEmojiGlyphMaker.canDisplay(esFlag)) {
-            es.setIcon(esFlag);
-        }
 
         demoMenu.addSeparator();
         TMenuItem item = demoMenu.addItem(2000, i18n.getString("checkable"));

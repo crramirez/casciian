@@ -89,22 +89,6 @@
     </jar>
   </target>
 
-  <target name="emoji-jar">
-    <mkdir dir="${jar.dir}"/>
-    <jar destfile="${jar.dir}/casciian-emoji.jar">
-      <fileset dir="${resources.dir}">
-        <exclude name="**/terminus**/**" />
-        <exclude name="**/help.xml" />
-        <exclude name="**/logo_128.png" />
-        <include name="**/emoji/**" />
-      </fileset>
-
-      <manifest>
-        <attribute name="Implementation-Version" value="${version}"/>
-      </manifest>
-    </jar>
-  </target>
-
   <target name="all-jar" depends="compile">
     <mkdir dir="${jar.dir}"/>
     <jar destfile="${jar.dir}/${ant.project.name}-${version}-full.jar"
@@ -162,7 +146,7 @@
 
   <target name="doc" depends="docs"/>
 
-  <target name="all" depends="jar,docs,emoji-jar"/>
+  <target name="all" depends="jar,docs"/>
 
   <!--
       For creating official apidocs, use Java 11 and add

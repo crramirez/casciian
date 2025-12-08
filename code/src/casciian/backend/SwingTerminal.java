@@ -52,7 +52,6 @@ import javax.swing.SwingUtilities;
 import casciian.TKeypress;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
-import casciian.bits.ColorEmojiGlyphMaker;
 import casciian.bits.ComplexCell;
 import casciian.bits.ExtendedGraphemeClusterUtils;
 import casciian.bits.GlyphMaker;
@@ -1654,29 +1653,6 @@ public class SwingTerminal extends LogicalScreen
             } else {
                 gr.drawImage(image, xPixel, yPixel, swing.getComponent());
             }
-            return;
-        }
-
-        if (cell.isEmoji()
-            && ColorEmojiGlyphMaker.canDisplay(cell.getCodePoints())
-        ) {
-            // This is displayable as a color emoji.
-            BufferedImage newImage = ColorEmojiGlyphMaker.getImage(cell,
-                textWidth * cell.getDisplayWidth(), textHeight,
-                getBackend(),
-                cursorBlinkVisible || (textBlinkOption == BlinkOption.OFF),
-                cell.getWidth());
-
-            if (swing.getFrame() != null) {
-                gr.drawImage(newImage, xPixel, yPixel, swing.getFrame());
-            } else {
-                gr.drawImage(newImage, xPixel, yPixel, swing.getComponent());
-            }
-
-            if (cell.isCacheable()) {
-                cacheCell(cell, newImage);
-            }
-
             return;
         }
 

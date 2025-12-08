@@ -46,7 +46,6 @@ import javax.imageio.ImageIO;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.Color;
-import casciian.bits.ColorEmojiGlyphMaker;
 import casciian.bits.ComplexCell;
 import casciian.bits.ExtendedGraphemeClusterUtils;
 import casciian.bits.GlyphMaker;
@@ -1945,26 +1944,6 @@ public class ECMA48Terminal extends LogicalScreen
             for (int x = 0; x < width; x++) {
                 ComplexCell lCell = logical[x][y];
                 ComplexCell pCell = physical[x][y];
-
-                if (!lCell.isImage() && lCell.isEmoji()
-                    && ColorEmojiGlyphMaker.canDisplay(lCell.getCodePoints())
-                ) {
-
-                    // Convert an emoji cell to image.
-                    BufferedImage newImage = null;
-                    newImage = glyphCache.get(lCell);
-                    if (newImage == null) {
-                        newImage = ColorEmojiGlyphMaker.getImage(lCell,
-                            getTextWidth() * lCell.getDisplayWidth(),
-                            getTextHeight(),
-                            getBackend(), true, lCell.getWidth());
-
-                        ComplexCell key = new ComplexCell(lCell);
-                        glyphCache.put(key, newImage);
-                    }
-                    lCell.setImage(newImage);
-                    unsetRow = true;
-                }
 
                 if (!lCell.isImage()) {
                     boolean useGlyphMaker = false;
