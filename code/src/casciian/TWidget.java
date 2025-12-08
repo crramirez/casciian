@@ -36,8 +36,6 @@ import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
 import casciian.layout.LayoutManager;
 import casciian.menu.TMenu;
-import casciian.tackboard.MousePointer;
-import casciian.tackboard.Tackboard;
 import static casciian.TKeypress.*;
 
 /**
@@ -144,12 +142,6 @@ public abstract class TWidget implements Comparable<TWidget> {
      * Layout manager.
      */
     private LayoutManager layout = null;
-
-    /**
-     * An optional mouse pointer picture to use when the mouse is over this
-     * widget.
-     */
-    private MousePointer customMousePointer;
 
     /**
      * The mouse pointer (cursor) style string, one of: "default", "none",
@@ -1422,32 +1414,6 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
-     * Get the custom mouse pointer.
-     *
-     * @return the custom mouse pointer, or null if it was never set
-     */
-    public final MousePointer getCustomMousePointer() {
-        return customMousePointer;
-    }
-
-    /**
-     * Set a custom mouse pointer.
-     *
-     * @param pointer the new mouse pointer, or null to use the default mouse
-     * pointer.
-     */
-    public final void setCustomMousePointer(final MousePointer pointer) {
-        if (customMousePointer != null) {
-            customMousePointer.remove();
-        }
-        customMousePointer = pointer;
-        if (customMousePointer == null) {
-            // Custom bitmap mouse pointer removed.
-            return;
-        }
-    }
-
-    /**
      * Check if per-pixel mouse events are requested.
      *
      * @return true if per-pixel mouse events are requested
@@ -1563,11 +1529,11 @@ public abstract class TWidget implements Comparable<TWidget> {
         screen.setOffsetX(getAbsoluteX());
         screen.setOffsetY(getAbsoluteY());
 
-        // Hang onto these in case there is an overlay to draw
-        int overlayClipRight = screen.getClipRight();
-        int overlayClipBottom = screen.getClipBottom();
-        int overlayOffsetX = screen.getOffsetX();
-        int overlayOffsetY = screen.getOffsetY();
+        // Hang onto these in case there is a post-draw cell transform set
+        int postDrawClipRight = screen.getClipRight();
+        int postDrawClipBottom = screen.getClipBottom();
+        int postDrawOffsetX = screen.getOffsetX();
+        int postDrawOffsetY = screen.getOffsetY();
 
         // Draw me
         draw();
@@ -1597,23 +1563,16 @@ public abstract class TWidget implements Comparable<TWidget> {
             activeChild.drawChildren();
         }
 
-        // The TWindow overlay has to be here so that it can cover drawn
+        // The TWindow post-draw has to be here so that it can cover drawn
         // widgets.
         if (this instanceof TWindow) {
-            screen.setClipRight(overlayClipRight);
-            screen.setClipBottom(overlayClipBottom);
-            screen.setOffsetX(overlayOffsetX);
-            screen.setOffsetY(overlayOffsetY);
+            screen.setClipRight(postDrawClipRight);
+            screen.setClipBottom(postDrawClipBottom);
+            screen.setOffsetX(postDrawOffsetX);
+            screen.setOffsetY(postDrawOffsetY);
 
             // Do the post-draw cell transform, if set.
             ((TWindow) this).onPostDrawCellTransform();
-
-            // Let the overlay draw.
-            Tackboard overlay = ((TWindow) this).overlay;
-            if (overlay != null) {
-                overlay.draw(getScreen(),
-                    getApplication().getBackend().isImagesOverText());
-            }
 
             // Now let a custom window effect draw.
             ((TWindow) this).onPostDraw();

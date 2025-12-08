@@ -30,8 +30,6 @@ import casciian.event.TMenuEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
 import casciian.menu.TMenu;
-import casciian.tackboard.Tackboard;
-import casciian.tackboard.TackboardItem;
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
 
@@ -201,18 +199,6 @@ public class TWindow extends TWidget {
      * The help topic for this window.
      */
     protected String helpTopic = "Help";
-
-    /**
-     * A means of drawing arbitrary items underneath all widgets on this
-     * window.
-     */
-    protected Tackboard underlay = null;
-
-    /**
-     * A means of drawing arbitrary items on top of all widgets on this
-     * window.
-     */
-    protected Tackboard overlay = null;
 
     /**
      * The border style for an active window.
@@ -459,12 +445,6 @@ public class TWindow extends TWidget {
             if (getChildren().contains(w)) {
                 getChildren().remove(w);
             }
-        }
-        if (underlay != null) {
-            underlay.clear();
-        }
-        if (overlay != null) {
-            overlay.clear();
         }
     }
 
@@ -1082,21 +1062,12 @@ public class TWindow extends TWidget {
                 drawPreTransformWidget);
         }
 
-        if (underlay != null) {
-            // This is a tad less slick that I want.  I would prefer the
-            // underlay to be fully contained within the window borders.
-            // Putting it here means it can draw over the window edge.
-            underlay.draw(getScreen(),
-                getApplication().getBackend().isImagesOverText());
-        }
-
     }
 
     /**
      * Function called after the window is drawn, its post-draw cell
-     * transform applied, and any overlay drawn.  This can be used by
-     * subclasses of TWindow to alter the final post-rendered window screen
-     * area.
+     * transform applied.  This can be used by subclasses of TWindow to alter
+     * the final post-rendered window screen area.
      */
     protected void onPostDraw() {
         // Default does nothing
@@ -1717,42 +1688,6 @@ public class TWindow extends TWidget {
             "geometry %dx%d  hidden %s modal %s",
             getClass().getName(), hashCode(), title, getZ(),
             getX(), getY(), getWidth(), getHeight(), hidden, isModal());
-    }
-
-    /**
-     * Add a tackboard item to the underlay.
-     *
-     * @param item the item to add
-     */
-    public void addUnderlay(final TackboardItem item) {
-        if (underlay == null) {
-            underlay = new Tackboard();
-        }
-        underlay.addItem(item);
-    }
-
-    /**
-     * Add a tackboard item to the overlay.
-     *
-     * @param item the item to add
-     */
-    public void addOverlay(final TackboardItem item) {
-        if (overlay == null) {
-            overlay = new Tackboard();
-        }
-        overlay.addItem(item);
-    }
-
-    /**
-     * Mark the underlay and overlay dirty.
-     */
-    public void setTackboardsDirty() {
-        if (underlay != null) {
-            underlay.setDirty();
-        }
-        if (overlay != null) {
-            overlay.setDirty();
-        }
     }
 
     /**

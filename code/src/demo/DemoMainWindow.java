@@ -120,7 +120,7 @@ public class DemoMainWindow extends TWindow {
     private DemoMainWindow(final TApplication parent, final int flags) {
         // Construct a demo window.  X and Y don't matter because it will be
         // centered on screen.
-        super(parent, "", 0, 0, 66, 25, flags);
+        super(parent, "", 0, 0, 66, 23, flags);
         i18n = ResourceBundle.getBundle(DemoMainWindow.class.getName(),
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -261,18 +261,6 @@ public class DemoMainWindow extends TWindow {
             }
         );
         row += 2;
-
-        addLabel(i18n.getString("pixelsLabel"), 1, row);
-        addButton(i18n.getString("pixelsButton"), col, row,
-            new TAction() {
-                public void DO() {
-                    DemoPixelsWindow window;
-                    window = new DemoPixelsWindow(getApplication());
-                    TMenuItem menuItem = getApplication().getMenuItem(10010);
-                    window.setUseGradient(menuItem.isChecked());
-                }
-            }
-        );
 
         row = 15;
         progressBar1 = addProgressBar(col + 13, row, 12, 0, true);

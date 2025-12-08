@@ -400,9 +400,6 @@ public class DemoApplication extends TApplication {
                 if (window instanceof DemoMainWindow) {
                     ((DemoMainWindow) window).setUseGradient(useGradient);
                 }
-                if (window instanceof DemoPixelsWindow) {
-                    ((DemoPixelsWindow) window).setUseGradient(useGradient);
-                }
                 if (window instanceof DemoCheckBoxWindow) {
                     ((DemoCheckBoxWindow) window).setUseGradient(useGradient);
                 }
