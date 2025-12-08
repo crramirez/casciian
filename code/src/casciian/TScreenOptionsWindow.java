@@ -85,11 +85,6 @@ public class TScreenOptionsWindow extends TWindow {
     private TField textAdjustWidth;
 
     /**
-     * The sixel palette size.
-     */
-    private TComboBox sixelPaletteSize;
-
-    /**
      * Triple-buffer support.
      */
     private TCheckBox tripleBuffer;
@@ -103,16 +98,6 @@ public class TScreenOptionsWindow extends TWindow {
      * Mouse style.
      */
     private TComboBox mouseStyle;
-
-    /**
-     * Sixel support.
-     */
-    private TCheckBox sixel;
-
-    /**
-     * Whether or not sixel uses a single shared palette.
-     */
-    private TCheckBox sixelSharedPalette;
 
     /**
      * 24-bit RGB color for normal system colors.
@@ -155,11 +140,6 @@ public class TScreenOptionsWindow extends TWindow {
     private int oldTextAdjustWidth = 0;
 
     /**
-     * The original sixel palette (number of colors) value.
-     */
-    private int oldSixelPaletteSize = 1024;
-
-    /**
      * The original triple-buffer support.
      */
     private boolean oldTripleBuffer = true;
@@ -173,16 +153,6 @@ public class TScreenOptionsWindow extends TWindow {
      * The original mouse style.
      */
     private String oldMouseStyle = "default";
-
-    /**
-     * The original sixel support.
-     */
-    private boolean oldSixel = true;
-
-    /**
-     * The original sixelSharedPalette value.
-     */
-    private boolean oldSixelSharedPalette = true;
 
     /**
      * The original 24-bit RGB color for normal system colors.
@@ -207,7 +177,7 @@ public class TScreenOptionsWindow extends TWindow {
     public TScreenOptionsWindow(final TApplication application) {
 
         // Register with the TApplication
-        super(application, "", 0, 0, 66, 24, MODAL);
+        super(application, "", 0, 0, 66, 20, MODAL);
         i18n = ResourceBundle.getBundle(TScreenOptionsWindow.class.getName(),
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -369,26 +339,7 @@ public class TScreenOptionsWindow extends TWindow {
             }
         );
 
-        sixel = addCheckBox(3, 15, i18n.getString("sixel"),
-            (ecmaTerminal != null ? ecmaTerminal.hasSixel() :
-                System.getProperty("casciian.ECMA48.sixel",
-                    "true").equals("true")));
-        oldSixel = sixel.isChecked();
-        addLabel(i18n.getString("sixelPaletteSize"), 3, 16, "ttext", false,
-            new TAction() {
-                public void DO() {
-                    if (sixelPaletteSize != null) {
-                        sixelPaletteSize.activate();
-                    }
-                }
-            });
-        sixelSharedPalette = addCheckBox(3, 17,
-            i18n.getString("sixelSharedPalette"),
-            (ecmaTerminal != null ? ecmaTerminal.hasSixelSharedPalette() :
-                System.getProperty("casciian.ECMA48.sixelSharedPalette",
-                    "true").equals("true")));
-        oldSixelSharedPalette = sixelSharedPalette.isChecked();
-        rgbColor = addCheckBox(3, 19, i18n.getString("rgbColor"),
+        rgbColor = addCheckBox(3, 15, i18n.getString("rgbColor"),
             (ecmaTerminal != null ? ecmaTerminal.isRgbColor() :
                 System.getProperty("casciian.ECMA48.rgbColor",
                     "false").equals("true")));
@@ -406,42 +357,7 @@ public class TScreenOptionsWindow extends TWindow {
         }
         if (ecmaTerminal == null) {
             // Swing case: turn off stuff we can't change
-            addLabel(i18n.getString("unavailable"), col, 16);
-            sixel.setEnabled(false);
-            sixelSharedPalette.setEnabled(false);
             rgbColor.setEnabled(false);
-        }
-
-        if (ecmaTerminal != null) {
-            oldSixelPaletteSize = ecmaTerminal.getSixelPaletteSize();
-
-            String [] sixelSizes;
-            if (System.getProperty("casciian.ECMA48.sixelEncoder",
-                    "hq").equals("hq")
-            ) {
-                String [] sizes = { "     2 ", "    16 ", "    64 ", "   128 ", "   256 ", "   512 ", "  1024 ", "  2048 " };
-                sixelSizes = sizes;
-                sixelSharedPalette.setEnabled(false);
-            } else {
-                String [] sizes = { "     2 ", "   256 ", "   512 ", "  1024 ", "  2048 " };
-                sixelSizes = sizes;
-            }
-            List<String> sizes = new ArrayList<String>();
-            sizes.addAll(Arrays.asList(sixelSizes));
-            sixelPaletteSize = addComboBox(col, 16, 10, sizes, 0, 4,
-                new TAction() {
-                    public void DO() {
-                        try {
-                            ecmaTerminal.setSixelPaletteSize(Integer.parseInt(
-                                sixelPaletteSize.getText().trim()));
-                        } catch (NumberFormatException e) {
-                            // SQUASH
-                        }
-                    }
-                }
-            );
-            sixelPaletteSize.setText(String.format("%6d ",
-                    oldSixelPaletteSize));
         }
 
         if (terminal != null) {
@@ -829,14 +745,11 @@ public class TScreenOptionsWindow extends TWindow {
         }
 
         addButton(i18n.getString("okButton"),
-            getWidth() - 14, getHeight() - 7,
+            getWidth() - 14, getHeight() - 6,
             new TAction() {
                 public void DO() {
                     // Copy values out.
                     if (ecmaTerminal != null) {
-                        ecmaTerminal.setHasSixel(sixel.isChecked());
-                        ecmaTerminal.setSixelSharedPalette(sixelSharedPalette.
-                            isChecked());
                         ecmaTerminal.setRgbColor(rgbColor.isChecked());
                     }
                     if (terminal != null) {
@@ -850,7 +763,7 @@ public class TScreenOptionsWindow extends TWindow {
             });
 
         TButton cancelButton = addButton(i18n.getString("cancelButton"),
-            getWidth() - 14, getHeight() - 5,
+            getWidth() - 14, getHeight() - 4,
             new TAction() {
                 public void DO() {
                     // Restore old values, then close the window.
@@ -868,9 +781,6 @@ public class TScreenOptionsWindow extends TWindow {
                             oldMouseStyle);
                     }
                     if (ecmaTerminal != null) {
-                        ecmaTerminal.setHasSixel(oldSixel);
-                        ecmaTerminal.setSixelSharedPalette(oldSixelSharedPalette);
-                        ecmaTerminal.setSixelPaletteSize(oldSixelPaletteSize);
                         ecmaTerminal.setRgbColor(oldRgbColor);
                     }
                     getApplication().setWindowOpacity(oldWindowOpacity);
@@ -912,9 +822,6 @@ public class TScreenOptionsWindow extends TWindow {
                 System.setProperty("casciian.Swing.mouseStyle", oldMouseStyle);
             }
             if (ecmaTerminal != null) {
-                ecmaTerminal.setHasSixel(oldSixel);
-                ecmaTerminal.setSixelSharedPalette(oldSixelSharedPalette);
-                ecmaTerminal.setSixelPaletteSize(oldSixelPaletteSize);
                 ecmaTerminal.setRgbColor(oldRgbColor);
             }
             getApplication().setWindowOpacity(oldWindowOpacity);
@@ -954,7 +861,7 @@ public class TScreenOptionsWindow extends TWindow {
         }
 
 
-        drawBox(2, 15, left + 18, 22, color, color, borderStyle, false);
+        drawBox(2, 15, left + 18, 18, color, color, borderStyle, false);
         if (borderStyle.equals(BorderStyle.NONE)) {
             putStringXY(3, 15, i18n.getString("xtermOptions"), color);
         } else {

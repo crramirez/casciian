@@ -246,7 +246,7 @@ public class ECMA48 implements Runnable {
     /**
      * The version of the terminal to report in XTVERSION.
      */
-    private final String VERSION = "0.1";
+    private final String VERSION = "0.3";
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------

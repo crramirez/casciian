@@ -3,23 +3,11 @@ Casciian - Java Text User Interface library
 
 This library implements a text-based windowing system loosely
 reminiscent of Borland's [Turbo
-Vision](http://en.wikipedia.org/wiki/Turbo_Vision) system.  It looks
-like this:
+Vision](http://en.wikipedia.org/wiki/Turbo_Vision) system.
 
-![WezTerm, translucent images](/screenshots/wezterm_translucent_images.png?raw=true "WezTerm, translucent images")
-
-...or this:
-
-![Terminal, Image, Table](/screenshots/new_demo1.png?raw=true "Terminal, Image, Table")
-
-...or anything in between.
-
-Casciian works on both Xterm-like terminals and Swing, and supports
-images in both Xterm and Swing.  On Swing, images are true color; on
-Xterm, images are rendered as sixel, iTerm2, or Casciian images, or as
-Unicode half-block glyphs if none of those are available.  Casciian
-can be run inside its own terminal window, with support for all of its
-features including images and mouse, and of course more terminals.
+Casciian works on both Xterm-like terminals and Swing.  Casciian can
+be run inside its own terminal window, with support for all of its
+features including mouse, and of course more terminals.
 
 Casciian has seen inspiration from several other projects:
 
@@ -28,21 +16,9 @@ Casciian has seen inspiration from several other projects:
   windows and layered images generally look as one would expect in a
   modern graphical environment...but it's mostly text.
 
-* Casciian's (multithread-safe) "high quality" sixel encoder
-  (HQSixelEncoder) -- which supplants its original (single-threaded)
-  2018-era design (LegacySixelEncoder) -- was inspired by
-  [chafa's](https://hpjansson.org/chafa/) high-performance principal
-  component analysis based sixel encoder.  HQSixelEncoder combined
-  with Casciian's cell-based images design approaches 20-bit color
-  depth!
-
 * Pulsing button text, window effects, and desktop effects were
   inspired by [vtm's](https://github.com/netxs-group/vtm) incredibly
   slick game-like aesthetic.
-
-* Notcurses, chafa, and
-  [sixel-tmux](https://github.com/csdvrx/sixel-tmux) were the
-  inspiration for adding image rendering to Unicode half-block glyphs.
 
 
 

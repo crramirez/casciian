@@ -185,17 +185,6 @@ public class ECMA48Backend extends GenericBackend {
     }
 
     /**
-     * Check if backend will support incomplete image fragments over text
-     * display.
-     *
-     * @return true if images can partially obscure text
-     */
-    @Override
-    public boolean isImagesOverText() {
-        return ((ECMA48Terminal) terminal).isImagesOverText();
-    }
-
-    /**
      * Check if backend is reporting pixel-based mouse position.
      *
      * @return true if single-pixel mouse movements are reported

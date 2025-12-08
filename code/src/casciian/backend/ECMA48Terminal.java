@@ -14,10 +14,6 @@
  */
 package casciian.backend;
 
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
@@ -31,24 +27,13 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import javax.imageio.ImageIO;
 
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.Color;
 import casciian.bits.ComplexCell;
 import casciian.bits.ExtendedGraphemeClusterUtils;
-import casciian.bits.ImageUtils;
 import casciian.bits.StringUtils;
 import casciian.event.TCommandEvent;
 import casciian.event.TInputEvent;
@@ -82,16 +67,6 @@ public class ECMA48Terminal extends LogicalScreen
         OSC,
         MOUSE,
         MOUSE_SGR,
-    }
-
-    /**
-     * Available Casciian images support.
-     */
-    private enum JexerImageOption {
-        DISABLED,
-        JPG,
-        PNG,
-        RGB,
     }
 
     /**
@@ -216,12 +191,6 @@ public class ECMA48Terminal extends LogicalScreen
     private int textHeightPixels = -1;
 
     /**
-     * A cache of previously-rendered glyphs for non-blinking, or
-     * blinking-and-visible, text.
-     */
-    private Map<ComplexCell, BufferedImage> glyphCache;
-
-    /**
      * Text blink option.
      */
     private TextBlinkOption textBlinkOption = TextBlinkOption.AUTO;
@@ -255,73 +224,6 @@ public class ECMA48Terminal extends LogicalScreen
      * If true, we are operating on a Genuine(tm) XTerm.
      */
     private boolean isGenuineXTerm = false;
-
-    /**
-     * If true, emit image data via sixel.
-     */
-    private boolean sixel = true;
-
-    /**
-     * The sixel encoder.
-     */
-    private SixelEncoder sixelEncoder = null;
-
-    /**
-     * If true, ask sixel to be fast and dirty.
-     */
-    private boolean sixelFastAndDirty = false;
-
-    /**
-     * If true, the terminal supports leaving the terminal cursor to the
-     * right of sixel images (DECSET 8452).
-     */
-    private boolean sixelCursorOnRight = false;
-
-    /**
-     * The sixel post-rendered string cache.
-     */
-    private ImageCache sixelCache = null;
-
-    /**
-     * If true, emit image data via iTerm2 image protocol.
-     */
-    private boolean iterm2Images = false;
-
-    /**
-     * If true, allow iTerm2 images on the bottom row.
-     */
-    private boolean iterm2BottomRow = false;
-
-    /**
-     * The iTerm2 post-rendered string cache.
-     */
-    private ImageCache iterm2Cache = null;
-
-    /**
-     * If not DISABLED, emit image data via Casciian image protocol if the
-     * terminal supports it.
-     */
-    private JexerImageOption jexerImageOption = JexerImageOption.PNG;
-
-    /**
-     * The Casciian post-rendered string cache.
-     */
-    private ImageCache jexerCache = null;
-
-    /**
-     * The Unicode glyph encoder.
-     */
-    private UnicodeGlyphEncoder unicodeGlyphEncoder = null;
-
-    /**
-     * The Unicode glyph post-rendered string cache.
-     */
-    private ImageCache unicodeGlyphCache = null;
-
-    /**
-     * The number of threads for image rendering.
-     */
-    private int imageThreadCount = 2;
 
     /**
      * If true, then we changed System.in and need to change it back.
@@ -401,21 +303,6 @@ public class ECMA48Terminal extends LogicalScreen
     private boolean hasSynchronizedOutput = false;
 
     /**
-     * If true, this terminal requires explicitly overwriting images
-     * with black pixels to destroy them.  If false, overwriting
-     * images with text will destroy them.  Konsole is the only
-     * terminal known at this time that requires
-     * explicitlyDestroyImages to be true.
-     */
-    private boolean explicitlyDestroyImages = false;
-
-    /**
-     * The cells containing all-black pixels used to erase images when
-     * explicityDestroyImages is true.  Only initialized if needed.
-     */
-    private ArrayList<Cell> blankImageRow = null;
-
-    /**
      * The time we last flushed output in flushPhysical().
      */
     private long lastFlushTime;
@@ -474,152 +361,6 @@ public class ECMA48Terminal extends LogicalScreen
     private java.awt.Color MYBOLD_MAGENTA;
     private java.awt.Color MYBOLD_CYAN;
     private java.awt.Color MYBOLD_WHITE;
-
-    /**
-     * ImageCache is a least-recently-used cache that hangs on to the
-     * post-rendered image string for a particular set of cells.
-     */
-    private class ImageCache {
-
-        /**
-         * Maximum size of the cache.
-         */
-        private int maxSize = 100;
-
-        /**
-         * The entries stored in the cache.
-         */
-        private HashMap<String, CacheEntry> cache = null;
-
-        /**
-         * CacheEntry is one entry in the cache.
-         */
-        private class CacheEntry {
-            /**
-             * The cache key.
-             */
-            public String key;
-
-            /**
-             * The cache data.
-             */
-            public String data;
-
-            /**
-             * The last time this entry was used.
-             */
-            public long millis = 0;
-
-            /**
-             * Public constructor.
-             *
-             * @param key the cache entry key
-             * @param data the cache entry data
-             */
-            public CacheEntry(final String key, final String data) {
-                this.key = key;
-                this.data = data;
-                this.millis = System.currentTimeMillis();
-            }
-        }
-
-        /**
-         * Public constructor.
-         *
-         * @param maxSize the maximum size of the cache
-         */
-        public ImageCache(final int maxSize) {
-            this.maxSize = maxSize;
-            cache = new HashMap<String, CacheEntry>();
-        }
-
-        /**
-         * Make a unique key for a list of cells.
-         *
-         * @param cells the cells
-         * @return the key
-         */
-        private String makeKey(final ArrayList<Cell> cells) {
-            StringBuilder sb = new StringBuilder();
-            for (Cell cell: cells) {
-                sb.append(cell.hashCode());
-            }
-            // System.err.println("key: " + sb.toString());
-            return sb.toString();
-        }
-
-        /**
-         * Get an entry from the cache.
-         *
-         * @param cells the list of cells that are the cache key
-         * @return the image string representing these cells, or null if this
-         * list of cells is not in the cache
-         */
-        public synchronized String get(final ArrayList<Cell> cells) {
-            CacheEntry entry = cache.get(makeKey(cells));
-            if (entry == null) {
-                return null;
-            }
-            entry.millis = System.currentTimeMillis();
-            return entry.data;
-        }
-
-        /**
-         * Put an entry into the cache.
-         *
-         * @param cells the list of cells that are the cache key
-         * @param data the image string representing these cells
-         */
-        public synchronized void put(final ArrayList<Cell> cells,
-            final String data) {
-
-            String key = makeKey(cells);
-
-            // System.err.println("put() " + key + " size " + cache.size());
-
-            assert (!cache.containsKey(key));
-
-            assert (cache.size() <= maxSize);
-            if (cache.size() == maxSize) {
-                // Cache is at limit, evict oldest entry.
-                long oldestTime = Long.MAX_VALUE;
-                String keyToRemove = null;
-                for (CacheEntry entry: cache.values()) {
-                    if ((entry.millis < oldestTime) || (keyToRemove == null)) {
-                        keyToRemove = entry.key;
-                        oldestTime = entry.millis;
-                    }
-                }
-                /*
-                System.err.println("put() remove key = " + keyToRemove +
-                    " size " + cache.size());
-                 */
-                assert (keyToRemove != null);
-                cache.remove(keyToRemove);
-                /*
-                System.err.println("put() removed, size " + cache.size());
-                 */
-            }
-            assert (cache.size() <= maxSize);
-            CacheEntry entry = new CacheEntry(key, data);
-            assert (key.equals(entry.key));
-            cache.put(key, entry);
-            /*
-            System.err.println("put() added key " + key + " " +
-                " size " + cache.size());
-             */
-        }
-
-        /**
-         * Get the number of entries in the cache.
-         *
-         * @return the number of entries
-         */
-        public synchronized int size() {
-            return cache.size();
-        }
-
-    }
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -692,7 +433,6 @@ public class ECMA48Terminal extends LogicalScreen
 
         setDOSColors();
         this.backend     = backend;
-        glyphCache       = new HashMap<ComplexCell, BufferedImage>();
 
         resetParser();
         mouse1           = false;
@@ -754,9 +494,6 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Request xterm report its ANSI colors
         this.output.printf("%s", xtermQueryAnsiColors());
-
-        // Request xterm report sixelCursorOnRight support
-        this.output.printf("%s", xtermQueryMode(8452));
 
         // Request xterm report its screen size
         this.output.printf("%s", xtermQueryWindowSize());
@@ -822,7 +559,6 @@ public class ECMA48Terminal extends LogicalScreen
 
         setDOSColors();
         this.backend     = backend;
-        glyphCache       = new HashMap<ComplexCell, BufferedImage>();
 
         resetParser();
 
@@ -1099,8 +835,8 @@ public class ECMA48Terminal extends LogicalScreen
         // here in case closeTerminal() is called twice.
         if (output != null) {
             if (!casciian.TApplication.imageSupportTest) {
-                output.printf("%s%s%s%s", mouse(false), cursor(true),
-                    defaultColor(), xtermResetSixelSettings());
+                output.printf("%s%s%s", mouse(false), cursor(true),
+                    defaultColor());
                 output.printf("\033[>4m");
             }
             output.flush();
@@ -1162,91 +898,6 @@ public class ECMA48Terminal extends LogicalScreen
             doRgbColor = true;
         } else {
             doRgbColor = false;
-        }
-
-        // Default to sixel enabled.
-        if (System.getProperty("casciian.ECMA48.sixel", "true").equals("false")) {
-            sixel = false;
-        } else {
-            sixel = true;
-        }
-        // Default to HQ quantizer.
-        if (System.getProperty("casciian.ECMA48.sixelEncoder",
-                "hq").equals("legacy")) {
-            sixelEncoder = new LegacySixelEncoder();
-        } else {
-            sixelEncoder = new HQSixelEncoder();
-        }
-        if (System.getProperty("casciian.ECMA48.sixelFastAndDirty",
-                "false").equals("true")
-        ) {
-            sixelFastAndDirty = true;
-        } else {
-            sixelFastAndDirty = false;
-        }
-        sixelEncoder.reloadOptions();
-
-        unicodeGlyphEncoder = new UnicodeGlyphEncoder();
-        unicodeGlyphEncoder.reloadOptions();
-
-        // Request xterm use the sixel settings we want
-        this.output.printf("%s", xtermSetSixelSettings());
-
-        if (!daResponseSeen) {
-            String str = System.getProperty("casciian.ECMA48.iTerm2Images");
-            // Default to not supporting iTerm2 images.
-            if (str != null) {
-                if (str.equals("false")) {
-                    iterm2Images = false;
-                }
-                if (str.equals("true")) {
-                    iterm2Images = true;
-                }
-            }
-
-            // Default to using JPG Casciian images if terminal supports it.
-            String jexerImageStr = System.getProperty("casciian.ECMA48.jexerImages",
-                "png").toLowerCase();
-            if (jexerImageStr.equals("false")) {
-                jexerImageOption = JexerImageOption.DISABLED;
-            } else if (jexerImageStr.equals("jpg")) {
-                jexerImageOption = JexerImageOption.JPG;
-            } else if (jexerImageStr.equals("png")) {
-                jexerImageOption = JexerImageOption.PNG;
-            } else if (jexerImageStr.equals("rgb")) {
-                jexerImageOption = JexerImageOption.RGB;
-            }
-        }
-
-        if (System.getProperty("casciian.ECMA48.imagesOverText",
-                "false").equals("true")) {
-            imagesOverText = true;
-        } else {
-            imagesOverText = false;
-        }
-
-        String destroyImagesStr = System.getProperty("casciian.ECMA48.explicitlyDestroyImages",
-            "auto").toLowerCase();
-        if (destroyImagesStr.equals("true")) {
-            explicitlyDestroyImages = true;
-        } else {
-            explicitlyDestroyImages = false;
-        }
-
-        // Image thread count.
-        imageThreadCount = 2;
-        try {
-            imageThreadCount = Integer.parseInt(System.getProperty(
-                "casciian.ECMA48.imageThreadCount", "2"));
-            if (imageThreadCount < 1) {
-                imageThreadCount = 1;
-            }
-        } catch (NumberFormatException e) {
-            // SQUASH
-        }
-        if (sixelEncoder instanceof LegacySixelEncoder) {
-            // Legacy encoder is not thread-safe.
-            imageThreadCount = 1;
         }
 
         // For text blinking, "auto" acts like "hard" except for genuine
@@ -1912,223 +1563,6 @@ public class ECMA48Terminal extends LogicalScreen
             sb.append(clearAll());
         }
 
-        /*
-         * For images support, draw all of the image output first, and
-         * then draw all the text afterwards.
-         *
-         * We are deliberately using a font that is four pixels smaller than
-         * the cell height.
-         */
-        int glyphFontSize = Math.max(4, getTextHeight() - 4);
-        for (int y = 0; y < height; y++) {
-            boolean unsetRow = false;
-            boolean eraseImagesOnRow = false;
-            for (int x = 0; x < width; x++) {
-                ComplexCell lCell = logical[x][y];
-                ComplexCell pCell = physical[x][y];
-
-                // If physical has image data that will be overwritten by
-                // text, then erase all of the images on this row for
-                // terminals that require explicitlyDestroyImages to be true.
-                if (pCell.isImage() && !lCell.isImage()) {
-                    eraseImagesOnRow = true;
-                }
-
-                // If physical had non-image data that is now image data, the
-                // entire row must be redrawn.
-                if (lCell.isImage() && !pCell.isImage()) {
-                    unsetRow = true;
-                }
-            }
-
-            if (unsetRow) {
-                unsetImageRow(y);
-            }
-
-            if (explicitlyDestroyImages && eraseImagesOnRow) {
-                for (int x = 0; x < width; x++) {
-                    physical[x][y].unset();
-                }
-                if ((blankImageRow == null)
-                    || (blankImageRow.size() < width)
-                ) {
-                    blankImageRow = new ArrayList<Cell>(width);
-                    Cell blank = new Cell();
-                    BufferedImage newImage = new BufferedImage(textWidthPixels,
-                        textHeightPixels, BufferedImage.TYPE_INT_ARGB);
-                    java.awt.Graphics gr = newImage.getGraphics();
-                    gr.setColor(java.awt.Color.BLACK);
-                    gr.fillRect(0, 0, newImage.getWidth(),
-                        newImage.getHeight());
-                    gr.dispose();
-                    blank.setImage(newImage);
-                    for (int x = 0; x < width; x++) {
-                        blankImageRow.add(new Cell(blank));
-                    }
-                }
-                if (jexerImageOption != JexerImageOption.DISABLED) {
-                    sb.append(toJexerImage(0, y, blankImageRow));
-                } else if (iterm2Images) {
-                    sb.append(toIterm2Image(0, y, blankImageRow));
-                } else {
-                    sb.append(toSixel(0, y, blankImageRow));
-                }
-            }
-
-        } //for (int y = 0; y < height; y++) {
-
-        /*
-         * Image encoding is expensive, especially when the image is not in
-         * cache.  We multithread it.  Since each image contains its own
-         * gotoxy(), it doesn't matter in what order they are delivered to
-         * the terminal.
-         */
-        ExecutorService imageExecutor = null;
-        List<Future<String>> imageResults = null;
-
-        if (imageThreadCount > 1) {
-            imageExecutor = Executors.newFixedThreadPool(imageThreadCount);
-            imageResults = new ArrayList<Future<String>>();
-        }
-
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                ComplexCell lCell = logical[x][y];
-                ComplexCell pCell = physical[x][y];
-
-                if (!lCell.isImage()) {
-                    continue;
-                }
-
-                int right = x;
-                // This little loop is a *HUGE* bottleneck for image cells
-                // when imageId is not set.  Higher layers of code should
-                // always aim to set imageId before putting it on the screen.
-                while ((right < width)
-                    && (logical[right][y].isImage())
-                    && (!logical[right][y].equals(physical[right][y])
-                        || reallyCleared)
-                ) {
-                    right++;
-                }
-
-                ArrayList<Cell> cellsToDraw = new ArrayList<Cell>();
-                for (int i = 0; i < (right - x); i++) {
-                    assert (logical[x + i][y].isImage());
-                    BufferedImage newImage;
-                    BufferedImage textImage;
-
-                    if (logical[x + i][y].isTransparentImage()) {
-                        // We would normally only see transparent cells at
-                        // this layer if backend transparency was enabled.
-                        // But in the case of multihead, we may have been
-                        // passed a cell with transparency even though this
-                        // backend can't display it.  So we will check, and
-                        // if imagesOverText is disabled then we will quietly
-                        // continue on.  Otherwise render a text character
-                        // under the image.
-                        assert (backend != null);
-                        if (imagesOverText == true) {
-                            logical[x + i][y].flattenImage(true, backend);
-                        } else {
-                            logical[x + i][y].flattenImage(false, backend);
-                        }
-                    }
-                    assert (!logical[x + i][y].isTransparentImage());
-                    cellsToDraw.add(logical[x + i][y]);
-
-                    // Physical is always updated.
-                    physical[x + i][y].setTo(logical[x + i][y]);
-                }
-                if (cellsToDraw.size() > 0) {
-                    if (debugToStderr && reallyDebug) {
-                        System.err.println("images to render: iTerm2: " +
-                            iterm2Images + " Jexer: " + jexerImageOption);
-                    }
-
-                    if (iterm2Images) {
-                        if (iterm2Cache == null) {
-                            iterm2Cache = new ImageCache(height * width * 10);
-                        }
-                    } else if (jexerImageOption != JexerImageOption.DISABLED) {
-                        if (jexerCache == null) {
-                            jexerCache = new ImageCache(height * width * 10);
-                        }
-                    } else if (sixel == true) {
-                        if (sixelCache == null) {
-                            sixelCache = new ImageCache(height * width * 10);
-                        }
-                    } else {
-                        if (unicodeGlyphCache == null) {
-                            unicodeGlyphCache = new ImageCache(height * width);
-                        }
-                    }
-
-                    if (imageThreadCount == 1) {
-                        // Single-threaded
-                        if (iterm2Images) {
-                            sb.append(toIterm2Image(x, y, cellsToDraw));
-                        } else if (jexerImageOption != JexerImageOption.DISABLED) {
-                            sb.append(toJexerImage(x, y, cellsToDraw));
-                        } else if (sixel == true) {
-                            sb.append(toSixel(x, y, cellsToDraw));
-                        } else {
-                            sb.append(toUnicodeGlyphs(x, y, cellsToDraw));
-                        }
-                    } else {
-                        // Multi-threaded: experimental and likely borken
-                        final int callX = x;
-                        final int callY = y;
-
-                        // Make a deep copy of the cells to render.
-                        final ArrayList<Cell> callCells;
-                        callCells = new ArrayList<Cell>(cellsToDraw);
-                        imageResults.add(imageExecutor.submit(new Callable<String>() {
-                            @Override
-                            public String call() {
-                                if (iterm2Images) {
-                                    return toIterm2Image(callX, callY, callCells);
-                                } else if (jexerImageOption != JexerImageOption.DISABLED) {
-                                    return toJexerImage(callX, callY, callCells);
-                                } else if (sixel == true) {
-                                    return toSixel(callX, callY, callCells);
-                                } else {
-                                    return toUnicodeGlyphs(callX, callY,
-                                        callCells);
-                                }
-                            }
-                        }));
-                    }
-                }
-
-                x = right;
-            }
-        }
-
-        if (imageThreadCount > 1) {
-            List<String> threadedImages = new ArrayList<String>(imageResults.size());
-            // Collect all the encoded images.
-            while (imageResults.size() > 0) {
-                Future<String> image = imageResults.get(0);
-                try {
-                    threadedImages.add(image.get());
-                } catch (InterruptedException e) {
-                    // SQUASH
-                    // e.printStackTrace();
-                } catch (ExecutionException e) {
-                    // SQUASH
-                    // e.printStackTrace();
-                }
-                imageResults.remove(0);
-            }
-            imageExecutor.shutdown();
-
-            Collections.sort(threadedImages);
-            for (String imageString: threadedImages) {
-                sb.append(imageString);
-            }
-        }
-
         // Draw the text part now.
         for (int y = 0; y < height; y++) {
             flushLine(y, sb, attr);
@@ -2141,16 +1575,6 @@ public class ECMA48Terminal extends LogicalScreen
             System.err.printf("flushString(): %s\n", result);
         }
         return result;
-    }
-
-    /**
-     * Check if screen will support incomplete image fragments over text
-     * display.
-     *
-     * @return true if images can partially obscure text
-     */
-    public boolean isImagesOverText() {
-        return imagesOverText;
     }
 
     /**
@@ -2728,62 +2152,6 @@ public class ECMA48Terminal extends LogicalScreen
                 System.err.println("  -- Genuine(tm) XTerm! -- ");
             }
             isGenuineXTerm = true;
-            if (sixel && (textBlinkOption == TextBlinkOption.AUTO)) {
-                if (debugToStderr) {
-                    System.err.println("  -- sixel enabled, so soft blink -- ");
-                }
-                textBlinkOption = TextBlinkOption.SOFT;
-            }
-        }
-
-        // iTerm2 image support will be ASSUMED for the following terminals
-        // if iTerm2Images is not explicitly false.
-        if (text.contains("WezTerm")
-            || text.contains("mintty")
-            || text.contains("iTerm2")
-            || text.contains("Konsole")
-            || text.contains("jexer")
-        ) {
-            String str = System.getProperty("casciian.ECMA48.iTerm2Images");
-            if ((str != null) && (str.equals("false"))) {
-                if (debugToStderr) {
-                    System.err.println("  -- terminal supports iTerm2, but " +
-                        "explicitly disabled in config");
-                }
-                iterm2Images = false;
-            } else {
-                if (debugToStderr) {
-                    System.err.println("  -- enable iTerm2 images");
-                }
-                iterm2Images = true;
-            }
-            // These iTerm2-compatible terminals also support
-            // doNotMoveCursor.
-            if (text.contains("WezTerm")
-                || text.contains("jexer")
-            ) {
-                iterm2BottomRow = true;
-            }
-        }
-
-        // Konsole places image data underneath text, such that
-        // erasing text will re-expose the image.  We need to
-        // explicitly destroy any images being overwritten by text for
-        // that case.
-        if (text.contains("Konsole")) {
-            String str = System.getProperty("casciian.ECMA48.explicitlyDestroyImages");
-            if ((str != null) && (str.equals("false"))) {
-                if (debugToStderr) {
-                    System.err.println("  -- terminal requires " +
-                        "explicitlyDestroyImages, but is disabled in config");
-                }
-                explicitlyDestroyImages = false;
-            } else {
-                if (debugToStderr) {
-                    System.err.println("  -- terminal requires explicitlyDestroyImages");
-                }
-                explicitlyDestroyImages = true;
-            }
         }
 
     }
@@ -3292,56 +2660,6 @@ public class ECMA48Terminal extends LogicalScreen
                     if (decPrivateModeFlag == false) {
                         break;
                     }
-
-                    if ((params.size() > 2)
-                        && (!params.get(1).equals("0"))
-                    ) {
-                        if (debugToStderr) {
-                            System.err.printf("Graphics query error: " +
-                                params);
-                        }
-                        break;
-                    }
-
-                    if (params.size() > 2) {
-                        if (debugToStderr) {
-                            System.err.printf("Graphics result: " +
-                                "status %s Ps %s Pv %s\n", params.get(0),
-                                params.get(1), params.get(2));
-                        }
-                        if (params.get(0).equals("1")) {
-                            int registers = sixelEncoder.getPaletteSize();
-                            try {
-                                registers = Integer.parseInt(params.get(2));
-                                if (debugToStderr) {
-                                    System.err.println("Terminal reports " +
-                                        registers + " sixel colors, current " +
-                                        "size = " +
-                                        sixelEncoder.getPaletteSize());
-                                }
-                                if ((registers >= 2)
-                                    && (registers < sixelEncoder.getPaletteSize())
-                                ) {
-                                    try {
-                                        sixelEncoder.setPaletteSize(Integer.highestOneBit(registers));
-                                        if (debugToStderr) {
-                                            System.err.println("New palette size: "
-                                                + sixelEncoder.getPaletteSize());
-                                        }
-                                    } catch (IllegalArgumentException e) {
-                                        if (debugToStderr) {
-                                            System.err.println("Unsupported palette size: "
-                                                + registers);
-                                        }
-                                    }
-                                }
-                            } catch (NumberFormatException e) {
-                                if (debugToStderr) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                    }
                     break;
                 case 'c':
                     // Device Attributes
@@ -3350,27 +2668,9 @@ public class ECMA48Terminal extends LogicalScreen
                     }
                     daResponseSeen = true;
 
-                    boolean reportsJexerImages = false;
-                    boolean reportsIterm2Images = false;
-                    boolean reportsSixelImages = false;
                     for (String x: params) {
                         if (debugToStderr) {
                             System.err.println("Device Attributes: x = " + x);
-                        }
-                        if (x.equals("4")) {
-                            // Terminal reports sixel support
-                            if (debugToStderr) {
-                                System.err.println("Device Attributes: sixel");
-                            }
-                            reportsSixelImages = true;
-                            if (isGenuineXTerm
-                                && (textBlinkOption == TextBlinkOption.AUTO)
-                            ) {
-                                if (debugToStderr) {
-                                    System.err.println("  -- GenuineXTerm, so soft blink -- ");
-                                }
-                                textBlinkOption = TextBlinkOption.SOFT;
-                            }
                         }
                         if (x.equals("52")) {
                             // Terminal reports OSC 52 support
@@ -3386,54 +2686,6 @@ public class ECMA48Terminal extends LogicalScreen
                              */
                         }
 
-                        if (x.equals("444")) {
-                            // Terminal reports Casciian images support
-                            if (debugToStderr) {
-                                System.err.println("Device Attributes: Casciian images");
-                            }
-                            reportsJexerImages = true;
-                        }
-                        if (iterm2Images) {
-                            /*
-                             * This check left in place so that I have a hook
-                             * for later.  At the moment there is no way to
-                             * reliably detect iTerm2 image support, so if
-                             * casciian.ECMA48.iTerm2Images=true, we just
-                             * blindly start using them.
-                             */
-
-                            // Terminal reports iTerm2 images support
-                            if (debugToStderr) {
-                                System.err.println("Device Attributes: ASSUMING iTerm2 image support");
-                            }
-                            reportsIterm2Images = true;
-                        }
-                    }
-                    if (reportsSixelImages == false) {
-                        // Terminal does not support Sixel images, disable
-                        // them.
-                        sixel = false;
-                        if (debugToStderr) {
-                            System.err.println("Device Attributes: Disable Sixel images");
-                        }
-                    }
-                    if (reportsJexerImages == false) {
-                        // Terminal does not support Casciian images, disable
-                        // them.
-                        jexerImageOption = JexerImageOption.DISABLED;
-                        if (debugToStderr) {
-                            System.err.println("Device Attributes: Disable Casciian images");
-                        }
-                    }
-                    if ((reportsIterm2Images == false)
-                        && (casciian.TApplication.imageSupportTest == false)
-                    ) {
-                        // Terminal does not support iTerm2 images, disable
-                        // them.
-                        iterm2Images = false;
-                        if (debugToStderr) {
-                            System.err.println("Device Attributes: Disable iTerm2 images");
-                        }
                     }
                     resetParser();
                     return;
@@ -3573,13 +2825,6 @@ public class ECMA48Terminal extends LogicalScreen
                                     }
                                     hasSynchronizedOutput = true;
                                 }
-                                if (Pd.equals("8452")) {
-                                    if (debugToStderr) {
-                                        System.err.println("DECRPM: " +
-                                            "has sixelCursorOnRight support");
-                                    }
-                                    sixelCursorOnRight = true;
-                                }
                             }
                         }
                         resetParser();
@@ -3653,41 +2898,6 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Request (u)xterm to use the sixel settings we desire:
-     *
-     *   - disable sixel display mode
-     *
-     *   - disable private color registers (so that we can use one common
-     *     palette) if sixelSharedPalette is set
-     *
-     *   - query number of color registers
-     *
-     *   - sixel scrolling leaves cursor on right
-     *
-     * @return the string to emit to xterm
-     */
-    private String xtermSetSixelSettings() {
-        if (sixelEncoder.hasSharedPalette()) {
-            return "\033[?1070l\033[?1;1;0S\033[?8452h";
-        } else {
-            return "\033[?1070h\033[?1;1;0S\033[?8452h";
-        }
-    }
-
-    /**
-     * Restore (u)xterm its default sixel settings:
-     *
-     *   - enable sixel scrolling
-     *
-     *   - enable private color registers
-     *
-     * @return the string to emit to xterm
-     */
-    private String xtermResetSixelSettings() {
-        return "\033[?1070h";
-    }
-
-    /**
      * Request (u)xterm to report its program version (XTVERSION).
      *
      * I am not a fan of fingerprinting terminals in this fashion.  They
@@ -3700,8 +2910,8 @@ public class ECMA48Terminal extends LogicalScreen
      *
      * Alas, fingerprinting is now the path of least resistance.
      *
-     * This is currently only used to assume support for iTerm2 image
-     * protocol.
+     * On the brighter side, this does allow us to report the exact terminal
+     * and version for end-user troubleshooting.
      *
      * @return the string to emit to xterm
      */
@@ -3746,861 +2956,6 @@ public class ECMA48Terminal extends LogicalScreen
     private String getSetTitleString(final String title) {
         return "\033]2;" + title + "\007";
     }
-
-    // ------------------------------------------------------------------------
-    // Sixel output support ---------------------------------------------------
-    // ------------------------------------------------------------------------
-
-    /**
-     * Get the rgbColor flag.
-     *
-     * @return true if the standard system colors will be emitted as 24-bit RGB
-     */
-    public boolean isRgbColor() {
-        return doRgbColor;
-    }
-
-    /**
-     * Set the rgbColor flag.
-     *
-     * @param rgbColor if true, the standard system colors will be emitted as
-     * 24-bit RGB images
-     */
-    public void setRgbColor(final boolean rgbColor) {
-        doRgbColor = rgbColor;
-    }
-
-    /**
-     * Set sixel output support flag.
-     *
-     * @param sixel if true, then images will be emitted as sixel
-     */
-    public void setHasSixel(final boolean sixel) {
-        // Don't step on the screen refresh thread.
-        synchronized (this) {
-            this.sixel = sixel;
-            sixelEncoder.clearPalette();
-            sixelCache = null;
-            clearPhysical();
-        }
-    }
-
-    /**
-     * Get the sixel shared palette option.
-     *
-     * @return true if all sixel output is using the same palette that is set
-     * in one DCS sequence and used in later sequences
-     */
-    public boolean hasSixelSharedPalette() {
-        return sixelEncoder.hasSharedPalette();
-    }
-
-    /**
-     * Set the sixel shared palette option.
-     *
-     * @param sharedPalette if true, then all sixel output will use the same
-     * palette that is set in one DCS sequence and used in later sequences
-     */
-    public void setSixelSharedPalette(final boolean sharedPalette) {
-        // Don't step on the screen refresh thread.
-        synchronized (this) {
-            sixelEncoder.setSharedPalette(sharedPalette);
-            sixelCache = null;
-            clearPhysical();
-        }
-    }
-
-    /**
-     * Get the number of colors in the sixel palette.
-     *
-     * @return the palette size
-     */
-    public int getSixelPaletteSize() {
-        return sixelEncoder.getPaletteSize();
-    }
-
-    /**
-     * Set the number of colors in the sixel palette.
-     *
-     * @param paletteSize the new palette size
-     */
-    public void setSixelPaletteSize(final int paletteSize) {
-        // Don't step on the screen refresh thread.
-        synchronized (this) {
-            sixelEncoder.setPaletteSize(paletteSize);
-            sixelCache = null;
-            clearPhysical();
-        }
-    }
-
-    /**
-     * Start a sixel string for display one row's worth of bitmap data.
-     *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @return the string to emit to an ANSI / ECMA-style terminal
-     */
-    private String startSixel(final int x, final int y) {
-
-        StringBuilder sb = new StringBuilder();
-
-        assert (sixel == true);
-
-        // Place the cursor.
-        sb.append(sortableGotoXY(x, y));
-
-        // DCS
-        sb.append("\033Pq");
-
-        // We might need to emit the palette.
-        sixelEncoder.emitPalette(sb);
-
-        return sb.toString();
-    }
-
-    /**
-     * End a sixel string for display one row's worth of bitmap data.
-     *
-     * @return the string to emit to an ANSI / ECMA-style terminal
-     */
-    private String endSixel() {
-        assert (sixel == true);
-
-        // ST
-        return ("\033\\");
-    }
-
-    /**
-     * Create a sixel string representing a row of several cells containing
-     * bitmap data.
-     *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param cells the cells containing the bitmap data
-     * @return the string to emit to an ANSI / ECMA-style terminal
-     */
-    private String toSixel(final int x, final int y,
-        final ArrayList<Cell> cells) {
-
-        StringBuilder sb = new StringBuilder();
-
-        assert (cells != null);
-        assert (cells.size() > 0);
-        assert (cells.get(0).getImage() != null);
-
-        if (sixel == false) {
-            sb.append(normal());
-            sb.append(gotoXY(x, y));
-            for (int i = 0; i < cells.size(); i++) {
-                sb.append(' ');
-            }
-            return sb.toString();
-        }
-
-        if ((y == height - 1) && (!sixelCursorOnRight || isGenuineXTerm)) {
-            if (sixelEncoder instanceof HQSixelEncoder) {
-                // HQ can emit images with transparency.  We can use that
-                // along with DECSDM to get up to 1000 pixel width images on
-                // the bottom row. We use this trick only with terminals that
-                // do not support 8452 mode and the actual XTerm because it
-                // always scrolls off the bottom line no matter what.
-                emitSixelOnBottomRow(x, y, cells, sb);
-                return sb.toString();
-            } else {
-                // We are on the bottom row.  If scrolling mode is enabled
-                // (default), then VT320/xterm will scroll the entire screen if
-                // we draw any pixels here.  Do not draw the image, bail out
-                // instead.
-                sb.append(normal());
-                sb.append(gotoXY(x, y));
-                for (int j = 0; j < cells.size(); j++) {
-                    sb.append(' ');
-                }
-                return sb.toString();
-            }
-        }
-
-        boolean saveInCache = true;
-        if (sixelFastAndDirty) {
-            saveInCache = false;
-        } else {
-            // Save and get rows to/from the cache that do NOT have inverted
-            // cells.
-            for (Cell cell: cells) {
-                if (cell.isInvertedImage()) {
-                    saveInCache = false;
-                    break;
-                }
-                // Compute the hashcode so that the cell image hash is
-                // available for looking up in the image cache.
-                cell.hashCode();
-            }
-
-            if (saveInCache) {
-                String cachedResult = sixelCache.get(cells);
-                if (cachedResult != null) {
-                    // System.err.println("CACHE HIT");
-                    sb.append(startSixel(x, y));
-                    sb.append(cachedResult);
-                    sb.append(endSixel());
-                    return sb.toString();
-                }
-                // System.err.println("CACHE MISS");
-            }
-        }
-
-        // If the final image would be larger than 1000 pixels wide, break it
-        // up into smaller images, but at least 8 cells wide.  Or if we are
-        // using the HQ encoder and will have more than some multiple of the
-        // palette size in total pixels.
-        int maxChunkLength = 1000;
-        if ((sixelEncoder instanceof HQSixelEncoder)
-            && (sixelEncoder.getPaletteSize() > 64)
-        ) {
-            maxChunkLength = Math.max(8 * getTextWidth(),
-                Math.min(maxChunkLength,
-                    sixelEncoder.getPaletteSize() * 10 / getTextHeight()));
-            /*
-            System.err.printf("maxChunkLength: %d cache used size %d\n",
-                maxChunkLength, sixelCache.size());
-             */
-        }
-        if (cells.size() * getTextWidth() > maxChunkLength) {
-            StringBuilder chunkSb = new StringBuilder();
-            int chunkStart = 0;
-            int chunkSize = maxChunkLength / getTextWidth();
-            int remaining = cells.size();
-            int chunkX = x;
-            ArrayList<Cell> chunk;
-            while (remaining > 0) {
-                chunk = new ArrayList<Cell>(cells.subList(chunkStart,
-                        chunkStart + Math.min(chunkSize, remaining)));
-                chunkSb.append(toSixel(chunkX, y, chunk));
-                chunkStart += chunkSize;
-                remaining -= chunkSize;
-                chunkX += chunkSize;
-            }
-            return chunkSb.toString();
-        }
-
-        BufferedImage image = cellsToImage(cells);
-        String sixel = sixelEncoder.toSixel(image);
-
-        if (saveInCache) {
-            // This row is OK to save into the cache.
-            sixelCache.put(cells, sixel);
-        }
-
-        return (startSixel(x, y) + sixel + endSixel());
-    }
-
-    /**
-     * Create a sixel string representing a row of several cells containing
-     * bitmap data on the bottom.  This technique may not work on all
-     * terminals, and is limited to 1000 pixels from the left edge.
-     *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param cells the cells containing the bitmap data
-     * @param sb the StringBuilder to write to
-     */
-    private void emitSixelOnBottomRow(final int x, final int y,
-        final ArrayList<Cell> cells, final StringBuilder sb) {
-
-        int cellWidth = getTextWidth();
-        int cellHeight = getTextHeight();
-        int pixelX = x * cellWidth;
-        int pixelY = y * cellHeight;
-        int maxPixelX = pixelX + (cells.size() * cellWidth);
-        int maxPixelY = pixelY + cellHeight;
-        if ((maxPixelX > 1000) || (maxPixelY > 1000)) {
-            // There is no point, xterm will not display this image.
-            sb.append(normal());
-            sb.append(gotoXY(x, y));
-            for (int i = 0; i < cells.size(); i++) {
-                sb.append(' ');
-            }
-            return;
-        }
-
-        // The final image will be 1000 x 1000 or less.
-        BufferedImage cellsImage = cellsToImage(cells);
-        BufferedImage fullImage = ImageUtils.createImage(cellsImage,
-            maxPixelX, maxPixelY);
-        Graphics gr = fullImage.getGraphics();
-        gr.drawImage(cellsImage, pixelX, pixelY, null);
-        gr.dispose();
-
-        // HQSixelEncoder.toSixel() can accept allowTransparent.
-        String sixel = ((HQSixelEncoder) sixelEncoder).toSixel(fullImage, true);
-        sb.append("\033[?80h\033P0;1;0q");
-        sb.append(sixel);
-        // System.err.println("SIXEL: " + sixel);
-        sb.append("\033\\\033[?80l");
-    }
-
-    /**
-     * Get the sixel support flag.
-     *
-     * @return true if this terminal is emitting sixel
-     */
-    public boolean hasSixel() {
-        return sixel;
-    }
-
-    /**
-     * Convert a horizontal range of cell's image data into a single
-     * contigous image, rescaled and anti-aliased to match the current text
-     * cell size.
-     *
-     * @param cells the cells containing image data
-     * @return the image resized to the current text cell size
-     */
-    private BufferedImage cellsToImage(final List<Cell> cells) {
-        int imageWidth = cells.get(0).getImage().getWidth();
-        int imageHeight = cells.get(0).getImage().getHeight();
-
-        // Piece cells.get(x).getImage() pieces together into one larger
-        // image for final rendering.
-        int totalWidth = 0;
-        int fullWidth = cells.size() * imageWidth;
-        int fullHeight = imageHeight;
-        for (int i = 0; i < cells.size(); i++) {
-            totalWidth += cells.get(i).getImage().getWidth();
-        }
-
-        BufferedImage image = ImageUtils.createImage(cells.get(0).getImage(),
-            fullWidth, fullHeight);
-
-        int [] rgbArray;
-        for (int i = 0; i < cells.size() - 1; i++) {
-            int tileWidth = imageWidth;
-            int tileHeight = imageHeight;
-
-            if (false && cells.get(i).isInvertedImage()) {
-                // I used to put an all-white cell over the cursor, don't do
-                // that anymore.
-                rgbArray = new int[imageWidth * imageHeight];
-                for (int j = 0; j < rgbArray.length; j++) {
-                    rgbArray[j] = 0xFFFFFF;
-                }
-            } else {
-                try {
-                    rgbArray = cells.get(i).getImage().getRGB(0, 0,
-                        tileWidth, tileHeight, null, 0, tileWidth);
-                } catch (Exception e) {
-                    throw new RuntimeException("image " + imageWidth + "x" +
-                        imageHeight +
-                        " tile " + tileWidth + "x" +
-                        tileHeight +
-                        " cells.get(i).getImage() " +
-                        cells.get(i).getImage() +
-                        " i " + i +
-                        " fullWidth " + fullWidth +
-                        " fullHeight " + fullHeight, e);
-                }
-            }
-
-            /*
-            System.err.printf("calling image.setRGB(): %d %d %d %d %d\n",
-                i * imageWidth, 0, imageWidth, imageHeight,
-                0, imageWidth);
-            System.err.printf("   fullWidth %d fullHeight %d cells.size() %d textWidth %d\n",
-                fullWidth, fullHeight, cells.size(), getTextWidth());
-             */
-
-            image.setRGB(i * imageWidth, 0, tileWidth, tileHeight,
-                rgbArray, 0, tileWidth);
-            if (tileHeight < fullHeight) {
-                int backgroundColor = 0;
-                for (int imageX = 0; imageX < image.getWidth(); imageX++) {
-                    for (int imageY = imageHeight; imageY < fullHeight;
-                         imageY++) {
-
-                        image.setRGB(imageX, imageY, backgroundColor);
-                    }
-                }
-            }
-        }
-        totalWidth -= ((cells.size() - 1) * imageWidth);
-        if (false && cells.get(cells.size() - 1).isInvertedImage()) {
-            // I used to put an all-white cell over the cursor, don't do that
-            // anymore.
-            rgbArray = new int[totalWidth * imageHeight];
-            for (int j = 0; j < rgbArray.length; j++) {
-                rgbArray[j] = 0xFFFFFF;
-            }
-        } else {
-            try {
-                rgbArray = cells.get(cells.size() - 1).getImage().getRGB(0, 0,
-                    totalWidth, imageHeight, null, 0, totalWidth);
-            } catch (Exception e) {
-                // TODO: Both of these setRGB cases are failing sometimes in
-                // the multihead case.  Figure it out.
-                return image;
-                /*
-                throw new RuntimeException("image " + imageWidth + "x" +
-                    imageHeight + " cells.get(cells.size() - 1).getImage() " +
-                    cells.get(cells.size() - 1).getImage(), e);
-                 */
-            }
-        }
-        try {
-            image.setRGB((cells.size() - 1) * imageWidth, 0, totalWidth,
-                imageHeight, rgbArray, 0, totalWidth);
-        } catch (Exception e) {
-            // TODO: Both of these setRGB cases are failing sometimes in the
-            // multihead case.  Figure it out.
-            return image;
-            /*
-            throw new RuntimeException("image " + imageWidth + "x" +
-                imageHeight + " cells.get(cells.size() - 1).getImage() " +
-                cells.get(cells.size() - 1).getImage(), e);
-             */
-        }
-
-
-        if (totalWidth < imageWidth) {
-            int backgroundColor = 0;
-            for (int imageX = image.getWidth() - totalWidth;
-                 imageX < image.getWidth(); imageX++) {
-
-                for (int imageY = 0; imageY < fullHeight; imageY++) {
-                    image.setRGB(imageX, imageY, backgroundColor);
-                }
-            }
-        }
-
-        if ((image.getWidth() != cells.size() * getTextWidth())
-            || (image.getHeight() != getTextHeight())
-        ) {
-            // Rescale the image to fit the text cells it is going into.
-            BufferedImage newImage;
-            newImage = ImageUtils.createImage(image,
-                cells.size() * getTextWidth(), getTextHeight());
-
-            Graphics gr = newImage.getGraphics();
-            if (gr instanceof Graphics2D) {
-                ((Graphics2D) gr).setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
-                ((Graphics2D) gr).setRenderingHint(RenderingHints.KEY_RENDERING,
-                    RenderingHints.VALUE_RENDER_QUALITY);
-            }
-            gr.drawImage(image, 0, 0, newImage.getWidth(),
-                newImage.getHeight(), null, null);
-            gr.dispose();
-            image = newImage;
-        }
-
-        return image;
-    }
-
-    // ------------------------------------------------------------------------
-    // End sixel output support -----------------------------------------------
-    // ------------------------------------------------------------------------
-
-    // ------------------------------------------------------------------------
-    // iTerm2 image output support --------------------------------------------
-    // ------------------------------------------------------------------------
-
-    /**
-     * Create an iTerm2 images string representing a row of several cells
-     * containing bitmap data.
-     *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param cells the cells containing the bitmap data
-     * @return the string to emit to an ANSI / ECMA-style terminal
-     */
-    private String toIterm2Image(final int x, final int y,
-        final ArrayList<Cell> cells) {
-
-        StringBuilder sb = new StringBuilder();
-
-        assert (cells != null);
-        assert (cells.size() > 0);
-        assert (cells.get(0).getImage() != null);
-
-        if (iterm2Images == false) {
-            sb.append(normal());
-            sb.append(gotoXY(x, y));
-            for (int i = 0; i < cells.size(); i++) {
-                sb.append(' ');
-            }
-            return sb.toString();
-        }
-
-        if ((y == height - 1) && (iterm2BottomRow == false)) {
-            // We are on the bottom row.  If this terminal does not support
-            // doNotMoveCursor, then it will scroll the entire screen if we
-            // draw a picture here.  Do not draw the image, bail out instead.
-            sb.append(normal());
-            sb.append(gotoXY(x, y));
-            for (int j = 0; j < cells.size(); j++) {
-                sb.append(' ');
-            }
-            return sb.toString();
-        }
-
-        // Save and get rows to/from the cache that do NOT have inverted
-        // cells.
-        boolean saveInCache = true;
-        for (Cell cell: cells) {
-            if (cell.isInvertedImage()) {
-                saveInCache = false;
-                break;
-            }
-            // Compute the hashcode so that the cell image hash is available
-            // for looking up in the image cache.
-            cell.hashCode();
-        }
-        if (saveInCache) {
-            String cachedResult = iterm2Cache.get(cells);
-            if (cachedResult != null) {
-                // System.err.println("CACHE HIT");
-                sb.append(sortableGotoXY(x, y));
-                sb.append(cachedResult);
-                return sb.toString();
-            }
-            // System.err.println("CACHE MISS");
-        }
-
-        BufferedImage image = cellsToImage(cells);
-        int fullHeight = image.getHeight();
-
-        /*
-         * From https://iterm2.com/documentation-images.html:
-         *
-         * Protocol
-         *
-         * iTerm2 extends the xterm protocol with a set of proprietary escape
-         * sequences. In general, the pattern is:
-         *
-         * ESC ] 1337 ; key = value ^G
-         *
-         * Whitespace is shown here for ease of reading: in practice, no
-         * spaces should be used.
-         *
-         * For file transfer and inline images, the code is:
-         *
-         * ESC ] 1337 ; File = [optional arguments] : base-64 encoded file contents ^G
-         *
-         * The optional arguments are formatted as key=value with a semicolon
-         * between each key-value pair. They are described below:
-         *
-         * Key          Description of value
-         * name         base-64 encoded filename. Defaults to "Unnamed file".
-         * size         File size in bytes. Optional; this is only used by the
-         *              progress indicator.
-         * width        Width to render. See notes below.
-         * height       Height to render. See notes below.
-         * preserveAspectRatio If set to 0, then the image's inherent aspect
-         *                     ratio will not be respected; otherwise, it
-         *                     will fill the specified width and height as
-         *                     much as possible without stretching. Defaults
-         *                     to 1.
-         * inline If set to 1, the file will be displayed inline. Otherwise,
-         *        it will be downloaded with no visual representation in the
-         *        terminal session. Defaults to 0.
-         *
-         * The width and height are given as a number followed by a unit, or
-         * the word "auto".
-         *
-         * N: N character cells.
-         * Npx: N pixels.
-         * N%: N percent of the session's width or height.
-         * auto: The image's inherent size will be used to determine an
-         *       appropriate dimension.
-         *
-         */
-
-        /*
-        // Logic for PNG encode is below.  Leaving it in for reference.
-        ByteArrayOutputStream jpgOutputStream = new ByteArrayOutputStream(1024);
-
-        // Convert from ARGB to RGB, otherwise the JPG encode will fail.
-        BufferedImage jpgImage = new BufferedImage(image.getWidth(),
-            image.getHeight(), BufferedImage.TYPE_INT_RGB);
-        int [] pixels = new int[image.getWidth() * image.getHeight()];
-        image.getRGB(0, 0, image.getWidth(), image.getHeight(), pixels,
-            0, image.getWidth());
-        jpgImage.setRGB(0, 0, image.getWidth(), image.getHeight(), pixels,
-            0, image.getWidth());
-
-        try {
-            if (!ImageIO.write(jpgImage.getSubimage(0, 0,
-                        jpgImage.getWidth(),
-                        Math.min(jpgImage.getHeight(), fullHeight)),
-                    "JPG", jpgOutputStream)
-            ) {
-                // We failed to render image, bail out.
-                return "";
-            }
-        } catch (IOException e) {
-            // We failed to render image, bail out.
-            return "";
-        }
-         */
-
-        // File contents can be several image formats.  We will use PNG.
-        ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream(1024);
-        try {
-            if (!ImageIO.write(image.getSubimage(0, 0, image.getWidth(),
-                        Math.min(image.getHeight(), fullHeight)),
-                    "PNG", pngOutputStream)
-            ) {
-                // We failed to render image, bail out.
-                return "";
-            }
-        } catch (IOException e) {
-            // We failed to render image, bail out.
-            return "";
-        }
-
-        sb.append("\033]1337;File=name=");
-        sb.append(StringUtils.toBase64("jexer".getBytes()));
-        sb.append(";inline=1;doNotMoveCursor=1;");
-        sb.append(String.format("width=%dpx;height=%dpx;preserveAspectRatio=1:",
-                image.getWidth(), Math.min(image.getHeight(),
-                    getTextHeight())));
-
-        String bytes = StringUtils.toBase64(pngOutputStream.toByteArray());
-        sb.append(bytes);
-        sb.append("\007");
-
-        if (saveInCache) {
-            // This row is OK to save into the cache.
-            iterm2Cache.put(cells, sb.toString());
-        }
-
-        return (sortableGotoXY(x, y) + sb.toString());
-    }
-
-    /**
-     * Get the iTerm2 images support flag.
-     *
-     * @return true if this terminal is emitting iTerm2 images
-     */
-    public boolean hasIterm2Images() {
-        return iterm2Images;
-    }
-
-    // ------------------------------------------------------------------------
-    // End iTerm2 image output support ----------------------------------------
-    // ------------------------------------------------------------------------
-
-    // ------------------------------------------------------------------------
-    // Casciian image output support ---------------------------------------------
-    // ------------------------------------------------------------------------
-
-    /**
-     * Create a Casciian images string representing a row of several cells
-     * containing bitmap data.
-     *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param cells the cells containing the bitmap data
-     * @return the string to emit to an ANSI / ECMA-style terminal
-     */
-    private String toJexerImage(final int x, final int y,
-        final ArrayList<Cell> cells) {
-
-        StringBuilder sb = new StringBuilder();
-
-        assert (cells != null);
-        assert (cells.size() > 0);
-        assert (cells.get(0).getImage() != null);
-
-        if (jexerImageOption == JexerImageOption.DISABLED) {
-            sb.append(normal());
-            sb.append(sortableGotoXY(x, y));
-            for (int i = 0; i < cells.size(); i++) {
-                sb.append(' ');
-            }
-            return sb.toString();
-        }
-
-        // Save and get rows to/from the cache that do NOT have inverted
-        // cells.
-        boolean saveInCache = true;
-        for (Cell cell: cells) {
-            if (cell.isInvertedImage()) {
-                saveInCache = false;
-                break;
-            }
-            // Compute the hashcode so that the cell image hash is available
-            // for looking up in the image cache.
-            cell.hashCode();
-        }
-        if (saveInCache) {
-            String cachedResult = jexerCache.get(cells);
-            if (cachedResult != null) {
-                // System.err.println("CACHE HIT");
-                sb.append(sortableGotoXY(x, y));
-                sb.append(cachedResult);
-                return sb.toString();
-            }
-            // System.err.println("CACHE MISS");
-        }
-
-        BufferedImage image = cellsToImage(cells);
-        int fullHeight = image.getHeight();
-
-        if (jexerImageOption == JexerImageOption.PNG) {
-            // Encode as PNG
-            ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream(1024);
-            try {
-                if (!ImageIO.write(image.getSubimage(0, 0, image.getWidth(),
-                            Math.min(image.getHeight(), fullHeight)),
-                        "PNG", pngOutputStream)
-                ) {
-                    // We failed to render image, bail out.
-                    return "";
-                }
-            } catch (IOException e) {
-                // We failed to render image, bail out.
-                return "";
-            }
-
-            sb.append("\033]444;1;0;");
-            sb.append(StringUtils.toBase64(pngOutputStream.toByteArray()));
-            sb.append("\007");
-
-        } else if (jexerImageOption == JexerImageOption.JPG) {
-
-            // Encode as JPG
-            ByteArrayOutputStream jpgOutputStream = new ByteArrayOutputStream(1024);
-
-            // Convert from ARGB to RGB, otherwise the JPG encode will fail.
-            BufferedImage jpgImage = new BufferedImage(image.getWidth(),
-                image.getHeight(), BufferedImage.TYPE_INT_RGB);
-            int [] pixels = new int[image.getWidth() * image.getHeight()];
-            image.getRGB(0, 0, image.getWidth(), image.getHeight(), pixels,
-                0, image.getWidth());
-            jpgImage.setRGB(0, 0, image.getWidth(), image.getHeight(), pixels,
-                0, image.getWidth());
-
-            try {
-                if (!ImageIO.write(jpgImage.getSubimage(0, 0,
-                            jpgImage.getWidth(),
-                            Math.min(jpgImage.getHeight(), fullHeight)),
-                        "JPG", jpgOutputStream)
-                ) {
-                    // We failed to render image, bail out.
-                    return "";
-                }
-            } catch (IOException e) {
-                // We failed to render image, bail out.
-                return "";
-            }
-
-            sb.append("\033]444;2;0;");
-            sb.append(StringUtils.toBase64(jpgOutputStream.toByteArray()));
-            sb.append("\007");
-
-        } else if (jexerImageOption == JexerImageOption.RGB) {
-
-            // RGB
-            sb.append(String.format("\033]444;0;%d;%d;0;", image.getWidth(),
-                    Math.min(image.getHeight(), fullHeight)));
-
-            byte [] bytes = new byte[image.getWidth() * image.getHeight() * 3];
-            int stride = image.getWidth();
-            for (int px = 0; px < stride; px++) {
-                for (int py = 0; py < image.getHeight(); py++) {
-                    int rgb = image.getRGB(px, py);
-                    bytes[(py * stride * 3) + (px * 3)]     = (byte) ((rgb >>> 16) & 0xFF);
-                    bytes[(py * stride * 3) + (px * 3) + 1] = (byte) ((rgb >>>  8) & 0xFF);
-                    bytes[(py * stride * 3) + (px * 3) + 2] = (byte) ( rgb         & 0xFF);
-                }
-            }
-            sb.append(StringUtils.toBase64(bytes));
-            sb.append("\007");
-        }
-
-        if (saveInCache) {
-            // This row is OK to save into the cache.
-            jexerCache.put(cells, sb.toString());
-        }
-
-        return (gotoXY(x, y) + sb.toString());
-    }
-
-    /**
-     * Get the Casciian images support flag.
-     *
-     * @return true if this terminal is emitting Casciian images
-     */
-    public boolean hasJexerImages() {
-        return (jexerImageOption != JexerImageOption.DISABLED);
-    }
-
-    // ------------------------------------------------------------------------
-    // End Casciian image output support -----------------------------------------
-    // ------------------------------------------------------------------------
-
-    // ------------------------------------------------------------------------
-    // Unicode glyphs output support ------------------------------------------
-    // ------------------------------------------------------------------------
-
-    /**
-     * Create a Unicode glyphs "image" string representing a row of several
-     * cells containing bitmap data.
-     *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param cells the cells containing the bitmap data
-     * @return the string to emit to an ANSI / ECMA-style terminal
-     */
-    private String toUnicodeGlyphs(final int x, final int y,
-        final ArrayList<Cell> cells) {
-
-        assert (cells != null);
-        assert (cells.size() > 0);
-        assert (cells.get(0).getImage() != null);
-
-        StringBuilder sb = new StringBuilder();
-
-        // Save and get rows to/from the cache that do NOT have inverted
-        // cells.
-        boolean saveInCache = true;
-        for (Cell cell: cells) {
-            if (cell.isInvertedImage()) {
-                saveInCache = false;
-                break;
-            }
-            // Compute the hashcode so that the cell image hash is available
-            // for looking up in the image cache.
-            cell.hashCode();
-        }
-        if (saveInCache) {
-            String cachedResult = unicodeGlyphCache.get(cells);
-            if (cachedResult != null) {
-                // System.err.println("CACHE HIT");
-                sb.append(sortableGotoXY(x, y));
-                sb.append(cachedResult);
-                return sb.toString();
-            }
-            // System.err.println("CACHE MISS");
-        }
-
-        for (int i = 0; i < cells.size(); i++) {
-            BufferedImage image = cells.get(i).getImage();
-            sb.append(unicodeGlyphEncoder.toUnicodeGlyph(image,
-                    image.getWidth(), image.getHeight()));
-        }
-
-        if (saveInCache) {
-            // This row is OK to save into the cache.
-            unicodeGlyphCache.put(cells, sb.toString());
-        }
-
-        return (sortableGotoXY(x, y) + sb.toString());
-    }
-
-    // ------------------------------------------------------------------------
-    // Unicode glyphs output support ------------------------------------------
-    // ------------------------------------------------------------------------
 
     /**
      * Setup system colors to match DOS color palette.
@@ -5405,6 +3760,25 @@ public class ECMA48Terminal extends LogicalScreen
         } catch (UnsupportedEncodingException e) {
             // SQUASH
         }
+    }
+
+    /**
+     * Get the rgbColor flag.
+     *
+     * @return true if the standard system colors will be emitted as 24-bit RGB
+     */
+    public boolean isRgbColor() {
+        return doRgbColor;
+    }
+
+    /**
+     * Set the rgbColor flag.
+     *
+     * @param rgbColor if true, the standard system colors will be emitted as
+     * 24-bit RGB images
+     */
+    public void setRgbColor(final boolean rgbColor) {
+        doRgbColor = rgbColor;
     }
 
 }
