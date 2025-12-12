@@ -664,11 +664,11 @@ public class LogicalScreen implements Screen {
         final CellAttributes attr) {
 
        if ((x < clipLeft)
-           || (x >= clipRight)
-           || (y < clipTop)
-           || (y >= clipBottom)
-           || (x + offsetX < relativeClipLeft)
-           || (y + offsetY < relativeClipTop)
+            || (x >= clipRight)
+            || (y < clipTop)
+            || (y >= clipBottom)
+            || (x + offsetX < relativeClipLeft)
+            || (y + offsetY < relativeClipTop)
         ) {
             return;
         }
