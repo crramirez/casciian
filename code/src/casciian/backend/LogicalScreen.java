@@ -185,6 +185,16 @@ public class LogicalScreen implements Screen {
     private int clipTop;
 
     /**
+     * Ignore anything drawn left of relativeClipLeft minus offsetX.
+     */
+    private int relativeClipLeft;
+
+    /**
+     * Ignore anything drawn above relativeClipTop minus offsetY.
+     */
+    private int relativeClipTop;
+
+    /**
      * The physical screen last sent out on flush().
      */
     protected ComplexCell [][] physical;
@@ -376,6 +386,24 @@ public class LogicalScreen implements Screen {
     }
 
     /**
+     * Set left drawing clipping boundary relative to offsetX.
+     *
+     * @param relativeClipLeft new boundary
+     */
+    public final void setRelativeClipLeft(final int relativeClipLeft) {
+        this.relativeClipLeft = relativeClipLeft;
+    }
+
+    /**
+     * Set top drawing clipping boundary relative to offsetY.
+     *
+     * @param relativeClipTop new boundary
+     */
+    public final void setRelativeClipTop(final int relativeClipTop) {
+        this.relativeClipTop = relativeClipTop;
+    }
+
+    /**
      * Get dirty flag.
      *
      * @return if true, the logical screen is not in sync with the physical
@@ -450,6 +478,8 @@ public class LogicalScreen implements Screen {
                 || (x >= clipRight)
                 || (y < clipTop)
                 || (y >= clipBottom)
+                || (x + offsetX < relativeClipLeft)
+                || (y + offsetY < relativeClipTop)
             ) {
                 return null;
             }
@@ -497,6 +527,8 @@ public class LogicalScreen implements Screen {
                 || (x >= clipRight)
                 || (y < clipTop)
                 || (y >= clipBottom)
+                || (x + offsetX < relativeClipLeft)
+                || (y + offsetY < relativeClipTop)
             ) {
                 return;
             }
@@ -568,6 +600,8 @@ public class LogicalScreen implements Screen {
                 || (x >= clipRight)
                 || (y < clipTop)
                 || (y >= clipBottom)
+                || (x + offsetX < relativeClipLeft)
+                || (y + offsetY < relativeClipTop)
             ) {
                 return;
             }
@@ -633,6 +667,8 @@ public class LogicalScreen implements Screen {
             || (x >= clipRight)
             || (y < clipTop)
             || (y >= clipBottom)
+            || (x + offsetX < relativeClipLeft)
+            || (y + offsetY < relativeClipTop)
         ) {
             return;
         }
@@ -667,6 +703,8 @@ public class LogicalScreen implements Screen {
             || (x >= clipRight)
             || (y < clipTop)
             || (y >= clipBottom)
+            || (x + offsetX < relativeClipLeft)
+            || (y + offsetY < relativeClipTop)
         ) {
             return;
         }
@@ -717,6 +755,8 @@ public class LogicalScreen implements Screen {
             || (x >= clipRight)
             || (y < clipTop)
             || (y >= clipBottom)
+            || (x + offsetX < relativeClipLeft)
+            || (y + offsetY < relativeClipTop)
         ) {
             return;
         }
@@ -762,6 +802,8 @@ public class LogicalScreen implements Screen {
             || (x >= clipRight)
             || (y < clipTop)
             || (y >= clipBottom)
+            || (x + offsetX < relativeClipLeft)
+            || (y + offsetY < relativeClipTop)
         ) {
             return;
         }
@@ -1045,6 +1087,8 @@ public class LogicalScreen implements Screen {
         clipTop    = 0;
         clipRight  = width;
         clipBottom = height;
+        relativeClipLeft = 0;
+        relativeClipTop  = 0;
     }
 
     /**
@@ -1328,6 +1372,8 @@ public class LogicalScreen implements Screen {
         clipTop = 0;
         clipRight = width;
         clipBottom = height;
+        relativeClipLeft = 0;
+        relativeClipTop = 0;
 
         reallyCleared = true;
     }
