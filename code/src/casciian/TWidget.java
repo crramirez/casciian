@@ -1517,6 +1517,10 @@ public abstract class TWidget implements Comparable<TWidget> {
         screen.setOffsetX(getAbsoluteX());
         screen.setOffsetY(getAbsoluteY());
 
+        // Set the top-left corner clip in relative coordinates
+        screen.setRelativeClipLeft(window.getAbsoluteX());
+        screen.setRelativeClipTop(window.getAbsoluteY());
+
         // Hang onto these in case there is a post-draw cell transform set
         int postDrawClipRight = screen.getClipRight();
         int postDrawClipBottom = screen.getClipBottom();

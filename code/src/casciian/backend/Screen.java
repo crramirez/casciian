@@ -111,6 +111,20 @@ public interface Screen {
     public void setClipTop(final int clipTop);
 
     /**
+     * Set left drawing clipping boundary relative to offsetX.
+     *
+     * @param relativeClipLeft new boundary
+     */
+    public void setRelativeClipLeft(final int relativeClipLeft);
+
+    /**
+     * Set top drawing clipping boundary relative to offsetY.
+     *
+     * @param relativeClipTop new boundary
+     */
+    public void setRelativeClipTop(final int relativeClipTop);
+
+    /**
      * Get dirty flag.
      *
      * @return if true, the logical screen is not in sync with the physical
