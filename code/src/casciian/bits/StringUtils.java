@@ -16,23 +16,17 @@ package casciian.bits;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 
 /**
  * StringUtils contains methods to:
- *
  *    - Convert one or more long lines of strings into justified text
  *      paragraphs.
- *
  *    - Unescape C0 control codes.
- *
  *    - Read/write a line of RFC4180 comma-separated values strings to/from a
  *      list of strings.
- *
  *    - Compute number of visible text cells for a given Unicode codepoint or
  *      string.
- *
  *    - Convert bytes to and from base-64 encoding.
  */
 public class StringUtils {
@@ -58,7 +52,7 @@ public class StringUtils {
      * @return the list of lines
      */
     public static List<String> left(final String str, final int n) {
-        List<String> result = new ArrayList<String>();
+        List<String> result = new ArrayList<>();
 
         /*
          * General procedure:
@@ -75,14 +69,14 @@ public class StringUtils {
          */
 
         String [] rawLines = str.split("\n");
-        for (int i = 0; i < rawLines.length; i++) {
+        for (String rawLine : rawLines) {
             StringBuilder line = new StringBuilder();
             StringBuilder word = new StringBuilder();
             boolean inWord = false;
-            for (int j = 0; j < rawLines[i].length(); j++) {
-                char ch = rawLines[i].charAt(j);
+            for (int j = 0; j < rawLine.length(); j++) {
+                char ch = rawLine.charAt(j);
                 if ((ch == ' ') || (ch == '\t')) {
-                    if (inWord == true) {
+                    if (inWord) {
                         // We have just transitioned from a word to
                         // whitespace.  See if we have enough space to add
                         // the word to the line.
@@ -93,7 +87,7 @@ public class StringUtils {
                             line = new StringBuilder();
                         }
                         if ((word.toString().startsWith(" "))
-                            && (width(line.toString()) == 0)
+                                && (width(line.toString()) == 0)
                         ) {
                             line.append(word.substring(1));
                         } else {
@@ -102,12 +96,9 @@ public class StringUtils {
                         word = new StringBuilder();
                         word.append(ch);
                         inWord = false;
-                    } else {
-                        // We are in the whitespace before another word.  Do
-                        // nothing.
                     }
                 } else {
-                    if (inWord == true) {
+                    if (inWord) {
                         // We are appending to a word.
                         word.append(ch);
                     } else {
@@ -125,7 +116,7 @@ public class StringUtils {
                 line = new StringBuilder();
             }
             if ((word.toString().startsWith(" "))
-                && (width(line.toString()) == 0)
+                    && (width(line.toString()) == 0)
             ) {
                 line.append(word.substring(1));
             } else {
@@ -145,7 +136,7 @@ public class StringUtils {
      * @return the list of lines
      */
     public static List<String> right(final String str, final int n) {
-        List<String> result = new ArrayList<String>();
+        List<String> result = new ArrayList<>();
 
         /*
          * Same as left(), but preceed each line with spaces to make it n
@@ -153,12 +144,8 @@ public class StringUtils {
          */
         List<String> lines = left(str, n);
         for (String line: lines) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < n - width(line); i++) {
-                sb.append(' ');
-            }
-            sb.append(line);
-            result.add(sb.toString());
+            String sb = " ".repeat(Math.max(0, n - width(line))) + line;
+            result.add(sb);
         }
 
         return result;
@@ -172,7 +159,7 @@ public class StringUtils {
      * @return the list of lines
      */
     public static List<String> center(final String str, final int n) {
-        List<String> result = new ArrayList<String>();
+        List<String> result = new ArrayList<>();
 
         /*
          * Same as left(), but preceed/succeed each line with spaces to make
@@ -183,13 +170,9 @@ public class StringUtils {
             StringBuilder sb = new StringBuilder();
             int l = (n - width(line)) / 2;
             int r = n - width(line) - l;
-            for (int i = 0; i < l; i++) {
-                sb.append(' ');
-            }
+            sb.append(" ".repeat(Math.max(0, l)));
             sb.append(line);
-            for (int i = 0; i < r; i++) {
-                sb.append(' ');
-            }
+            sb.append(" ".repeat(Math.max(0, r)));
             result.add(sb.toString());
         }
 
@@ -204,7 +187,7 @@ public class StringUtils {
      * @return the list of lines
      */
     public static List<String> full(final String str, final int n) {
-        List<String> result = new ArrayList<String>();
+        List<String> result = new ArrayList<>();
 
         /*
          * Same as left(), but insert spaces between words to make each line
@@ -217,8 +200,8 @@ public class StringUtils {
             String [] words = line.split(" ");
             if (words.length > 1) {
                 int charCount = 0;
-                for (int i = 0; i < words.length; i++) {
-                    charCount += words[i].length();
+                for (String word : words) {
+                    charCount += word.length();
                 }
                 int spaceCount = n - charCount;
                 int q = spaceCount / (words.length - 1);
@@ -226,25 +209,21 @@ public class StringUtils {
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < words.length - 1; i++) {
                     sb.append(words[i]);
-                    for (int j = 0; j < q; j++) {
-                        sb.append(' ');
-                    }
+                    sb.append(" ".repeat(Math.max(0, q)));
                     if (r > 0) {
                         sb.append(' ');
                         r--;
                     }
                 }
-                for (int j = 0; j < r; j++) {
-                    sb.append(' ');
-                }
+                sb.append(" ".repeat(Math.max(0, r)));
                 sb.append(words[words.length - 1]);
                 result.add(sb.toString());
             } else {
                 result.add(line);
             }
         }
-        if (lines.size() > 0) {
-            result.add(lines.get(lines.size() - 1));
+        if (!lines.isEmpty()) {
+            result.add(lines.getLast());
         }
 
         return result;
@@ -299,7 +278,7 @@ public class StringUtils {
      * @return the list of strings
      */
     public static List<String> fromCsv(final String line) {
-        List<String> result = new ArrayList<String>();
+        List<String> result = new ArrayList<>();
 
         StringBuilder str = new StringBuilder();
         boolean quoted = false;
@@ -332,19 +311,16 @@ public class StringUtils {
                     result.add(str.toString());
                     str = new StringBuilder();
                     quoted = false;
-                    fieldQuoted = false;
                 } else {
                     // A field separator.
                     result.add(str.toString());
                     str = new StringBuilder();
-                    quoted = false;
-                    fieldQuoted = false;
                 }
                 continue;
             }
 
             if (ch == '\"') {
-                if ((str.length() == 0) && (!fieldQuoted)) {
+                if ((str.isEmpty()) && (!fieldQuoted)) {
                     // The opening quote to a quoted field.
                     fieldQuoted = true;
                 } else if (quoted) {
@@ -582,8 +558,8 @@ public class StringUtils {
         }
 
         int n = 0;
-        for (int i = 0; i < codePoints.length; i++) {
-            n = Math.max(n, width(codePoints[i]));
+        for (int codePoint : codePoints) {
+            n = Math.max(n, width(codePoint));
         }
         return n;
     }
@@ -600,8 +576,8 @@ public class StringUtils {
         if (cell instanceof ComplexCell) {
             int [] codePoints = ((ComplexCell) cell).getCodePoints();
             int n = 0;
-            for (int i = 0; i < codePoints.length; i++) {
-                n = Math.max(n, width(codePoints[i]));
+            for (int codePoint : codePoints) {
+                n = Math.max(n, width(codePoint));
             }
             return n;
         }
@@ -644,118 +620,14 @@ public class StringUtils {
     // Base64 -----------------------------------------------------------------
     // ------------------------------------------------------------------------
 
-    /*
-     * The Base64 encoder/decoder below is provided to support JDK 1.6 - JDK
-     * 11.  It was taken from https://sourceforge.net/projects/migbase64/
-     *
-     * The following changes were made:
-     *
-     * - Code has been indented and long lines cut to fit within 80 columns.
-     *
-     * - Char, String, and "fast" byte functions removed.  byte versions
-     *   retained and called toBase64()/fromBase64().
-     *
-     * - Enclosing braces added to blocks.
-     */
-
-    /**
-     * A very fast and memory efficient class to encode and decode to and
-     * from BASE64 in full accordance with RFC 2045.<br><br> On Windows XP
-     * sp1 with 1.4.2_04 and later ;), this encoder and decoder is about 10
-     * times faster on small arrays (10 - 1000 bytes) and 2-3 times as fast
-     * on larger arrays (10000 - 1000000 bytes) compared to
-     * <code>sun.misc.Encoder()/Decoder()</code>.<br><br>
-     *
-     * On byte arrays the encoder is about 20% faster than Jakarta Commons
-     * Base64 Codec for encode and about 50% faster for decoding large
-     * arrays. This implementation is about twice as fast on very small
-     * arrays (&lt 30 bytes). If source/destination is a <code>String</code>
-     * this version is about three times as fast due to the fact that the
-     * Commons Codec result has to be recoded to a <code>String</code> from
-     * <code>byte[]</code>, which is very expensive.<br><br>
-     *
-     * This encode/decode algorithm doesn't create any temporary arrays as
-     * many other codecs do, it only allocates the resulting array. This
-     * produces less garbage and it is possible to handle arrays twice as
-     * large as algorithms that create a temporary array. (E.g. Jakarta
-     * Commons Codec). It is unknown whether Sun's
-     * <code>sun.misc.Encoder()/Decoder()</code> produce temporary arrays but
-     * since performance is quite low it probably does.<br><br>
-     *
-     * The encoder produces the same output as the Sun one except that the
-     * Sun's encoder appends a trailing line separator if the last character
-     * isn't a pad. Unclear why but it only adds to the length and is
-     * probably a side effect. Both are in conformance with RFC 2045
-     * though.<br> Commons codec seem to always att a trailing line
-     * separator.<br><br>
-     *
-     * <b>Note!</b> The encode/decode method pairs (types) come in three
-     * versions with the <b>exact</b> same algorithm and thus a lot of code
-     * redundancy. This is to not create any temporary arrays for transcoding
-     * to/from different format types. The methods not used can simply be
-     * commented out.<br><br>
-     *
-     * There is also a "fast" version of all decode methods that works the
-     * same way as the normal ones, but har a few demands on the decoded
-     * input. Normally though, these fast verions should be used if the
-     * source if the input is known and it hasn't bee tampered with.<br><br>
-     *
-     * If you find the code useful or you find a bug, please send me a note
-     * at base64 @ miginfocom . com.
-     *
-     * Licence (BSD):
-     * ==============
-     *
-     * Copyright (c) 2004, Mikael Grev, MiG InfoCom AB. (base64 @ miginfocom
-     * . com) All rights reserved.
-     *
-     * Redistribution and use in source and binary forms, with or without
-     * modification, are permitted provided that the following conditions are
-     * met: Redistributions of source code must retain the above copyright
-     * notice, this list of conditions and the following disclaimer.
-     * Redistributions in binary form must reproduce the above copyright
-     * notice, this list of conditions and the following disclaimer in the
-     * documentation and/or other materials provided with the distribution.
-     * Neither the name of the MiG InfoCom AB nor the names of its
-     * contributors may be used to endorse or promote products derived from
-     * this software without specific prior written permission.
-     *
-     * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-     * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-     * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-     * A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT
-     * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-     * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-     * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-     * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-     * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-     * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-     * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-     *
-     * @version 2.2
-     * @author Mikael Grev
-     *         Date: 2004-aug-02
-     *         Time: 11:31:11
-     */
-
-    private static final char[] CA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
-    private static final int[] IA = new int[256];
-    static {
-        Arrays.fill(IA, -1);
-        for (int i = 0, iS = CA.length; i < iS; i++) {
-            IA[CA[i]] = i;
-        }
-        IA['='] = 0;
-    }
-
     /**
      * Encodes a raw byte array into a BASE64 <code>byte[]</code>
-     * representation i accordance with RFC 2045.
+     * representation in accordance with RFC 2045.
      * @param sArr The bytes to convert. If <code>null</code> or length 0
      * an empty array will be returned.
      * @return A BASE64 encoded array. Never <code>null</code>.
      */
-    public final static String toBase64(byte[] sArr) {
+    public static String toBase64(byte[] sArr) {
         int sLen = sArr != null ? sArr.length : 0;
         if (sLen == 0) {
             return "";
@@ -774,7 +646,7 @@ public class StringUtils {
      * <code>null</code> if the legal characters (including '=') isn't
      * divideable by 4. (I.e. definitely corrupted).
      */
-    public final static byte[] fromBase64(byte[] sArr) {
+    public static byte[] fromBase64(byte[] sArr) {
         // Use JDK's built-in MIME decoder which ignores line separators and
         // non-base64 characters, similar to the previous implementation.
         try {
