@@ -32,8 +32,8 @@
   ],
 
     "resources": [
-        { "glob": "\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E" },
-        { "glob": "\\Qhelp.xml\\E" },
+        { "pattern": "\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E" },
+        { "pattern": "\\Qhelp.xml\\E" },
         { "bundle": "demo.Demo2" },
         { "bundle": "demo.Demo7" },
         { "bundle": "demo.Demo8" },
