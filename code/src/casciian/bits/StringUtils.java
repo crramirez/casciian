@@ -144,8 +144,8 @@ public class StringUtils {
          */
         List<String> lines = left(str, n);
         for (String line: lines) {
-            String sb = " ".repeat(Math.max(0, n - width(line))) + line;
-            result.add(sb);
+            String rightAlignedLine = " ".repeat(Math.max(0, n - width(line))) + line;
+            result.add(rightAlignedLine);
         }
 
         return result;
