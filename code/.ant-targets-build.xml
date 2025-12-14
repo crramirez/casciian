@@ -1,0 +1,11 @@
+all
+all-jar
+build
+clean
+clean-build
+compile
+doc
+docs
+jar
+jlink
+run
