@@ -1,0 +1,14 @@
+[
+{
+  "name":"com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"java.lang.Process",
+  "methods":[{"name":"pid","parameterTypes":[] }]
+},
+{
+  "name":"java.util.concurrent.ForkJoinTask",
+  "fields":[{"name":"aux"}, {"name":"status"}]
+}
+]
