@@ -621,11 +621,11 @@ public class StringUtils {
     // ------------------------------------------------------------------------
 
     /**
-     * Encodes a raw byte array into a BASE64 <code>byte[]</code>
+     * Encodes a raw byte array into a BASE64 <code>String</code>
      * representation in accordance with RFC 2045.
      * @param sArr The bytes to convert. If <code>null</code> or length 0
-     * an empty array will be returned.
-     * @return A BASE64 encoded array. Never <code>null</code>.
+     * an empty string will be returned.
+     * @return A BASE64 encoded String. Never <code>null</code>.
      */
     public static String toBase64(byte[] sArr) {
         int sLen = sArr != null ? sArr.length : 0;
