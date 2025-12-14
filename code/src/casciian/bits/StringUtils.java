@@ -632,8 +632,8 @@ public class StringUtils {
         if (sLen == 0) {
             return "";
         }
-        // Use JDK's built-in Base64 encoder without line separators
-        return Base64.getEncoder().encodeToString(sArr);
+        // Use JDK's built-in MIME Base64 encoder for RFC 2045 compliance (76 char lines, CRLF)
+        return Base64.getMimeEncoder().encodeToString(sArr);
     }
 
     /**
