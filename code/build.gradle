@@ -1,0 +1,271 @@
+import org.gradle.api.tasks.bundling.Zip
+
+plugins {
+    id 'java'
+    id 'application'
+    id 'maven-publish'
+    id 'signing'
+    id 'org.graalvm.buildtools.native' version '0.11.3'
+    id 'idea'
+    id 'net.researchgate.release' version '3.1.0'
+}
+
+group = 'io.github.crramirez'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    withSourcesJar()
+    withJavadocJar()
+}
+
+idea {
+    module {
+        downloadSources = true
+    }
+}
+
+// Application plugin is used by the GraalVM
+application {
+    // Run/build the demo application by default
+    mainClass = 'demo.Demo1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+        resources {
+            srcDirs = ['src/main/resources']
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xlint', '-Xdiags:verbose', '-Xlint:deprecation']
+}
+
+// Main library JAR: exclude demo/** content (matches compiled paths like demo/**)
+tasks.jar {
+    exclude('demo/**')
+    manifest {
+        attributes(
+                'Implementation-Version': project.version
+        )
+    }
+}
+
+// Demo JAR: only demo code/resources, with Main-Class demo.Demo1
+tasks.register('jarDemo', Jar) {
+    group = 'build'
+    description = 'Assembles the demo application JAR containing only demo/**.'
+
+    from(sourceSets.main.output) {
+        exclude 'casciian/**'
+        exclude 'module-info.class'
+    }
+
+    archiveBaseName.set('casciian-demo')
+    manifest {
+        attributes(
+                'Main-Class': 'demo.Demo1',
+                'Implementation-Version': project.version
+        )
+    }
+}
+
+// Build both JARs with assemble
+tasks.assemble {
+    dependsOn tasks.named('jarDemo')
+}
+
+// Full JAR: includes EVERYTHING (library + demo), not published
+tasks.register('jarFull', Jar) {
+    group = 'build'
+    description = 'Assembles a full JAR containing both casciian/** and demo/**.'
+
+    from(sourceSets.main.output)
+
+    archiveBaseName.set('casciian-full')
+    manifest {
+        attributes(
+                'Main-Class': 'demo.Demo1',
+                'Implementation-Version': project.version
+        )
+    }
+}
+
+// Ensure assemble also builds the full jar
+tasks.assemble {
+    dependsOn tasks.named('jarFull')
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            pom {
+                name = 'casciian'
+                description = 'Casciian - Java Text User Interface library'
+                url = 'https://github.com/crramirez/casciian'
+
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                        distribution = 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'crramirez'
+                        name = 'crramirez'
+                        url = 'https://github.com/crramirez'
+                    }
+                }
+                scm {
+                    url = 'https://github.com/crramirez/casciian'
+                    connection = 'scm:git:https://github.com/crramirez/casciian.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/crramirez/casciian.git'
+                }
+            }
+        }
+        // Separate publication for the demo artifact
+        casciianDemo(MavenPublication) {
+            artifact tasks.named('jarDemo')
+            artifactId = 'casciian-demo'
+
+            pom {
+                name = 'casciian-demo'
+                description = 'Demo application for Casciian - Java Text User Interface'
+                url = 'https://github.com/crramirez/casciian'
+
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                        distribution = 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'crramirez'
+                        name = 'crramirez'
+                        url = 'https://github.com/crramirez'
+                    }
+                }
+                scm {
+                    url = 'https://github.com/crramirez/casciian'
+                    connection = 'scm:git:https://github.com/crramirez/casciian.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/crramirez/casciian.git'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "localStaging"
+            url = layout.buildDirectory.dir("staging-repo")
+        }
+    }
+}
+
+def signingKeyId = (findProperty("signingKeyId") ?: System.getenv("SIGNING_KEY_ID"))?.toString()
+def signingKeyB64 = (findProperty("signingKeyB64") ?: System.getenv("SIGNING_KEY_B64"))?.toString()
+def signingPassword = (findProperty("signingPassword") ?: System.getenv("SIGNING_PASSWORD"))?.toString()
+
+def signingKey = null
+if (signingKeyB64) {
+    signingKey = new String(Base64.decoder.decode(signingKeyB64), "UTF-8")
+}
+
+signing {
+    if (signingKeyId && signingKey && signingPassword) {
+        useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+        sign publishing.publications
+    }
+}
+
+tasks.register('publishToLocalStaging') {
+    group = 'publishing'
+    description = 'Publishes signed artifacts to build/staging-repo (for Central Portal bundling).'
+    dependsOn(
+            'publishMavenJavaPublicationToLocalStagingRepository',
+            'publishCasciianDemoPublicationToLocalStagingRepository'
+    )
+}
+
+tasks.register('centralBundleZip', Zip) {
+    group = 'publishing'
+    description = 'Creates a Maven-layout ZIP bundle for Sonatype Central Portal upload.'
+    dependsOn('publishToLocalStaging')
+
+    from(layout.buildDirectory.dir("staging-repo"))
+    archiveBaseName.set("casciian-central")
+    archiveVersion.set(project.version.toString())
+    destinationDirectory.set(layout.buildDirectory.dir("central-bundle"))
+
+    // Result: build/central-bundle/casciian-central-<version>.zip
+}
+
+tasks.javadoc {
+    options.memberLevel = JavadocMemberLevel.PROTECTED
+    options.author = true
+    options.version = true
+    options.links('https://docs.oracle.com/en/java/javase/21/docs/api/')
+}
+
+// -----------------------------------------------------------------------------
+// Use jarFull on the native-image classpath (Native Build Tools 0.10.x)
+// -----------------------------------------------------------------------------
+def jarFullTaskProvider = tasks.named('jarFull', Jar)
+
+// -----------------------------------------------------------------------------
+// GraalVM native-image via official plugin
+// - `nativeCompile` / `nativeBuild` create a native executable under build/native
+// -----------------------------------------------------------------------------
+graalvmNative {
+    toolchainDetection = true
+    binaries {
+        main {
+
+            javaLauncher = javaToolchains.launcherFor {
+                languageVersion = JavaLanguageVersion.of(21)
+                vendor = JvmVendorSpec.matching('GraalVM Community')
+            }
+
+            imageName = 'casciian'
+            mainClass = 'demo.Demo1'
+            buildArgs.add('--static')
+            buildArgs.addAll(providers.provider {
+                [
+                    '-cp',
+                    jarFullTaskProvider.get().archiveFile.get().asFile.absolutePath
+                ]
+            })
+        }
+    }
+}
+
+tasks.named('nativeCompile') {
+    dependsOn(jarFullTaskProvider)
+}
+
+release {
+    preTagCommitMessage = '[release] prepare release '
+    tagCommitMessage = '[release] '
+    newVersionCommitMessage = '[release] prepare next '
+    tagTemplate = 'v${version}'
+}
+
+tasks.named('afterReleaseBuild') {
+    dependsOn 'publishToLocalStaging', 'centralBundleZip' // and 'nativeCompile' if desired
+}

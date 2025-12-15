@@ -1,0 +1,105 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": "\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
+      },
+      {
+        "pattern": "\\Qhelp.xml\\E"
+      }
+    ]
+  },
+  "bundles": [
+    {
+      "name": "demo.Demo2",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.Demo7",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.Demo8",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.DemoApplication",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.DemoCheckBoxWindow",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.DemoEditorWindow",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.DemoMainWindow",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.DemoMsgBoxWindow",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.DemoTableWindow",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.DemoTextFieldWindow",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.DemoTextWindow",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.DemoTreeViewWindow",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
+      "name": "demo.DesktopDemoApplication",
+      "locales": [
+        "",
+        "es"
+      ]
+    }
+  ]
+}

@@ -46,21 +46,6 @@
         { "bundle": "demo.DemoTextFieldWindow" },
         { "bundle": "demo.DemoTextWindow" },
         { "bundle": "demo.DemoTreeViewWindow" },
-        { "bundle": "demo.DesktopDemoApplication" },
-        { "bundle": "casciian.TApplication" },
-        { "bundle": "casciian.TEditColorThemeWindow" },
-        { "bundle": "casciian.TEditDesktopStyleWindow" },
-        { "bundle": "casciian.TEditorWindow" },
-        { "bundle": "casciian.TExceptionDialog" },
-        { "bundle": "casciian.TFileOpenBox" },
-        { "bundle": "casciian.THelpWindow" },
-        { "bundle": "casciian.TMessageBox" },
-        { "bundle": "casciian.TTableWindow" },
-        { "bundle": "casciian.TTerminal" },
-        { "bundle": "casciian.TTerminalInformationWindow" },
-        { "bundle": "casciian.TTerminalWindow" },
-        { "bundle": "casciian.help.HelpFile" },
-        { "bundle": "casciian.help.Topic" },
-        { "bundle": "casciian.menu.TMenu" }
+        { "bundle": "demo.DesktopDemoApplication" }
     ]
 }
