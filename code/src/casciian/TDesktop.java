@@ -14,7 +14,9 @@
  */
 package casciian;
 
+import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
+import casciian.bits.ComplexCell;
 import casciian.bits.GraphicsChars;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMenuEvent;
@@ -39,6 +41,16 @@ import casciian.event.TResizeEvent;
 public class TDesktop extends TWindow {
 
     // ------------------------------------------------------------------------
+    // Variables --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The background character to use, or null to use the default background
+     * color (SGR 49).
+     */
+    private ComplexCell backgroundCell = null;
+
+    // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -53,6 +65,8 @@ public class TDesktop extends TWindow {
             parent.getDesktopBottom() - parent.getDesktopTop());
 
         setActive(false);
+
+        backgroundCell = new ComplexCell(GraphicsChars.HATCH);
     }
 
     // ------------------------------------------------------------------------
@@ -193,8 +207,12 @@ public class TDesktop extends TWindow {
      */
     @Override
     public void draw() {
-        CellAttributes background = getTheme().getColor("tdesktop.background");
-        putAll(GraphicsChars.HATCH, background);
+        assert (backgroundCell != null);
+
+        if (!backgroundCell.isDefaultColor(false)) {
+            backgroundCell.setTo(getTheme().getColor("tdesktop.background"));
+        }
+        putAll(backgroundCell);
 
         /*
         // For debugging, let's see where the desktop bounds really are.
@@ -259,6 +277,26 @@ public class TDesktop extends TWindow {
     @Override
     protected final boolean mouseOnResize() {
         return false;
+    }
+
+    // ------------------------------------------------------------------------
+    // TDesktop ---------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Set the background cell.
+     *
+     * @param cell the cell, or null to use the terminal's default foreground
+     * and background colors.
+     */
+    public void setBackgroundCell(final Cell cell) {
+        if (cell != null) {
+            backgroundCell = new ComplexCell(cell);
+        } else {
+            backgroundCell = new ComplexCell();
+            backgroundCell.setDefaultColor(true, true);
+            backgroundCell.setDefaultColor(false, true);
+        }
     }
 
 }

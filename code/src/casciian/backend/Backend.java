@@ -133,4 +133,18 @@ public interface Backend {
      */
     public boolean isFocused();
 
+    /**
+     * Retrieve the default foreground color.
+     *
+     * @return the RGB color
+     */
+    public int getDefaultForeColorRGB();
+
+    /**
+     * Retrieve the default background color.
+     *
+     * @return the RGB color
+     */
+    public int getDefaultBackColorRGB();
+
 }

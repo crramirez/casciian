@@ -223,4 +223,22 @@ public class ECMA48Backend extends GenericBackend {
         return ((ECMA48Terminal) terminal).isFocused();
     }
 
+    /**
+     * Retrieve the default foreground color.
+     *
+     * @return the RGB color
+     */
+    public int getDefaultForeColorRGB() {
+        return ((ECMA48Terminal) terminal).getDefaultForeColorRGB();
+    }
+
+    /**
+     * Retrieve the default background color.
+     *
+     * @return the RGB color
+     */
+    public int getDefaultBackColorRGB() {
+        return ((ECMA48Terminal) terminal).getDefaultBackColorRGB();
+    }
+
 }

@@ -2101,6 +2101,15 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
+     * Fill the entire screen with one cell.
+     *
+     * @param ch the character to draw
+     */
+    public final void putAll(final Cell ch) {
+        getScreen().putAll(ch);
+    }
+
+    /**
      * Fill the entire screen with one character with attributes.
      *
      * @param ch character to draw

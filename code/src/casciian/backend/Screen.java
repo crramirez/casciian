@@ -226,6 +226,13 @@ public interface Screen {
     public void putAll(final int ch, final CellAttributes attr);
 
     /**
+     * Fill the entire screen with one cell.
+     *
+     * @param ch the character to draw
+     */
+    public void putAll(final Cell ch);
+
+    /**
      * Render one character with attributes.
      *
      * @param x column coordinate.  0 is the left-most column.
