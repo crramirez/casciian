@@ -51,6 +51,16 @@ public class CellAttributes {
     private static final int PROTECT    = 0x10;
 
     /**
+     * Default foreground color.
+     */
+    private static final int DEFAULT_FORECOLOR    = 0x20;
+
+    /**
+     * Default background color.
+     */
+    private static final int DEFAULT_BACKCOLOR    = 0x40;
+
+    /**
      * Animation bits for time-dependent transforms.
      */
     private static final int ANIMATION_MASK       = 0xFFFFF000;
@@ -242,6 +252,43 @@ public class CellAttributes {
         } else {
             flags &= ~PROTECT;
         }
+    }
+
+    /**
+     * Setter for default color.
+     *
+     * @param foreground if true, set the default for the foreground color
+     * @param defaultColor new default value
+     */
+    public final void setDefaultColor(final boolean foreground,
+        final boolean defaultColor) {
+
+        if (foreground) {
+            if (defaultColor) {
+                flags |= DEFAULT_FORECOLOR;
+            } else {
+                flags &= ~DEFAULT_FORECOLOR;
+            }
+        } else {
+            if (defaultColor) {
+                flags |= DEFAULT_BACKCOLOR;
+            } else {
+                flags &= ~DEFAULT_BACKCOLOR;
+            }
+        }
+    }
+
+    /**
+     * Getter for default color.
+     *
+     * @param foreground if true, get the default for the foreground color
+     * @return true if the default color has been set
+     */
+    public final boolean isDefaultColor(final boolean foreground) {
+        if (foreground) {
+            return ((flags & DEFAULT_FORECOLOR) == 0 ? false : true);
+        }
+        return ((flags & DEFAULT_BACKCOLOR) == 0 ? false : true);
     }
 
     /**

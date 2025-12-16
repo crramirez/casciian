@@ -325,6 +325,8 @@ public class ECMA48Terminal extends LogicalScreen
     private static int MYBOLD_MAGENTA;
     private static int MYBOLD_CYAN;
     private static int MYBOLD_WHITE;
+    private static int DEFAULT_FORECOLOR;
+    private static int DEFAULT_BACKCOLOR;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -1244,7 +1246,10 @@ public class ECMA48Terminal extends LogicalScreen
         int textEnd = 0;
         for (int x = 0; x < width; x++) {
             Cell lCell = logical[x][y];
-            if (!lCell.isBlank()) {
+            if (!lCell.isBlank()
+                || lCell.isDefaultColor(true)
+                || lCell.isDefaultColor(false)
+            ) {
                 textEnd = x;
             }
         }
@@ -1336,7 +1341,9 @@ public class ECMA48Terminal extends LogicalScreen
                     System.err.println("3 gotoXY() " + x + " " + y +
                         " lastX " + lastX);
                 }
-                sb.append(gotoXY(x, y));
+                if (lastX != (x - 1)) {
+                    sb.append(gotoXY(x, y));
+                }
 
                 // Now emit only the modified attributes
                 StringBuilder attrSgr = new StringBuilder(8);
@@ -1386,23 +1393,34 @@ public class ECMA48Terminal extends LogicalScreen
                     if (lastAttr.isPulse()) {
                         lastForeColorRGB = lastAttr.getForeColorRGB();
                     }
-                    if (foreColorRGB != lastForeColorRGB) {
+                    if ((foreColorRGB != lastForeColorRGB)
+                        && !lCell.isDefaultColor(true)
+                    ) {
                         doForeColorRGB = true;
                     }
                 }
                 if (doForeColorRGB
                     || ((lCell.getForeColorRGB() >= 0)
+                        && !lCell.isDefaultColor(true)
                         && ((lCell.getForeColorRGB() != lastAttr.getForeColorRGB())
                             || (lastAttr.getForeColorRGB() < 0)))
                 ) {
                     if (debugToStderr && reallyDebug) {
-                        System.err.println("3 set foreColorRGB");
+                        System.err.println("3a set foreColorRGB");
                     }
                     sb.append(colorRGB(foreColorRGB, true));
+                } else if (lCell.isDefaultColor(true)) {
+                    if (!lastAttr.isDefaultColor(true)) {
+                        if (debugToStderr && reallyDebug) {
+                            System.err.println("3b set DEFAULT foreColor");
+                        }
+                        sb.append("\033[39m");
+                    }
                 } else {
                     if ((lCell.getForeColorRGB() < 0)
                         && ((lastAttr.getForeColorRGB() >= 0)
-                            || !lCell.getForeColor().equals(lastAttr.getForeColor()))
+                            || !lCell.getForeColor().equals(lastAttr.getForeColor())
+                            || lastAttr.isDefaultColor(true))
                     ) {
                         if (debugToStderr && reallyDebug) {
                             System.err.println("4 set foreColor");
@@ -1412,6 +1430,7 @@ public class ECMA48Terminal extends LogicalScreen
                 }
 
                 if ((lCell.getBackColorRGB() >= 0)
+                    && !lCell.isDefaultColor(false)
                     && ((lCell.getBackColorRGB() != lastAttr.getBackColorRGB())
                         || (lastAttr.getBackColorRGB() < 0))
                 ) {
@@ -1419,10 +1438,18 @@ public class ECMA48Terminal extends LogicalScreen
                         System.err.println("5 set backColorRGB");
                     }
                     sb.append(colorRGB(lCell.getBackColorRGB(), false));
+                } else if (lCell.isDefaultColor(false)) {
+                    if (!lastAttr.isDefaultColor(false)) {
+                        if (debugToStderr && reallyDebug) {
+                            System.err.println("5b set DEFAULT backColor");
+                        }
+                        sb.append("\033[49m");
+                    }
                 } else {
                     if ((lCell.getBackColorRGB() < 0)
                         && ((lastAttr.getBackColorRGB() >= 0)
-                            || !lCell.getBackColor().equals(lastAttr.getBackColor()))
+                            || !lCell.getBackColor().equals(lastAttr.getBackColor())
+                            || lastAttr.isDefaultColor(false))
                     ) {
                         if (debugToStderr && reallyDebug) {
                             System.err.println("6 set backColor");
@@ -2141,6 +2168,18 @@ public class ECMA48Terminal extends LogicalScreen
                         System.err.println("    Set BOLD WHITE");
                     }
                     break;
+                case 39:
+                    DEFAULT_FORECOLOR = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set DEFAULT FOREGROUND");
+                    }
+                    break;
+                case 49:
+                    DEFAULT_BACKCOLOR = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set DEFAULT BACKGROUND");
+                    }
+                    break;
                 default:
                     break;
                 }
@@ -2771,6 +2810,11 @@ public class ECMA48Terminal extends LogicalScreen
         MYBOLD_MAGENTA = getCustomColor("casciian.ECMA48.color13", MYBOLD_MAGENTA);
         MYBOLD_CYAN    = getCustomColor("casciian.ECMA48.color14", MYBOLD_CYAN);
         MYBOLD_WHITE   = getCustomColor("casciian.ECMA48.color15", MYBOLD_WHITE);
+
+        DEFAULT_FORECOLOR = getCustomColor("casciian.ECMA48.color39",
+            DEFAULT_FORECOLOR);
+        DEFAULT_BACKCOLOR = getCustomColor("casciian.ECMA48.color49",
+            DEFAULT_BACKCOLOR);
     }
 
     /**
@@ -2807,6 +2851,10 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the RGB color
      */
     public static int attrToForegroundColor(final CellAttributes attr) {
+        if (attr.isDefaultColor(true)) {
+            return getDefaultForeColorRGB();
+        }
+
         int rgb = attr.getForeColorRGB();
         if (rgb >= 0) {
             return rgb;
@@ -2860,6 +2908,10 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the RGB color
      */
     public static int attrToBackgroundColor(final CellAttributes attr) {
+        if (attr.isDefaultColor(false)) {
+            return getDefaultBackColorRGB();
+        }
+
         int rgb = attr.getBackColorRGB();
         if (rgb >= 0) {
             return rgb;
@@ -2884,6 +2936,24 @@ public class ECMA48Terminal extends LogicalScreen
         }
         throw new IllegalArgumentException("Invalid color: " +
             attr.getBackColor().getValue());
+    }
+
+    /**
+     * Retrieve the default foreground color.
+     *
+     * @return the RGB color
+     */
+    public static int getDefaultForeColorRGB() {
+        return DEFAULT_FORECOLOR;
+    }
+
+    /**
+     * Retrieve the default background color.
+     *
+     * @return the RGB color
+     */
+    public static int getDefaultBackColorRGB() {
+        return DEFAULT_BACKCOLOR;
     }
 
     /**
@@ -3483,6 +3553,8 @@ public class ECMA48Terminal extends LogicalScreen
         for (int i = 0; i < 16; i++) {
             sb.append(String.format("\033]4;%d;?\033\\", i));
         }
+        sb.append(String.format("\033]4;%d;?\033\\", 39));
+        sb.append(String.format("\033]4;%d;?\033\\", 49));
         return sb.toString();
     }
 

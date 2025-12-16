@@ -189,6 +189,26 @@ public class HeadlessBackend extends LogicalScreen implements Backend {
     }
 
     /**
+     * Retrieve the default foreground color.
+     *
+     * @return the RGB color
+     */
+    public int getDefaultForeColorRGB() {
+        // Use ECMA48 colors.
+        return ECMA48Terminal.getDefaultForeColorRGB();
+    }
+
+    /**
+     * Retrieve the default background color.
+     *
+     * @return the RGB color
+     */
+    public int getDefaultBackColorRGB() {
+        // Use ECMA48 colors.
+        return ECMA48Terminal.getDefaultBackColorRGB();
+    }
+
+    /**
      * Copy text to the system clipboard of the terminal on the backend.
      *
      * @param text string to copy

@@ -641,6 +641,19 @@ public class LogicalScreen implements Screen {
     }
 
     /**
+     * Fill the entire screen with one cell.
+     *
+     * @param ch the character to draw
+     */
+    public final void putAll(final Cell ch) {
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                putCharXY(x, y, ch);
+            }
+        }
+    }
+
+    /**
      * Render one character with attributes.
      *
      * @param x column coordinate.  0 is the left-most column.
@@ -1471,6 +1484,10 @@ public class LogicalScreen implements Screen {
         } else {
             cell.setBackColorRGB(cell.getBackColorRGB() ^ 0x00ffffff);
         }
+
+        cell.setDefaultColor(true, false);
+        cell.setDefaultColor(false, false);
+
         putCharXY(x, y, cell, true);
         if ((onlyThisCell == true) || (cell.getWidth() == Cell.Width.SINGLE)) {
             return;
@@ -1807,6 +1824,23 @@ public class LogicalScreen implements Screen {
         if (alpha == 255) {
             // This is a raw copy.
             copyScreen(otherScreen, x, y, width, height);
+            synchronized (this) {
+                for (int row = y; (row < y + height) && (row < this.height); row++) {
+                    if (row < 0) {
+                        continue;
+                    }
+                    for (int col = x; (col < x + width) && (col < this.width); col++) {
+                        if (col < 0) {
+                            continue;
+                        }
+                        Cell thisCell = logical[col][row];
+                        // Overlapped cells will not have DEFAULT (SGR 39/49)
+                        // colors set.
+                        thisCell.setDefaultColor(true, false);
+                        thisCell.setDefaultColor(false, false);
+                    }
+                }
+            }
             return;
         }
 
@@ -1918,6 +1952,11 @@ public class LogicalScreen implements Screen {
 
                     thisCell.setBackColorRGB(thisBg | OPAQUE);
                     thisCell.setForeColorRGB(thisFg | OPAQUE);
+
+                    // Overlapped cells will not have DEFAULT (SGR 39/49)
+                    // colors set.
+                    thisCell.setDefaultColor(true, false);
+                    thisCell.setDefaultColor(false, false);
 
                     if (overCell.isSpaceChar() && !overCell.isUnderline()) {
                         // The overlaying cell is invisible.

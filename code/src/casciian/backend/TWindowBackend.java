@@ -568,6 +568,24 @@ public class TWindowBackend extends TWindow implements Backend {
     }
 
     /**
+     * Retrieve the default foreground color.
+     *
+     * @return the RGB color
+     */
+    public int getDefaultForeColorRGB() {
+        return getApplication().getBackend().getDefaultForeColorRGB();
+    }
+
+    /**
+     * Retrieve the default background color.
+     *
+     * @return the RGB color
+     */
+    public int getDefaultBackColorRGB() {
+        return getApplication().getBackend().getDefaultForeColorRGB();
+    }
+
+    /**
      * Copy text to the Casciian clipboard.
      *
      * @param text string to copy
