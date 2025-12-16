@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +69,7 @@ class BackendTest {
     void testGetEventsWithEmptyQueue() {
         List<TInputEvent> queue = new ArrayList<>();
         backend.getEvents(queue);
-        assertNotNull(queue, "Queue should remain non-null");
+        assertTrue(queue.isEmpty(), "Queue should remain empty when backend has no events");
     }
 
     @Test
@@ -128,29 +129,42 @@ class BackendTest {
     }
 
     @Test
-    @DisplayName("Backend interface contract: read-only flag behavior")
+    @DisplayName("Backend interface contract: setReadOnly toggles flag")
     void testReadOnlyFlagToggle() {
-        // Note: HeadlessBackend always returns true for isReadOnly
-        // This test verifies that the interface methods are safe to call
-        boolean initial = backend.isReadOnly();
+        // Note: HeadlessBackend's setReadOnly is a no-op and always returns true
+        // This test uses GenericBackend implementation to properly test the feature
         
-        backend.setReadOnly(true);
-        assertDoesNotThrow(() -> backend.isReadOnly());
+        // Create a testable backend that actually implements setReadOnly
+        TerminalReader mockTerminal = Mockito.mock(TerminalReader.class);
+        Screen mockScreen = Mockito.mock(Screen.class);
+        SessionInfo mockSessionInfo = Mockito.mock(SessionInfo.class);
         
-        backend.setReadOnly(false);
-        assertDoesNotThrow(() -> backend.isReadOnly());
+        GenericBackend testBackend = new GenericBackend() {
+            @Override
+            public int attrToForegroundColor(CellAttributes attr) { return 0xFFFFFF; }
+            @Override
+            public int attrToBackgroundColor(CellAttributes attr) { return 0x000000; }
+            @Override
+            public void copyClipboardText(String text) { }
+            @Override
+            public boolean isFocused() { return false; }
+            @Override
+            public int getDefaultForeColorRGB() { return 0xFFFFFF; }
+            @Override
+            public int getDefaultBackColorRGB() { return 0x000000; }
+        };
+        testBackend.terminal = mockTerminal;
+        testBackend.screen = mockScreen;
+        testBackend.sessionInfo = mockSessionInfo;
         
-        backend.setReadOnly(initial);
-        assertDoesNotThrow(() -> backend.isReadOnly());
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @DisplayName("Backend interface contract: setReadOnly accepts any boolean")
-    void testReadOnlyFlagValues(boolean value) {
-        assertDoesNotThrow(() -> backend.setReadOnly(value));
-        // Note: HeadlessBackend always returns true, so we just verify the call doesn't throw
-        assertDoesNotThrow(() -> backend.isReadOnly());
+        // Test that setReadOnly actually changes the value
+        assertFalse(testBackend.isReadOnly(), "Should start as not read-only");
+        
+        testBackend.setReadOnly(true);
+        assertTrue(testBackend.isReadOnly(), "Should be read-only after setting to true");
+        
+        testBackend.setReadOnly(false);
+        assertFalse(testBackend.isReadOnly(), "Should not be read-only after setting to false");
     }
 
     @Test
