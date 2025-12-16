@@ -53,6 +53,11 @@ public class DemoApplication extends TApplication {
      */
     private ResourceBundle i18n = ResourceBundle.getBundle(DemoApplication.class.getName());
 
+    /**
+     * The desktop visible before selecting "Expose terminal background image".
+     */
+    private TDesktop oldDesktop = null;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -145,6 +150,10 @@ public class DemoApplication extends TApplication {
         // Use window gradients by default.
         getMenuItem(10010).setChecked(true);
         onMenu(new TMenuEvent(getBackend(), 10010));
+
+        // Expose terminal background image by default.
+        // getMenuItem(10011).setChecked(true);
+        // onMenu(new TMenuEvent(getBackend(), 10011));
     }
 
     /**
@@ -170,6 +179,10 @@ public class DemoApplication extends TApplication {
         // Use window gradients by default.
         getMenuItem(10010).setChecked(true);
         onMenu(new TMenuEvent(getBackend(), 10010));
+
+        // Expose terminal background image by default.
+        // getMenuItem(10011).setChecked(true);
+        // onMenu(new TMenuEvent(getBackend(), 10011));
     }
 
     // ------------------------------------------------------------------------
@@ -249,7 +262,9 @@ public class DemoApplication extends TApplication {
                 m.setAlpha(90 * 255 / 100);
             }
             setDesktop(null);
+            oldDesktop = getDesktop();
             setHideStatusBar(true);
+            onMenu(new TMenuEvent(getBackend(), 10011));
             return true;
         }
 
@@ -295,7 +310,9 @@ public class DemoApplication extends TApplication {
                 m.setAlpha(90 * 255 / 100);
             }
             setDesktop(new TDesktop(this));
+            oldDesktop = getDesktop();
             setHideStatusBar(false);
+            onMenu(new TMenuEvent(getBackend(), 10011));
             return true;
         }
 
@@ -333,7 +350,9 @@ public class DemoApplication extends TApplication {
                 m.setAlpha(95 * 255 / 100);
             }
             setDesktop(new TDesktop(this));
+            oldDesktop = getDesktop();
             setHideStatusBar(false);
+            onMenu(new TMenuEvent(getBackend(), 10011));
             return true;
         }
 
@@ -369,6 +388,21 @@ public class DemoApplication extends TApplication {
                 if (window instanceof DemoCheckBoxWindow) {
                     ((DemoCheckBoxWindow) window).setUseGradient(useGradient);
                 }
+            }
+            return true;
+        }
+
+        if (menu.getId() == 10011) {
+            // Expose/cover terminal background.
+            TMenuItem menuItem = getMenuItem(menu.getId());
+            boolean exposeBackground = menuItem.isChecked();
+            if (exposeBackground) {
+                oldDesktop = getDesktop();
+                TDesktop newDesktop = new TDesktop(this);
+                setDesktop(newDesktop);
+                newDesktop.setBackgroundCell(null);
+            } else {
+                setDesktop(oldDesktop);
             }
             return true;
         }
@@ -434,6 +468,10 @@ public class DemoApplication extends TApplication {
             i18n.getString("useGradients"));
         gradients.setCheckable(true);
         gradients.setChecked(false);
+        TMenuItem backgroundImage = demoMenu.addItem(10011,
+            i18n.getString("exposeBackground"));
+        backgroundImage.setCheckable(true);
+        backgroundImage.setChecked(false);
         TSubMenu languageMenu = demoMenu.addSubMenu(i18n.getString("selectLanguage"));
         TMenuItem en = languageMenu.addItem(10005, i18n.getString("english"));
         TMenuItem es = languageMenu.addItem(10006, i18n.getString("espanol"));
