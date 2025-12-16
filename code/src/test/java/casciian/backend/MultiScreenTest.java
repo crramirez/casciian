@@ -20,6 +20,7 @@ class MultiScreenTest {
 
     private static class TestScreen extends LogicalScreen {
         private int flushCount = 0;
+        private int copyCount = 0;
         private boolean physicalCleared = false;
 
         public TestScreen(int width, int height) {
@@ -32,6 +33,12 @@ class MultiScreenTest {
         }
 
         @Override
+        public void copyScreen(Screen screen) {
+            super.copyScreen(screen);
+            copyCount++;
+        }
+
+        @Override
         public synchronized void clearPhysical() {
             super.clearPhysical();
             physicalCleared = true;
@@ -41,12 +48,17 @@ class MultiScreenTest {
             return flushCount;
         }
 
+        public int getCopyCount() {
+            return copyCount;
+        }
+
         public boolean isPhysicalCleared() {
             return physicalCleared;
         }
 
         public void resetFlags() {
             flushCount = 0;
+            copyCount = 0;
             physicalCleared = false;
         }
     }
@@ -196,7 +208,7 @@ class MultiScreenTest {
 
     @Test
     @DisplayName("Flush physical copies content to all screens")
-    void testFlushPhysical() throws InterruptedException {
+    void testFlushPhysical() {
         screen2 = new TestScreen(80, 24);
         multiScreen.addScreen(screen2);
         
@@ -207,11 +219,17 @@ class MultiScreenTest {
         
         multiScreen.flushPhysical();
         
-        // Wait for flush operations to complete (threads are spawned in MultiScreen.flushPhysical)
-        Thread.sleep(100);
+        // Verify that copyScreen was called on both screens (synchronous operation)
+        assertEquals(1, screen1.getCopyCount(), "Screen 1 should have copyScreen called once");
+        assertEquals(1, screen2.getCopyCount(), "Screen 2 should have copyScreen called once");
         
-        // Verify that screens were flushed (they copy from multiScreen internally)
-        assertDoesNotThrow(() -> multiScreen.flushPhysical());
+        // Verify subsequent flush works correctly
+        screen1.resetFlags();
+        screen2.resetFlags();
+        multiScreen.flushPhysical();
+        
+        assertEquals(1, screen1.getCopyCount(), "Screen 1 should have copyScreen called again");
+        assertEquals(1, screen2.getCopyCount(), "Screen 2 should have copyScreen called again");
     }
 
     @Test
