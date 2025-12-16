@@ -622,7 +622,7 @@ public class StringUtils {
 
     /**
      * Encodes a raw byte array into a BASE64 <code>String</code>
-     * representation in accordance with RFC 2045.
+     * representation in accordance with RFC 4648.
      * @param sArr The bytes to convert. If <code>null</code> or length 0
      * an empty string will be returned.
      * @return A BASE64 encoded String. Never <code>null</code>.
@@ -632,8 +632,8 @@ public class StringUtils {
         if (sLen == 0) {
             return "";
         }
-        // Use JDK's built-in MIME Base64 encoder for RFC 2045 compliance (76 char lines, CRLF)
-        return Base64.getMimeEncoder().encodeToString(sArr);
+        // Use JDK's built-in Basic Base64 encoder for RFC 4648 compliance (no LF or whitespaces)
+        return Base64.getEncoder().encodeToString(sArr);
     }
 
     /**
@@ -648,11 +648,10 @@ public class StringUtils {
      */
     public static byte[] fromBase64(byte[] sArr) {
         // Use JDK's built-in MIME decoder which ignores line separators and
-        // non-base64 characters, similar to the previous implementation.
+        // non-base64 characters.
         try {
             return Base64.getMimeDecoder().decode(sArr);
         } catch (IllegalArgumentException ex) {
-            // Preserve previous behavior of returning null on invalid input
             return null;
         }
     }
