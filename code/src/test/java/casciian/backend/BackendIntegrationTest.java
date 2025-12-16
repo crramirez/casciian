@@ -140,21 +140,40 @@ class BackendIntegrationTest {
     @Test
     @DisplayName("MultiScreen synchronizes drawing operations")
     void testMultiScreenSynchronization() throws InterruptedException {
-        // Create test screens
+        // Create test screens that track copy operations
         class TestScreen extends LogicalScreen {
-            private boolean drawn = false;
+            private volatile boolean copied = false;
+            private final Object copyLock = new Object();
             
             public TestScreen(int width, int height) {
                 super(width, height);
             }
             
             @Override
-            public void flushPhysical() {
-                drawn = true;
+            public void copyScreen(Screen screen) {
+                synchronized (copyLock) {
+                    super.copyScreen(screen);
+                    copied = true;
+                    copyLock.notifyAll();
+                }
             }
             
-            public boolean isDrawn() {
-                return drawn;
+            @Override
+            public void flushPhysical() {
+                // No-op for this test
+            }
+            
+            public boolean waitForCopy(long timeoutMs) throws InterruptedException {
+                synchronized (copyLock) {
+                    long deadline = System.currentTimeMillis() + timeoutMs;
+                    while (!copied && System.currentTimeMillis() < deadline) {
+                        long remaining = deadline - System.currentTimeMillis();
+                        if (remaining > 0) {
+                            copyLock.wait(remaining);
+                        }
+                    }
+                    return copied;
+                }
             }
         }
         
@@ -168,13 +187,14 @@ class BackendIntegrationTest {
         CellAttributes attr = new CellAttributes();
         multiScreen.putStringXY(5, 5, "Synchronized", attr);
         
-        // Flush should propagate to all screens
+        // Flush should propagate to all screens via copyScreen
         multiScreen.flushPhysical();
         
-        // Wait for threaded flush operations to complete
-        Thread.sleep(100);
+        // Wait for copy operations to complete using synchronization
+        assertTrue(screen1.waitForCopy(1000), "Screen 1 should receive copy within timeout");
+        assertTrue(screen2.waitForCopy(1000), "Screen 2 should receive copy within timeout");
         
-        // Verify the operation completes successfully
+        // Verify subsequent flush operations work correctly
         assertDoesNotThrow(() -> multiScreen.flushPhysical());
     }
 
