@@ -121,7 +121,8 @@ class MultiBackendTest {
         List<Backend> backends = multiBackend.getBackends();
         assertNotNull(backends);
         // HeadlessBackend instances are filtered out in getBackends()
-        assertTrue(backends.size() >= 0);
+        // The list should be empty since HeadlessBackends are not included
+        assertEquals(0, backends.size());
     }
 
     // Event handling tests

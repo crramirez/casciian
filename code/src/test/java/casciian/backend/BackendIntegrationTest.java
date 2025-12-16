@@ -139,7 +139,7 @@ class BackendIntegrationTest {
 
     @Test
     @DisplayName("MultiScreen synchronizes drawing operations")
-    void testMultiScreenSynchronization() {
+    void testMultiScreenSynchronization() throws InterruptedException {
         // Create test screens
         class TestScreen extends LogicalScreen {
             private boolean drawn = false;
@@ -171,8 +171,10 @@ class BackendIntegrationTest {
         // Flush should propagate to all screens
         multiScreen.flushPhysical();
         
-        // Note: Due to threading, we can't reliably test if screens were drawn
-        // but we can verify the operation doesn't throw
+        // Wait for threaded flush operations to complete
+        Thread.sleep(100);
+        
+        // Verify the operation completes successfully
         assertDoesNotThrow(() -> multiScreen.flushPhysical());
     }
 

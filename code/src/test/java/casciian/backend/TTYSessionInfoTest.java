@@ -128,8 +128,8 @@ class TTYSessionInfoTest {
     @DisplayName("Default window dimensions are at least 80x24")
     void testDefaultWindowDimensions() {
         // Should default to at least 80x24 if stty fails
-        assertTrue(sessionInfo.getWindowWidth() >= 80 || sessionInfo.getWindowWidth() == 80);
-        assertTrue(sessionInfo.getWindowHeight() >= 24 || sessionInfo.getWindowHeight() == 24);
+        assertTrue(sessionInfo.getWindowWidth() >= 80);
+        assertTrue(sessionInfo.getWindowHeight() >= 24);
     }
 
     @Test
