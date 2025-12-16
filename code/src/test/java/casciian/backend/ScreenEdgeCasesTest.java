@@ -343,7 +343,7 @@ class ScreenEdgeCasesTest {
     void testSetTitle() {
         assertDoesNotThrow(() -> screen.setTitle(""));
         assertDoesNotThrow(() -> screen.setTitle("Simple Title"));
-        assertDoesNotThrow(() -> screen.setTitle("Title with émojis 🎉"));
+        assertDoesNotThrow(() -> screen.setTitle("Title with emojis 🎉"));
         assertDoesNotThrow(() -> screen.setTitle("Very long title " + "x".repeat(200)));
     }
 
