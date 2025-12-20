@@ -34,12 +34,7 @@ public class SystemProperties {
      * @param value shadow opacity value (will be clamped to 0-100)
      */
     public static void setShadowOpacity(int value) {
-        int clampedValue = value;
-        if (clampedValue < 0) {
-            clampedValue = 0;
-        } else if (clampedValue > 100) {
-            clampedValue = 100;
-        }
+        int clampedValue = Math.max(0, Math.min(100, value));
         System.setProperty(CASCIIAN_SHADOW_OPACITY, String.valueOf(clampedValue));
     }
 }
