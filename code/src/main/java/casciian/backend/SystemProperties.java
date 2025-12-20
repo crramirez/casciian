@@ -29,10 +29,12 @@ public class SystemProperties {
 
     /**
      * Set the shadow opacity value in system properties.
+     * Values outside the valid range (0-100) will be clamped to the nearest valid value.
      *
-     * @param value shadow opacity value (0-100)
+     * @param value shadow opacity value (will be clamped to 0-100)
      */
     public static void setShadowOpacity(int value) {
-        System.setProperty(CASCIIAN_SHADOW_OPACITY, String.valueOf(value));
+        int clampedValue = Math.max(0, Math.min(100, value));
+        System.setProperty(CASCIIAN_SHADOW_OPACITY, String.valueOf(clampedValue));
     }
 }
