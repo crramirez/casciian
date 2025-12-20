@@ -608,32 +608,48 @@ class LogicalScreenTest {
     }
 
     @Test
-    @DisplayName("Draw box shadow with different opacity values renders correctly")
-    void testDrawBoxShadowWithVariousOpacityValues() {
-        int[] opacityValues = {25, 50, 75};
+    @DisplayName("Draw box shadow with opacity 25 renders correctly")
+    void testDrawBoxShadowWithOpacity25() {
+        SystemProperties.setShadowOpacity(25);
         
-        for (int opacity : opacityValues) {
-            // Reset screen for each test
-            screen = new TestableLogicalScreen();
-            SystemProperties.setShadowOpacity(opacity);
-            
-            // Draw a box and its shadow
-            int left = 5, top = 5, right = 15, bottom = 10;
-            screen.drawBoxShadow(left, top, right, bottom);
-            
-            // Verify that shadow cells have correct attributes
-            int boxWidth = right - left;
-            int boxHeight = bottom - top;
-            
-            // Check at least one shadow cell
-            Cell cell = screen.getCharXY(left + boxWidth, top + 1);
-            assertEquals(Color.BLACK, cell.getForeColor(), 
-                "Shadow should have black foreground for opacity " + opacity);
-            assertEquals(Color.BLACK, cell.getBackColor(), 
-                "Shadow should have black background for opacity " + opacity);
-            assertTrue(cell.isBold(), 
-                "Shadow should be bold for opacity " + opacity + " (not 100)");
-        }
+        int left = 5, top = 5, right = 15, bottom = 10;
+        screen.drawBoxShadow(left, top, right, bottom);
+        
+        int boxWidth = right - left;
+        Cell cell = screen.getCharXY(left + boxWidth, top + 1);
+        assertEquals(Color.BLACK, cell.getForeColor());
+        assertEquals(Color.BLACK, cell.getBackColor());
+        assertTrue(cell.isBold(), "Shadow should be bold for opacity 25");
+    }
+
+    @Test
+    @DisplayName("Draw box shadow with opacity 50 renders correctly")
+    void testDrawBoxShadowWithOpacity50() {
+        SystemProperties.setShadowOpacity(50);
+        
+        int left = 5, top = 5, right = 15, bottom = 10;
+        screen.drawBoxShadow(left, top, right, bottom);
+        
+        int boxWidth = right - left;
+        Cell cell = screen.getCharXY(left + boxWidth, top + 1);
+        assertEquals(Color.BLACK, cell.getForeColor());
+        assertEquals(Color.BLACK, cell.getBackColor());
+        assertTrue(cell.isBold(), "Shadow should be bold for opacity 50");
+    }
+
+    @Test
+    @DisplayName("Draw box shadow with opacity 75 renders correctly")
+    void testDrawBoxShadowWithOpacity75() {
+        SystemProperties.setShadowOpacity(75);
+        
+        int left = 5, top = 5, right = 15, bottom = 10;
+        screen.drawBoxShadow(left, top, right, bottom);
+        
+        int boxWidth = right - left;
+        Cell cell = screen.getCharXY(left + boxWidth, top + 1);
+        assertEquals(Color.BLACK, cell.getForeColor());
+        assertEquals(Color.BLACK, cell.getBackColor());
+        assertTrue(cell.isBold(), "Shadow should be bold for opacity 75");
     }
 
     @Test
