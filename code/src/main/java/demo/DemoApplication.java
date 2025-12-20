@@ -265,20 +265,7 @@ public class DemoApplication extends TApplication {
                 m.setBorderStyleInactive("round");
                 m.setAlpha(90 * 255 / 100);
             }
-            if (menu.getId() == 10011) {
-                // Expose/cover terminal background.
-                TMenuItem menuItem = getMenuItem(menu.getId());
-                boolean exposeBackground = menuItem.isChecked();
-                if (exposeBackground) {
-                    oldDesktop = getDesktop();
-                    TDesktop newDesktop = new TDesktop(this);
-                    setDesktop(newDesktop);
-                    newDesktop.setBackgroundCell(null);
-                } else {
-                    setDesktop(oldDesktop);
-                }
-                return true;
-            }
+
             oldDesktop = getDesktop();
             TDesktop newDesktop = new TDesktop(this);
             setDesktop(newDesktop);
