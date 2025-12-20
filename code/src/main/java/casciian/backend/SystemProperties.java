@@ -73,4 +73,12 @@ public class SystemProperties {
         System.setProperty(CASCIIAN_SHADOW_OPACITY, String.valueOf(clampedValue));
         shadowOpacity.set(clampedValue);
     }
+
+    /**
+     * Reset all cached system property values to their unset state.
+     * This will force values to be re-read from system properties on the next access.
+     */
+    public static void reset() {
+        shadowOpacity.set(UNSET_PROPERTY);
+    }
 }

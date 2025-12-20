@@ -32,6 +32,7 @@ class SystemPropertiesTest {
     void tearDown() {
         // Clear the system property after each test
         System.clearProperty(SystemProperties.CASCIIAN_SHADOW_OPACITY);
+        SystemProperties.reset();
     }
 
     @Test
