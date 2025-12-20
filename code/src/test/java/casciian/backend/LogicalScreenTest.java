@@ -659,6 +659,9 @@ class LogicalScreenTest {
         
         // Draw shadow at screen edges
         assertDoesNotThrow(() -> screen.drawBoxShadow(0, 0, 10, 10));
+        // This box is placed near the bottom-right so that its shadow would extend to the
+        // right edge of an 80x24 screen; this intentionally verifies that shadow drawing
+        // handles boundary clipping without throwing an exception.
         assertDoesNotThrow(() -> screen.drawBoxShadow(70, 14, 78, 22));
     }
 
