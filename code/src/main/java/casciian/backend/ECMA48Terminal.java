@@ -2824,6 +2824,8 @@ public class ECMA48Terminal extends LogicalScreen
         MYBOLD_MAGENTA  = 0xfc54fc;
         MYBOLD_CYAN     = 0x54fcfc;
         MYBOLD_WHITE    = 0xfcfcfc;
+        DEFAULT_FORECOLOR   = MYWHITE;
+        DEFAULT_BACKCOLOR   = MYBLACK;
     }
 
     /**

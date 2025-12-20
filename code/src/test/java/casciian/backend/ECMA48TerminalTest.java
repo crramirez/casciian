@@ -77,7 +77,7 @@ class ECMA48TerminalTest {
     @DisplayName("attrToForegroundColor returns default for default color")
     void testAttrToForegroundColorDefault() {
         CellAttributes attr = new CellAttributes();
-        attr.setDefaultColor(true, false);
+        attr.setDefaultColor(true, true);
 
         int result = ECMA48Terminal.attrToForegroundColor(attr);
         assertEquals(ECMA48Terminal.getDefaultForeColorRGB(), result);
