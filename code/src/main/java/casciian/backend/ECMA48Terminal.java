@@ -15,7 +15,6 @@
 package casciian.backend;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -26,6 +25,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +33,6 @@ import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.Color;
 import casciian.bits.ComplexCell;
-import casciian.bits.ExtendedGraphemeClusterUtils;
 import casciian.bits.StringUtils;
 import casciian.event.TCommandEvent;
 import casciian.event.TInputEvent;
@@ -53,6 +52,24 @@ public class ECMA48Terminal extends LogicalScreen
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * OSC sequence identifier for querying/setting the color palette.
+     * Used in OSC 4 sequences to query or set individual palette colors (0-255).
+     */
+    public static final String OSC_PALETTE = "4";
+
+    /**
+     * OSC sequence identifier for querying/setting the default foreground color.
+     * Used in OSC 10 sequences to query or set the terminal's default text color.
+     */
+    public static final String OSC_DEFAULT_FORECOLOR = "10";
+
+    /**
+     * OSC sequence identifier for querying/setting the default background color.
+     * Used in OSC 11 sequences to query or set the terminal's default background color.
+     */
+    public static final String OSC_DEFAULT_BACKCOLOR = "11";
 
     /**
      * States in the input parser.
@@ -2026,172 +2043,191 @@ public class ECMA48Terminal extends LogicalScreen
      *
      * @param text the OSC response string
      */
-    private void oscResponse(final String text) {
+    void oscResponse(final String text) {
         if (debugToStderr) {
             System.err.println("oscResponse(): '" + text + "'");
         }
 
-        String [] Ps = text.split(";");
-        if (Ps.length == 0) {
+        String [] ps = text.split(";");
+        if (ps.length == 0) {
             return;
         }
-        if (Ps[0].equals("4")) {
-            // RGB response
-            if (Ps.length != 3) {
-                return;
-            }
-            try {
-                int color = Integer.parseInt(Ps[1]);
-                String rgb = Ps[2];
-                if (!rgb.startsWith("rgb:")) {
-                    return;
-                }
-                rgb = rgb.substring(4);
-                if (debugToStderr) {
-                    System.err.println("  Color " + color + " is " + rgb);
-                }
-                String [] rgbs = rgb.split("/");
-                if (rgbs.length != 3) {
-                    return;
-                }
-                int red = Integer.parseInt(rgbs[0], 16);
-                int green = Integer.parseInt(rgbs[1], 16);
-                int blue = Integer.parseInt(rgbs[2], 16);
-                if (rgbs[0].length() == 4) {
-                    red = red >> 8;
-                }
-                if (rgbs[1].length() == 4) {
-                    green = green >> 8;
-                }
-                if (rgbs[2].length() == 4) {
-                    blue = blue >> 8;
-                }
-                if (debugToStderr) {
-                    System.err.printf("    RGB %02x%02x%02x\n",
-                        red, green, blue);
-                }
-                int rgbColor = red << 16 | green << 8 | blue;
-                switch (color) {
-                case 0:
-                    MYBLACK   = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BLACK");
-                    }
-                    break;
-                case 1:
-                    MYRED     = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set RED");
-                    }
-                    break;
-                case 2:
-                    MYGREEN   = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set GREEN");
-                    }
-                    break;
-                case 3:
-                    MYYELLOW  = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set YELLOW");
-                    }
-                    break;
-                case 4:
-                    MYBLUE    = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BLUE");
-                    }
-                    break;
-                case 5:
-                    MYMAGENTA = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set MAGENTA");
-                    }
-                    break;
-                case 6:
-                    MYCYAN    = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set CYAN");
-                    }
-                    break;
-                case 7:
-                    MYWHITE   = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set WHITE");
-                    }
-                    break;
-                case 8:
-                    MYBOLD_BLACK   = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD BLACK");
-                    }
-                    break;
-                case 9:
-                    MYBOLD_RED     = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD RED");
-                    }
-                    break;
-                case 10:
-                    MYBOLD_GREEN   = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD GREEN");
-                    }
-                    break;
-                case 11:
-                    MYBOLD_YELLOW  = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD YELLOW");
-                    }
-                    break;
-                case 12:
-                    MYBOLD_BLUE    = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD BLUE");
-                    }
-                    break;
-                case 13:
-                    MYBOLD_MAGENTA = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD MAGENTA");
-                    }
-                    break;
-                case 14:
-                    MYBOLD_CYAN    = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD CYAN");
-                    }
-                    break;
-                case 15:
-                    MYBOLD_WHITE   = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD WHITE");
-                    }
-                    break;
-                case 39:
-                    DEFAULT_FORECOLOR = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set DEFAULT FOREGROUND");
-                    }
-                    break;
-                case 49:
-                    DEFAULT_BACKCOLOR = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set DEFAULT BACKGROUND");
-                    }
-                    break;
-                default:
-                    break;
-                }
+        final int oscIndex = 0;
+        final int colorIndex = 1;
+        int rgbIndex = 2;
 
-                // We have changed a system color.  Redraw the entire screen.
-                clearPhysical();
-                reallyCleared = true;
-            } catch (NumberFormatException e) {
-                return;
-            }
+        boolean isColorPalette = ps[oscIndex].equals(OSC_PALETTE);
+        boolean isDefaultForegroundColor = ps[oscIndex].equals(OSC_DEFAULT_FORECOLOR);
+        boolean isDefaultBackgroundColor = ps[oscIndex].equals(OSC_DEFAULT_BACKCOLOR);
+
+        if (!isColorPalette && !isDefaultForegroundColor && !isDefaultBackgroundColor) {
+            return;
         }
 
+        if (isColorPalette && ps.length != 3) {
+            return;
+        }
+
+        try {
+            int color;
+            if ((isDefaultForegroundColor || isDefaultBackgroundColor)) {
+                if (ps.length != 2) {
+                    return;
+                }
+
+                rgbIndex = 1;
+                color = isDefaultForegroundColor ? 39 : 49;
+            } else {
+                color = Integer.parseInt(ps[colorIndex]);
+            }
+
+            String rgb = ps[rgbIndex];
+            if (!rgb.startsWith("rgb:")) {
+                return;
+            }
+            rgb = rgb.substring(4);
+            if (debugToStderr) {
+                System.err.println("  Color " + color + " is " + rgb);
+            }
+            String [] rgbs = rgb.split("/");
+            if (rgbs.length != 3) {
+                return;
+            }
+            int red = Integer.parseInt(rgbs[0], 16);
+            int green = Integer.parseInt(rgbs[1], 16);
+            int blue = Integer.parseInt(rgbs[2], 16);
+            if (rgbs[0].length() == 4) {
+                red = red >> 8;
+            }
+            if (rgbs[1].length() == 4) {
+                green = green >> 8;
+            }
+            if (rgbs[2].length() == 4) {
+                blue = blue >> 8;
+            }
+            if (debugToStderr) {
+                System.err.printf("    RGB %02x%02x%02x\n",
+                    red, green, blue);
+            }
+            int rgbColor = red << 16 | green << 8 | blue;
+            switch (color) {
+            case 0:
+                MYBLACK   = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set BLACK");
+                }
+                break;
+            case 1:
+                MYRED     = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set RED");
+                }
+                break;
+            case 2:
+                MYGREEN   = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set GREEN");
+                }
+                break;
+            case 3:
+                MYYELLOW  = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set YELLOW");
+                }
+                break;
+            case 4:
+                MYBLUE    = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set BLUE");
+                }
+                break;
+            case 5:
+                MYMAGENTA = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set MAGENTA");
+                }
+                break;
+            case 6:
+                MYCYAN    = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set CYAN");
+                }
+                break;
+            case 7:
+                MYWHITE   = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set WHITE");
+                }
+                break;
+            case 8:
+                MYBOLD_BLACK   = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set BOLD BLACK");
+                }
+                break;
+            case 9:
+                MYBOLD_RED     = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set BOLD RED");
+                }
+                break;
+            case 10:
+                MYBOLD_GREEN   = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set BOLD GREEN");
+                }
+                break;
+            case 11:
+                MYBOLD_YELLOW  = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set BOLD YELLOW");
+                }
+                break;
+            case 12:
+                MYBOLD_BLUE    = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set BOLD BLUE");
+                }
+                break;
+            case 13:
+                MYBOLD_MAGENTA = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set BOLD MAGENTA");
+                }
+                break;
+            case 14:
+                MYBOLD_CYAN    = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set BOLD CYAN");
+                }
+                break;
+            case 15:
+                MYBOLD_WHITE   = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set BOLD WHITE");
+                }
+                break;
+            case 39:
+                DEFAULT_FORECOLOR = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set DEFAULT FOREGROUND");
+                }
+                break;
+            case 49:
+                DEFAULT_BACKCOLOR = rgbColor;
+                if (debugToStderr) {
+                    System.err.println("    Set DEFAULT BACKGROUND");
+                }
+                break;
+            default:
+                break;
+            }
+
+            // We have changed a system color.  Redraw the entire screen.
+            clearPhysical();
+            reallyCleared = true;
+        } catch (NumberFormatException e) {
+        }
     }
 
     /**
@@ -3551,10 +3587,10 @@ public class ECMA48Terminal extends LogicalScreen
     private String xtermQueryAnsiColors() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 16; i++) {
-            sb.append(String.format("\033]4;%d;?\033\\", i));
+            sb.append("\033]4;%d;?\033\\".formatted(i));
         }
-        sb.append(String.format("\033]4;%d;?\033\\", 39));
-        sb.append(String.format("\033]4;%d;?\033\\", 49));
+        sb.append("\033]10;?\033\\");
+        sb.append("\033]11;?\033\\");
         return sb.toString();
     }
 
@@ -3565,16 +3601,10 @@ public class ECMA48Terminal extends LogicalScreen
      * @param text string to copy
      */
     public void xtermSetClipboardText(final String text) {
-        try {
-            byte [] textBytes = text.getBytes("UTF-8");
-            String textToCopy = StringUtils.toBase64(textBytes);
-            // Remove CRLF from base64 result
-            textToCopy = textToCopy.replaceAll("[\\r\\n]", "");
-            this.output.printf("\033]52;c;%s\033\\", textToCopy);
-            this.output.flush();
-        } catch (UnsupportedEncodingException e) {
-            // SQUASH
-        }
+        byte [] textBytes = text.getBytes(StandardCharsets.UTF_8);
+        String textToCopy = StringUtils.toBase64(textBytes);
+        this.output.printf("\033]52;c;%s\033\\", textToCopy);
+        this.output.flush();
     }
 
     /**
