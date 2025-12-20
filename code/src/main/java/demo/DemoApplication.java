@@ -482,7 +482,7 @@ public class DemoApplication extends TApplication {
             i18n.getString("exposeBackground"));
         backgroundImage.setCheckable(true);
         backgroundImage.setChecked(false);
-        demoMenu.addItem(10012, "Shadow Opacity...");
+        demoMenu.addItem(10012, i18n.getString("shadowOpacity"));
         TSubMenu languageMenu = demoMenu.addSubMenu(i18n.getString("selectLanguage"));
         TMenuItem en = languageMenu.addItem(10005, i18n.getString("english"));
         TMenuItem es = languageMenu.addItem(10006, i18n.getString("espanol"));

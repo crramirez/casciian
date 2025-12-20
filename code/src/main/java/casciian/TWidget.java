@@ -2516,11 +2516,28 @@ public abstract class TWidget implements Comparable<TWidget> {
     public final TButton addButton(final String text, final int x, final int y,
         final Runnable action) {
 
+        if (action == null) {
+            return addButton(text, x, y);
+        }
+
         return addButton(text, x, y, new TAction() {
             public void DO() {
                 action.run();
             }
         });
+    }
+
+    /**
+     * Convenience function to add a button to this container/window.
+     *
+     * @param text label on the button
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @return the new button
+     */
+    public final TButton addButton(final String text, final int x, final int y) {
+
+        return addButton(text, x, y, (TAction)null);
     }
 
     /**

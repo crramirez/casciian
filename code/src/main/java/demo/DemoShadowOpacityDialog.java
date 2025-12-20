@@ -15,6 +15,8 @@
  */
 package demo;
 
+import java.util.ResourceBundle;
+
 import casciian.TAction;
 import casciian.TApplication;
 import casciian.TField;
@@ -56,15 +58,21 @@ public class DemoShadowOpacityDialog extends TWindow {
      * @param parent the main application
      */
     public DemoShadowOpacityDialog(final TApplication parent) {
-        super(parent, "Shadow Opacity", 0, 0, 35, 9, MODAL | CENTERED);
+        super(parent, "", 0, 0, 50, 9, MODAL | CENTERED);
+
+        ResourceBundle i18n = ResourceBundle.getBundle(DemoShadowOpacityDialog.class.getName(), getLocale());
+        setTitle(i18n.getString("title"));
 
         int opacity = SystemProperties.getShadowOpacity();
         previousValue = opacity;
 
-        addLabel("Shadow Opacity (0-100):", 2, 1);
+        String label = i18n.getString("label");
+        setWidth(label.length() + 12);
+
+        addLabel(label, 2, 1);
 
         // Add the text field
-        valueField = addField(26, 1, 5, false, String.valueOf(opacity));
+        valueField = addField(label.length() + 3, 1, 5, false, String.valueOf(opacity));
         valueField.setUpdateAction(new TAction() {
             @Override
             public void DO() {
@@ -79,13 +87,14 @@ public class DemoShadowOpacityDialog extends TWindow {
         hScroller.setValue(opacity);
 
         // Add the Done button
-        addButton("&Done", getWidth() / 2 - 8, 5, () -> {
+        String buttonLabel = i18n.getString("done");
+        addButton(buttonLabel, getWidth() / 2 - (buttonLabel.length() + 4), 5, () -> {
             applyChanges();
             getApplication().closeWindow(DemoShadowOpacityDialog.this);
         });
 
         // Add Reset button
-        addButton("&Reset", getWidth() / 2 + 3, 5, () -> {
+        addButton(i18n.getString("reset"), getWidth() / 2 + 1, 5, () -> {
             hScroller.setValue(previousValue);
             applyChanges();
         });

@@ -4206,8 +4206,6 @@ public class TApplication implements Runnable {
         toolMenu.addDefaultItem(TMenu.MID_REPAINT);
         toolMenu.addSeparator();
         toolMenu.addDefaultItem(TMenu.MID_VIEW_ANSI);
-        toolMenu.addSeparator();
-        toolMenu.addDefaultItem(TMenu.MID_TEXT_CURSOR_GLINT);
         TStatusBar toolStatusBar = toolMenu.newStatusBar(i18n.
             getString("toolMenuStatus"));
         toolStatusBar.addShortcutKeypress(kbF1, cmHelp, i18n.getString("Help"));

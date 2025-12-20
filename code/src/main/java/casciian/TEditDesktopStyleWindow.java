@@ -171,8 +171,8 @@ public class TEditDesktopStyleWindow extends TWindow {
             "square");
         buttonStyle.setText(buttonStyleString);
 
-        button1 = addButton(i18n.getString("button1"), 24, 11, null);
-        button2 = addButton(i18n.getString("button2"), 24, 14, null);
+        button1 = addButton(i18n.getString("button1"), 24, 11);
+        button2 = addButton(i18n.getString("button2"), 24, 14);
         button1.setStyle(buttonStyleString);
         button2.setStyle(buttonStyleString);
 
