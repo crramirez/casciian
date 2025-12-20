@@ -245,8 +245,13 @@ public class ECMA48 implements Runnable {
     /**
      * The version of the terminal to report in XTVERSION.
      */
-    private final String VERSION = getClass().getPackage().getImplementationVersion();
+    private final String VERSION = initVersion();
 
+    private static String initVersion() {
+        Package pkg = ECMA48.class.getPackage();
+        String version = (pkg != null) ? pkg.getImplementationVersion() : null;
+        return (version != null) ? version : "unknown";
+    }
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------

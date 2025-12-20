@@ -366,7 +366,7 @@ class ECMA48TerminalTest {
     }
 
     @Test
-    @DisplayName("should parse default background color correctly")
+    @DisplayName("should parse color palette correctly")
     void shouldParseColorPaletteCorrectly() {
         terminal = createTerminal();
         assertNotNull(terminal);
