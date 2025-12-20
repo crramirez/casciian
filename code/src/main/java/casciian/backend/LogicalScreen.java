@@ -15,15 +15,7 @@
 package casciian.backend;
 
 import casciian.TWidget;
-import casciian.bits.BorderStyle;
-import casciian.bits.Cell;
-import casciian.bits.CellAttributes;
-import casciian.bits.CellTransform;
-import casciian.bits.ComplexCell;
-import casciian.bits.Clipboard;
-import casciian.bits.GraphicsChars;
-import casciian.bits.ImageUtils;
-import casciian.bits.StringUtils;
+import casciian.bits.*;
 
 /**
  * A logical screen composed of a 2D array of Cells.
@@ -1227,11 +1219,22 @@ public class LogicalScreen implements Screen {
     public final void drawBoxShadow(final int left, final int top,
         final int right, final int bottom) {
 
+        final int shadowOpacity = SystemProperties.getShadowOpacity();
+        if (shadowOpacity == 0) {
+            return;
+        }
+
+        //noinspection UnnecessaryLocalVariable
         int boxTop = top;
+        //noinspection UnnecessaryLocalVariable
         int boxLeft = left;
         int boxWidth = right - left;
         int boxHeight = bottom - top;
+
         CellAttributes shadowAttr = new CellAttributes();
+        shadowAttr.setForeColor(Color.BLACK);
+        shadowAttr.setBold(shadowOpacity != 100);
+        shadowAttr.setBackColor(Color.BLACK);
 
         // Shadows do not honor clipping but they DO honor offset.
         int oldClipRight = clipRight;

@@ -31,7 +31,6 @@ import casciian.TEditColorThemeWindow;
 import casciian.TEditorWindow;
 import casciian.TWidget;
 import casciian.TWindow;
-import casciian.bits.BorderStyle;
 import casciian.backend.ECMA48Terminal;
 import casciian.event.TMenuEvent;
 import casciian.menu.TMenu;
@@ -407,6 +406,12 @@ public class DemoApplication extends TApplication {
             return true;
         }
 
+        if (menu.getId() == 10012) {
+            // Shadow opacity dialog.
+            new DemoShadowOpacityDialog(this);
+            return true;
+        }
+
         return super.onMenu(menu);
     }
 
@@ -472,6 +477,7 @@ public class DemoApplication extends TApplication {
             i18n.getString("exposeBackground"));
         backgroundImage.setCheckable(true);
         backgroundImage.setChecked(false);
+        demoMenu.addItem(10012, "Shadow Opacity...");
         TSubMenu languageMenu = demoMenu.addSubMenu(i18n.getString("selectLanguage"));
         TMenuItem en = languageMenu.addItem(10005, i18n.getString("english"));
         TMenuItem es = languageMenu.addItem(10006, i18n.getString("espanol"));

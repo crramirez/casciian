@@ -33,11 +33,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
 
-import casciian.backend.Backend;
-import casciian.backend.ECMA48Backend;
-import casciian.backend.MultiBackend;
-import casciian.backend.Screen;
-import casciian.backend.TWindowBackend;
+import casciian.backend.*;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.Clipboard;
@@ -2601,7 +2597,12 @@ public class TApplication implements Runnable {
 
         // Recreate the shadow effect by blending a black rectangle over just
         // the shadow region.
-        final int shadowOpacity = 30;
+        final int shadowOpacity = SystemProperties.getShadowOpacity();
+
+        if (shadowOpacity == 0) {
+            return;
+        }
+
         final int shadowAlpha = shadowOpacity * window.getAlpha() / 100;
         screen.blendRectangle(windowX + windowWidth, windowY + 1,
             2, windowHeight - 1, 0x000000, shadowAlpha);
