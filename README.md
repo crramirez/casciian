@@ -20,19 +20,30 @@ Casciian has seen inspiration from several other projects:
   inspired by [vtm's](https://github.com/netxs-group/vtm) incredibly
   slick game-like aesthetic.
 
+## License
+
+This project is distributed under the Apache License, Version 2.0.
+
+### Provenance
+
+Casciian is derived from a codebase originally written by Autumn Lamonte
+and dedicated to the public domain via CC0. https://codeberg.org/AutumnMeowMeow/casciian
+
+The original public-domain dedication remains in effect for the
+historical code. Subsequent modifications, maintenance, and releases
+of this distribution are provided under the Apache License, Version 2.0.
+
+Nothing in this license restricts the original public-domain status of
+the upstream code.
 
 
 Copyright Status
 ----------------
 
-To the extent possible under law, the author(s) of Casciian have
-dedicated all copyright and related and neighboring rights to Casciian
-to the public domain worldwide. This software is distributed without
-any warranty.  The COPYING file describes this intent, and provides a
-public license fallback for those jurisdictions that do not recognize
-the public domain.
+Copyright © 2013–2025 Autumn Lamonte  
+Copyright © 2025 Carlos Rafael Ramirez
 
-
+Maintained by Carlos Rafael Ramirez.
 
 Running The Demo
 ----------------
