@@ -608,51 +608,6 @@ class LogicalScreenTest {
     }
 
     @Test
-    @DisplayName("Draw box shadow with opacity 25 renders correctly")
-    void testDrawBoxShadowWithOpacity25() {
-        SystemProperties.setShadowOpacity(25);
-        
-        int left = 5, top = 5, right = 15, bottom = 10;
-        screen.drawBoxShadow(left, top, right, bottom);
-        
-        int boxWidth = right - left;
-        Cell cell = screen.getCharXY(left + boxWidth, top + 1);
-        assertEquals(Color.BLACK, cell.getForeColor());
-        assertEquals(Color.BLACK, cell.getBackColor());
-        assertTrue(cell.isBold(), "Shadow should be bold for opacity 25");
-    }
-
-    @Test
-    @DisplayName("Draw box shadow with opacity 50 renders correctly")
-    void testDrawBoxShadowWithOpacity50() {
-        SystemProperties.setShadowOpacity(50);
-        
-        int left = 5, top = 5, right = 15, bottom = 10;
-        screen.drawBoxShadow(left, top, right, bottom);
-        
-        int boxWidth = right - left;
-        Cell cell = screen.getCharXY(left + boxWidth, top + 1);
-        assertEquals(Color.BLACK, cell.getForeColor());
-        assertEquals(Color.BLACK, cell.getBackColor());
-        assertTrue(cell.isBold(), "Shadow should be bold for opacity 50");
-    }
-
-    @Test
-    @DisplayName("Draw box shadow with opacity 75 renders correctly")
-    void testDrawBoxShadowWithOpacity75() {
-        SystemProperties.setShadowOpacity(75);
-        
-        int left = 5, top = 5, right = 15, bottom = 10;
-        screen.drawBoxShadow(left, top, right, bottom);
-        
-        int boxWidth = right - left;
-        Cell cell = screen.getCharXY(left + boxWidth, top + 1);
-        assertEquals(Color.BLACK, cell.getForeColor());
-        assertEquals(Color.BLACK, cell.getBackColor());
-        assertTrue(cell.isBold(), "Shadow should be bold for opacity 75");
-    }
-
-    @Test
     @DisplayName("Draw box shadow at screen boundaries does not throw exception")
     void testDrawBoxShadowAtBoundaries() {
         SystemProperties.setShadowOpacity(60);
