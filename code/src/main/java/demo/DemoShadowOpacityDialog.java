@@ -65,6 +65,7 @@ public class DemoShadowOpacityDialog extends TWindow {
         // Add the text field
         valueField = addField(26, 1, 5, false, String.valueOf(opacity));
         valueField.setUpdateAction(new TAction() {
+            @Override
             public void DO() {
                 updateFromTextField();
             }
@@ -78,6 +79,7 @@ public class DemoShadowOpacityDialog extends TWindow {
 
         // Add the Done button
         addButton("&Done", getWidth() / 2 - 8, 5, new TAction() {
+            @Override
             public void DO() {
                 applyChanges();
                 getApplication().closeWindow(DemoShadowOpacityDialog.this);
@@ -86,6 +88,7 @@ public class DemoShadowOpacityDialog extends TWindow {
 
         // Add Reset button
         addButton("&Reset", getWidth() / 2 + 3, 5, new TAction() {
+            @Override
             public void DO() {
                 hScroller.setValue(previousValue);
                 applyChanges();
