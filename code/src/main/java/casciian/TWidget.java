@@ -2521,6 +2521,7 @@ public abstract class TWidget implements Comparable<TWidget> {
         }
 
         return addButton(text, x, y, new TAction() {
+            @Override
             public void DO() {
                 action.run();
             }
