@@ -144,7 +144,7 @@ class SystemPropertiesTest {
     @DisplayName("getShadowOpacity returns default for invalid string values")
     void testGetShadowOpacityInvalidString() {
         System.setProperty(SystemProperties.CASCIIAN_SHADOW_OPACITY, "not_a_number");
-        // Integer.getInteger returns null for invalid strings, which is handled by the default
+        // Integer.getInteger returns the default value for invalid/unparseable strings
         assertEquals(60, SystemProperties.getShadowOpacity());
     }
 
