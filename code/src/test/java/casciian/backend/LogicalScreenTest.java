@@ -485,7 +485,7 @@ class LogicalScreenTest {
         // Set opacity to 0
         SystemProperties.setShadowOpacity(0);
         
-        // Draw a box and its shadow
+        // Draw the box shadow
         int left = 5, top = 5, right = 15, bottom = 10;
         assertDoesNotThrow(() -> screen.drawBoxShadow(left, top, right, bottom));
         
