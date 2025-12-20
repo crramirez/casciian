@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
@@ -2497,6 +2502,25 @@ public abstract class TWidget implements Comparable<TWidget> {
         final TAction action) {
 
         return new TButton(this, text, x, y, action);
+    }
+
+    /**
+     * Convenience function to add a button to this container/window.
+     *
+     * @param text label on the button
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param action action to call when button is pressed, simplified to allow lambda functions
+     * @return the new button
+     */
+    public final TButton addButton(final String text, final int x, final int y,
+        final Runnable action) {
+
+        return addButton(text, x, y, new TAction() {
+            public void DO() {
+                action.run();
+            }
+        });
     }
 
     /**

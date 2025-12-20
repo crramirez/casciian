@@ -1,16 +1,17 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package demo;
 
@@ -78,21 +79,15 @@ public class DemoShadowOpacityDialog extends TWindow {
         hScroller.setValue(opacity);
 
         // Add the Done button
-        addButton("&Done", getWidth() / 2 - 8, 5, new TAction() {
-            @Override
-            public void DO() {
-                applyChanges();
-                getApplication().closeWindow(DemoShadowOpacityDialog.this);
-            }
+        addButton("&Done", getWidth() / 2 - 8, 5, () -> {
+            applyChanges();
+            getApplication().closeWindow(DemoShadowOpacityDialog.this);
         });
 
         // Add Reset button
-        addButton("&Reset", getWidth() / 2 + 3, 5, new TAction() {
-            @Override
-            public void DO() {
-                hScroller.setValue(previousValue);
-                applyChanges();
-            }
+        addButton("&Reset", getWidth() / 2 + 3, 5, () -> {
+            hScroller.setValue(previousValue);
+            applyChanges();
         });
 
         // Focus on the text field
