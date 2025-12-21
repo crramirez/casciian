@@ -12,7 +12,7 @@ group = 'io.github.crramirez'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(21)
     }
     withSourcesJar()
     withJavadocJar()
@@ -189,7 +189,7 @@ tasks.javadoc {
     options.memberLevel = JavadocMemberLevel.PROTECTED
     options.author = true
     options.version = true
-    options.links('https://docs.oracle.com/en/java/javase/25/docs/api/')
+    options.links('https://docs.oracle.com/en/java/javase/21/docs/api/')
 }
 
 // -----------------------------------------------------------------------------
