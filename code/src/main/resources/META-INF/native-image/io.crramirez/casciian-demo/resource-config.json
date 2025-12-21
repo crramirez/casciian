@@ -67,6 +67,13 @@
       ]
     },
     {
+      "name": "demo.DemoShadowOpacityDialog",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
       "name": "demo.DemoTableWindow",
       "locales": [
         "",

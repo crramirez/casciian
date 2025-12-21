@@ -34,6 +34,8 @@ import java.util.List;
 
 import casciian.TKeypress;
 import casciian.backend.Backend;
+import casciian.backend.ECMA48Backend;
+import casciian.backend.ECMA48Terminal;
 import casciian.bits.Clipboard;
 import casciian.bits.Color;
 import casciian.bits.Cell;
@@ -245,8 +247,13 @@ public class ECMA48 implements Runnable {
     /**
      * The version of the terminal to report in XTVERSION.
      */
-    private final String VERSION = "0.4";
+    private final String VERSION = initVersion();
 
+    private static String initVersion() {
+        Package pkg = ECMA48.class.getPackage();
+        String version = (pkg != null) ? pkg.getImplementationVersion() : null;
+        return (version != null) ? version : "unknown";
+    }
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -4715,16 +4722,17 @@ public class ECMA48 implements Runnable {
                      */
                     sgrColorMode = 38;
                     continue;
-                } else {
-                    // Underscore on, default foreground color
-                    currentState.attr.setUnderline(true);
-                    currentState.attr.setForeColor(Color.WHITE);
                 }
                 break;
             case 39:
-                // Underscore off, default foreground color
-                currentState.attr.setUnderline(false);
-                currentState.attr.setForeColor(Color.WHITE);
+                // Default foreground color
+                if (backend != null) {
+                    currentState.attr.setForeColorRGB(backend.getDefaultForeColorRGB());
+                } else {
+                    currentState.attr.setForeColor(Color.WHITE);
+                }
+
+                currentState.attr.setDefaultColor(true, true);
                 break;
             case 40:
                 // Set black background
@@ -4801,10 +4809,16 @@ public class ECMA48 implements Runnable {
                 break;
             case 49:
                 // Default background
-                currentState.attr.setBackColor(Color.BLACK);
+                if (backend != null) {
+                    currentState.attr.setBackColorRGB(backend.getDefaultBackColorRGB());
+                } else {
+                    currentState.attr.setBackColor(Color.BLACK);
+                }
+                currentState.attr.setDefaultColor(false, true);
                 break;
 
-            default:
+
+                default:
                 break;
             }
         }
@@ -5370,7 +5384,16 @@ public class ECMA48 implements Runnable {
                 if (p[0].equals("10")) {
                     if ((p.length > 1) && p[1].equals("?")) {
                         // Respond with foreground color.
-                        int rgb = backend.attrToForegroundColor(currentState.attr);
+                        int rgb;
+
+                        if (backend != null) {
+                            rgb = backend.getDefaultForeColorRGB();
+                        } else {
+                            var attr = new CellAttributes();
+                            attr.setForeColor(Color.WHITE);
+                            rgb = ECMA48Terminal.attrToForegroundColor(attr);
+                        }
+
                         int red   = (rgb >>> 16) & 0xFF;
                         int green = (rgb >>>  8) & 0xFF;
                         int blue  =  rgb         & 0xFF;
@@ -5386,7 +5409,15 @@ public class ECMA48 implements Runnable {
                 if (p[0].equals("11")) {
                     if ((p.length > 1) && p[1].equals("?")) {
                         // Respond with background color.
-                        int rgb = backend.attrToBackgroundColor(currentState.attr);
+                        int rgb;
+
+                        if (backend != null) {
+                            rgb = backend.getDefaultBackColorRGB();
+                        } else {
+                            var attr = new CellAttributes();
+                            attr.setBackColor(Color.BLACK);
+                            rgb = ECMA48Terminal.attrToBackgroundColor(attr);
+                        }
                         int red   = (rgb >>> 16) & 0xFF;
                         int green = (rgb >>>  8) & 0xFF;
                         int blue  =  rgb         & 0xFF;

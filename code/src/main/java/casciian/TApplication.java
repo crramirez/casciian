@@ -1,20 +1,25 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
+
 package casciian;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.IOException;
@@ -37,6 +42,7 @@ import casciian.backend.Backend;
 import casciian.backend.ECMA48Backend;
 import casciian.backend.MultiBackend;
 import casciian.backend.Screen;
+import casciian.backend.SystemProperties;
 import casciian.backend.TWindowBackend;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
@@ -863,6 +869,7 @@ public class TApplication implements Runnable {
         if (System.getProperty("casciian.animations", "true").equals("false")) {
             animationsEnabled = false;
         }
+
 
         theme           = new ColorTheme();
         desktopTop      = (hideMenuBar ? 0 : 1);
@@ -2601,7 +2608,12 @@ public class TApplication implements Runnable {
 
         // Recreate the shadow effect by blending a black rectangle over just
         // the shadow region.
-        final int shadowOpacity = 30;
+        final int shadowOpacity = SystemProperties.getShadowOpacity();
+
+        if (shadowOpacity == 0) {
+            return;
+        }
+
         final int shadowAlpha = shadowOpacity * window.getAlpha() / 100;
         screen.blendRectangle(windowX + windowWidth, windowY + 1,
             2, windowHeight - 1, 0x000000, shadowAlpha);
@@ -4194,8 +4206,6 @@ public class TApplication implements Runnable {
         toolMenu.addDefaultItem(TMenu.MID_REPAINT);
         toolMenu.addSeparator();
         toolMenu.addDefaultItem(TMenu.MID_VIEW_ANSI);
-        toolMenu.addSeparator();
-        toolMenu.addDefaultItem(TMenu.MID_TEXT_CURSOR_GLINT);
         TStatusBar toolStatusBar = toolMenu.newStatusBar(i18n.
             getString("toolMenuStatus"));
         toolStatusBar.addShortcutKeypress(kbF1, cmHelp, i18n.getString("Help"));

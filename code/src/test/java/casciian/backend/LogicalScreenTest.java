@@ -8,6 +8,8 @@ package casciian.backend;
 import casciian.bits.BorderStyle;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
+import casciian.bits.Color;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -44,6 +46,12 @@ class LogicalScreenTest {
     void setUp() {
         screen = new TestableLogicalScreen();
         defaultAttr = createDefaultCellAttributes();
+    }
+
+    @AfterEach
+    void tearDown() {
+        // Reset system properties after each test
+        SystemProperties.reset();
     }
 
     // Dimension tests
@@ -467,5 +475,159 @@ class LogicalScreenTest {
     void testSnapshot() {
         screen.putStringXY(5, 5, "Test", defaultAttr);
         assertDoesNotThrow(() -> screen.snapshot());
+    }
+
+    // Shadow tests
+
+    @Test
+    @DisplayName("Draw box shadow skips rendering when opacity is 0")
+    void testDrawBoxShadowSkipsWhenOpacityZero() {
+        // Set opacity to 0
+        SystemProperties.setShadowOpacity(0);
+        
+        // Draw the box shadow
+        int left = 5, top = 5, right = 15, bottom = 10;
+        assertDoesNotThrow(() -> screen.drawBoxShadow(left, top, right, bottom));
+        
+        // Verify that no shadow cells were modified
+        // Shadow should appear at right edge (boxWidth columns) and bottom edge
+        int boxWidth = right - left;
+        int boxHeight = bottom - top;
+        
+        // Check right edge shadow cells - they should be empty/default
+        for (int i = 0; i < boxHeight; i++) {
+            Cell cell1 = screen.getCharXY(left + boxWidth, top + 1 + i);
+            Cell cell2 = screen.getCharXY(left + boxWidth + 1, top + 1 + i);
+            // Cells should not have shadow attributes (black foreground)
+            assertNotEquals(Color.BLACK, cell1.getForeColor(), 
+                "Shadow should not be drawn when opacity is 0 (right edge, cell 1, row " + i + ")");
+            assertNotEquals(Color.BLACK, cell2.getForeColor(), 
+                "Shadow should not be drawn when opacity is 0 (right edge, cell 2, row " + i + ")");
+        }
+        
+        // Check bottom edge shadow cells
+        for (int i = 0; i < boxWidth; i++) {
+            Cell cell = screen.getCharXY(left + 2 + i, top + boxHeight);
+            assertNotEquals(Color.BLACK, cell.getForeColor(), 
+                "Shadow should not be drawn when opacity is 0 (bottom edge, col " + i + ")");
+        }
+    }
+
+    @Test
+    @DisplayName("Draw box shadow sets bold attribute when opacity is not 100")
+    void testDrawBoxShadowSetsBoldWhenOpacityNot100() {
+        // Set opacity to a value other than 100
+        SystemProperties.setShadowOpacity(60);
+        
+        // Draw the box shadow
+        int left = 5, top = 5, right = 15, bottom = 10;
+        screen.drawBoxShadow(left, top, right, bottom);
+        
+        // Verify that shadow cells have bold attribute
+        int boxWidth = right - left;
+        int boxHeight = bottom - top;
+        
+        // Check right edge shadow cells
+        for (int i = 0; i < boxHeight; i++) {
+            Cell cell1 = screen.getCharXY(left + boxWidth, top + 1 + i);
+            Cell cell2 = screen.getCharXY(left + boxWidth + 1, top + 1 + i);
+            
+            // Cells should have shadow attributes (black color and bold)
+            assertEquals(Color.BLACK, cell1.getForeColor(), 
+                "Shadow should have black foreground (right edge, cell 1, row " + i + ")");
+            assertEquals(Color.BLACK, cell1.getBackColor(), 
+                "Shadow should have black background (right edge, cell 1, row " + i + ")");
+            assertTrue(cell1.isBold(), 
+                "Shadow should be bold when opacity is not 100 (right edge, cell 1, row " + i + ")");
+            
+            assertEquals(Color.BLACK, cell2.getForeColor(), 
+                "Shadow should have black foreground (right edge, cell 2, row " + i + ")");
+            assertEquals(Color.BLACK, cell2.getBackColor(), 
+                "Shadow should have black background (right edge, cell 2, row " + i + ")");
+            assertTrue(cell2.isBold(), 
+                "Shadow should be bold when opacity is not 100 (right edge, cell 2, row " + i + ")");
+        }
+        
+        // Check bottom edge shadow cells
+        for (int i = 0; i < boxWidth; i++) {
+            Cell cell = screen.getCharXY(left + 2 + i, top + boxHeight);
+            assertEquals(Color.BLACK, cell.getForeColor(), 
+                "Shadow should have black foreground (bottom edge, col " + i + ")");
+            assertEquals(Color.BLACK, cell.getBackColor(), 
+                "Shadow should have black background (bottom edge, col " + i + ")");
+            assertTrue(cell.isBold(), 
+                "Shadow should be bold when opacity is not 100 (bottom edge, col " + i + ")");
+        }
+    }
+
+    @Test
+    @DisplayName("Draw box shadow does not set bold when opacity is 100")
+    void testDrawBoxShadowNotBoldWhenOpacity100() {
+        // Set opacity to 100
+        SystemProperties.setShadowOpacity(100);
+        
+        // Draw only the box shadow
+        int left = 5, top = 5, right = 15, bottom = 10;
+        screen.drawBoxShadow(left, top, right, bottom);
+        
+        // Verify that shadow cells do not have bold attribute
+        int boxWidth = right - left;
+        int boxHeight = bottom - top;
+        
+        // Check right edge shadow cells
+        for (int i = 0; i < boxHeight; i++) {
+            Cell cell1 = screen.getCharXY(left + boxWidth, top + 1 + i);
+            Cell cell2 = screen.getCharXY(left + boxWidth + 1, top + 1 + i);
+            
+            // Cells should have shadow attributes (black color but not bold)
+            assertEquals(Color.BLACK, cell1.getForeColor(), 
+                "Shadow should have black foreground (right edge, cell 1, row " + i + ")");
+            assertEquals(Color.BLACK, cell1.getBackColor(), 
+                "Shadow should have black background (right edge, cell 1, row " + i + ")");
+            assertFalse(cell1.isBold(), 
+                "Shadow should not be bold when opacity is 100 (right edge, cell 1, row " + i + ")");
+            
+            assertEquals(Color.BLACK, cell2.getForeColor(), 
+                "Shadow should have black foreground (right edge, cell 2, row " + i + ")");
+            assertEquals(Color.BLACK, cell2.getBackColor(), 
+                "Shadow should have black background (right edge, cell 2, row " + i + ")");
+            assertFalse(cell2.isBold(), 
+                "Shadow should not be bold when opacity is 100 (right edge, cell 2, row " + i + ")");
+        }
+        
+        // Check bottom edge shadow cells
+        for (int i = 0; i < boxWidth; i++) {
+            Cell cell = screen.getCharXY(left + 2 + i, top + boxHeight);
+            assertEquals(Color.BLACK, cell.getForeColor(), 
+                "Shadow should have black foreground (bottom edge, col " + i + ")");
+            assertEquals(Color.BLACK, cell.getBackColor(), 
+                "Shadow should have black background (bottom edge, col " + i + ")");
+            assertFalse(cell.isBold(), 
+                "Shadow should not be bold when opacity is 100 (bottom edge, col " + i + ")");
+        }
+    }
+
+    @Test
+    @DisplayName("Draw box shadow at screen boundaries does not throw exception")
+    void testDrawBoxShadowAtBoundaries() {
+        SystemProperties.setShadowOpacity(60);
+        
+        // Draw shadow at screen edges
+        assertDoesNotThrow(() -> screen.drawBoxShadow(0, 0, 10, 10));
+        // This box is placed near the bottom-right so that its shadow would extend to the
+        // right edge of an 80x24 screen; this intentionally verifies that shadow drawing
+        // handles boundary clipping without throwing an exception.
+        assertDoesNotThrow(() -> screen.drawBoxShadow(70, 14, 78, 22));
+    }
+
+    @Test
+    @DisplayName("Draw box shadow with zero dimensions does not throw exception")
+    void testDrawBoxShadowZeroDimensions() {
+        SystemProperties.setShadowOpacity(60);
+        
+        // Draw shadow with zero width or height
+        assertDoesNotThrow(() -> screen.drawBoxShadow(5, 5, 5, 10));
+        assertDoesNotThrow(() -> screen.drawBoxShadow(5, 5, 10, 5));
+        assertDoesNotThrow(() -> screen.drawBoxShadow(5, 5, 5, 5));
     }
 }
