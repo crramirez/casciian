@@ -7,3 +7,5 @@
 /dataSources/
 /dataSources.local.xml
 /misc.xml
+/runConfigurations/code__centralBundleZip_.xml
+/runConfigurations/code__release_.xml
