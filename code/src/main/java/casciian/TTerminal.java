@@ -729,7 +729,7 @@ public class TTerminal extends TScrollable
             // If the check fails, assume ptypipe is not available
             ptypipeOnPath = false;
 
-            /* Clean up whatever needs to be handled before interrupting  */
+            // Restore the interrupted status so calling code can handle it.
             Thread.currentThread().interrupt();
         } catch (IOException e) {
             // If the check fails, assume ptypipe is not available
