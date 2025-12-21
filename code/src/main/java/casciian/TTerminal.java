@@ -713,36 +713,27 @@ public class TTerminal extends TScrollable
      * Check for 'ptypipe' on the path.  If available, set ptypipeOnPath.
      */
     private static void checkForPtypipe() {
-        String systemPath = System.getenv("PATH");
-        if (systemPath == null) {
-            return;
-        }
-
-        String [] paths = systemPath.split(File.pathSeparator);
-        if (paths == null) {
-            return;
-        }
-        if (paths.length == 0) {
-            return;
-        }
-        for (int i = 0; i < paths.length; i++) {
-            File path = new File(paths[i]);
-            if (path.exists() && path.isDirectory()) {
-                File [] files = path.listFiles();
-                if (files == null) {
-                    continue;
-                }
-                if (files.length == 0) {
-                    continue;
-                }
-                for (int j = 0; j < files.length; j++) {
-                    File file = files[j];
-                    if (file.canExecute() && file.getName().equals("ptypipe")) {
-                        ptypipeOnPath = true;
-                        return;
-                    }
-                }
+        try {
+            // Use ProcessBuilder to check if the command exists
+            // This is more efficient as it leverages the OS's PATH resolution
+            ProcessBuilder pb;
+            if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                pb = new ProcessBuilder("where", "ptypipe");
+            } else {
+                pb = new ProcessBuilder("sh", "-c", "command -v ptypipe");
             }
+            Process process = pb.start();
+            int exitCode = process.waitFor();
+            ptypipeOnPath = (exitCode == 0);
+        } catch (InterruptedException e) {
+            // If the check fails, assume ptypipe is not available
+            ptypipeOnPath = false;
+
+            /* Clean up whatever needs to be handled before interrupting  */
+            Thread.currentThread().interrupt();
+        } catch (IOException e) {
+            // If the check fails, assume ptypipe is not available
+            ptypipeOnPath = false;
         }
     }
 
