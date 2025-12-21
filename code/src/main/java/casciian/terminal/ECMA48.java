@@ -5415,7 +5415,7 @@ public class ECMA48 implements Runnable {
                             rgb = backend.getDefaultBackColorRGB();
                         } else {
                             var attr = new CellAttributes();
-                            attr.setForeColor(Color.WHITE);
+                            attr.setBackColor(Color.BLACK);
                             rgb = ECMA48Terminal.attrToBackgroundColor(attr);
                         }
                         int red   = (rgb >>> 16) & 0xFF;
