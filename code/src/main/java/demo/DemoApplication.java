@@ -84,9 +84,10 @@ public class DemoApplication extends TApplication {
     public DemoApplication(final InputStream input,
         final OutputStream output) throws UnsupportedEncodingException {
         super(input, output);
-        addAllWidgets();
 
         initializeSystemPropertiesForDemo();
+
+        addAllWidgets();
 
         getBackend().setTitle(i18n.getString("applicationTitle"));
     }
@@ -107,9 +108,10 @@ public class DemoApplication extends TApplication {
     public DemoApplication(final InputStream input, final Reader reader,
         final PrintWriter writer, final boolean setRawMode) {
         super(input, reader, writer, setRawMode);
-        addAllWidgets();
 
         initializeSystemPropertiesForDemo();
+
+        addAllWidgets();
 
         getBackend().setTitle(i18n.getString("applicationTitle"));
     }
@@ -138,9 +140,9 @@ public class DemoApplication extends TApplication {
     public DemoApplication(final Backend backend) {
         super(backend);
 
-        addAllWidgets();
-
         initializeSystemPropertiesForDemo();
+
+        addAllWidgets();
     }
 
     /**
@@ -176,10 +178,11 @@ public class DemoApplication extends TApplication {
     @SuppressWarnings("this-escape")
     public DemoApplication(final BackendType backendType) throws Exception {
         super(backendType);
-        addAllWidgets();
-        getBackend().setTitle(i18n.getString("applicationTitle"));
 
         initializeSystemPropertiesForDemo();
+
+        addAllWidgets();
+        getBackend().setTitle(i18n.getString("applicationTitle"));
 
         // Use custom theme by default.
         onMenu(new TMenuEvent(getBackend(), 10003));
@@ -207,10 +210,11 @@ public class DemoApplication extends TApplication {
         final int windowHeight, final int fontSize) throws Exception {
 
         super(backendType, windowWidth, windowHeight, fontSize);
-        addAllWidgets();
-        getBackend().setTitle(i18n.getString("applicationTitle"));
 
         initializeSystemPropertiesForDemo();
+
+        addAllWidgets();
+        getBackend().setTitle(i18n.getString("applicationTitle"));
 
         // Use custom theme by default.
         onMenu(new TMenuEvent(getBackend(), 10003));

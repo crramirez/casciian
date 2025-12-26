@@ -1005,6 +1005,7 @@ public class TApplication implements Runnable {
      * @param command command event
      * @return if true, this event was consumed
      */
+    @SuppressWarnings("EqualsBetweenInconvertibleTypes")
     protected boolean onCommand(final TCommandEvent command) {
         // Default: handle cmExit
         if (command.equals(cmExit)) {
