@@ -2102,42 +2102,6 @@ public class TApplication implements Runnable {
     }
 
     /**
-     * Get the animations option.
-     *
-     * @return true if animations are enabled
-     */
-    public boolean getAnimations() {
-        return SystemProperties.isAnimations();
-    }
-
-    /**
-     * Set the animations option.
-     *
-     * @param enabled if true, animations will be enabled
-     */
-    public void setAnimations(final boolean enabled) {
-        SystemProperties.setAnimations(enabled);
-    }
-
-    /**
-     * Get the translucence option.
-     *
-     * @return true if translucency is enabled
-     */
-    public boolean hasTranslucence() {
-        return SystemProperties.isTranslucence();
-    }
-
-    /**
-     * Set the translucence option.
-     *
-     * @param enabled if true, windows will be translucent
-     */
-    public void setTranslucence(final boolean enabled) {
-        SystemProperties.setTranslucence(enabled);
-    }
-
-    /**
      * Set the opacity of all windows.  If opacity is 100, translucence is
      * also disabled for performance.
      *

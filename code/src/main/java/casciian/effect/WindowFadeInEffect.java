@@ -15,6 +15,7 @@
 package casciian.effect;
 
 import casciian.TWindow;
+import casciian.backend.SystemProperties;
 
 /**
  * Make the window fade in using tranlucence.
@@ -63,7 +64,7 @@ public class WindowFadeInEffect implements Effect {
         if (!window.isShown()) {
             return;
         }
-        if (!window.getApplication().hasTranslucence()) {
+        if (!SystemProperties.isTranslucence()) {
             return;
         }
         if (targetAlpha < 0) {
@@ -86,7 +87,7 @@ public class WindowFadeInEffect implements Effect {
      * @return true if this effect is finished
      */
     public boolean isCompleted() {
-        if (!window.getApplication().hasTranslucence()) {
+        if (!SystemProperties.isTranslucence()) {
             return true;
         }
         return ((targetAlpha > 0) && (window.getAlpha() >= targetAlpha));
