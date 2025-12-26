@@ -25,7 +25,7 @@ public class SystemProperties {
     /**
      * System property key for animations.
      * Valid values: "true" or "false"
-     * Default: true
+     * Default: false
      */
     public static final String CASCIIAN_ANIMATIONS = "casciian.animations";
 
@@ -39,21 +39,21 @@ public class SystemProperties {
     /**
      * System property key for text mouse.
      * Valid values: "true" or "false"
-     * Default: true
+     * Default: false
      */
     public static final String CASCIIAN_TEXT_MOUSE = "casciian.textMouse";
 
     /**
      * System property key for translucence.
      * Valid values: "true" or "false"
-     * Default: true
+     * Default: false
      */
     public static final String CASCIIAN_TRANSLUCENCE = "casciian.translucence";
 
     /**
      * Atomic reference representing the animations setting.
      * When true, enable animations.
-     * The default value is true if not explicitly set.
+     * The default value is false if not explicitly set.
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> animations = new AtomicReference<>(null);
@@ -70,7 +70,7 @@ public class SystemProperties {
     /**
      * Atomic reference representing the text mouse setting.
      * When true, display a text-based mouse cursor.
-     * The default value is true if not explicitly set.
+     * The default value is false if not explicitly set.
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> textMouse = new AtomicReference<>(null);
@@ -78,7 +78,7 @@ public class SystemProperties {
     /**
      * Atomic reference representing the translucence setting.
      * When true, enable window translucency effects.
-     * The default value is true if not explicitly set.
+     * The default value is false if not explicitly set.
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> translucence = new AtomicReference<>(null);
@@ -119,10 +119,10 @@ public class SystemProperties {
     /**
      * Get the animations value from system properties.
      *
-     * @return true if animations are enabled, false otherwise. Default is true.
+     * @return true if animations are enabled, false otherwise. Default is false.
      */
     public static boolean isAnimations() {
-        return getBooleanProperty(animations, CASCIIAN_ANIMATIONS, true);
+        return getBooleanProperty(animations, CASCIIAN_ANIMATIONS, false);
     }
 
     /**
@@ -166,10 +166,10 @@ public class SystemProperties {
     /**
      * Get the text mouse value from system properties.
      *
-     * @return true if text mouse is enabled, false otherwise. Default is true.
+     * @return true if text mouse is enabled, false otherwise. Default is false.
      */
     public static boolean isTextMouse() {
-        return getBooleanProperty(textMouse, CASCIIAN_TEXT_MOUSE, true);
+        return getBooleanProperty(textMouse, CASCIIAN_TEXT_MOUSE, false);
     }
 
     /**
@@ -184,10 +184,10 @@ public class SystemProperties {
     /**
      * Get the translucence value from system properties.
      *
-     * @return true if translucence is enabled, false otherwise. Default is true.
+     * @return true if translucence is enabled, false otherwise. Default is false.
      */
     public static boolean isTranslucence() {
-        return getBooleanProperty(translucence, CASCIIAN_TRANSLUCENCE, true);
+        return getBooleanProperty(translucence, CASCIIAN_TRANSLUCENCE, false);
     }
 
     /**
