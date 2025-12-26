@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for SystemProperties class.
@@ -30,8 +32,9 @@ class SystemPropertiesTest {
 
     @AfterEach
     void tearDown() {
-        // Clear the system property after each test
+        // Clear the system properties after each test
         System.clearProperty(SystemProperties.CASCIIAN_SHADOW_OPACITY);
+        System.clearProperty(SystemProperties.CASCIIAN_TEXT_MOUSE);
         SystemProperties.reset();
     }
 
@@ -137,5 +140,81 @@ class SystemPropertiesTest {
             SystemProperties.setShadowOpacity(value);
             assertEquals(value, SystemProperties.getShadowOpacity());
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Text Mouse Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get text mouse returns default value (true) when not set")
+    void testIsTextMouseDefault() {
+        // When no property is set, should return default value of true
+        assertTrue(SystemProperties.isTextMouse());
+    }
+
+    @Test
+    @DisplayName("Get text mouse returns true when set to 'true'")
+    void testIsTextMouseSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_TEXT_MOUSE, "true");
+        assertTrue(SystemProperties.isTextMouse());
+    }
+
+    @Test
+    @DisplayName("Get text mouse returns false when set to 'false'")
+    void testIsTextMouseSetFalse() {
+        System.setProperty(SystemProperties.CASCIIAN_TEXT_MOUSE, "false");
+        assertFalse(SystemProperties.isTextMouse());
+    }
+
+    @Test
+    @DisplayName("Get text mouse returns true for invalid values")
+    void testIsTextMouseInvalidValue() {
+        // Any value other than "false" should return true
+        System.setProperty(SystemProperties.CASCIIAN_TEXT_MOUSE, "invalid");
+        assertTrue(SystemProperties.isTextMouse());
+    }
+
+    @Test
+    @DisplayName("Set text mouse to true")
+    void testSetTextMouseTrue() {
+        SystemProperties.setTextMouse(true);
+        assertTrue(SystemProperties.isTextMouse());
+    }
+
+    @Test
+    @DisplayName("Set text mouse to false")
+    void testSetTextMouseFalse() {
+        SystemProperties.setTextMouse(false);
+        assertFalse(SystemProperties.isTextMouse());
+    }
+
+    @Test
+    @DisplayName("Set and get text mouse round trip")
+    void testSetTextMouseRoundTrip() {
+        // Test toggling the value
+        SystemProperties.setTextMouse(false);
+        assertFalse(SystemProperties.isTextMouse());
+        
+        SystemProperties.setTextMouse(true);
+        assertTrue(SystemProperties.isTextMouse());
+        
+        SystemProperties.setTextMouse(false);
+        assertFalse(SystemProperties.isTextMouse());
+    }
+
+    @Test
+    @DisplayName("Reset clears text mouse cached value")
+    void testResetClearsTextMouse() {
+        // Set text mouse to false
+        SystemProperties.setTextMouse(false);
+        assertFalse(SystemProperties.isTextMouse());
+        
+        // Set system property to true and reset
+        System.setProperty(SystemProperties.CASCIIAN_TEXT_MOUSE, "true");
+        SystemProperties.reset();
+        
+        // After reset, should read from system property again
+        assertTrue(SystemProperties.isTextMouse());
     }
 }

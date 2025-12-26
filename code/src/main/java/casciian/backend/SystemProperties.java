@@ -16,6 +16,7 @@
 package casciian.backend;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * System properties used by Casciian.
@@ -30,6 +31,13 @@ public class SystemProperties {
     public static final String CASCIIAN_SHADOW_OPACITY = "casciian.shadowOpacity";
 
     /**
+     * System property key for text mouse.
+     * Valid values: "true" or "false"
+     * Default: true
+     */
+    public static final String CASCIIAN_TEXT_MOUSE = "casciian.textMouse";
+
+    /**
      * The default value for a property to signal was not set.
      */
     public static final int UNSET_PROPERTY = -1;
@@ -41,6 +49,14 @@ public class SystemProperties {
      * Internal updates to this variable should ensure it stays within the valid range.
      */
     private static final AtomicInteger shadowOpacity = new AtomicInteger(UNSET_PROPERTY);
+
+    /**
+     * Atomic reference representing the text mouse setting.
+     * When true, display a text-based mouse cursor.
+     * The default value is true if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> textMouse = new AtomicReference<>(null);
 
     private SystemProperties() {
     }
@@ -75,10 +91,36 @@ public class SystemProperties {
     }
 
     /**
+     * Get the text mouse value from system properties.
+     *
+     * @return true if text mouse is enabled, false otherwise. Default is true.
+     */
+    public static boolean isTextMouse() {
+        if (textMouse.get() == null) {
+            final boolean defaultTextMouse = true;
+            String textMouseValue = System.getProperty(CASCIIAN_TEXT_MOUSE, "true");
+            textMouse.set(!"false".equals(textMouseValue));
+        }
+
+        return textMouse.get();
+    }
+
+    /**
+     * Set the text mouse value in system properties.
+     *
+     * @param value true to enable text mouse, false to disable
+     */
+    public static void setTextMouse(boolean value) {
+        System.setProperty(CASCIIAN_TEXT_MOUSE, String.valueOf(value));
+        textMouse.set(value);
+    }
+
+    /**
      * Reset all cached system property values to their unset state.
      * This will force values to be re-read from system properties on the next access.
      */
     public static void reset() {
         shadowOpacity.set(UNSET_PROPERTY);
+        textMouse.set(null);
     }
 }

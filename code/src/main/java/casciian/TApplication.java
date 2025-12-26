@@ -838,9 +838,7 @@ public class TApplication implements Runnable {
      */
     private void TApplicationImpl() {
         // Text block mouse option
-        if (System.getProperty("casciian.textMouse", "true").equals("false")) {
-            textMouse = false;
-        }
+        textMouse = SystemProperties.isTextMouse();
 
         // Hide mouse when typing option
         if (System.getProperty("casciian.hideMouseWhenTyping",
@@ -2143,6 +2141,25 @@ public class TApplication implements Runnable {
      */
     public void setAnimations(final boolean enabled) {
         animationsEnabled = enabled;
+    }
+
+    /**
+     * Get the text mouse option.
+     *
+     * @return true if text mouse is enabled
+     */
+    public boolean isTextMouse() {
+        return textMouse;
+    }
+
+    /**
+     * Set the text mouse option.
+     *
+     * @param enabled if true, text mouse will be enabled
+     */
+    public void setTextMouse(final boolean enabled) {
+        textMouse = enabled;
+        SystemProperties.setTextMouse(enabled);
     }
 
     /**
