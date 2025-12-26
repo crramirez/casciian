@@ -15,7 +15,6 @@
  */
 package casciian.backend;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -38,17 +37,13 @@ public class SystemProperties {
     public static final String CASCIIAN_TEXT_MOUSE = "casciian.textMouse";
 
     /**
-     * The default value for a property to signal was not set.
-     */
-    public static final int UNSET_PROPERTY = -1;
-
-    /**
-     * Atomic integer representing the shadow opacity setting.
+     * Atomic reference representing the shadow opacity setting.
      * This value is expected to be a percentage ranging from 0 to 100, which determines
      * the opacity level of a shadow effect. The default value is 60 if not explicitly set.
      * Internal updates to this variable should ensure it stays within the valid range.
+     * A null value signals the property has not been read yet.
      */
-    private static final AtomicInteger shadowOpacity = new AtomicInteger(UNSET_PROPERTY);
+    private static final AtomicReference<Integer> shadowOpacity = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the text mouse setting.
@@ -67,7 +62,7 @@ public class SystemProperties {
      * @return shadow opacity value between 0 and 100, or default value of 60
      */
     public static int getShadowOpacity() {
-        if (shadowOpacity.get() == UNSET_PROPERTY) {
+        if (shadowOpacity.get() == null) {
             final int defaultShadowOpacity = 60;
             final int shadowOpacityValue = Integer.getInteger(CASCIIAN_SHADOW_OPACITY, defaultShadowOpacity);
 
@@ -118,7 +113,7 @@ public class SystemProperties {
      * This will force values to be re-read from system properties on the next access.
      */
     public static void reset() {
-        shadowOpacity.set(UNSET_PROPERTY);
+        shadowOpacity.set(null);
         textMouse.set(null);
     }
 }
