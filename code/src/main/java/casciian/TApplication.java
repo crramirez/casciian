@@ -2653,7 +2653,7 @@ public class TApplication implements Runnable {
                         screenSelectionRectangle);
                 }
 
-                if ((SystemProperties.isTextMouse() == true) && (typingHidMouse == false)) {
+                if (SystemProperties.isTextMouse() && !typingHidMouse) {
                     // Draw mouse at the new position.
                     drawTextMouse(mouseX, mouseY);
                 }
