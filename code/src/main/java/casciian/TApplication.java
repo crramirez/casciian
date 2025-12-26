@@ -2878,7 +2878,7 @@ public class TApplication implements Runnable {
 
         // Draw the mouse.
         getScreen().resetClipping();
-        if ((SystemProperties.isTextMouse() == true) && (typingHidMouse == false)) {
+        if (SystemProperties.isTextMouse() && !typingHidMouse) {
             drawTextMouse(mouseX, mouseY);
         }
         oldDrawnMouseX = mouseX;
