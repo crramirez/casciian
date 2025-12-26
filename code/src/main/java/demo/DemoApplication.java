@@ -86,6 +86,8 @@ public class DemoApplication extends TApplication {
         super(input, output);
         addAllWidgets();
 
+        initializeSystemPropertiesForDemo();
+
         getBackend().setTitle(i18n.getString("applicationTitle"));
     }
 
@@ -106,6 +108,8 @@ public class DemoApplication extends TApplication {
         final PrintWriter writer, final boolean setRawMode) {
         super(input, reader, writer, setRawMode);
         addAllWidgets();
+
+        initializeSystemPropertiesForDemo();
 
         getBackend().setTitle(i18n.getString("applicationTitle"));
     }
@@ -135,6 +139,8 @@ public class DemoApplication extends TApplication {
         super(backend);
 
         addAllWidgets();
+
+        initializeSystemPropertiesForDemo();
     }
 
     /**
