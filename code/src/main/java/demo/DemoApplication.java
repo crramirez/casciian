@@ -37,6 +37,7 @@ import casciian.TEditorWindow;
 import casciian.TWidget;
 import casciian.TWindow;
 import casciian.backend.ECMA48Terminal;
+import casciian.backend.SystemProperties;
 import casciian.event.TMenuEvent;
 import casciian.menu.TMenu;
 import casciian.menu.TMenuItem;
@@ -403,6 +404,13 @@ public class DemoApplication extends TApplication {
             return true;
         }
 
+        if (menu.getId() == 10013) {
+            // Enable/disable text mouse.
+            TMenuItem menuItem = getMenuItem(menu.getId());
+            SystemProperties.setTextMouse(menuItem.isChecked());
+            return true;
+        }
+
         if (menu.getId() == 10011) {
             // Expose/cover terminal background.
             TMenuItem menuItem = getMenuItem(menu.getId());
@@ -485,6 +493,10 @@ public class DemoApplication extends TApplication {
             i18n.getString("useGradients"));
         gradients.setCheckable(true);
         gradients.setChecked(false);
+        TMenuItem textMouseItem = demoMenu.addItem(10013,
+            i18n.getString("textMouse"));
+        textMouseItem.setCheckable(true);
+        textMouseItem.setChecked(SystemProperties.isTextMouse());
         TMenuItem backgroundImage = demoMenu.addItem(10011,
             i18n.getString("exposeBackground"));
         backgroundImage.setCheckable(true);

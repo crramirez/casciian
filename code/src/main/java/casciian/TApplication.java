@@ -289,11 +289,6 @@ public class TApplication implements Runnable {
     private boolean focusFollowsMouse = false;
 
     /**
-     * If true, display a text-based mouse cursor.
-     */
-    protected boolean textMouse = true;
-
-    /**
      * If true, hide the mouse after typing a keystroke.
      */
     private boolean hideMouseWhenTyping = false;
@@ -837,11 +832,6 @@ public class TApplication implements Runnable {
      * Finish construction once the backend is set.
      */
     private void TApplicationImpl() {
-        // Text block mouse option
-        if (System.getProperty("casciian.textMouse", "true").equals("false")) {
-            textMouse = false;
-        }
-
         // Hide mouse when typing option
         if (System.getProperty("casciian.hideMouseWhenTyping",
                 "false").equals("true")) {
@@ -2663,7 +2653,7 @@ public class TApplication implements Runnable {
                         screenSelectionRectangle);
                 }
 
-                if ((textMouse == true) && (typingHidMouse == false)) {
+                if (SystemProperties.isTextMouse() && !typingHidMouse) {
                     // Draw mouse at the new position.
                     drawTextMouse(mouseX, mouseY);
                 }
@@ -2888,7 +2878,7 @@ public class TApplication implements Runnable {
 
         // Draw the mouse.
         getScreen().resetClipping();
-        if ((textMouse == true) && (typingHidMouse == false)) {
+        if (SystemProperties.isTextMouse() && !typingHidMouse) {
             drawTextMouse(mouseX, mouseY);
         }
         oldDrawnMouseX = mouseX;
