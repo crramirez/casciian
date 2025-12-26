@@ -414,7 +414,6 @@ public class DemoApplication extends TApplication {
             // Enable/disable animations.
             TMenuItem menuItem = getMenuItem(menu.getId());
             SystemProperties.setAnimations(menuItem.isChecked());
-            setAnimations(menuItem.isChecked());
             return true;
         }
 
@@ -422,7 +421,6 @@ public class DemoApplication extends TApplication {
             // Enable/disable translucence.
             TMenuItem menuItem = getMenuItem(menu.getId());
             SystemProperties.setTranslucence(menuItem.isChecked());
-            setTranslucence(menuItem.isChecked());
             return true;
         }
 
