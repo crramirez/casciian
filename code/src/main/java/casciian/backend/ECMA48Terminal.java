@@ -886,33 +886,18 @@ public class ECMA48Terminal extends LogicalScreen
             textBlinkOption = TextBlinkOption.SOFT;
         }
         // casciian.textBlink overrides all
-        if (System.getProperty("casciian.textBlink",
-                "on").toLowerCase().equals("off")
-        ) {
+        if (!SystemProperties.isTextBlink()) {
             textBlinkOption = TextBlinkOption.OFF;
         }
 
-        long millis = 500;
-        try {
-            String milliStr = System.getProperty("casciian.blinkMillis", "500");
-            millis = Integer.parseInt(milliStr);
-        } catch (NumberFormatException e) {
-            // SQUASH
-        }
+        long millis = SystemProperties.getBlinkMillis();
         if (millis <= 0) {
             textBlinkOption = TextBlinkOption.OFF;
         } else {
             blinkMillis = millis;
         }
 
-        int dimPercent = 80;
-        try {
-            String dimPercentStr = System.getProperty("casciian.blinkDimPercent",
-                "80");
-            dimPercent = Integer.parseInt(dimPercentStr);
-        } catch (NumberFormatException e) {
-            // SQUASH
-        }
+        int dimPercent = SystemProperties.getBlinkDimPercent();
         if ((dimPercent >= 0) && (dimPercent <= 100)) {
             blinkDimPercent = dimPercent;
             if (blinkDimPercent == 0) {

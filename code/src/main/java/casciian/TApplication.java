@@ -289,25 +289,10 @@ public class TApplication implements Runnable {
     private boolean focusFollowsMouse = false;
 
     /**
-     * If true, hide the mouse after typing a keystroke.
-     */
-    private boolean hideMouseWhenTyping = false;
-
-    /**
      * If true, the mouse should not be displayed because a keystroke was
      * typed.
      */
     private boolean typingHidMouse = false;
-
-    /**
-     * If true, hide the status bar.
-     */
-    private boolean hideStatusBar = false;
-
-    /**
-     * If true, hide the menu bar.
-     */
-    private boolean hideMenuBar = false;
 
     /**
      * If true, the desktop can have the cursor blinking/visible even if the
@@ -824,30 +809,11 @@ public class TApplication implements Runnable {
      * Finish construction once the backend is set.
      */
     private void TApplicationImpl() {
-        // Hide mouse when typing option
-        if (System.getProperty("casciian.hideMouseWhenTyping",
-                "false").equals("true")) {
-
-            hideMouseWhenTyping = true;
-        }
-
-        // Hide status bar option
-        if (System.getProperty("casciian.hideStatusBar",
-                "false").equals("true")) {
-            hideStatusBar = true;
-        }
-
-        // Hide menu bar option
-        if (System.getProperty("casciian.hideMenuBar", "false").equals("true")) {
-            hideMenuBar = true;
-        }
-
-        // Overall animations and translucent windows are now managed via SystemProperties
-
+        // Hide mouse when typing, status bar, and menu bar are now managed via SystemProperties
 
         theme           = new ColorTheme();
-        desktopTop      = (hideMenuBar ? 0 : 1);
-        desktopBottom   = getScreen().getHeight() - 1 + (hideStatusBar ? 1 : 0);
+        desktopTop      = (SystemProperties.isHideMenuBar() ? 0 : 1);
+        desktopBottom   = getScreen().getHeight() - 1 + (SystemProperties.isHideStatusBar() ? 1 : 0);
         fillEventQueue  = new LinkedList<TInputEvent>();
         drainEventQueue = new LinkedList<TInputEvent>();
         windows         = new LinkedList<TWindow>();
@@ -872,19 +838,8 @@ public class TApplication implements Runnable {
         } else {
             // If animations are disabled, we need additional timers.
 
-            // Default to 500 millis for blinking.
-            long millis = 500;
-
-            try {
-                String milliStr = System.getProperty("casciian.blinkMillis",
-                    "500");
-                millis = Integer.parseInt(milliStr);
-            } catch (NumberFormatException e) {
-                // SQUASH
-            }
-
-            millis = Math.max(0, millis);
-            millis = Math.min(millis, 500);
+            // Use the blink interval from SystemProperties
+            long millis = SystemProperties.getBlinkMillis();
 
             // All the backends need to have a timer to drive blink state,
             // but MultiBackend specifically also needs to do idle checks.
@@ -1089,7 +1044,7 @@ public class TApplication implements Runnable {
             return true;
         }
 
-        if (command.equals(cmMenu) && (hideMenuBar == false)) {
+        if (command.equals(cmMenu) && !SystemProperties.isHideMenuBar()) {
             if (!modalWindowActive() && (activeMenu == null)) {
                 if (menus.size() > 0) {
                     menus.get(0).setActive(true);
@@ -1298,7 +1253,7 @@ public class TApplication implements Runnable {
             && !keypress.getKey().isCtrl()
             && (activeMenu == null)
             && !modalWindowActive()
-            && (hideMenuBar == false)
+            && !SystemProperties.isHideMenuBar()
         ) {
 
             assert (subMenus.size() == 0);
@@ -1454,7 +1409,7 @@ public class TApplication implements Runnable {
                     screenResizeTime = System.currentTimeMillis();
                 }
                 desktopBottom = getScreen().getHeight() - 1;
-                if (hideStatusBar) {
+                if (SystemProperties.isHideStatusBar()) {
                     desktopBottom++;
                 }
                 mouseX = 0;
@@ -1510,7 +1465,7 @@ public class TApplication implements Runnable {
         // Special application-wide events -----------------------------------
 
         if (event instanceof TKeypressEvent) {
-            if (hideMouseWhenTyping) {
+            if (SystemProperties.isHideMouseWhenTyping()) {
                 typingHidMouse = true;
             }
         }
@@ -2251,8 +2206,8 @@ public class TApplication implements Runnable {
         }
         this.desktop = desktop;
 
-        desktopTop = (hideMenuBar ? 0 : 1);
-        desktopBottom = getScreen().getHeight() - 1 + (hideStatusBar ?
+        desktopTop = (SystemProperties.isHideMenuBar() ? 0 : 1);
+        desktopBottom = getScreen().getHeight() - 1 + (SystemProperties.isHideStatusBar() ?
             1 : 0);
 
         if (desktop != null) {
@@ -2327,8 +2282,8 @@ public class TApplication implements Runnable {
      * desktop will cover the top line
      */
     public void setHideMenuBar(final boolean hideMenuBar) {
-        this.hideMenuBar = hideMenuBar;
-        desktopTop = (hideMenuBar ? 0 : 1);
+        SystemProperties.setHideMenuBar(hideMenuBar);
+        desktopTop = (SystemProperties.isHideMenuBar() ? 0 : 1);
         if (desktop != null) {
             desktop.setDimensions(0, desktopTop, getScreen().getWidth(),
                 (desktopBottom - desktopTop));
@@ -2337,7 +2292,7 @@ public class TApplication implements Runnable {
                 desktop.getHeight());
             desktop.onResize(resize);
         }
-        if (hideMenuBar == false) {
+        if (!SystemProperties.isHideMenuBar()) {
             // Push any windows that are on the top line down.
             for (TWindow window: windows) {
                 if (window.getY() == 0) {
@@ -2354,9 +2309,9 @@ public class TApplication implements Runnable {
      * the desktop will cover the bottom line
      */
     public void setHideStatusBar(final boolean hideStatusBar) {
-        this.hideStatusBar = hideStatusBar;
-        desktopBottom = getScreen().getHeight() - 1 + (hideStatusBar ?
-            1 : 0);
+        SystemProperties.setHideStatusBar(hideStatusBar);
+        desktopBottom = getScreen().getHeight() - 1
+            + (SystemProperties.isHideStatusBar() ? 1 : 0);
         if (desktop != null) {
             desktop.setDimensions(0, desktopTop, getScreen().getWidth(),
                 (desktopBottom - desktopTop));
@@ -2657,7 +2612,7 @@ public class TApplication implements Runnable {
             }
         }
 
-        if (hideMenuBar == false) {
+        if (!SystemProperties.isHideMenuBar()) {
             // Draw the blank menubar line - reset the screen clipping first
             // so it won't trim it out.
             getScreen().resetClipping();
@@ -2685,7 +2640,7 @@ public class TApplication implements Runnable {
                 menuMnemonicColor = theme.getColor("tmenu.mnemonic");
             }
 
-            if (hideMenuBar == false) {
+            if (!SystemProperties.isHideMenuBar()) {
                 // Draw the menu title
                 getScreen().hLineXY(x, 0,
                     StringUtils.width(menu.getTitle()) + 2, ' ', menuColor);
@@ -2719,7 +2674,7 @@ public class TApplication implements Runnable {
             }
         }
 
-        if (hideMenuBar == false) {
+        if (!SystemProperties.isHideMenuBar()) {
             if ((menuTrayText != null) && (menuTrayText.length() > 0)) {
                 getScreen().resetClipping();
                 getScreen().putStringXY(getScreen().getWidth() -
@@ -2730,7 +2685,7 @@ public class TApplication implements Runnable {
 
         getScreen().resetClipping();
 
-        if (hideStatusBar == false) {
+        if (!SystemProperties.isHideStatusBar()) {
             // Draw the status bar of the top-level window
             TStatusBar statusBar = null;
             if (topLevel != null) {
@@ -3666,7 +3621,7 @@ public class TApplication implements Runnable {
             && (!modalWindowActive())
             && (!overrideMenuWindowActive())
             && (mouse.getAbsoluteY() == 0)
-            && (hideMenuBar == false)
+            && !SystemProperties.isHideMenuBar()
         ) {
 
             for (TMenu menu: subMenus) {
@@ -3696,7 +3651,7 @@ public class TApplication implements Runnable {
             && (mouse.isMouse1())
             && (activeMenu != null)
             && (mouse.getAbsoluteY() == 0)
-            && (hideMenuBar == false)
+            && !SystemProperties.isHideMenuBar()
         ) {
 
             TMenu oldMenu = activeMenu;
@@ -3735,7 +3690,7 @@ public class TApplication implements Runnable {
         }
 
         // If the mouse is on the status bar, do not switch focus
-        if ((hideStatusBar == false)
+        if (!SystemProperties.isHideStatusBar()
             && (mouse.getAbsoluteY() == getDesktopBottom())
         ) {
             return;
@@ -3933,7 +3888,7 @@ public class TApplication implements Runnable {
      */
     public final void switchMenu(final boolean forward) {
         assert (activeMenu != null);
-        assert (hideMenuBar == false);
+        assert !SystemProperties.isHideMenuBar();
 
         for (TMenu menu: subMenus) {
             menu.setActive(false);

@@ -37,6 +37,13 @@ class SystemPropertiesTest {
         System.clearProperty(SystemProperties.CASCIIAN_SHADOW_OPACITY);
         System.clearProperty(SystemProperties.CASCIIAN_TEXT_MOUSE);
         System.clearProperty(SystemProperties.CASCIIAN_TRANSLUCENCE);
+        System.clearProperty(SystemProperties.CASCIIAN_HIDE_MOUSE_WHEN_TYPING);
+        System.clearProperty(SystemProperties.CASCIIAN_HIDE_STATUS_BAR);
+        System.clearProperty(SystemProperties.CASCIIAN_HIDE_MENU_BAR);
+        System.clearProperty(SystemProperties.CASCIIAN_BLINK_MILLIS);
+        System.clearProperty(SystemProperties.CASCIIAN_BLINK_DIM_PERCENT);
+        System.clearProperty(SystemProperties.CASCIIAN_TEXT_BLINK);
+        System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS);
         SystemProperties.reset();
     }
 
@@ -370,5 +377,250 @@ class SystemPropertiesTest {
         
         // After reset, should read from system property again
         assertFalse(SystemProperties.isTranslucence());
+    }
+
+    // -------------------------------------------------------------------------
+    // Hide Mouse When Typing Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get hideMouseWhenTyping returns default value (false) when not set")
+    void testIsHideMouseWhenTypingDefault() {
+        assertFalse(SystemProperties.isHideMouseWhenTyping());
+    }
+
+    @Test
+    @DisplayName("Get hideMouseWhenTyping returns true when set to 'true'")
+    void testIsHideMouseWhenTypingSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_HIDE_MOUSE_WHEN_TYPING, "true");
+        assertTrue(SystemProperties.isHideMouseWhenTyping());
+    }
+
+    @Test
+    @DisplayName("Set hideMouseWhenTyping to true")
+    void testSetHideMouseWhenTypingTrue() {
+        SystemProperties.setHideMouseWhenTyping(true);
+        assertTrue(SystemProperties.isHideMouseWhenTyping());
+    }
+
+    @Test
+    @DisplayName("Set hideMouseWhenTyping to false")
+    void testSetHideMouseWhenTypingFalse() {
+        SystemProperties.setHideMouseWhenTyping(false);
+        assertFalse(SystemProperties.isHideMouseWhenTyping());
+    }
+
+    // -------------------------------------------------------------------------
+    // Hide Status Bar Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get hideStatusBar returns default value (false) when not set")
+    void testIsHideStatusBarDefault() {
+        assertFalse(SystemProperties.isHideStatusBar());
+    }
+
+    @Test
+    @DisplayName("Get hideStatusBar returns true when set to 'true'")
+    void testIsHideStatusBarSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_HIDE_STATUS_BAR, "true");
+        assertTrue(SystemProperties.isHideStatusBar());
+    }
+
+    @Test
+    @DisplayName("Set hideStatusBar to true")
+    void testSetHideStatusBarTrue() {
+        SystemProperties.setHideStatusBar(true);
+        assertTrue(SystemProperties.isHideStatusBar());
+    }
+
+    @Test
+    @DisplayName("Set hideStatusBar to false")
+    void testSetHideStatusBarFalse() {
+        SystemProperties.setHideStatusBar(false);
+        assertFalse(SystemProperties.isHideStatusBar());
+    }
+
+    // -------------------------------------------------------------------------
+    // Hide Menu Bar Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get hideMenuBar returns default value (false) when not set")
+    void testIsHideMenuBarDefault() {
+        assertFalse(SystemProperties.isHideMenuBar());
+    }
+
+    @Test
+    @DisplayName("Get hideMenuBar returns true when set to 'true'")
+    void testIsHideMenuBarSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_HIDE_MENU_BAR, "true");
+        assertTrue(SystemProperties.isHideMenuBar());
+    }
+
+    @Test
+    @DisplayName("Set hideMenuBar to true")
+    void testSetHideMenuBarTrue() {
+        SystemProperties.setHideMenuBar(true);
+        assertTrue(SystemProperties.isHideMenuBar());
+    }
+
+    @Test
+    @DisplayName("Set hideMenuBar to false")
+    void testSetHideMenuBarFalse() {
+        SystemProperties.setHideMenuBar(false);
+        assertFalse(SystemProperties.isHideMenuBar());
+    }
+
+    // -------------------------------------------------------------------------
+    // Blink Millis Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get blinkMillis returns default value (500) when not set")
+    void testGetBlinkMillisDefault() {
+        assertEquals(500, SystemProperties.getBlinkMillis());
+    }
+
+    @Test
+    @DisplayName("Get blinkMillis returns valid value when set")
+    void testGetBlinkMillisValidValue() {
+        System.setProperty(SystemProperties.CASCIIAN_BLINK_MILLIS, "250");
+        assertEquals(250, SystemProperties.getBlinkMillis());
+    }
+
+    @Test
+    @DisplayName("Get blinkMillis handles minimum boundary (0)")
+    void testGetBlinkMillisMinBoundary() {
+        System.setProperty(SystemProperties.CASCIIAN_BLINK_MILLIS, "0");
+        assertEquals(0, SystemProperties.getBlinkMillis());
+    }
+
+    @Test
+    @DisplayName("Get blinkMillis handles maximum boundary (500)")
+    void testGetBlinkMillisMaxBoundary() {
+        System.setProperty(SystemProperties.CASCIIAN_BLINK_MILLIS, "500");
+        assertEquals(500, SystemProperties.getBlinkMillis());
+    }
+
+    @Test
+    @DisplayName("Set blinkMillis stores valid value")
+    void testSetBlinkMillisValidValue() {
+        SystemProperties.setBlinkMillis(300);
+        assertEquals(300, SystemProperties.getBlinkMillis());
+    }
+
+    @Test
+    @DisplayName("Set blinkMillis clamps negative values to 0")
+    void testSetBlinkMillisClampNegative() {
+        SystemProperties.setBlinkMillis(-1);
+        assertEquals(0, SystemProperties.getBlinkMillis());
+    }
+
+    @Test
+    @DisplayName("Set blinkMillis clamps values over 500")
+    void testSetBlinkMillisClampTooLarge() {
+        SystemProperties.setBlinkMillis(600);
+        assertEquals(500, SystemProperties.getBlinkMillis());
+    }
+
+    // -------------------------------------------------------------------------
+    // Blink Dim Percent Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get blinkDimPercent returns default value (80) when not set")
+    void testGetBlinkDimPercentDefault() {
+        assertEquals(80, SystemProperties.getBlinkDimPercent());
+    }
+
+    @Test
+    @DisplayName("Get blinkDimPercent returns valid value when set")
+    void testGetBlinkDimPercentValidValue() {
+        System.setProperty(SystemProperties.CASCIIAN_BLINK_DIM_PERCENT, "50");
+        assertEquals(50, SystemProperties.getBlinkDimPercent());
+    }
+
+    @Test
+    @DisplayName("Set blinkDimPercent stores valid value")
+    void testSetBlinkDimPercentValidValue() {
+        SystemProperties.setBlinkDimPercent(75);
+        assertEquals(75, SystemProperties.getBlinkDimPercent());
+    }
+
+    @Test
+    @DisplayName("Set blinkDimPercent clamps negative values to 0")
+    void testSetBlinkDimPercentClampNegative() {
+        SystemProperties.setBlinkDimPercent(-10);
+        assertEquals(0, SystemProperties.getBlinkDimPercent());
+    }
+
+    @Test
+    @DisplayName("Set blinkDimPercent clamps values over 100")
+    void testSetBlinkDimPercentClampTooLarge() {
+        SystemProperties.setBlinkDimPercent(150);
+        assertEquals(100, SystemProperties.getBlinkDimPercent());
+    }
+
+    // -------------------------------------------------------------------------
+    // Text Blink Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get textBlink returns default value (true) when not set")
+    void testIsTextBlinkDefault() {
+        assertTrue(SystemProperties.isTextBlink());
+    }
+
+    @Test
+    @DisplayName("Get textBlink returns false when set to 'false'")
+    void testIsTextBlinkSetFalse() {
+        System.setProperty(SystemProperties.CASCIIAN_TEXT_BLINK, "false");
+        assertFalse(SystemProperties.isTextBlink());
+    }
+
+    @Test
+    @DisplayName("Set textBlink to true")
+    void testSetTextBlinkTrue() {
+        SystemProperties.setTextBlink(true);
+        assertTrue(SystemProperties.isTextBlink());
+    }
+
+    @Test
+    @DisplayName("Set textBlink to false")
+    void testSetTextBlinkFalse() {
+        SystemProperties.setTextBlink(false);
+        assertFalse(SystemProperties.isTextBlink());
+    }
+
+    // -------------------------------------------------------------------------
+    // Menu Icons Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get menuIcons returns default value (true) when not set")
+    void testIsMenuIconsDefault() {
+        assertTrue(SystemProperties.isMenuIcons());
+    }
+
+    @Test
+    @DisplayName("Get menuIcons returns false when set to 'false'")
+    void testIsMenuIconsSetFalse() {
+        System.setProperty(SystemProperties.CASCIIAN_MENU_ICONS, "false");
+        assertFalse(SystemProperties.isMenuIcons());
+    }
+
+    @Test
+    @DisplayName("Set menuIcons to true")
+    void testSetMenuIconsTrue() {
+        SystemProperties.setMenuIcons(true);
+        assertTrue(SystemProperties.isMenuIcons());
+    }
+
+    @Test
+    @DisplayName("Set menuIcons to false")
+    void testSetMenuIconsFalse() {
+        SystemProperties.setMenuIcons(false);
+        assertFalse(SystemProperties.isMenuIcons());
     }
 }
