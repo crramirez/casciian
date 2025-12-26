@@ -2283,7 +2283,7 @@ public class TApplication implements Runnable {
      */
     public void setHideMenuBar(final boolean hideMenuBar) {
         SystemProperties.setHideMenuBar(hideMenuBar);
-        desktopTop = (hideMenuBar ? 0 : 1);
+        desktopTop = (SystemProperties.isHideMenuBar() ? 0 : 1);
         if (desktop != null) {
             desktop.setDimensions(0, desktopTop, getScreen().getWidth(),
                 (desktopBottom - desktopTop));
@@ -2292,7 +2292,7 @@ public class TApplication implements Runnable {
                 desktop.getHeight());
             desktop.onResize(resize);
         }
-        if (!hideMenuBar) {
+        if (!SystemProperties.isHideMenuBar()) {
             // Push any windows that are on the top line down.
             for (TWindow window: windows) {
                 if (window.getY() == 0) {
@@ -2310,8 +2310,8 @@ public class TApplication implements Runnable {
      */
     public void setHideStatusBar(final boolean hideStatusBar) {
         SystemProperties.setHideStatusBar(hideStatusBar);
-        desktopBottom = getScreen().getHeight() - 1 + (hideStatusBar ?
-            1 : 0);
+        desktopBottom = getScreen().getHeight() - 1
+            + (SystemProperties.isHideStatusBar() ? 1 : 0);
         if (desktop != null) {
             desktop.setDimensions(0, desktopTop, getScreen().getWidth(),
                 (desktopBottom - desktopTop));
