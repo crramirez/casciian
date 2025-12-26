@@ -37,6 +37,7 @@ import casciian.TEditorWindow;
 import casciian.TWidget;
 import casciian.TWindow;
 import casciian.backend.ECMA48Terminal;
+import casciian.backend.SystemProperties;
 import casciian.event.TMenuEvent;
 import casciian.menu.TMenu;
 import casciian.menu.TMenuItem;
@@ -406,7 +407,7 @@ public class DemoApplication extends TApplication {
         if (menu.getId() == 10013) {
             // Enable/disable text mouse.
             TMenuItem menuItem = getMenuItem(menu.getId());
-            setTextMouse(menuItem.isChecked());
+            SystemProperties.setTextMouse(menuItem.isChecked());
             return true;
         }
 
@@ -495,7 +496,7 @@ public class DemoApplication extends TApplication {
         TMenuItem textMouseItem = demoMenu.addItem(10013,
             i18n.getString("textMouse"));
         textMouseItem.setCheckable(true);
-        textMouseItem.setChecked(isTextMouse());
+        textMouseItem.setChecked(SystemProperties.isTextMouse());
         TMenuItem backgroundImage = demoMenu.addItem(10011,
             i18n.getString("exposeBackground"));
         backgroundImage.setCheckable(true);

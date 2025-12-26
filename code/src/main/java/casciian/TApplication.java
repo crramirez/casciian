@@ -2136,24 +2136,6 @@ public class TApplication implements Runnable {
     }
 
     /**
-     * Get the text mouse option.
-     *
-     * @return true if text mouse is enabled
-     */
-    public boolean isTextMouse() {
-        return SystemProperties.isTextMouse();
-    }
-
-    /**
-     * Set the text mouse option.
-     *
-     * @param enabled if true, text mouse will be enabled
-     */
-    public void setTextMouse(final boolean enabled) {
-        SystemProperties.setTextMouse(enabled);
-    }
-
-    /**
      * Get the translucence option.
      *
      * @return true if translucency is enabled
