@@ -92,6 +92,36 @@ public class SystemProperties {
     }
 
     /**
+     * Get a boolean property value from system properties with caching.
+     *
+     * @param cache the AtomicReference cache for the property
+     * @param propertyKey the system property key
+     * @param defaultValue the default value if not set
+     * @return the boolean value from cache or system property
+     */
+    private static boolean getBooleanProperty(AtomicReference<Boolean> cache,
+            String propertyKey, boolean defaultValue) {
+        if (cache.get() == null) {
+            cache.set(Boolean.parseBoolean(System.getProperty(propertyKey,
+                String.valueOf(defaultValue))));
+        }
+        return cache.get();
+    }
+
+    /**
+     * Set a boolean property value in system properties and cache.
+     *
+     * @param cache the AtomicReference cache for the property
+     * @param propertyKey the system property key
+     * @param value the value to set
+     */
+    private static void setBooleanProperty(AtomicReference<Boolean> cache,
+            String propertyKey, boolean value) {
+        System.setProperty(propertyKey, String.valueOf(value));
+        cache.set(value);
+    }
+
+    /**
      * Get the shadow opacity value from system properties.
      *
      * @return shadow opacity value between 0 and 100, or default value of 60
@@ -126,11 +156,7 @@ public class SystemProperties {
      * @return true if text mouse is enabled, false otherwise. Default is true.
      */
     public static boolean isTextMouse() {
-        if (textMouse.get() == null) {
-            textMouse.set(Boolean.parseBoolean(System.getProperty(CASCIIAN_TEXT_MOUSE, "true")));
-        }
-
-        return textMouse.get();
+        return getBooleanProperty(textMouse, CASCIIAN_TEXT_MOUSE, true);
     }
 
     /**
@@ -139,8 +165,7 @@ public class SystemProperties {
      * @param value true to enable text mouse, false to disable
      */
     public static void setTextMouse(boolean value) {
-        System.setProperty(CASCIIAN_TEXT_MOUSE, String.valueOf(value));
-        textMouse.set(value);
+        setBooleanProperty(textMouse, CASCIIAN_TEXT_MOUSE, value);
     }
 
     /**
@@ -149,11 +174,7 @@ public class SystemProperties {
      * @return true if animations are enabled, false otherwise. Default is true.
      */
     public static boolean isAnimations() {
-        if (animations.get() == null) {
-            animations.set(Boolean.parseBoolean(System.getProperty(CASCIIAN_ANIMATIONS, "true")));
-        }
-
-        return animations.get();
+        return getBooleanProperty(animations, CASCIIAN_ANIMATIONS, true);
     }
 
     /**
@@ -162,8 +183,7 @@ public class SystemProperties {
      * @param value true to enable animations, false to disable
      */
     public static void setAnimations(boolean value) {
-        System.setProperty(CASCIIAN_ANIMATIONS, String.valueOf(value));
-        animations.set(value);
+        setBooleanProperty(animations, CASCIIAN_ANIMATIONS, value);
     }
 
     /**
@@ -172,11 +192,7 @@ public class SystemProperties {
      * @return true if translucence is enabled, false otherwise. Default is true.
      */
     public static boolean isTranslucence() {
-        if (translucence.get() == null) {
-            translucence.set(Boolean.parseBoolean(System.getProperty(CASCIIAN_TRANSLUCENCE, "true")));
-        }
-
-        return translucence.get();
+        return getBooleanProperty(translucence, CASCIIAN_TRANSLUCENCE, true);
     }
 
     /**
@@ -185,8 +201,7 @@ public class SystemProperties {
      * @param value true to enable translucence, false to disable
      */
     public static void setTranslucence(boolean value) {
-        System.setProperty(CASCIIAN_TRANSLUCENCE, String.valueOf(value));
-        translucence.set(value);
+        setBooleanProperty(translucence, CASCIIAN_TRANSLUCENCE, value);
     }
 
     /**
