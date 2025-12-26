@@ -3645,7 +3645,14 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * Check if a color is brighter than a threshold color.
-     * Brightness is determined by comparing each RGB component.
+     * Brightness is determined by comparing each RGB component individually
+     * rather than using standard luminance calculations.
+     *
+     * <p>This component-by-component approach is used because for grayscale
+     * colors like the terminal's "white" color (color 7), all components
+     * are typically equal. A simple component comparison ensures that a
+     * color like #BBBBBB is detected as brighter than #AAAAAA without
+     * the complexity of weighted luminance calculations.</p>
      *
      * @param color the color to check (as RGB integer)
      * @param threshold the threshold color (as RGB integer)
@@ -3712,6 +3719,11 @@ public class ECMA48Terminal extends LogicalScreen
      * Restore the original white color (color 7) in the terminal.
      * This method sends an OSC 4 sequence to restore the terminal's
      * original palette color 7.
+     *
+     * <p>Note: Uses -1 as sentinel value to indicate the original color
+     * was never recorded. This means 0x000000 (pure black) cannot be
+     * restored as the original white color, but this is acceptable since
+     * a terminal would never have pure black as its "white" color.</p>
      */
     private void restoreOriginalWhiteColor() {
         if (output == null || originalWhiteColor < 0) {
