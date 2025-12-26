@@ -167,7 +167,7 @@ public class SystemProperties {
     /**
      * Atomic reference representing the blink dim percentage.
      * This value is expected to be a percentage ranging from 0 to 100.
-     * The default value is 50 if not explicitly set.
+     * The default value is 80 if not explicitly set.
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Integer> blinkDimPercent = new AtomicReference<>(null);
@@ -175,7 +175,7 @@ public class SystemProperties {
     /**
      * Atomic reference representing the text blink setting.
      * When true, enable text blinking effects.
-     * The default value is false if not explicitly set.
+     * The default value is true if not explicitly set.
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> textBlink = new AtomicReference<>(null);
