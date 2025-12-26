@@ -23,6 +23,13 @@ import java.util.concurrent.atomic.AtomicReference;
 public class SystemProperties {
 
     /**
+     * System property key for animations.
+     * Valid values: "true" or "false"
+     * Default: true
+     */
+    public static final String CASCIIAN_ANIMATIONS = "casciian.animations";
+
+    /**
      * System property key for shadow opacity.
      * Valid values: 0-100 (percentage)
      * Default: 60
@@ -37,18 +44,19 @@ public class SystemProperties {
     public static final String CASCIIAN_TEXT_MOUSE = "casciian.textMouse";
 
     /**
-     * System property key for animations.
-     * Valid values: "true" or "false"
-     * Default: true
-     */
-    public static final String CASCIIAN_ANIMATIONS = "casciian.animations";
-
-    /**
      * System property key for translucence.
      * Valid values: "true" or "false"
      * Default: true
      */
     public static final String CASCIIAN_TRANSLUCENCE = "casciian.translucence";
+
+    /**
+     * Atomic reference representing the animations setting.
+     * When true, enable animations.
+     * The default value is true if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> animations = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the shadow opacity setting.
@@ -66,14 +74,6 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> textMouse = new AtomicReference<>(null);
-
-    /**
-     * Atomic reference representing the animations setting.
-     * When true, enable animations.
-     * The default value is true if not explicitly set.
-     * A null value signals the property has not been read yet.
-     */
-    private static final AtomicReference<Boolean> animations = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the translucence setting.
@@ -114,6 +114,24 @@ public class SystemProperties {
             String propertyKey, boolean value) {
         System.setProperty(propertyKey, String.valueOf(value));
         cache.set(value);
+    }
+
+    /**
+     * Get the animations value from system properties.
+     *
+     * @return true if animations are enabled, false otherwise. Default is true.
+     */
+    public static boolean isAnimations() {
+        return getBooleanProperty(animations, CASCIIAN_ANIMATIONS, true);
+    }
+
+    /**
+     * Set the animations value in system properties.
+     *
+     * @param value true to enable animations, false to disable
+     */
+    public static void setAnimations(boolean value) {
+        setBooleanProperty(animations, CASCIIAN_ANIMATIONS, value);
     }
 
     /**
@@ -164,24 +182,6 @@ public class SystemProperties {
     }
 
     /**
-     * Get the animations value from system properties.
-     *
-     * @return true if animations are enabled, false otherwise. Default is true.
-     */
-    public static boolean isAnimations() {
-        return getBooleanProperty(animations, CASCIIAN_ANIMATIONS, true);
-    }
-
-    /**
-     * Set the animations value in system properties.
-     *
-     * @param value true to enable animations, false to disable
-     */
-    public static void setAnimations(boolean value) {
-        setBooleanProperty(animations, CASCIIAN_ANIMATIONS, value);
-    }
-
-    /**
      * Get the translucence value from system properties.
      *
      * @return true if translucence is enabled, false otherwise. Default is true.
@@ -204,9 +204,9 @@ public class SystemProperties {
      * This will force values to be re-read from system properties on the next access.
      */
     public static void reset() {
+        animations.set(null);
         shadowOpacity.set(null);
         textMouse.set(null);
-        animations.set(null);
         translucence.set(null);
     }
 }
