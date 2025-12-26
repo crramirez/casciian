@@ -168,11 +168,11 @@ class SystemPropertiesTest {
     }
 
     @Test
-    @DisplayName("Get text mouse returns true for invalid values")
+    @DisplayName("Get text mouse returns false for invalid values")
     void testIsTextMouseInvalidValue() {
-        // Any value other than "false" should return true
+        // Any value other than "true" should return false
         System.setProperty(SystemProperties.CASCIIAN_TEXT_MOUSE, "invalid");
-        assertTrue(SystemProperties.isTextMouse());
+        assertFalse(SystemProperties.isTextMouse());
     }
 
     @Test

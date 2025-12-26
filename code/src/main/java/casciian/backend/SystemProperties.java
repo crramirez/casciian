@@ -97,8 +97,7 @@ public class SystemProperties {
      */
     public static boolean isTextMouse() {
         if (textMouse.get() == null) {
-            String textMouseValue = System.getProperty(CASCIIAN_TEXT_MOUSE, "true");
-            textMouse.set(!"false".equals(textMouseValue));
+            textMouse.set(Boolean.parseBoolean(System.getProperty(CASCIIAN_TEXT_MOUSE, "true")));
         }
 
         return textMouse.get();

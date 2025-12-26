@@ -289,11 +289,6 @@ public class TApplication implements Runnable {
     private boolean focusFollowsMouse = false;
 
     /**
-     * If true, display a text-based mouse cursor.
-     */
-    protected boolean textMouse = true;
-
-    /**
      * If true, hide the mouse after typing a keystroke.
      */
     private boolean hideMouseWhenTyping = false;
@@ -837,9 +832,6 @@ public class TApplication implements Runnable {
      * Finish construction once the backend is set.
      */
     private void TApplicationImpl() {
-        // Text block mouse option
-        textMouse = SystemProperties.isTextMouse();
-
         // Hide mouse when typing option
         if (System.getProperty("casciian.hideMouseWhenTyping",
                 "false").equals("true")) {
@@ -2149,7 +2141,7 @@ public class TApplication implements Runnable {
      * @return true if text mouse is enabled
      */
     public boolean isTextMouse() {
-        return textMouse;
+        return SystemProperties.isTextMouse();
     }
 
     /**
@@ -2158,7 +2150,6 @@ public class TApplication implements Runnable {
      * @param enabled if true, text mouse will be enabled
      */
     public void setTextMouse(final boolean enabled) {
-        textMouse = enabled;
         SystemProperties.setTextMouse(enabled);
     }
 
@@ -2680,7 +2671,7 @@ public class TApplication implements Runnable {
                         screenSelectionRectangle);
                 }
 
-                if ((textMouse == true) && (typingHidMouse == false)) {
+                if ((SystemProperties.isTextMouse() == true) && (typingHidMouse == false)) {
                     // Draw mouse at the new position.
                     drawTextMouse(mouseX, mouseY);
                 }
@@ -2905,7 +2896,7 @@ public class TApplication implements Runnable {
 
         // Draw the mouse.
         getScreen().resetClipping();
-        if ((textMouse == true) && (typingHidMouse == false)) {
+        if ((SystemProperties.isTextMouse() == true) && (typingHidMouse == false)) {
             drawTextMouse(mouseX, mouseY);
         }
         oldDrawnMouseX = mouseX;
