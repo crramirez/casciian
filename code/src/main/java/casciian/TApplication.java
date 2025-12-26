@@ -382,7 +382,7 @@ public class TApplication implements Runnable {
     /**
      * The list of window effects to run.
      */
-    private List<Effect> windowEffects = new LinkedList<Effect>();
+    private final List<Effect> windowEffects = new LinkedList<>();
 
     /**
      * If true, a new window has been added but runWindowEffects() has not
@@ -393,7 +393,7 @@ public class TApplication implements Runnable {
     /**
      * The list of desktop/screen effects to run.
      */
-    private List<Effect> screenEffects = new LinkedList<Effect>();
+    private final List<Effect> screenEffects = new LinkedList<>();
 
     /**
      * If true, a new desktop/screen effect has been added but
