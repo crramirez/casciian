@@ -379,6 +379,96 @@ class ECMA48TerminalTest {
         assertEquals(52480, defaultBackColor);
     }
 
+    // White color adjustment tests
+
+    @Test
+    @DisplayName("WHITE_COLOR_MINIMUM_THRESHOLD is set to 0xAAAAAA")
+    void testWhiteColorMinimumThreshold() {
+        assertEquals(0xAAAAAA, ECMA48Terminal.WHITE_COLOR_MINIMUM_THRESHOLD);
+    }
+
+    @Test
+    @DisplayName("should adjust white color when it is brighter than threshold")
+    void shouldAdjustWhiteColorWhenBrighterThanThreshold() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Before the OSC response, there should be no output for color adjustment
+        String outputBefore = outputStream.toString();
+        
+        // Simulate receiving a bright white color (0xFFFFFF) from the terminal
+        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
+
+        // The terminal should have sent an OSC command to adjust the color
+        String outputAfter = outputStream.toString();
+        
+        // The output should contain the OSC 4 sequence to set color 7
+        assertTrue(outputAfter.length() > outputBefore.length(),
+            "Terminal should send OSC command to adjust white color");
+        assertTrue(outputAfter.contains("\033]4;7;rgb:aa/aa/aa\033\\"),
+            "Terminal should adjust white color to #aaaaaa");
+    }
+
+    @Test
+    @DisplayName("should not adjust white color when it is darker than threshold")
+    void shouldNotAdjustWhiteColorWhenDarkerThanThreshold() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Get the output before the OSC response
+        String outputBefore = outputStream.toString();
+
+        // Simulate receiving a dark white color (0x808080) from the terminal
+        terminal.oscResponse("4;7;rgb:8080/8080/8080");
+
+        // The terminal should not send any additional output
+        String outputAfter = outputStream.toString();
+        
+        // The output should not contain an adjustment sequence
+        // (only the normal screen clear/redraw that oscResponse triggers)
+        assertFalse(outputAfter.contains("\033]4;7;rgb:aa/aa/aa\033\\"),
+            "Terminal should not adjust white color when it is already dark enough");
+    }
+
+    @Test
+    @DisplayName("should not adjust white color when it equals the threshold")
+    void shouldNotAdjustWhiteColorWhenEqualsThreshold() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Simulate receiving the exact threshold color from the terminal
+        terminal.oscResponse("4;7;rgb:aaaa/aaaa/aaaa");
+
+        String output = outputStream.toString();
+        
+        // The output should not contain an adjustment sequence because the color
+        // is equal to the threshold (not brighter)
+        assertFalse(output.contains("\033]4;7;rgb:aa/aa/aa\033\\"),
+            "Terminal should not adjust white color when it equals the threshold");
+    }
+
+    @Test
+    @DisplayName("should only adjust white color once per session")
+    void shouldOnlyAdjustWhiteColorOncePerSession() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // First bright white color should trigger adjustment
+        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
+        String outputAfterFirst = outputStream.toString();
+        assertTrue(outputAfterFirst.contains("\033]4;7;rgb:aa/aa/aa\033\\"),
+            "Terminal should adjust white color on first bright color");
+
+        // Clear the output stream to check for new output
+        outputStream.reset();
+
+        // Second bright white color should not trigger another adjustment
+        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
+        String outputAfterSecond = outputStream.toString();
+        assertFalse(outputAfterSecond.contains("\033]4;7;rgb:aa/aa/aa\033\\"),
+            "Terminal should not adjust white color again");
+    }
+
     
     // Helper methods
 
