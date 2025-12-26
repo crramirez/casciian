@@ -33,9 +33,9 @@ class SystemPropertiesTest {
     @AfterEach
     void tearDown() {
         // Clear the system properties after each test
+        System.clearProperty(SystemProperties.CASCIIAN_ANIMATIONS);
         System.clearProperty(SystemProperties.CASCIIAN_SHADOW_OPACITY);
         System.clearProperty(SystemProperties.CASCIIAN_TEXT_MOUSE);
-        System.clearProperty(SystemProperties.CASCIIAN_ANIMATIONS);
         System.clearProperty(SystemProperties.CASCIIAN_TRANSLUCENCE);
         SystemProperties.reset();
     }
