@@ -344,6 +344,8 @@ public class DemoApplication extends TApplication {
             SystemProperties.setAnimations(false);
             SystemProperties.setTextMouse(false);
             SystemProperties.setTranslucence(false);
+            SystemProperties.setShadowOpacity(60);
+
             setAnimations(false);
             setTranslucence(false);
 
