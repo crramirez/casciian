@@ -453,7 +453,7 @@ public class TMenu extends TWindow {
 
         setActive(false);
 
-        if (System.getProperty("casciian.menuIcons", "true").equals("false")) {
+        if (!SystemProperties.isMenuIcons()) {
             useIcons = false;
         }
 

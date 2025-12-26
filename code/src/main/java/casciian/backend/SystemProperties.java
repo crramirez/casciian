@@ -51,6 +51,55 @@ public class SystemProperties {
     public static final String CASCIIAN_TRANSLUCENCE = "casciian.translucence";
 
     /**
+     * System property key for hiding mouse when typing.
+     * Valid values: "true" or "false"
+     * Default: false
+     */
+    public static final String CASCIIAN_HIDE_MOUSE_WHEN_TYPING = "casciian.hideMouseWhenTyping";
+
+    /**
+     * System property key for hiding the status bar.
+     * Valid values: "true" or "false"
+     * Default: false
+     */
+    public static final String CASCIIAN_HIDE_STATUS_BAR = "casciian.hideStatusBar";
+
+    /**
+     * System property key for hiding the menu bar.
+     * Valid values: "true" or "false"
+     * Default: false
+     */
+    public static final String CASCIIAN_HIDE_MENU_BAR = "casciian.hideMenuBar";
+
+    /**
+     * System property key for blink interval in milliseconds.
+     * Valid values: 0-500 (milliseconds)
+     * Default: 500
+     */
+    public static final String CASCIIAN_BLINK_MILLIS = "casciian.blinkMillis";
+
+    /**
+     * System property key for blink dim percentage.
+     * Valid values: 0-100 (percentage)
+     * Default: 80
+     */
+    public static final String CASCIIAN_BLINK_DIM_PERCENT = "casciian.blinkDimPercent";
+
+    /**
+     * System property key for text blink.
+     * Valid values: "true" or "false"
+     * Default: true
+     */
+    public static final String CASCIIAN_TEXT_BLINK = "casciian.textBlink";
+
+    /**
+     * System property key for menu icons.
+     * Valid values: "true" or "false"
+     * Default: true
+     */
+    public static final String CASCIIAN_MENU_ICONS = "casciian.menuIcons";
+
+    /**
      * Atomic reference representing the animations setting.
      * When true, enable animations.
      * The default value is false if not explicitly set.
@@ -82,6 +131,62 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> translucence = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the hide mouse when typing setting.
+     * When true, hide mouse cursor when typing.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> hideMouseWhenTyping = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the hide status bar setting.
+     * When true, hide the status bar.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> hideStatusBar = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the hide menu bar setting.
+     * When true, hide the menu bar.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> hideMenuBar = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the blink interval in milliseconds.
+     * This value is expected to range from 0 to 500 milliseconds.
+     * The default value is 500 if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Integer> blinkMillis = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the blink dim percentage.
+     * This value is expected to be a percentage ranging from 0 to 100.
+     * The default value is 50 if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Integer> blinkDimPercent = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the text blink setting.
+     * When true, enable text blinking effects.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> textBlink = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the menu icons setting.
+     * When true, show icons in menus.
+     * The default value is true if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> menuIcons = new AtomicReference<>(null);
 
     private SystemProperties() {
     }
@@ -200,6 +305,166 @@ public class SystemProperties {
     }
 
     /**
+     * Get the hide mouse when typing value from system properties.
+     *
+     * @return true if hide mouse when typing is enabled, false otherwise. Default is false.
+     */
+    public static boolean isHideMouseWhenTyping() {
+        return getBooleanProperty(hideMouseWhenTyping, CASCIIAN_HIDE_MOUSE_WHEN_TYPING, false);
+    }
+
+    /**
+     * Set the hide mouse when typing value in system properties.
+     *
+     * @param value true to enable hide mouse when typing, false to disable
+     */
+    public static void setHideMouseWhenTyping(boolean value) {
+        setBooleanProperty(hideMouseWhenTyping, CASCIIAN_HIDE_MOUSE_WHEN_TYPING, value);
+    }
+
+    /**
+     * Get the hide status bar value from system properties.
+     *
+     * @return true if hide status bar is enabled, false otherwise. Default is false.
+     */
+    public static boolean isHideStatusBar() {
+        return getBooleanProperty(hideStatusBar, CASCIIAN_HIDE_STATUS_BAR, false);
+    }
+
+    /**
+     * Set the hide status bar value in system properties.
+     *
+     * @param value true to enable hide status bar, false to disable
+     */
+    public static void setHideStatusBar(boolean value) {
+        setBooleanProperty(hideStatusBar, CASCIIAN_HIDE_STATUS_BAR, value);
+    }
+
+    /**
+     * Get the hide menu bar value from system properties.
+     *
+     * @return true if hide menu bar is enabled, false otherwise. Default is false.
+     */
+    public static boolean isHideMenuBar() {
+        return getBooleanProperty(hideMenuBar, CASCIIAN_HIDE_MENU_BAR, false);
+    }
+
+    /**
+     * Set the hide menu bar value in system properties.
+     *
+     * @param value true to enable hide menu bar, false to disable
+     */
+    public static void setHideMenuBar(boolean value) {
+        setBooleanProperty(hideMenuBar, CASCIIAN_HIDE_MENU_BAR, value);
+    }
+
+    /**
+     * Get the blink interval in milliseconds from system properties.
+     *
+     * @return blink interval in milliseconds between 0 and 500, or default value of 500
+     */
+    public static int getBlinkMillis() {
+        if (blinkMillis.get() == null) {
+            final int defaultBlinkMillis = 500;
+            int value = defaultBlinkMillis;
+            try {
+                value = Integer.parseInt(System.getProperty(CASCIIAN_BLINK_MILLIS,
+                    String.valueOf(defaultBlinkMillis)));
+            } catch (NumberFormatException e) {
+                // SQUASH
+            }
+            value = Math.max(0, value);
+            value = Math.min(value, 500);
+            blinkMillis.set(value);
+        }
+
+        return blinkMillis.get();
+    }
+
+    /**
+     * Set the blink interval in milliseconds in system properties.
+     * Values outside the valid range (0-500) will be clamped to the nearest valid value.
+     *
+     * @param value blink interval in milliseconds (will be clamped to 0-500)
+     */
+    public static void setBlinkMillis(int value) {
+        int clampedValue = Math.clamp(value, 0, 500);
+        System.setProperty(CASCIIAN_BLINK_MILLIS, String.valueOf(clampedValue));
+        blinkMillis.set(clampedValue);
+    }
+
+    /**
+     * Get the blink dim percentage from system properties.
+     *
+     * @return blink dim percentage between 0 and 100, or default value of 80
+     */
+    public static int getBlinkDimPercent() {
+        if (blinkDimPercent.get() == null) {
+            final int defaultBlinkDimPercent = 80;
+            int value = defaultBlinkDimPercent;
+            try {
+                value = Integer.parseInt(System.getProperty(CASCIIAN_BLINK_DIM_PERCENT,
+                    String.valueOf(defaultBlinkDimPercent)));
+            } catch (NumberFormatException e) {
+                // SQUASH
+            }
+            value = Math.max(0, value);
+            value = Math.min(value, 100);
+            blinkDimPercent.set(value);
+        }
+
+        return blinkDimPercent.get();
+    }
+
+    /**
+     * Set the blink dim percentage in system properties.
+     * Values outside the valid range (0-100) will be clamped to the nearest valid value.
+     *
+     * @param value blink dim percentage (will be clamped to 0-100)
+     */
+    public static void setBlinkDimPercent(int value) {
+        int clampedValue = Math.clamp(value, 0, 100);
+        System.setProperty(CASCIIAN_BLINK_DIM_PERCENT, String.valueOf(clampedValue));
+        blinkDimPercent.set(clampedValue);
+    }
+
+    /**
+     * Get the text blink value from system properties.
+     *
+     * @return true if text blink is enabled, false otherwise. Default is true.
+     */
+    public static boolean isTextBlink() {
+        return getBooleanProperty(textBlink, CASCIIAN_TEXT_BLINK, true);
+    }
+
+    /**
+     * Set the text blink value in system properties.
+     *
+     * @param value true to enable text blink, false to disable
+     */
+    public static void setTextBlink(boolean value) {
+        setBooleanProperty(textBlink, CASCIIAN_TEXT_BLINK, value);
+    }
+
+    /**
+     * Get the menu icons value from system properties.
+     *
+     * @return true if menu icons are shown, false otherwise. Default is true.
+     */
+    public static boolean isMenuIcons() {
+        return getBooleanProperty(menuIcons, CASCIIAN_MENU_ICONS, true);
+    }
+
+    /**
+     * Set the menu icons value in system properties.
+     *
+     * @param value true to show menu icons, false to hide
+     */
+    public static void setMenuIcons(boolean value) {
+        setBooleanProperty(menuIcons, CASCIIAN_MENU_ICONS, value);
+    }
+
+    /**
      * Reset all cached system property values to their unset state.
      * This will force values to be re-read from system properties on the next access.
      */
@@ -208,5 +473,12 @@ public class SystemProperties {
         shadowOpacity.set(null);
         textMouse.set(null);
         translucence.set(null);
+        hideMouseWhenTyping.set(null);
+        hideStatusBar.set(null);
+        hideMenuBar.set(null);
+        blinkMillis.set(null);
+        blinkDimPercent.set(null);
+        textBlink.set(null);
+        menuIcons.set(null);
     }
 }
