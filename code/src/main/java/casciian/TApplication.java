@@ -851,14 +851,10 @@ public class TApplication implements Runnable {
         }
 
         // Translucent windows (!) option
-        if (System.getProperty("casciian.translucence", "true").equals("false")) {
-            translucence = false;
-        }
+        translucence = SystemProperties.isTranslucence();
 
         // Overall animations
-        if (System.getProperty("casciian.animations", "true").equals("false")) {
-            animationsEnabled = false;
-        }
+        animationsEnabled = SystemProperties.isAnimations();
 
 
         theme           = new ColorTheme();

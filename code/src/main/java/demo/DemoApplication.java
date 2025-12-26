@@ -411,6 +411,22 @@ public class DemoApplication extends TApplication {
             return true;
         }
 
+        if (menu.getId() == 10014) {
+            // Enable/disable animations.
+            TMenuItem menuItem = getMenuItem(menu.getId());
+            SystemProperties.setAnimations(menuItem.isChecked());
+            setAnimations(menuItem.isChecked());
+            return true;
+        }
+
+        if (menu.getId() == 10015) {
+            // Enable/disable translucence.
+            TMenuItem menuItem = getMenuItem(menu.getId());
+            SystemProperties.setTranslucence(menuItem.isChecked());
+            setTranslucence(menuItem.isChecked());
+            return true;
+        }
+
         if (menu.getId() == 10011) {
             // Expose/cover terminal background.
             TMenuItem menuItem = getMenuItem(menu.getId());
@@ -497,6 +513,14 @@ public class DemoApplication extends TApplication {
             i18n.getString("textMouse"));
         textMouseItem.setCheckable(true);
         textMouseItem.setChecked(SystemProperties.isTextMouse());
+        TMenuItem animationsItem = demoMenu.addItem(10014,
+            i18n.getString("animations"));
+        animationsItem.setCheckable(true);
+        animationsItem.setChecked(SystemProperties.isAnimations());
+        TMenuItem translucenceItem = demoMenu.addItem(10015,
+            i18n.getString("translucence"));
+        translucenceItem.setCheckable(true);
+        translucenceItem.setChecked(SystemProperties.isTranslucence());
         TMenuItem backgroundImage = demoMenu.addItem(10011,
             i18n.getString("exposeBackground"));
         backgroundImage.setCheckable(true);
