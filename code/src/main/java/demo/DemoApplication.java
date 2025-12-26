@@ -86,6 +86,8 @@ public class DemoApplication extends TApplication {
         super(input, output);
         addAllWidgets();
 
+        initializeSystemPropertiesForDemo();
+
         getBackend().setTitle(i18n.getString("applicationTitle"));
     }
 
@@ -106,6 +108,8 @@ public class DemoApplication extends TApplication {
         final PrintWriter writer, final boolean setRawMode) {
         super(input, reader, writer, setRawMode);
         addAllWidgets();
+
+        initializeSystemPropertiesForDemo();
 
         getBackend().setTitle(i18n.getString("applicationTitle"));
     }
@@ -135,6 +139,32 @@ public class DemoApplication extends TApplication {
         super(backend);
 
         addAllWidgets();
+
+        initializeSystemPropertiesForDemo();
+    }
+
+    /**
+     * Initialize SystemProperties to true for demo application.
+     * This method is called from constructors to ensure consistent behavior
+     * across different initialization paths.
+     */
+    private void initializeSystemPropertiesForDemo() {
+        SystemProperties.setAnimations(true);
+        SystemProperties.setTextMouse(true);
+        SystemProperties.setTranslucence(true);
+    }
+
+    /**
+     * Helper method to update a menu item's checked state.
+     *
+     * @param menuId the ID of the menu item to update
+     * @param checked the checked state to set
+     */
+    private void setMenuItemChecked(int menuId, boolean checked) {
+        TMenuItem menuItem = getMenuItem(menuId);
+        if (menuItem != null) {
+            menuItem.setChecked(checked);
+        }
     }
 
     /**
@@ -148,6 +178,8 @@ public class DemoApplication extends TApplication {
         super(backendType);
         addAllWidgets();
         getBackend().setTitle(i18n.getString("applicationTitle"));
+
+        initializeSystemPropertiesForDemo();
 
         // Use custom theme by default.
         onMenu(new TMenuEvent(getBackend(), 10003));
@@ -177,6 +209,8 @@ public class DemoApplication extends TApplication {
         super(backendType, windowWidth, windowHeight, fontSize);
         addAllWidgets();
         getBackend().setTitle(i18n.getString("applicationTitle"));
+
+        initializeSystemPropertiesForDemo();
 
         // Use custom theme by default.
         onMenu(new TMenuEvent(getBackend(), 10003));
@@ -235,18 +269,7 @@ public class DemoApplication extends TApplication {
         if (menu.getId() == 10001) {
             // Look cute: switch the color theme, window borders, and button
             // styles.
-            System.setProperty("casciian.TWindow.borderStyleForeground", "round");
-            System.setProperty("casciian.TWindow.borderStyleModal", "round");
-            System.setProperty("casciian.TWindow.borderStyleMoving", "round");
-            System.setProperty("casciian.TWindow.borderStyleInactive", "round");
-            System.setProperty("casciian.TEditColorTheme.borderStyle", "round");
-            System.setProperty("casciian.TEditColorTheme.options.borderStyle", "round");
-            System.setProperty("casciian.TEditDesktopStyle.borderStyle", "round");
-            System.setProperty("casciian.TPanel.borderStyle", "round");
-            System.setProperty("casciian.TRadioGroup.borderStyle", "round");
-            System.setProperty("casciian.TScreenOptions.borderStyle", "round");
-            System.setProperty("casciian.TScreenOptions.grid.borderStyle", "round");
-            System.setProperty("casciian.TScreenOptions.options.borderStyle", "round");
+            applyRoundBorders();
             System.setProperty("casciian.TWindow.opacity", "80");
             System.setProperty("casciian.TImage.opacity", "80");
             System.setProperty("casciian.TTerminal.opacity", "80");
@@ -283,65 +306,12 @@ public class DemoApplication extends TApplication {
         if (menu.getId() == 10002) {
             // Look bland: switch the color theme, window borders, and button
             // styles.
-            System.clearProperty("casciian.TWindow.borderStyleForeground");
-            System.clearProperty("casciian.TWindow.borderStyleModal");
-            System.clearProperty("casciian.TWindow.borderStyleMoving");
-            System.clearProperty("casciian.TWindow.borderStyleInactive");
-            System.clearProperty("casciian.TEditColorTheme.borderStyle");
-            System.clearProperty("casciian.TEditColorTheme.options.borderStyle");
-            System.clearProperty("casciian.TEditDesktopStyle.borderStyle");
-            System.clearProperty("casciian.TPanel.borderStyle");
-            System.clearProperty("casciian.TRadioGroup.borderStyle");
-            System.clearProperty("casciian.TScreenOptions.borderStyle");
-            System.clearProperty("casciian.TScreenOptions.grid.borderStyle");
-            System.clearProperty("casciian.TScreenOptions.options.borderStyle");
-            System.clearProperty("casciian.TWindow.opacity");
-            System.clearProperty("casciian.TImage.opacity");
-            System.clearProperty("casciian.TTerminal.opacity");
-            System.clearProperty("casciian.TButton.style");
-
-            getTheme().setDefaultTheme();
-            for (TWindow window: getAllWindows()) {
-                window.setBorderStyleForeground(null);
-                window.setBorderStyleModal(null);
-                window.setBorderStyleMoving(null);
-                window.setBorderStyleInactive(null);
-                window.setAlpha(90 * 255 / 100);
-
-                for (TWidget widget: window.getChildren()) {
-                    if (widget instanceof TButton) {
-                        ((TButton) widget).setStyle(TButton.Style.SQUARE);
-                    }
-                }
-            }
-            for (TMenu m: getAllMenus()) {
-                m.setBorderStyleForeground(null);
-                m.setBorderStyleModal(null);
-                m.setBorderStyleMoving(null);
-                m.setBorderStyleInactive(null);
-                m.setAlpha(90 * 255 / 100);
-            }
-            setDesktop(new TDesktop(this));
-            oldDesktop = getDesktop();
-            setHideStatusBar(false);
-            onMenu(new TMenuEvent(getBackend(), 10011));
-            return true;
+            return applyBlandLook();
         }
 
         if (menu.getId() == 10003) {
             // Look "custom", sorta vaguely like Qmodem 5.
-            System.setProperty("casciian.TWindow.borderStyleForeground", "round");
-            System.setProperty("casciian.TWindow.borderStyleModal", "round");
-            System.setProperty("casciian.TWindow.borderStyleMoving", "round");
-            System.setProperty("casciian.TWindow.borderStyleInactive", "round");
-            System.setProperty("casciian.TEditColorTheme.borderStyle", "round");
-            System.setProperty("casciian.TEditColorTheme.options.borderStyle", "round");
-            System.setProperty("casciian.TEditDesktopStyle.borderStyle", "round");
-            System.setProperty("casciian.TPanel.borderStyle", "round");
-            System.setProperty("casciian.TRadioGroup.borderStyle", "round");
-            System.setProperty("casciian.TScreenOptions.borderStyle", "round");
-            System.setProperty("casciian.TScreenOptions.grid.borderStyle", "round");
-            System.setProperty("casciian.TScreenOptions.options.borderStyle", "round");
+            applyRoundBorders();
             System.setProperty("casciian.TWindow.opacity", "90");
             System.setProperty("casciian.TImage.opacity", "90");
             System.setProperty("casciian.TTerminal.opacity", "90");
@@ -366,6 +336,35 @@ public class DemoApplication extends TApplication {
             setHideStatusBar(false);
             onMenu(new TMenuEvent(getBackend(), 10011));
             return true;
+        }
+
+        if (menu.getId() == 10004) {
+            // Apply Casciian defaults: set all boolean properties to false,
+            // disable gradients, and apply bland look
+            SystemProperties.setAnimations(false);
+            SystemProperties.setTextMouse(false);
+            SystemProperties.setTranslucence(false);
+            setAnimations(false);
+            setTranslucence(false);
+
+            // Update menu checkboxes
+            setMenuItemChecked(10013, false);  // textMouse
+            setMenuItemChecked(10014, false);  // animations
+            setMenuItemChecked(10015, false);  // translucence
+            setMenuItemChecked(10010, false);  // gradients
+
+            // Disable gradients for all windows
+            for (TWindow window: getAllWindows()) {
+                if (window instanceof DemoMainWindow demoMainWindow) {
+                    demoMainWindow.setUseGradient(false);
+                }
+                if (window instanceof DemoCheckBoxWindow demoCheckBoxWindow) {
+                    demoCheckBoxWindow.setUseGradient(false);
+                }
+            }
+
+            // Apply bland look
+            return applyBlandLook();
         }
 
         if (menu.getId() == 10005) {
@@ -451,6 +450,67 @@ public class DemoApplication extends TApplication {
         return super.onMenu(menu);
     }
 
+    private void applyRoundBorders() {
+        System.setProperty("casciian.TWindow.borderStyleForeground", "round");
+        System.setProperty("casciian.TWindow.borderStyleModal", "round");
+        System.setProperty("casciian.TWindow.borderStyleMoving", "round");
+        System.setProperty("casciian.TWindow.borderStyleInactive", "round");
+        System.setProperty("casciian.TEditColorTheme.borderStyle", "round");
+        System.setProperty("casciian.TEditColorTheme.options.borderStyle", "round");
+        System.setProperty("casciian.TEditDesktopStyle.borderStyle", "round");
+        System.setProperty("casciian.TPanel.borderStyle", "round");
+        System.setProperty("casciian.TRadioGroup.borderStyle", "round");
+        System.setProperty("casciian.TScreenOptions.borderStyle", "round");
+        System.setProperty("casciian.TScreenOptions.grid.borderStyle", "round");
+        System.setProperty("casciian.TScreenOptions.options.borderStyle", "round");
+    }
+
+    private boolean applyBlandLook() {
+        System.clearProperty("casciian.TWindow.borderStyleForeground");
+        System.clearProperty("casciian.TWindow.borderStyleModal");
+        System.clearProperty("casciian.TWindow.borderStyleMoving");
+        System.clearProperty("casciian.TWindow.borderStyleInactive");
+        System.clearProperty("casciian.TEditColorTheme.borderStyle");
+        System.clearProperty("casciian.TEditColorTheme.options.borderStyle");
+        System.clearProperty("casciian.TEditDesktopStyle.borderStyle");
+        System.clearProperty("casciian.TPanel.borderStyle");
+        System.clearProperty("casciian.TRadioGroup.borderStyle");
+        System.clearProperty("casciian.TScreenOptions.borderStyle");
+        System.clearProperty("casciian.TScreenOptions.grid.borderStyle");
+        System.clearProperty("casciian.TScreenOptions.options.borderStyle");
+        System.clearProperty("casciian.TWindow.opacity");
+        System.clearProperty("casciian.TImage.opacity");
+        System.clearProperty("casciian.TTerminal.opacity");
+        System.clearProperty("casciian.TButton.style");
+
+        getTheme().setDefaultTheme();
+        for (TWindow window: getAllWindows()) {
+            window.setBorderStyleForeground(null);
+            window.setBorderStyleModal(null);
+            window.setBorderStyleMoving(null);
+            window.setBorderStyleInactive(null);
+            window.setAlpha(90 * 255 / 100);
+
+            for (TWidget widget: window.getChildren()) {
+                if (widget instanceof TButton) {
+                    ((TButton) widget).setStyle(TButton.Style.SQUARE);
+                }
+            }
+        }
+        for (TMenu m: getAllMenus()) {
+            m.setBorderStyleForeground(null);
+            m.setBorderStyleModal(null);
+            m.setBorderStyleMoving(null);
+            m.setBorderStyleInactive(null);
+            m.setAlpha(90 * 255 / 100);
+        }
+        setDesktop(new TDesktop(this));
+        oldDesktop = getDesktop();
+        setHideStatusBar(false);
+        onMenu(new TMenuEvent(getBackend(), 10011));
+        return true;
+    }
+
     /**
      * Show FPS.
      */
@@ -505,6 +565,7 @@ public class DemoApplication extends TApplication {
         demoMenu.addItem(10001, i18n.getString("lookCute"));
         demoMenu.addItem(10002, i18n.getString("lookBland"));
         demoMenu.addItem(10003, i18n.getString("lookCustom"));
+        demoMenu.addItem(10004, i18n.getString("applyCasciianDefaults"));
         TMenuItem gradients = demoMenu.addItem(10010,
             i18n.getString("useGradients"));
         gradients.setCheckable(true);

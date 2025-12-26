@@ -149,10 +149,10 @@ class SystemPropertiesTest {
     // -------------------------------------------------------------------------
 
     @Test
-    @DisplayName("Get text mouse returns default value (true) when not set")
+    @DisplayName("Get text mouse returns default value (false) when not set")
     void testIsTextMouseDefault() {
-        // When no property is set, should return default value of true
-        assertTrue(SystemProperties.isTextMouse());
+        // When no property is set, should return default value of false
+        assertFalse(SystemProperties.isTextMouse());
     }
 
     @Test
@@ -195,29 +195,29 @@ class SystemPropertiesTest {
     @DisplayName("Set and get text mouse round trip")
     void testSetTextMouseRoundTrip() {
         // Test toggling the value
-        SystemProperties.setTextMouse(false);
-        assertFalse(SystemProperties.isTextMouse());
-        
         SystemProperties.setTextMouse(true);
         assertTrue(SystemProperties.isTextMouse());
         
         SystemProperties.setTextMouse(false);
         assertFalse(SystemProperties.isTextMouse());
+        
+        SystemProperties.setTextMouse(true);
+        assertTrue(SystemProperties.isTextMouse());
     }
 
     @Test
     @DisplayName("Reset clears text mouse cached value")
     void testResetClearsTextMouse() {
-        // Set text mouse to false
-        SystemProperties.setTextMouse(false);
-        assertFalse(SystemProperties.isTextMouse());
+        // Set text mouse to true
+        SystemProperties.setTextMouse(true);
+        assertTrue(SystemProperties.isTextMouse());
         
-        // Set system property to true and reset
-        System.setProperty(SystemProperties.CASCIIAN_TEXT_MOUSE, "true");
+        // Set system property to false and reset
+        System.setProperty(SystemProperties.CASCIIAN_TEXT_MOUSE, "false");
         SystemProperties.reset();
         
         // After reset, should read from system property again
-        assertTrue(SystemProperties.isTextMouse());
+        assertFalse(SystemProperties.isTextMouse());
     }
 
     // -------------------------------------------------------------------------
@@ -225,10 +225,10 @@ class SystemPropertiesTest {
     // -------------------------------------------------------------------------
 
     @Test
-    @DisplayName("Get animations returns default value (true) when not set")
+    @DisplayName("Get animations returns default value (false) when not set")
     void testIsAnimationsDefault() {
-        // When no property is set, should return default value of true
-        assertTrue(SystemProperties.isAnimations());
+        // When no property is set, should return default value of false
+        assertFalse(SystemProperties.isAnimations());
     }
 
     @Test
@@ -271,29 +271,29 @@ class SystemPropertiesTest {
     @DisplayName("Set and get animations round trip")
     void testSetAnimationsRoundTrip() {
         // Test toggling the value
-        SystemProperties.setAnimations(false);
-        assertFalse(SystemProperties.isAnimations());
-        
         SystemProperties.setAnimations(true);
         assertTrue(SystemProperties.isAnimations());
         
         SystemProperties.setAnimations(false);
         assertFalse(SystemProperties.isAnimations());
+        
+        SystemProperties.setAnimations(true);
+        assertTrue(SystemProperties.isAnimations());
     }
 
     @Test
     @DisplayName("Reset clears animations cached value")
     void testResetClearsAnimations() {
-        // Set animations to false
-        SystemProperties.setAnimations(false);
-        assertFalse(SystemProperties.isAnimations());
+        // Set animations to true
+        SystemProperties.setAnimations(true);
+        assertTrue(SystemProperties.isAnimations());
         
-        // Set system property to true and reset
-        System.setProperty(SystemProperties.CASCIIAN_ANIMATIONS, "true");
+        // Set system property to false and reset
+        System.setProperty(SystemProperties.CASCIIAN_ANIMATIONS, "false");
         SystemProperties.reset();
         
         // After reset, should read from system property again
-        assertTrue(SystemProperties.isAnimations());
+        assertFalse(SystemProperties.isAnimations());
     }
 
     // -------------------------------------------------------------------------
@@ -301,10 +301,10 @@ class SystemPropertiesTest {
     // -------------------------------------------------------------------------
 
     @Test
-    @DisplayName("Get translucence returns default value (true) when not set")
+    @DisplayName("Get translucence returns default value (false) when not set")
     void testIsTranslucenceDefault() {
-        // When no property is set, should return default value of true
-        assertTrue(SystemProperties.isTranslucence());
+        // When no property is set, should return default value of false
+        assertFalse(SystemProperties.isTranslucence());
     }
 
     @Test
@@ -347,28 +347,28 @@ class SystemPropertiesTest {
     @DisplayName("Set and get translucence round trip")
     void testSetTranslucenceRoundTrip() {
         // Test toggling the value
-        SystemProperties.setTranslucence(false);
-        assertFalse(SystemProperties.isTranslucence());
-        
         SystemProperties.setTranslucence(true);
         assertTrue(SystemProperties.isTranslucence());
         
         SystemProperties.setTranslucence(false);
         assertFalse(SystemProperties.isTranslucence());
+        
+        SystemProperties.setTranslucence(true);
+        assertTrue(SystemProperties.isTranslucence());
     }
 
     @Test
     @DisplayName("Reset clears translucence cached value")
     void testResetClearsTranslucence() {
-        // Set translucence to false
-        SystemProperties.setTranslucence(false);
-        assertFalse(SystemProperties.isTranslucence());
+        // Set translucence to true
+        SystemProperties.setTranslucence(true);
+        assertTrue(SystemProperties.isTranslucence());
         
-        // Set system property to true and reset
-        System.setProperty(SystemProperties.CASCIIAN_TRANSLUCENCE, "true");
+        // Set system property to false and reset
+        System.setProperty(SystemProperties.CASCIIAN_TRANSLUCENCE, "false");
         SystemProperties.reset();
         
         // After reset, should read from system property again
-        assertTrue(SystemProperties.isTranslucence());
+        assertFalse(SystemProperties.isTranslucence());
     }
 }
