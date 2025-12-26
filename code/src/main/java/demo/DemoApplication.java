@@ -138,6 +138,30 @@ public class DemoApplication extends TApplication {
     }
 
     /**
+     * Initialize SystemProperties to true for demo application.
+     * This method is called from constructors to ensure consistent behavior
+     * across different initialization paths.
+     */
+    private void initializeSystemPropertiesForDemo() {
+        SystemProperties.setAnimations(true);
+        SystemProperties.setTextMouse(true);
+        SystemProperties.setTranslucence(true);
+    }
+
+    /**
+     * Helper method to update a menu item's checked state.
+     *
+     * @param menuId the ID of the menu item to update
+     * @param checked the checked state to set
+     */
+    private void setMenuItemChecked(int menuId, boolean checked) {
+        TMenuItem menuItem = getMenuItem(menuId);
+        if (menuItem != null) {
+            menuItem.setChecked(checked);
+        }
+    }
+
+    /**
      * Public constructor.
      *
      * @param backendType one of the TApplication.BackendType values
@@ -149,10 +173,7 @@ public class DemoApplication extends TApplication {
         addAllWidgets();
         getBackend().setTitle(i18n.getString("applicationTitle"));
 
-        // Initialize SystemProperties to true for demo application
-        SystemProperties.setAnimations(true);
-        SystemProperties.setTextMouse(true);
-        SystemProperties.setTranslucence(true);
+        initializeSystemPropertiesForDemo();
 
         // Use custom theme by default.
         onMenu(new TMenuEvent(getBackend(), 10003));
@@ -183,10 +204,7 @@ public class DemoApplication extends TApplication {
         addAllWidgets();
         getBackend().setTitle(i18n.getString("applicationTitle"));
 
-        // Initialize SystemProperties to true for demo application
-        SystemProperties.setAnimations(true);
-        SystemProperties.setTextMouse(true);
-        SystemProperties.setTranslucence(true);
+        initializeSystemPropertiesForDemo();
 
         // Use custom theme by default.
         onMenu(new TMenuEvent(getBackend(), 10003));
@@ -388,24 +406,12 @@ public class DemoApplication extends TApplication {
             setTranslucence(false);
 
             // Update menu checkboxes
-            TMenuItem textMouseItem = getMenuItem(10013);
-            if (textMouseItem != null) {
-                textMouseItem.setChecked(false);
-            }
-            TMenuItem animationsItem = getMenuItem(10014);
-            if (animationsItem != null) {
-                animationsItem.setChecked(false);
-            }
-            TMenuItem translucenceItem = getMenuItem(10015);
-            if (translucenceItem != null) {
-                translucenceItem.setChecked(false);
-            }
+            setMenuItemChecked(10013, false);  // textMouse
+            setMenuItemChecked(10014, false);  // animations
+            setMenuItemChecked(10015, false);  // translucence
+            setMenuItemChecked(10010, false);  // gradients
 
-            // Disable gradients
-            TMenuItem gradientsItem = getMenuItem(10010);
-            if (gradientsItem != null) {
-                gradientsItem.setChecked(false);
-            }
+            // Disable gradients for all windows
             for (TWindow window: getAllWindows()) {
                 if (window instanceof DemoMainWindow) {
                     ((DemoMainWindow) window).setUseGradient(false);
