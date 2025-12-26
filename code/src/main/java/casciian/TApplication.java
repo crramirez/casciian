@@ -377,15 +377,7 @@ public class TApplication implements Runnable {
      */
     protected long lastUserInputTime = System.currentTimeMillis();
 
-    /**
-     * If true. enable translucency.
-     */
-    protected boolean translucence = true;
 
-    /**
-     * If true, enable animations.
-     */
-    protected boolean animationsEnabled = true;
 
     /**
      * The list of window effects to run.
@@ -850,11 +842,7 @@ public class TApplication implements Runnable {
             hideMenuBar = true;
         }
 
-        // Translucent windows (!) option
-        translucence = SystemProperties.isTranslucence();
-
-        // Overall animations
-        animationsEnabled = SystemProperties.isAnimations();
+        // Overall animations and translucent windows are now managed via SystemProperties
 
 
         theme           = new ColorTheme();
@@ -870,7 +858,7 @@ public class TApplication implements Runnable {
         menuItems       = new LinkedList<TMenuItem>();
         desktop         = new TDesktop(this);
 
-        if (animationsEnabled) {
+        if (SystemProperties.isAnimations()) {
             // Animations always check every 1/32 of a second.
             final int ANIMATION_FPS = 32;
             TTimer animationTimer = addTimer(1000 / ANIMATION_FPS, true,
@@ -1116,7 +1104,7 @@ public class TApplication implements Runnable {
                 screenEffects.add(new TextCursorGlintEffect(getScreen()));
                 needToRunScreenEffects = true;
             }
-            if (!animationsEnabled) {
+            if (!SystemProperties.isAnimations()) {
                 // Put a timer on at 32 fps until the effect is finished.
                 if (tempEffectTimer != null) {
                     tempEffectTimer.setRecurring(false);
@@ -1255,7 +1243,7 @@ public class TApplication implements Runnable {
                 screenEffects.add(new TextCursorGlintEffect(getScreen()));
                 needToRunScreenEffects = true;
             }
-            if (!animationsEnabled) {
+            if (!SystemProperties.isAnimations()) {
                 // Put a timer on at 32 fps until the effect is finished.
                 if (tempEffectTimer != null) {
                     tempEffectTimer.setRecurring(false);
@@ -2110,43 +2098,7 @@ public class TApplication implements Runnable {
      * @return true if animations are enabled and the window is focued
      */
     public boolean hasAnimations() {
-        return (animationsEnabled && backend.isFocused());
-    }
-
-    /**
-     * Get the animations option.
-     *
-     * @return true if animations are enabled
-     */
-    public boolean getAnimations() {
-        return animationsEnabled;
-    }
-
-    /**
-     * Set the animations option.
-     *
-     * @param enabled if true, animations will be enabled
-     */
-    public void setAnimations(final boolean enabled) {
-        animationsEnabled = enabled;
-    }
-
-    /**
-     * Get the translucence option.
-     *
-     * @return true if translucency is enabled
-     */
-    public boolean hasTranslucence() {
-        return translucence;
-    }
-
-    /**
-     * Set the translucence option.
-     *
-     * @param enabled if true, windows will be translucent
-     */
-    public void setTranslucence(final boolean enabled) {
-        translucence = enabled;
+        return (SystemProperties.isAnimations() && backend.isFocused());
     }
 
     /**
@@ -2161,9 +2113,9 @@ public class TApplication implements Runnable {
             return;
         }
         if (opacity == 100) {
-            translucence = false;
+            SystemProperties.setTranslucence(false);
         } else {
-            translucence = true;
+            SystemProperties.setTranslucence(true);
         }
 
         int alpha = opacity * 255 / 100;
@@ -2697,7 +2649,7 @@ public class TApplication implements Runnable {
                 // Reset the screen clipping so we can draw the next window.
                 getScreen().resetClipping();
 
-                if (translucence) {
+                if (SystemProperties.isTranslucence()) {
                     drawTranslucentWindow(getScreen(), window);
                 } else {
                     window.drawChildren();
@@ -2745,7 +2697,7 @@ public class TApplication implements Runnable {
             }
 
             if (menu.isActive()) {
-                if (translucence) {
+                if (SystemProperties.isTranslucence()) {
                     drawTranslucentWindow(getScreen(), menu);
                 } else {
                     ((TWindow) menu).drawChildren();
@@ -2760,7 +2712,7 @@ public class TApplication implements Runnable {
         for (TMenu menu: subMenus) {
             // Reset the screen clipping so we can draw the next sub-menu.
             getScreen().resetClipping();
-            if (translucence) {
+            if (SystemProperties.isTranslucence()) {
                 drawTranslucentWindow(getScreen(), menu);
             } else {
                 ((TWindow) menu).drawChildren();
@@ -3135,7 +3087,7 @@ public class TApplication implements Runnable {
         window.onPreClose();
 
         // If the window has a close effect, kick that off.
-        if (!window.disableCloseEffect() && animationsEnabled) {
+        if (!window.disableCloseEffect() && SystemProperties.isAnimations()) {
             String windowCloseEffect = System.getProperty("casciian.effect.windowClose",
                 "none").toLowerCase();
 
@@ -3371,7 +3323,7 @@ public class TApplication implements Runnable {
             desktop.setActive(false);
         }
 
-        if (!window.disableOpenEffect() && animationsEnabled) {
+        if (!window.disableOpenEffect() && SystemProperties.isAnimations()) {
             // If the window has an open effect, kick that off.
             String windowOpenEffect = System.getProperty(
                 "casciian.effect.windowOpen", "none").toLowerCase();

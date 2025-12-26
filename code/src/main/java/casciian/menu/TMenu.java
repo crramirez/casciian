@@ -20,6 +20,7 @@ import casciian.TApplication;
 import casciian.TKeypress;
 import casciian.TWidget;
 import casciian.TWindow;
+import casciian.backend.SystemProperties;
 import casciian.bits.BorderStyle;
 import casciian.bits.CellAttributes;
 import casciian.bits.GraphicsChars;
@@ -680,7 +681,7 @@ public class TMenu extends TWindow {
         hLineXY(1 + 1, getHeight() - 1, getWidth() - 4, cHSide, background);
 
         // Draw a shadow
-        if (!getApplication().hasTranslucence()) {
+        if (!SystemProperties.isTranslucence()) {
             drawBoxShadow(0, 0, getWidth(), getHeight());
         }
     }

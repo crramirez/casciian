@@ -344,8 +344,7 @@ public class DemoApplication extends TApplication {
             SystemProperties.setAnimations(false);
             SystemProperties.setTextMouse(false);
             SystemProperties.setTranslucence(false);
-            setAnimations(false);
-            setTranslucence(false);
+            SystemProperties.setShadowOpacity(60);
 
             // Update menu checkboxes
             setMenuItemChecked(10013, false);  // textMouse
@@ -414,7 +413,6 @@ public class DemoApplication extends TApplication {
             // Enable/disable animations.
             TMenuItem menuItem = getMenuItem(menu.getId());
             SystemProperties.setAnimations(menuItem.isChecked());
-            setAnimations(menuItem.isChecked());
             return true;
         }
 
@@ -422,7 +420,6 @@ public class DemoApplication extends TApplication {
             // Enable/disable translucence.
             TMenuItem menuItem = getMenuItem(menu.getId());
             SystemProperties.setTranslucence(menuItem.isChecked());
-            setTranslucence(menuItem.isChecked());
             return true;
         }
 
@@ -549,10 +546,10 @@ public class DemoApplication extends TApplication {
     private void addAllWidgets() {
         // Temporarily disable animations so that this specific window does
         // not have an open effect.
-        boolean oldHasAnimations = getAnimations();
-        setAnimations(false);
+        boolean oldHasAnimations = SystemProperties.isAnimations();
+        SystemProperties.setAnimations(false);
         DemoMainWindow mainWindow = new DemoMainWindow(this);
-        setAnimations(oldHasAnimations);
+        SystemProperties.setAnimations(oldHasAnimations);
 
         // Add the menus
         addToolMenu();

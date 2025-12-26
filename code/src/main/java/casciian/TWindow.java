@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import casciian.backend.Screen;
+import casciian.backend.SystemProperties;
 import casciian.bits.BorderStyle;
 import casciian.bits.CellAttributes;
 import casciian.bits.CellTransform;
@@ -994,7 +995,7 @@ public class TWindow extends TWidget {
         CellAttributes background = getBackground();
         BorderStyle borderStyle = getBorderStyle();
         drawBox(0, 0, getWidth(), getHeight(), border, background, borderStyle,
-            !getApplication().hasTranslucence());
+            !SystemProperties.isTranslucence());
 
         if ((title != null) && (title.length() > 0)) {
             // Draw the title
