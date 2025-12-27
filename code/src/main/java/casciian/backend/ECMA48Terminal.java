@@ -1404,14 +1404,11 @@ public class ECMA48Terminal extends LogicalScreen
                 }
 
                 // Now emit only the modified attributes
+                // Note: We do NOT emit SGR 1 for bold because casciian uses
+                // bright colors (90-97) to indicate bold instead of the SGR 1
+                // attribute. This avoids showing bold/thick text on terminals
+                // that support it.
                 StringBuilder attrSgr = new StringBuilder(8);
-                if (lCell.isBold() != lastAttr.isBold()) {
-                    if (lCell.isBold()) {
-                        attrSgr.append(";1");
-                    } else {
-                        attrSgr.append(";22");
-                    }
-                }
                 if (lCell.isUnderline() != lastAttr.isUnderline()) {
                     if (lCell.isUnderline()) {
                         attrSgr.append(";4");
@@ -3312,6 +3309,10 @@ public class ECMA48Terminal extends LogicalScreen
      * several attributes.  This sequence first resets all attributes to
      * default, then sets attributes as per the parameters.
      *
+     * Note: SGR 1 (bold) is NOT emitted because casciian uses bright colors
+     * (90-97) to indicate bold instead. This avoids showing bold/thick text
+     * on terminals that support it.
+     *
      * @param foreColor one of the Color.WHITE, Color.BLUE, etc. constants
      * @param backColor one of the Color.WHITE, Color.BLUE, etc. constants
      * @param bold if true, set bold
@@ -3319,7 +3320,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @param blink if true, set blink
      * @param underline if true, set underline
      * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[0;1;31;42m"
+     * e.g. "\033[0;31;42m"
      */
     private String color(final Color foreColor, final Color backColor,
         final boolean bold, final boolean reverse, final boolean blink,
@@ -3333,38 +3334,22 @@ public class ECMA48Terminal extends LogicalScreen
         ecmaForeColor += 30;
 
         StringBuilder sb = new StringBuilder();
-        if        (  bold &&  reverse &&  blink && !underline ) {
-            sb.append("\033[0;1;7;5;");
-        } else if (  bold &&  reverse && !blink && !underline ) {
-            sb.append("\033[0;1;7;");
-        } else if ( !bold &&  reverse &&  blink && !underline ) {
+        if        (  reverse &&  blink && !underline ) {
             sb.append("\033[0;7;5;");
-        } else if (  bold && !reverse &&  blink && !underline ) {
-            sb.append("\033[0;1;5;");
-        } else if (  bold && !reverse && !blink && !underline ) {
-            sb.append("\033[0;1;");
-        } else if ( !bold &&  reverse && !blink && !underline ) {
+        } else if (  reverse && !blink && !underline ) {
             sb.append("\033[0;7;");
-        } else if ( !bold && !reverse &&  blink && !underline) {
+        } else if ( !reverse &&  blink && !underline ) {
             sb.append("\033[0;5;");
-        } else if (  bold &&  reverse &&  blink &&  underline ) {
-            sb.append("\033[0;1;7;5;4;");
-        } else if (  bold &&  reverse && !blink &&  underline ) {
-            sb.append("\033[0;1;7;4;");
-        } else if ( !bold &&  reverse &&  blink &&  underline ) {
+        } else if (  reverse &&  blink &&  underline ) {
             sb.append("\033[0;7;5;4;");
-        } else if (  bold && !reverse &&  blink &&  underline ) {
-            sb.append("\033[0;1;5;4;");
-        } else if (  bold && !reverse && !blink &&  underline ) {
-            sb.append("\033[0;1;4;");
-        } else if ( !bold &&  reverse && !blink &&  underline ) {
+        } else if (  reverse && !blink &&  underline ) {
             sb.append("\033[0;7;4;");
-        } else if ( !bold && !reverse &&  blink &&  underline) {
+        } else if ( !reverse &&  blink &&  underline) {
             sb.append("\033[0;5;4;");
-        } else if ( !bold && !reverse && !blink &&  underline) {
+        } else if ( !reverse && !blink &&  underline) {
             sb.append("\033[0;4;");
         } else {
-            assert (!bold && !reverse && !blink && !underline);
+            assert (!reverse && !blink && !underline);
             sb.append("\033[0;");
         }
         sb.append(String.format("%d;%dm", ecmaForeColor, ecmaBackColor));
@@ -3377,49 +3362,37 @@ public class ECMA48Terminal extends LogicalScreen
      * first resets all attributes to default, then sets attributes as per
      * the parameters.
      *
+     * Note: SGR 1 (bold) is NOT emitted because casciian uses bright colors
+     * (90-97) to indicate bold instead. This avoids showing bold/thick text
+     * on terminals that support it.
+     *
      * @param bold if true, set bold
      * @param reverse if true, set reverse
      * @param blink if true, set blink
      * @param underline if true, set underline
      * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[0;1;5m"
+     * e.g. "\033[0;5m"
      */
     private String attributes(final boolean bold, final boolean reverse,
         final boolean blink, final boolean underline) {
 
         StringBuilder sb = new StringBuilder();
-        if        (  bold &&  reverse &&  blink && !underline ) {
-            sb.append("\033[0;1;7;5m");
-        } else if (  bold &&  reverse && !blink && !underline ) {
-            sb.append("\033[0;1;7m");
-        } else if ( !bold &&  reverse &&  blink && !underline ) {
+        if        (  reverse &&  blink && !underline ) {
             sb.append("\033[0;7;5m");
-        } else if (  bold && !reverse &&  blink && !underline ) {
-            sb.append("\033[0;1;5m");
-        } else if (  bold && !reverse && !blink && !underline ) {
-            sb.append("\033[0;1m");
-        } else if ( !bold &&  reverse && !blink && !underline ) {
+        } else if (  reverse && !blink && !underline ) {
             sb.append("\033[0;7m");
-        } else if ( !bold && !reverse &&  blink && !underline) {
+        } else if ( !reverse &&  blink && !underline) {
             sb.append("\033[0;5m");
-        } else if (  bold &&  reverse &&  blink &&  underline ) {
-            sb.append("\033[0;1;7;5;4m");
-        } else if (  bold &&  reverse && !blink &&  underline ) {
-            sb.append("\033[0;1;7;4m");
-        } else if ( !bold &&  reverse &&  blink &&  underline ) {
+        } else if (  reverse &&  blink &&  underline ) {
             sb.append("\033[0;7;5;4m");
-        } else if (  bold && !reverse &&  blink &&  underline ) {
-            sb.append("\033[0;1;5;4m");
-        } else if (  bold && !reverse && !blink &&  underline ) {
-            sb.append("\033[0;1;4m");
-        } else if ( !bold &&  reverse && !blink &&  underline ) {
+        } else if (  reverse && !blink &&  underline ) {
             sb.append("\033[0;7;4m");
-        } else if ( !bold && !reverse &&  blink &&  underline) {
+        } else if ( !reverse &&  blink &&  underline) {
             sb.append("\033[0;5;4m");
-        } else if ( !bold && !reverse && !blink &&  underline) {
+        } else if ( !reverse && !blink &&  underline) {
             sb.append("\033[0;4m");
         } else {
-            assert (!bold && !reverse && !blink && !underline);
+            assert (!reverse && !blink && !underline);
             sb.append("\033[0m");
         }
         return sb.toString();
@@ -3430,6 +3403,10 @@ public class ECMA48Terminal extends LogicalScreen
      * several attributes.  This sequence first resets all attributes to
      * default, then sets attributes as per the parameters.
      *
+     * Note: SGR 1 (bold) is NOT emitted because casciian uses bright colors
+     * (90-97) to indicate bold instead. This avoids showing bold/thick text
+     * on terminals that support it.
+     *
      * @param foreColorRGB a 24-bit RGB value for foreground color
      * @param backColorRGB a 24-bit RGB value for foreground color
      * @param bold if true, set bold
@@ -3437,7 +3414,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @param blink if true, set blink
      * @param underline if true, set underline
      * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[0;1;31;42m"
+     * e.g. "\033[0;31;42m"
      */
     private String colorRGB(final int foreColorRGB, final int backColorRGB,
         final boolean bold, final boolean reverse, final boolean blink,
@@ -3451,38 +3428,22 @@ public class ECMA48Terminal extends LogicalScreen
         int backColorBlue    =  backColorRGB         & 0xFF;
 
         StringBuilder sb = new StringBuilder();
-        if        (  bold &&  reverse &&  blink && !underline ) {
-            sb.append("\033[0;1;7;5;");
-        } else if (  bold &&  reverse && !blink && !underline ) {
-            sb.append("\033[0;1;7;");
-        } else if ( !bold &&  reverse &&  blink && !underline ) {
+        if        (  reverse &&  blink && !underline ) {
             sb.append("\033[0;7;5;");
-        } else if (  bold && !reverse &&  blink && !underline ) {
-            sb.append("\033[0;1;5;");
-        } else if (  bold && !reverse && !blink && !underline ) {
-            sb.append("\033[0;1;");
-        } else if ( !bold &&  reverse && !blink && !underline ) {
+        } else if (  reverse && !blink && !underline ) {
             sb.append("\033[0;7;");
-        } else if ( !bold && !reverse &&  blink && !underline) {
+        } else if ( !reverse &&  blink && !underline) {
             sb.append("\033[0;5;");
-        } else if (  bold &&  reverse &&  blink &&  underline ) {
-            sb.append("\033[0;1;7;5;4;");
-        } else if (  bold &&  reverse && !blink &&  underline ) {
-            sb.append("\033[0;1;7;4;");
-        } else if ( !bold &&  reverse &&  blink &&  underline ) {
+        } else if (  reverse &&  blink &&  underline ) {
             sb.append("\033[0;7;5;4;");
-        } else if (  bold && !reverse &&  blink &&  underline ) {
-            sb.append("\033[0;1;5;4;");
-        } else if (  bold && !reverse && !blink &&  underline ) {
-            sb.append("\033[0;1;4;");
-        } else if ( !bold &&  reverse && !blink &&  underline ) {
+        } else if (  reverse && !blink &&  underline ) {
             sb.append("\033[0;7;4;");
-        } else if ( !bold && !reverse &&  blink &&  underline) {
+        } else if ( !reverse &&  blink &&  underline) {
             sb.append("\033[0;5;4;");
-        } else if ( !bold && !reverse && !blink &&  underline) {
+        } else if ( !reverse && !blink &&  underline) {
             sb.append("\033[0;4;");
         } else {
-            assert (!bold && !reverse && !blink && !underline);
+            assert (!reverse && !blink && !underline);
             sb.append("\033[0;");
         }
 
