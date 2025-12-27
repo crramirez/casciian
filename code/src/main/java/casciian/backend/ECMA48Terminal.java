@@ -265,11 +265,6 @@ public class ECMA48Terminal extends LogicalScreen
     private boolean mousePointerShapeChanged = false;
 
     /**
-     * If true, we are waiting for an OSC 22 pointer shape response.
-     */
-    private boolean pointerShapeQuery = false;
-
-    /**
      * If true, then we changed System.in and need to change it back.
      */
     private boolean setRawMode = false;
