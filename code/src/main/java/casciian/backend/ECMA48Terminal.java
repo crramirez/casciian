@@ -1478,12 +1478,14 @@ public class ECMA48Terminal extends LogicalScreen
                     if ((lCell.getForeColorRGB() < 0)
                         && ((lastAttr.getForeColorRGB() >= 0)
                             || !lCell.getForeColor().equals(lastAttr.getForeColor())
-                            || lastAttr.isDefaultColor(true))
+                            || lastAttr.isDefaultColor(true)
+                            || lCell.isBold() != lastAttr.isBold())
                     ) {
                         if (debugToStderr && reallyDebug) {
                             System.err.println("4 set foreColor");
                         }
-                        sb.append(color(lCell.getForeColor(), true, true));
+                        sb.append(color(lCell.getForeColor(), true, true,
+                            lCell.isBold()));
                     }
                 }
 
@@ -3218,11 +3220,38 @@ public class ECMA48Terminal extends LogicalScreen
     private String color(final Color color, final boolean foreground,
         final boolean header) {
 
+        return color(color, foreground, header, false);
+    }
+
+    /**
+     * Create a SGR parameter sequence for a single color change.
+     *
+     * @param color one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param foreground if true, this is a foreground color
+     * @param header if true, make the full header, otherwise just emit the
+     * color parameter e.g. "42;"
+     * @param bold if true and foreground is true, use bright colors (90-97)
+     * instead of normal colors (30-37). This is needed because some terminals
+     * (e.g., Terminator, gnome-terminal) do not interpret SGR 1 (bold) as
+     * switching to bright colors.
+     * @return the string to emit to an ANSI / ECMA-style terminal,
+     * e.g. "\033[42m" or "\033[92m" for bright green
+     */
+    private String color(final Color color, final boolean foreground,
+        final boolean header, final boolean bold) {
+
         int ecmaColor = color.getValue();
 
         // Convert Color.* values to SGR numerics
         if (foreground) {
-            ecmaColor += 30;
+            if (bold) {
+                // Use bright foreground colors (90-97) for bold text.
+                // This is the AIXterm-style bright colors which are widely
+                // supported and do not rely on SGR 1 to switch to bright colors.
+                ecmaColor += 90;
+            } else {
+                ecmaColor += 30;
+            }
         } else {
             ecmaColor += 40;
         }
