@@ -3746,6 +3746,9 @@ public class ECMA48Terminal extends LogicalScreen
 
         output.write(oscSequence);
         output.flush();
+
+        // Update MYWHITE to reflect the restored original color
+        MYWHITE = originalWhiteColor;
     }
 
 }
