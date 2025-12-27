@@ -521,16 +521,17 @@ class ECMA48TerminalTest {
             "OSC_POINTER_SHAPE should be '22'");
     }
 
-    // Foreground color tests
+    // Bold color tests
     
     @Test
-    @DisplayName("Foreground colors use 90-97 range (AIXterm bright colors)")
-    void shouldUseBrightColorsForForeground() {
+    @DisplayName("Bold foreground colors use 90-97 range (AIXterm bright colors)")
+    void shouldUseBrightColorsForBoldForeground() {
         terminal = createTerminal();
         assertNotNull(terminal);
 
-        // Set up a cell with foreground color (no RGB)
+        // Set up a cell with bold + foreground color (no RGB)
         CellAttributes attr = new CellAttributes();
+        attr.setBold(true);
         attr.setForeColor(Color.GREEN);
         attr.setBackColor(Color.BLACK);
 
@@ -546,31 +547,65 @@ class ECMA48TerminalTest {
         String output = outputStream.toString();
         
         // The output should contain the bright green foreground color (92)
+        // instead of just relying on SGR 1 + normal green (32)
         // Bright colors use the 90-97 range where green is 92
         assertTrue(output.contains("\033[92m"),
-            "Green foreground should use bright color code 92 (not 32). Output: " + 
+            "Bold green foreground should use bright color code 92 (not 32). Output: " + 
             escapeForDisplay(output));
     }
 
     @Test
-    @DisplayName("All foreground colors use correct bright codes")
-    void shouldUseCorrectBrightCodesForAllForegroundColors() {
+    @DisplayName("Non-bold foreground colors use 30-37 range")
+    void shouldUseNormalColorsForNonBoldForeground() {
         terminal = createTerminal();
         assertNotNull(terminal);
 
-        // Test all standard colors except WHITE (which is the default and may not 
-        // trigger a separate color change command due to optimization)
+        // Set up a cell with non-bold foreground color
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(false);
+        attr.setForeColor(Color.GREEN);
+        attr.setBackColor(Color.BLACK);
+
+        // Draw the character to the terminal
+        terminal.putCharXY(0, 0, 'A', attr);
+        
+        // Clear the output stream to capture only flush output
+        outputStream.reset();
+        
+        // Flush to generate the escape sequences
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        
+        // The output should contain the normal green foreground color (32)
+        assertTrue(output.contains("\033[32m"),
+            "Non-bold green foreground should use normal color code 32 (not 92). Output: " + 
+            escapeForDisplay(output));
+        // And should NOT contain the bright green (92)
+        assertFalse(output.contains("\033[92m"),
+            "Non-bold green foreground should not use bright color code 92. Output: " + 
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("All bold foreground colors use correct bright codes")
+    void shouldUseCorrectBrightCodesForAllBoldColors() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Test all standard colors with bold
         Color[] colors = {
             Color.BLACK, Color.RED, Color.GREEN, Color.YELLOW,
-            Color.BLUE, Color.MAGENTA, Color.CYAN
+            Color.BLUE, Color.MAGENTA, Color.CYAN, Color.WHITE
         };
-        int[] expectedBrightCodes = {90, 91, 92, 93, 94, 95, 96};
+        int[] expectedBrightCodes = {90, 91, 92, 93, 94, 95, 96, 97};
 
         for (int i = 0; i < colors.length; i++) {
             Color color = colors[i];
             int expectedCode = expectedBrightCodes[i];
             
             CellAttributes attr = new CellAttributes();
+            attr.setBold(true);
             attr.setForeColor(color);
             attr.setBackColor(Color.BLACK);
 
@@ -584,7 +619,7 @@ class ECMA48TerminalTest {
             String output = outputStream.toString();
             
             assertTrue(output.contains("\033[" + expectedCode + "m"),
-                color + " foreground should use bright code " + expectedCode + ". Output: " + 
+                "Bold " + color + " should use bright code " + expectedCode + ". Output: " + 
                 escapeForDisplay(output));
         }
     }

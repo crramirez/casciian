@@ -1478,12 +1478,14 @@ public class ECMA48Terminal extends LogicalScreen
                     if ((lCell.getForeColorRGB() < 0)
                         && ((lastAttr.getForeColorRGB() >= 0)
                             || !lCell.getForeColor().equals(lastAttr.getForeColor())
-                            || lastAttr.isDefaultColor(true))
+                            || lastAttr.isDefaultColor(true)
+                            || lCell.isBold() != lastAttr.isBold())
                     ) {
                         if (debugToStderr && reallyDebug) {
                             System.err.println("4 set foreColor");
                         }
-                        sb.append(color(lCell.getForeColor(), true, true));
+                        sb.append(color(lCell.getForeColor(), true, true,
+                            lCell.isBold()));
                     }
                 }
 
@@ -3209,27 +3211,47 @@ public class ECMA48Terminal extends LogicalScreen
      * Create a SGR parameter sequence for a single color change.
      *
      * @param color one of the Color.WHITE, Color.BLUE, etc. constants
-     * @param foreground if true, this is a foreground color and bright colors
-     * (90-97) will be used. This is the AIXterm-style bright colors which are
-     * widely supported and do not rely on SGR 1 to switch to bright colors.
-     * Some terminals (e.g., Terminator, gnome-terminal) do not interpret SGR 1
-     * (bold) as switching to bright colors.
+     * @param foreground if true, this is a foreground color
      * @param header if true, make the full header, otherwise just emit the
      * color parameter e.g. "42;"
+     * @return the string to emit to an ANSI / ECMA-style terminal,
+     * e.g. "\033[42m"
+     */
+    private String color(final Color color, final boolean foreground,
+        final boolean header) {
+
+        return color(color, foreground, header, false);
+    }
+
+    /**
+     * Create a SGR parameter sequence for a single color change.
+     *
+     * @param color one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param foreground if true, this is a foreground color
+     * @param header if true, make the full header, otherwise just emit the
+     * color parameter e.g. "42;"
+     * @param bold if true and foreground is true, use bright colors (90-97)
+     * instead of normal colors (30-37). This is needed because some terminals
+     * (e.g., Terminator, gnome-terminal) do not interpret SGR 1 (bold) as
+     * switching to bright colors.
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[42m" or "\033[92m" for bright green
      */
     private String color(final Color color, final boolean foreground,
-        final boolean header) {
+        final boolean header, final boolean bold) {
 
         int ecmaColor = color.getValue();
 
         // Convert Color.* values to SGR numerics
         if (foreground) {
-            // Use bright foreground colors (90-97) for foreground text.
-            // This is the AIXterm-style bright colors which are widely
-            // supported and do not rely on SGR 1 to switch to bright colors.
-            ecmaColor += 90;
+            if (bold) {
+                // Use bright foreground colors (90-97) for bold text.
+                // This is the AIXterm-style bright colors which are widely
+                // supported and do not rely on SGR 1 to switch to bright colors.
+                ecmaColor += 90;
+            } else {
+                ecmaColor += 30;
+            }
         } else {
             ecmaColor += 40;
         }
@@ -3266,7 +3288,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @param header if true, make the full header, otherwise just emit the
      * color parameter e.g. "31;42;"
      * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[91;42m"
+     * e.g. "\033[31;42m"
      */
     private String color(final Color foreColor, final Color backColor,
         final boolean header) {
@@ -3276,8 +3298,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Convert Color.* values to SGR numerics
         ecmaBackColor += 40;
-        // Use bright foreground colors (90-97) for foreground text
-        ecmaForeColor += 90;
+        ecmaForeColor += 30;
 
         if (header) {
             return String.format("\033[%d;%dm", ecmaForeColor, ecmaBackColor);
@@ -3298,7 +3319,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @param blink if true, set blink
      * @param underline if true, set underline
      * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[0;1;91;42m"
+     * e.g. "\033[0;1;31;42m"
      */
     private String color(final Color foreColor, final Color backColor,
         final boolean bold, final boolean reverse, final boolean blink,
@@ -3309,8 +3330,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Convert Color.* values to SGR numerics
         ecmaBackColor += 40;
-        // Use bright foreground colors (90-97) for foreground text
-        ecmaForeColor += 90;
+        ecmaForeColor += 30;
 
         StringBuilder sb = new StringBuilder();
         if        (  bold &&  reverse &&  blink && !underline ) {
@@ -3519,9 +3539,9 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String normal(final boolean header) {
         if (header) {
-            return "\033[0;97;40m";
+            return "\033[0;37;40m";
         }
-        return "0;97;40";
+        return "0;37;40";
     }
 
     /**
@@ -3549,7 +3569,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the string to emit to an ANSI / ECMA-style terminal
      */
     private String clearAll() {
-        return "\033[0;97;40m\033[2J";
+        return "\033[0;37;40m\033[2J";
     }
 
     /**
@@ -3560,7 +3580,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the string to emit to an ANSI / ECMA-style terminal
      */
     private String clearRemainingLine() {
-        return "\033[0;97;40m\033[K";
+        return "\033[0;37;40m\033[K";
     }
 
     /**
