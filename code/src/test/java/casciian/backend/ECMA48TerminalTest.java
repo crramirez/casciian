@@ -494,6 +494,32 @@ class ECMA48TerminalTest {
             "Terminal should restore original white color on close");
     }
 
+    // Mouse pointer shape tests for xterm
+    
+    @Test
+    @DisplayName("OSC 22 pointer shape response is processed correctly")
+    void shouldProcessOsc22PointerShapeResponse() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Clear the output stream to check for new output
+        outputStream.reset();
+        
+        // OSC 22 should not trigger any action unless we're waiting for a response
+        terminal.oscResponse("22;xterm");
+        
+        // No pointer change should happen since we weren't querying
+        String output = outputStream.toString();
+        assertFalse(output.contains("\033]22;"),
+            "Should not change pointer when not waiting for query response");
+    }
+
+    @Test
+    @DisplayName("OSC_POINTER_SHAPE constant is defined correctly")
+    void shouldHaveCorrectOscPointerShapeConstant() {
+        assertEquals("22", ECMA48Terminal.OSC_POINTER_SHAPE,
+            "OSC_POINTER_SHAPE should be '22'");
+    }
     
     // Helper methods
 
