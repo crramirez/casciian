@@ -3744,22 +3744,12 @@ public class ECMA48Terminal extends LogicalScreen
             return;
         }
 
-        int red = (WHITE_COLOR_MINIMUM_THRESHOLD >>> 16) & 0xFF;
-        int green = (WHITE_COLOR_MINIMUM_THRESHOLD >>> 8) & 0xFF;
-        int blue = WHITE_COLOR_MINIMUM_THRESHOLD & 0xFF;
-
-        // Send OSC 4 to set color 7 to the threshold value
-        // Format: OSC 4 ; color-index ; rgb:rr/gg/bb ST
-        String oscSequence = String.format("\033]4;7;rgb:%02x/%02x/%02x\033\\",
-            red, green, blue);
+        sendOsc4Color7(WHITE_COLOR_MINIMUM_THRESHOLD);
 
         if (debugToStderr) {
             System.err.printf("Adjusting white color to #%06x\n",
                 WHITE_COLOR_MINIMUM_THRESHOLD);
         }
-
-        output.write(oscSequence);
-        output.flush();
 
         // Update MYWHITE to reflect the change
         MYWHITE = WHITE_COLOR_MINIMUM_THRESHOLD;
@@ -3781,25 +3771,39 @@ public class ECMA48Terminal extends LogicalScreen
             return;
         }
 
-        int red = (originalWhiteColor >>> 16) & 0xFF;
-        int green = (originalWhiteColor >>> 8) & 0xFF;
-        int blue = originalWhiteColor & 0xFF;
-
-        // Send OSC 4 to restore color 7 to the original value
-        // Format: OSC 4 ; color-index ; rgb:rr/gg/bb ST
-        String oscSequence = String.format("\033]4;7;rgb:%02x/%02x/%02x\033\\",
-            red, green, blue);
+        sendOsc4Color7(originalWhiteColor);
 
         if (debugToStderr) {
             System.err.printf("Restoring original white color to #%06x\n",
                 originalWhiteColor);
         }
 
-        output.write(oscSequence);
-        output.flush();
-
         // Update MYWHITE to reflect the restored original color
         MYWHITE = originalWhiteColor;
+    }
+
+    /**
+     * Send an OSC 4 sequence to set color 7 (white) in the terminal palette.
+     *
+     * <p>Uses 16-bit format (4 hex digits per component) for compatibility
+     * with terminals like wezterm that may not handle 8-bit format correctly.
+     * The 8-bit value is expanded to 16-bit by duplicating the byte
+     * (e.g., 0xB0 -&gt; 0xB0B0).</p>
+     *
+     * @param rgbColor the 24-bit RGB color value
+     */
+    private void sendOsc4Color7(final int rgbColor) {
+        int red = (rgbColor >>> 16) & 0xFF;
+        int green = (rgbColor >>> 8) & 0xFF;
+        int blue = rgbColor & 0xFF;
+
+        // Format: OSC 4 ; color-index ; rgb:rrrr/gggg/bbbb ST
+        // Using argument_index to avoid repeating color component parameters
+        String oscSequence = "\033]4;7;rgb:%1$02x%1$02x/%2$02x%2$02x/%3$02x%3$02x\033\\"
+            .formatted(red, green, blue);
+
+        output.write(oscSequence);
+        output.flush();
     }
 
     /**

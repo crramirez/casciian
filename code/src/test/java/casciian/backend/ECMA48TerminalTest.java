@@ -406,10 +406,11 @@ class ECMA48TerminalTest {
         String outputAfter = outputStream.toString();
         
         // The output should contain the OSC 4 sequence to set color 7
+        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
         assertTrue(outputAfter.length() > outputBefore.length(),
             "Terminal should send OSC command to adjust white color");
-        assertTrue(outputAfter.contains("\033]4;7;rgb:b0/b0/b0\033\\"),
-            "Terminal should adjust white color to #b0b0b0");
+        assertTrue(outputAfter.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
+            "Terminal should adjust white color to #b0b0b0 using 16-bit format");
     }
 
     @Test
@@ -429,7 +430,8 @@ class ECMA48TerminalTest {
         
         // The output should not contain an adjustment sequence
         // (only the normal screen clear/redraw that oscResponse triggers)
-        assertFalse(outputAfter.contains("\033]4;7;rgb:b0/b0/b0\033\\"),
+        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
+        assertFalse(outputAfter.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
             "Terminal should not adjust white color when it is already dark enough");
     }
 
@@ -446,7 +448,8 @@ class ECMA48TerminalTest {
         
         // The output should not contain an adjustment sequence because the color
         // is equal to the threshold (not brighter)
-        assertFalse(output.contains("\033]4;7;rgb:b0/b0/b0\033\\"),
+        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
+        assertFalse(output.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
             "Terminal should not adjust white color when it equals the threshold");
     }
 
@@ -459,7 +462,8 @@ class ECMA48TerminalTest {
         // First bright white color should trigger adjustment
         terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
         String outputAfterFirst = outputStream.toString();
-        assertTrue(outputAfterFirst.contains("\033]4;7;rgb:b0/b0/b0\033\\"),
+        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
+        assertTrue(outputAfterFirst.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
             "Terminal should adjust white color on first bright color");
 
         // Clear the output stream to check for new output
@@ -468,7 +472,7 @@ class ECMA48TerminalTest {
         // Second bright white color should not trigger another adjustment
         terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
         String outputAfterSecond = outputStream.toString();
-        assertFalse(outputAfterSecond.contains("\033]4;7;rgb:b0/b0/b0\033\\"),
+        assertFalse(outputAfterSecond.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
             "Terminal should not adjust white color again");
     }
 
@@ -489,9 +493,10 @@ class ECMA48TerminalTest {
         terminal = null; // Prevent double close in tearDown
 
         // The output should contain the OSC 4 sequence to restore the original color
+        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
         String output = outputStream.toString();
-        assertTrue(output.contains("\033]4;7;rgb:ff/ff/ff\033\\"),
-            "Terminal should restore original white color on close");
+        assertTrue(output.contains("\033]4;7;rgb:ffff/ffff/ffff\033\\"),
+            "Terminal should restore original white color on close using 16-bit format");
     }
 
     // Mouse pointer shape tests for xterm
