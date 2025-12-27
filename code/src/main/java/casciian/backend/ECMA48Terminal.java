@@ -3663,8 +3663,8 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Restore the original xterm mouse pointer shape.
-     * This is called when mouse mode is disabled or the terminal is closed.
+     * Restore the default xterm mouse pointer shape.
+     * This is called when the terminal is closed.
      */
     private void restoreXtermMousePointer() {
         if (mousePointerShapeChanged && output != null) {
