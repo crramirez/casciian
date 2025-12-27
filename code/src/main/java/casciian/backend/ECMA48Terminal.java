@@ -72,6 +72,19 @@ public class ECMA48Terminal extends LogicalScreen
     public static final String OSC_DEFAULT_BACKCOLOR = "11";
 
     /**
+     * Minimum threshold for white (light gray) color to ensure text visibility.
+     * If the terminal's color 7 (white/light gray) is brighter than this value,
+     * it will be adjusted to this darker shade to improve modal dialog visibility.
+     * Value is 0xB0B0B0 (RGB: 176, 176, 176).
+     * <p>
+     * Earlier discussion and issue comments referenced {@code #aaaaaa} ({@code 0xAAAAAA})
+     * as the target brightness. This implementation intentionally uses the slightly
+     * darker {@code 0xB0B0B0} to further improve contrast in modal dialogs while
+     * remaining close to the originally proposed threshold.
+     */
+    public static final int WHITE_COLOR_MINIMUM_THRESHOLD = 0xB0B0B0;
+
+    /**
      * States in the input parser.
      */
     private enum ParseState {
@@ -344,6 +357,18 @@ public class ECMA48Terminal extends LogicalScreen
     private static int MYBOLD_WHITE;
     private static int DEFAULT_FORECOLOR;
     private static int DEFAULT_BACKCOLOR;
+
+    /**
+     * If true, the white color (color 7) has been adjusted to improve visibility.
+     * This flag ensures the adjustment is only done once per session.
+     */
+    private static boolean whiteColorAdjusted = false;
+
+    /**
+     * The original white color value from the terminal, stored for restoration
+     * when the terminal is closed.
+     */
+    private static int originalWhiteColor = -1;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -805,6 +830,11 @@ public class ECMA48Terminal extends LogicalScreen
             if (debugToStderr) {
                 e.printStackTrace();
             }
+        }
+
+        // Restore original white color if it was adjusted
+        if (whiteColorAdjusted) {
+            restoreOriginalWhiteColor();
         }
 
         // Disable mouse reporting and show cursor.  Defensive null check
@@ -2142,6 +2172,11 @@ public class ECMA48Terminal extends LogicalScreen
                 MYWHITE   = rgbColor;
                 if (debugToStderr) {
                     System.err.println("    Set WHITE");
+                }
+                // Check if the white color is too bright and adjust if necessary
+                if (!whiteColorAdjusted && isColorBrighterThan(rgbColor, WHITE_COLOR_MINIMUM_THRESHOLD)) {
+                    originalWhiteColor = rgbColor;
+                    adjustWhiteColor();
                 }
                 break;
             case 8:
@@ -3611,6 +3646,119 @@ public class ECMA48Terminal extends LogicalScreen
      */
     public void setRgbColor(final boolean rgbColor) {
         doRgbColor = rgbColor;
+    }
+
+    /**
+     * Check if a color is brighter than a threshold color.
+     * Brightness is determined by comparing each RGB component individually
+     * rather than using standard luminance calculations.
+     *
+     * <p>This component-by-component approach is used because for grayscale
+     * colors like the terminal's "white" color (color 7), all components
+     * are typically equal. A simple component comparison ensures that a
+     * color like #BBBBBB is detected as brighter than #AAAAAA without
+     * the complexity of weighted luminance calculations.</p>
+     *
+     * @param color the color to check (as RGB integer)
+     * @param threshold the threshold color (as RGB integer)
+     * @return true if the color is brighter than the threshold
+     */
+    private boolean isColorBrighterThan(final int color, final int threshold) {
+        int colorRed = (color >>> 16) & 0xFF;
+        int colorGreen = (color >>> 8) & 0xFF;
+        int colorBlue = color & 0xFF;
+
+        int thresholdRed = (threshold >>> 16) & 0xFF;
+        int thresholdGreen = (threshold >>> 8) & 0xFF;
+        int thresholdBlue = threshold & 0xFF;
+
+        // Color is brighter if all components are >= threshold components
+        // and at least one component is > threshold
+        boolean allGreaterOrEqual = (colorRed >= thresholdRed)
+            && (colorGreen >= thresholdGreen)
+            && (colorBlue >= thresholdBlue);
+        boolean atLeastOneGreater = (colorRed > thresholdRed)
+            || (colorGreen > thresholdGreen)
+            || (colorBlue > thresholdBlue);
+
+        return allGreaterOrEqual && atLeastOneGreater;
+    }
+
+    /**
+     * Adjust the white color (color 7) to the minimum threshold to improve
+     * visibility in modal dialogs. This method sends an OSC 4 sequence to
+     * change the terminal's palette color 7.
+     */
+    private void adjustWhiteColor() {
+        if (output == null) {
+            return;
+        }
+
+        int red = (WHITE_COLOR_MINIMUM_THRESHOLD >>> 16) & 0xFF;
+        int green = (WHITE_COLOR_MINIMUM_THRESHOLD >>> 8) & 0xFF;
+        int blue = WHITE_COLOR_MINIMUM_THRESHOLD & 0xFF;
+
+        // Send OSC 4 to set color 7 to the threshold value
+        // Format: OSC 4 ; color-index ; rgb:rr/gg/bb ST
+        String oscSequence = String.format("\033]4;7;rgb:%02x/%02x/%02x\033\\",
+            red, green, blue);
+
+        if (debugToStderr) {
+            System.err.printf("Adjusting white color to #%06x\n",
+                WHITE_COLOR_MINIMUM_THRESHOLD);
+        }
+
+        output.write(oscSequence);
+        output.flush();
+
+        // Update MYWHITE to reflect the change
+        MYWHITE = WHITE_COLOR_MINIMUM_THRESHOLD;
+        whiteColorAdjusted = true;
+    }
+
+    /**
+     * Restore the original white color (color 7) in the terminal.
+     * This method sends an OSC 4 sequence to restore the terminal's
+     * original palette color 7.
+     *
+     * <p>Note: Uses -1 as sentinel value to indicate the original color
+     * was never recorded. This means 0x000000 (pure black) cannot be
+     * restored as the original white color, but this is acceptable since
+     * a terminal would never have pure black as its "white" color.</p>
+     */
+    private void restoreOriginalWhiteColor() {
+        if (output == null || originalWhiteColor < 0) {
+            return;
+        }
+
+        int red = (originalWhiteColor >>> 16) & 0xFF;
+        int green = (originalWhiteColor >>> 8) & 0xFF;
+        int blue = originalWhiteColor & 0xFF;
+
+        // Send OSC 4 to restore color 7 to the original value
+        // Format: OSC 4 ; color-index ; rgb:rr/gg/bb ST
+        String oscSequence = String.format("\033]4;7;rgb:%02x/%02x/%02x\033\\",
+            red, green, blue);
+
+        if (debugToStderr) {
+            System.err.printf("Restoring original white color to #%06x\n",
+                originalWhiteColor);
+        }
+
+        output.write(oscSequence);
+        output.flush();
+
+        // Update MYWHITE to reflect the restored original color
+        MYWHITE = originalWhiteColor;
+    }
+
+    /**
+     * Reset the white color adjustment state.
+     * This is package-private and intended for testing purposes only.
+     */
+    static void resetWhiteColorAdjustmentState() {
+        whiteColorAdjusted = false;
+        originalWhiteColor = -1;
     }
 
 }
