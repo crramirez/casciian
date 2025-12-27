@@ -3266,7 +3266,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @param header if true, make the full header, otherwise just emit the
      * color parameter e.g. "31;42;"
      * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[31;42m"
+     * e.g. "\033[91;42m"
      */
     private String color(final Color foreColor, final Color backColor,
         final boolean header) {
@@ -3276,7 +3276,8 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Convert Color.* values to SGR numerics
         ecmaBackColor += 40;
-        ecmaForeColor += 30;
+        // Use bright foreground colors (90-97) for foreground text
+        ecmaForeColor += 90;
 
         if (header) {
             return String.format("\033[%d;%dm", ecmaForeColor, ecmaBackColor);
@@ -3297,7 +3298,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @param blink if true, set blink
      * @param underline if true, set underline
      * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[0;1;31;42m"
+     * e.g. "\033[0;1;91;42m"
      */
     private String color(final Color foreColor, final Color backColor,
         final boolean bold, final boolean reverse, final boolean blink,
@@ -3308,7 +3309,8 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Convert Color.* values to SGR numerics
         ecmaBackColor += 40;
-        ecmaForeColor += 30;
+        // Use bright foreground colors (90-97) for foreground text
+        ecmaForeColor += 90;
 
         StringBuilder sb = new StringBuilder();
         if        (  bold &&  reverse &&  blink && !underline ) {
