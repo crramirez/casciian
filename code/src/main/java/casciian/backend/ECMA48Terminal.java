@@ -254,12 +254,6 @@ public class ECMA48Terminal extends LogicalScreen
     private boolean isGenuineXTerm = false;
 
     /**
-     * The original mouse pointer shape returned by xterm via OSC 22.
-     * This is saved when mouse mode is enabled so it can be restored on exit.
-     */
-    private String originalMousePointerShape = null;
-
-    /**
      * If true, we changed the mouse pointer shape and need to restore it.
      */
     private boolean mousePointerShapeChanged = false;
@@ -3658,7 +3652,6 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private void setXtermMousePointer(final String shape) {
         if (output != null) {
-            originalMousePointerShape = POINTER_SHAPE_DEFAULT;
             mousePointerShapeChanged = true;
             // OSC 22 ; shape ST - set pointer shape
             output.printf("\033]%s;%s\033\\", OSC_POINTER_SHAPE, shape);
@@ -3674,11 +3667,11 @@ public class ECMA48Terminal extends LogicalScreen
      * This is called when mouse mode is disabled or the terminal is closed.
      */
     private void restoreXtermMousePointer() {
-        if (mousePointerShapeChanged && originalMousePointerShape != null) {
-            setXtermMousePointer(originalMousePointerShape);
+        if (mousePointerShapeChanged && output != null) {
+            setXtermMousePointer(POINTER_SHAPE_DEFAULT);
             mousePointerShapeChanged = false;
             if (debugToStderr) {
-                System.err.println("Restored pointer shape to: " + originalMousePointerShape);
+                System.err.println("Restored pointer shape to: " + POINTER_SHAPE_DEFAULT);
             }
         }
     }
