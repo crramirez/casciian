@@ -80,6 +80,18 @@ public class ECMA48Terminal extends LogicalScreen
     public static final String OSC_POINTER_SHAPE = "22";
 
     /**
+     * Arrow pointer shape name for xterm OSC 22 sequence.
+     */
+    private static final String POINTER_SHAPE_ARROW = "arrow";
+
+    /**
+     * Alternative arrow pointer shape names that xterm may return.
+     * These are equivalent to "arrow" in functionality.
+     */
+    private static final String POINTER_SHAPE_LEFT_PTR = "left_ptr";
+    private static final String POINTER_SHAPE_TOP_LEFT_ARROW = "top_left_arrow";
+
+    /**
      * Minimum threshold for white (light gray) color to ensure text visibility.
      * If the terminal's color 7 (white/light gray) is brighter than this value,
      * it will be adjusted to this darker shade to improve modal dialog visibility.
@@ -862,9 +874,7 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         // Restore original xterm mouse pointer shape if it was changed
-        if (isGenuineXTerm) {
-            restoreXtermMousePointer();
-        }
+        restoreXtermMousePointer();
 
         // Disable mouse reporting and show cursor.  Defensive null check
         // here in case closeTerminal() is called twice.
@@ -2116,9 +2126,10 @@ public class ECMA48Terminal extends LogicalScreen
                     originalMousePointerShape = pointerShape;
                 }
                 // If the pointer is not an arrow, change it to arrow
-                if (!pointerShape.equals("arrow") && !pointerShape.equals("left_ptr")
-                        && !pointerShape.equals("top_left_arrow")) {
-                    setXtermMousePointer("arrow");
+                if (!pointerShape.equals(POINTER_SHAPE_ARROW)
+                        && !pointerShape.equals(POINTER_SHAPE_LEFT_PTR)
+                        && !pointerShape.equals(POINTER_SHAPE_TOP_LEFT_ARROW)) {
+                    setXtermMousePointer(POINTER_SHAPE_ARROW);
                     mousePointerShapeChanged = true;
                     if (debugToStderr) {
                         System.err.println("  Changed pointer to arrow");
@@ -3681,7 +3692,7 @@ public class ECMA48Terminal extends LogicalScreen
         if (output != null) {
             pointerShapeQuery = true;
             // OSC 22 ; ? ST - query current pointer shape
-            output.printf("\033]22;?\033\\");
+            output.printf("\033]%s;?\033\\", OSC_POINTER_SHAPE);
             output.flush();
             if (debugToStderr) {
                 System.err.println("Sent OSC 22 query for pointer shape");
@@ -3697,7 +3708,7 @@ public class ECMA48Terminal extends LogicalScreen
     private void setXtermMousePointer(final String shape) {
         if (output != null) {
             // OSC 22 ; shape ST - set pointer shape
-            output.printf("\033]22;%s\033\\", shape);
+            output.printf("\033]%s;%s\033\\", OSC_POINTER_SHAPE, shape);
             output.flush();
             if (debugToStderr) {
                 System.err.println("Set pointer shape to: " + shape);
