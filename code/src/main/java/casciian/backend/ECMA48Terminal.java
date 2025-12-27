@@ -357,13 +357,13 @@ public class ECMA48Terminal extends LogicalScreen
      * If true, the white color (color 7) has been adjusted to improve visibility.
      * This flag ensures the adjustment is only done once per session.
      */
-    private boolean whiteColorAdjusted = false;
+    private static boolean whiteColorAdjusted = false;
 
     /**
      * The original white color value from the terminal, stored for restoration
      * when the terminal is closed.
      */
-    private int originalWhiteColor = -1;
+    private static int originalWhiteColor = -1;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
