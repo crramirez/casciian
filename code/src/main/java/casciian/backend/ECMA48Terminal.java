@@ -75,9 +75,9 @@ public class ECMA48Terminal extends LogicalScreen
      * Minimum threshold for white (light gray) color to ensure text visibility.
      * If the terminal's color 7 (white/light gray) is brighter than this value,
      * it will be adjusted to this darker shade to improve modal dialog visibility.
-     * Value is 0xAAAAAA (RGB: 170, 170, 170).
+     * Value is 0xB0B0B0 (RGB: 176, 176, 176).
      */
-    public static final int WHITE_COLOR_MINIMUM_THRESHOLD = 0xAAAAAA;
+    public static final int WHITE_COLOR_MINIMUM_THRESHOLD = 0xB0B0B0;
 
     /**
      * States in the input parser.

@@ -382,9 +382,9 @@ class ECMA48TerminalTest {
     // White color adjustment tests
 
     @Test
-    @DisplayName("WHITE_COLOR_MINIMUM_THRESHOLD is set to 0xAAAAAA")
+    @DisplayName("WHITE_COLOR_MINIMUM_THRESHOLD is set to 0xB0B0B0")
     void testWhiteColorMinimumThreshold() {
-        assertEquals(0xAAAAAA, ECMA48Terminal.WHITE_COLOR_MINIMUM_THRESHOLD);
+        assertEquals(0xB0B0B0, ECMA48Terminal.WHITE_COLOR_MINIMUM_THRESHOLD);
     }
 
     @Test
@@ -405,8 +405,8 @@ class ECMA48TerminalTest {
         // The output should contain the OSC 4 sequence to set color 7
         assertTrue(outputAfter.length() > outputBefore.length(),
             "Terminal should send OSC command to adjust white color");
-        assertTrue(outputAfter.contains("\033]4;7;rgb:aa/aa/aa\033\\"),
-            "Terminal should adjust white color to #aaaaaa");
+        assertTrue(outputAfter.contains("\033]4;7;rgb:b0/b0/b0\033\\"),
+            "Terminal should adjust white color to #b0b0b0");
     }
 
     @Test
@@ -426,7 +426,7 @@ class ECMA48TerminalTest {
         
         // The output should not contain an adjustment sequence
         // (only the normal screen clear/redraw that oscResponse triggers)
-        assertFalse(outputAfter.contains("\033]4;7;rgb:aa/aa/aa\033\\"),
+        assertFalse(outputAfter.contains("\033]4;7;rgb:b0/b0/b0\033\\"),
             "Terminal should not adjust white color when it is already dark enough");
     }
 
@@ -437,13 +437,13 @@ class ECMA48TerminalTest {
         assertNotNull(terminal);
 
         // Simulate receiving the exact threshold color from the terminal
-        terminal.oscResponse("4;7;rgb:aaaa/aaaa/aaaa");
+        terminal.oscResponse("4;7;rgb:b0b0/b0b0/b0b0");
 
         String output = outputStream.toString();
         
         // The output should not contain an adjustment sequence because the color
         // is equal to the threshold (not brighter)
-        assertFalse(output.contains("\033]4;7;rgb:aa/aa/aa\033\\"),
+        assertFalse(output.contains("\033]4;7;rgb:b0/b0/b0\033\\"),
             "Terminal should not adjust white color when it equals the threshold");
     }
 
@@ -456,7 +456,7 @@ class ECMA48TerminalTest {
         // First bright white color should trigger adjustment
         terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
         String outputAfterFirst = outputStream.toString();
-        assertTrue(outputAfterFirst.contains("\033]4;7;rgb:aa/aa/aa\033\\"),
+        assertTrue(outputAfterFirst.contains("\033]4;7;rgb:b0/b0/b0\033\\"),
             "Terminal should adjust white color on first bright color");
 
         // Clear the output stream to check for new output
@@ -465,7 +465,7 @@ class ECMA48TerminalTest {
         // Second bright white color should not trigger another adjustment
         terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
         String outputAfterSecond = outputStream.toString();
-        assertFalse(outputAfterSecond.contains("\033]4;7;rgb:aa/aa/aa\033\\"),
+        assertFalse(outputAfterSecond.contains("\033]4;7;rgb:b0/b0/b0\033\\"),
             "Terminal should not adjust white color again");
     }
 
