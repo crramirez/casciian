@@ -1540,7 +1540,7 @@ public abstract class TWidget implements Comparable<TWidget> {
             return;
         }
 
-        assert (visible == true);
+        assert (visible);
 
         // Continue down the chain.  Draw the active child last so that it is
         // on top.  Create a second list, because sometimes we can be in the
@@ -2302,15 +2302,34 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param border attributes to use for the border
      * @param background attributes to use for the background
      * @param borderStyle style of border
-     * @param shadow if true, draw a "shadow" on the box
      */
     public final void drawBox(final int left, final int top,
         final int right, final int bottom,
         final CellAttributes border, final CellAttributes background,
-        final BorderStyle borderStyle, final boolean shadow) {
+        final BorderStyle borderStyle) {
 
         getScreen().drawBox(left, top, right, bottom, border, background,
-            borderStyle, shadow);
+            borderStyle, false);
+    }
+
+    /**
+     * Draw a box with a border, empty background and a shadow.
+     *
+     * @param left left column of box.  0 is the left-most row.
+     * @param top top row of the box.  0 is the top-most row.
+     * @param right right column of box
+     * @param bottom bottom row of the box
+     * @param border attributes to use for the border
+     * @param background attributes to use for the background
+     * @param borderStyle style of border
+     */
+    public final void drawBoxWithShadow(final int left, final int top,
+        final int right, final int bottom,
+        final CellAttributes border, final CellAttributes background,
+        final BorderStyle borderStyle) {
+
+        getScreen().drawBox(left, top, right, bottom, border, background,
+            borderStyle, true);
     }
 
     /**

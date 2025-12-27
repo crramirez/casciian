@@ -108,9 +108,9 @@ public final class Color {
     // ------------------------------------------------------------------------
 
     /**
-     * The color value.  Default is SGRWHITE.
+     * The color value.
      */
-    private int value = SGRWHITE;
+    private final int value;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -148,28 +148,20 @@ public final class Color {
     static Color getColor(final String colorName) {
         String str = colorName.toLowerCase();
 
-        if (str.equals("black")) {
-            return Color.BLACK;
-        } else if (str.equals("white")) {
-            return Color.WHITE;
-        } else if (str.equals("red")) {
-            return Color.RED;
-        } else if (str.equals("cyan")) {
-            return Color.CYAN;
-        } else if (str.equals("green")) {
-            return Color.GREEN;
-        } else if (str.equals("magenta")) {
-            return Color.MAGENTA;
-        } else if (str.equals("blue")) {
-            return Color.BLUE;
-        } else if (str.equals("yellow")) {
-            return Color.YELLOW;
-        } else if (str.equals("brown")) {
-            return Color.YELLOW;
-        } else {
-            // Let unknown strings become white
-            return Color.WHITE;
-        }
+        return switch (str) {
+            case "black" -> Color.BLACK;
+            case "white" -> Color.WHITE;
+            case "red" -> Color.RED;
+            case "cyan" -> Color.CYAN;
+            case "green" -> Color.GREEN;
+            case "magenta" -> Color.MAGENTA;
+            case "blue" -> Color.BLUE;
+            case "yellow" -> Color.YELLOW;
+            case "brown" -> Color.YELLOW;
+            default ->
+                // Let unknown strings become white
+                Color.WHITE;
+        };
     }
 
     /**
@@ -178,26 +170,17 @@ public final class Color {
      * @return the inverted color
      */
     public Color invert() {
-        switch (value) {
-        case SGRBLACK:
-            return Color.WHITE;
-        case SGRWHITE:
-            return Color.BLACK;
-        case SGRRED:
-            return Color.CYAN;
-        case SGRCYAN:
-            return Color.RED;
-        case SGRGREEN:
-            return Color.MAGENTA;
-        case SGRMAGENTA:
-            return Color.GREEN;
-        case SGRBLUE:
-            return Color.YELLOW;
-        case SGRYELLOW:
-            return Color.BLUE;
-        default:
-            throw new IllegalArgumentException("Invalid Color value: " + value);
-        }
+        return switch (value) {
+            case SGRBLACK -> Color.WHITE;
+            case SGRWHITE -> Color.BLACK;
+            case SGRRED -> Color.CYAN;
+            case SGRCYAN -> Color.RED;
+            case SGRGREEN -> Color.MAGENTA;
+            case SGRMAGENTA -> Color.GREEN;
+            case SGRBLUE -> Color.YELLOW;
+            case SGRYELLOW -> Color.BLUE;
+            default -> throw new IllegalArgumentException("Invalid Color value: " + value);
+        };
     }
 
     /**
@@ -208,11 +191,10 @@ public final class Color {
      */
     @Override
     public boolean equals(final Object rhs) {
-        if (!(rhs instanceof Color)) {
+        if (!(rhs instanceof Color that)) {
             return false;
         }
 
-        Color that = (Color) rhs;
         return (value == that.value);
     }
 
@@ -233,26 +215,17 @@ public final class Color {
      */
     @Override
     public String toString() {
-        switch (value) {
-        case SGRBLACK:
-            return "black";
-        case SGRWHITE:
-            return "white";
-        case SGRRED:
-            return "red";
-        case SGRCYAN:
-            return "cyan";
-        case SGRGREEN:
-            return "green";
-        case SGRMAGENTA:
-            return "magenta";
-        case SGRBLUE:
-            return "blue";
-        case SGRYELLOW:
-            return "yellow";
-        default:
-            throw new IllegalArgumentException("Invalid Color value: " + value);
-        }
+        return switch (value) {
+            case SGRBLACK -> "black";
+            case SGRWHITE -> "white";
+            case SGRRED -> "red";
+            case SGRCYAN -> "cyan";
+            case SGRGREEN -> "green";
+            case SGRMAGENTA -> "magenta";
+            case SGRBLUE -> "blue";
+            case SGRYELLOW -> "yellow";
+            default -> throw new IllegalArgumentException("Invalid Color value: " + value);
+        };
     }
 
     /**
@@ -307,27 +280,18 @@ public final class Color {
      * @return Color.RED, Color.BLUE, etc.
      */
     public static Color getSgrColor(final int sgrValue) {
-        switch (sgrValue) {
-        case 0:
-            return Color.BLACK;
-        case 1:
-            return Color.RED;
-        case 2:
-            return Color.GREEN;
-        case 3:
-            return Color.YELLOW;
-        case 4:
-            return Color.BLUE;
-        case 5:
-            return Color.MAGENTA;
-        case 6:
-            return Color.CYAN;
-        case 7:
-            return Color.WHITE;
-        default:
-            throw new IllegalArgumentException("Invalid Color value: " +
+        return switch (sgrValue) {
+            case 0 -> Color.BLACK;
+            case 1 -> Color.RED;
+            case 2 -> Color.GREEN;
+            case 3 -> Color.YELLOW;
+            case 4 -> Color.BLUE;
+            case 5 -> Color.MAGENTA;
+            case 6 -> Color.CYAN;
+            case 7 -> Color.WHITE;
+            default -> throw new IllegalArgumentException("Invalid Color value: " +
                 sgrValue);
-        }
+        };
     }
 
 }

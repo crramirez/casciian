@@ -85,8 +85,6 @@ public class DemoApplication extends TApplication {
         final OutputStream output) throws UnsupportedEncodingException {
         super(input, output);
 
-        initializeSystemPropertiesForDemo();
-
         addAllWidgets();
 
         getBackend().setTitle(i18n.getString("applicationTitle"));
@@ -108,8 +106,6 @@ public class DemoApplication extends TApplication {
     public DemoApplication(final InputStream input, final Reader reader,
         final PrintWriter writer, final boolean setRawMode) {
         super(input, reader, writer, setRawMode);
-
-        initializeSystemPropertiesForDemo();
 
         addAllWidgets();
 
@@ -140,60 +136,36 @@ public class DemoApplication extends TApplication {
     public DemoApplication(final Backend backend) {
         super(backend);
 
-        initializeSystemPropertiesForDemo();
-
         addAllWidgets();
-    }
-
-    /**
-     * Initialize SystemProperties to true for demo application.
-     * This method is called from constructors to ensure consistent behavior
-     * across different initialization paths.
-     */
-    private void initializeSystemPropertiesForDemo() {
-        SystemProperties.setAnimations(true);
-        SystemProperties.setTextMouse(true);
-        SystemProperties.setTranslucence(true);
-    }
-
-    /**
-     * Helper method to update a menu item's checked state.
-     *
-     * @param menuId the ID of the menu item to update
-     * @param checked the checked state to set
-     */
-    private void setMenuItemChecked(int menuId, boolean checked) {
-        TMenuItem menuItem = getMenuItem(menuId);
-        if (menuItem != null) {
-            menuItem.setChecked(checked);
-        }
     }
 
     /**
      * Public constructor.
      *
      * @param backendType one of the TApplication.BackendType values
-     * @throws Exception if TApplication can't instantiate the Backend.
+     * @param defaults if true, apply Casciian default settings; if false, apply custom theme and visual enhancements
+     * @throws UnsupportedEncodingException if TApplication can't instantiate the Backend.
      */
     @SuppressWarnings("this-escape")
-    public DemoApplication(final BackendType backendType) throws Exception {
+    public DemoApplication(final BackendType backendType, final boolean defaults) throws UnsupportedEncodingException {
         super(backendType);
-
-        initializeSystemPropertiesForDemo();
 
         addAllWidgets();
         getBackend().setTitle(i18n.getString("applicationTitle"));
 
-        // Use custom theme by default.
-        onMenu(new TMenuEvent(getBackend(), 10003));
+        if (!defaults) {
+            // Use the custom theme by default.
+            onMenu(new TMenuEvent(getBackend(), 10003));
 
-        // Use window gradients by default.
-        getMenuItem(10010).setChecked(true);
-        onMenu(new TMenuEvent(getBackend(), 10010));
+            // Use window gradients by default.
+            setMenuItemChecked(10010, true);
+            onMenu(new TMenuEvent(getBackend(), 10010));
 
-        // Expose terminal background image by default.
-        // getMenuItem(10011).setChecked(true);
-        // onMenu(new TMenuEvent(getBackend(), 10011));
+            // Expose terminal background image by default.
+            setMenuItemChecked(10011, true);
+            onMenu(new TMenuEvent(getBackend(), 10011));
+        }
+
     }
 
     /**
@@ -211,8 +183,6 @@ public class DemoApplication extends TApplication {
 
         super(backendType, windowWidth, windowHeight, fontSize);
 
-        initializeSystemPropertiesForDemo();
-
         addAllWidgets();
         getBackend().setTitle(i18n.getString("applicationTitle"));
 
@@ -220,7 +190,7 @@ public class DemoApplication extends TApplication {
         onMenu(new TMenuEvent(getBackend(), 10003));
 
         // Use window gradients by default.
-        getMenuItem(10010).setChecked(true);
+        setMenuItemChecked(10010, true);
         onMenu(new TMenuEvent(getBackend(), 10010));
 
         // Expose terminal background image by default.
@@ -346,6 +316,8 @@ public class DemoApplication extends TApplication {
             // Apply Casciian defaults: set all boolean properties to false,
             // disable gradients, and apply bland look
             SystemProperties.setAnimations(false);
+            animationsChanged();
+
             SystemProperties.setTextMouse(false);
             SystemProperties.setTranslucence(false);
             SystemProperties.setShadowOpacity(60);
@@ -417,6 +389,8 @@ public class DemoApplication extends TApplication {
             // Enable/disable animations.
             TMenuItem menuItem = getMenuItem(menu.getId());
             SystemProperties.setAnimations(menuItem.isChecked());
+            animationsChanged();
+
             return true;
         }
 
@@ -552,7 +526,8 @@ public class DemoApplication extends TApplication {
         // not have an open effect.
         boolean oldHasAnimations = SystemProperties.isAnimations();
         SystemProperties.setAnimations(false);
-        DemoMainWindow mainWindow = new DemoMainWindow(this);
+
+        new DemoMainWindow(this);
         SystemProperties.setAnimations(oldHasAnimations);
 
         // Add the menus

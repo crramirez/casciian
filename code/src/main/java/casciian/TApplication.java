@@ -30,6 +30,7 @@ import java.io.UnsupportedEncodingException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -37,6 +38,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 import casciian.backend.Backend;
 import casciian.backend.ECMA48Backend;
@@ -97,6 +100,16 @@ public class TApplication implements Runnable {
      * be centered.
      */
     protected boolean smartWindowPlacement = true;
+
+    /**
+     * Timer for animation updates.
+     */
+    private TTimer animationTimer;
+
+    /**
+     * Timer for blinking cursor updates.
+     */
+    private TTimer blinkTimer;
 
     /**
      * Two backend types are available.
@@ -819,15 +832,52 @@ public class TApplication implements Runnable {
         windows         = new LinkedList<TWindow>();
         menus           = new ArrayList<TMenu>();
         subMenus        = new ArrayList<TMenu>();
-        timers          = new LinkedList<TTimer>();
+        timers          = new CopyOnWriteArrayList<>();
         accelerators    = new HashMap<TKeypress, TMenuItem>();
         menuItems       = new LinkedList<TMenuItem>();
         desktop         = new TDesktop(this);
 
+        animationsChanged();
+
+        // Load the help system
+        /*
+         * This isn't the best solution.  But basically if a TApplication
+         * subclass constructor throws and needs to use TExceptionDialog,
+         * it may end up at the bottom of the window stack with a bunch
+         * of modal windows on top of it if said constructors spawn their
+         * windows also via invokeLater().  But if they don't do that,
+         * and instead just conventionally construct their windows, then
+         * this exception dialog will end up on top where it should be.
+         */
+        invokeLater(() -> {
+            try {
+                ClassLoader loader = Thread.currentThread().getContextClassLoader();
+                helpFile = new HelpFile();
+                helpFile.load(loader.getResourceAsStream("help.xml"));
+            } catch (Exception e) {
+                new TExceptionDialog(TApplication.this, e);
+            }
+        });
+    }
+
+    /**
+     * Initializes animation timers based on system properties.
+     */
+    protected void animationsChanged() {
+        if (this.animationTimer != null) {
+            removeTimer(this.animationTimer);
+            this.animationTimer = null;
+        }
+
+        if (this.blinkTimer != null) {
+            removeTimer(this.blinkTimer);
+            this.blinkTimer = null;
+        }
+
         if (SystemProperties.isAnimations()) {
             // Animations always check every 1/32 of a second.
             final int ANIMATION_FPS = 32;
-            TTimer animationTimer = addTimer(1000 / ANIMATION_FPS, true,
+            this.animationTimer = addTimer(1000 / ANIMATION_FPS, true,
                 new TAction() {
                     public void DO() {
                         doRepaint();
@@ -844,7 +894,7 @@ public class TApplication implements Runnable {
             // All the backends need to have a timer to drive blink state,
             // but MultiBackend specifically also needs to do idle checks.
             if (backend instanceof MultiBackend) {
-                addTimer(millis, true,
+                this.blinkTimer = addTimer(millis, true,
                     new TAction() {
                         public void DO() {
                             // Update idle checks.
@@ -854,7 +904,7 @@ public class TApplication implements Runnable {
                     }
                 );
             } else {
-                addTimer(millis, true,
+                this.blinkTimer = addTimer(millis, true,
                     new TAction() {
                         public void DO() {
                             doRepaint();
@@ -863,28 +913,6 @@ public class TApplication implements Runnable {
                 );
             }
         }
-
-        // Load the help system
-        invokeLater(new Runnable() {
-            /*
-             * This isn't the best solution.  But basically if a TApplication
-             * subclass constructor throws and needs to use TExceptionDialog,
-             * it may end up at the bottom of the window stack with a bunch
-             * of modal windows on top of it if said constructors spawn their
-             * windows also via invokeLater().  But if they don't do that,
-             * and instead just conventionally construct their windows, then
-             * this exception dialog will end up on top where it should be.
-             */
-            public void run() {
-                try {
-                    ClassLoader loader = Thread.currentThread().getContextClassLoader();
-                    helpFile = new HelpFile();
-                    helpFile.load(loader.getResourceAsStream("help.xml"));
-                } catch (Exception e) {
-                    new TExceptionDialog(TApplication.this, e);
-                }
-            }
-        });
     }
 
     // ------------------------------------------------------------------------
@@ -1081,6 +1109,19 @@ public class TApplication implements Runnable {
         }
 
         return false;
+    }
+
+    /**
+     * Helper method to update a menu item's checked state.
+     *
+     * @param menuId the ID of the menu item to update
+     * @param checked the checked state to set
+     */
+    protected void setMenuItemChecked(int menuId, boolean checked) {
+        TMenuItem menuItem = getMenuItem(menuId);
+        if (menuItem != null) {
+            menuItem.setChecked(checked);
+        }
     }
 
     /**
@@ -2593,13 +2634,14 @@ public class TApplication implements Runnable {
         }
 
         // Draw each window in reverse Z order
-        List<TWindow> sorted = new ArrayList<TWindow>(windows);
-        Collections.sort(sorted);
+        List<TWindow> sorted = windows.stream()
+            .sorted(Comparator.reverseOrder())
+            .collect(Collectors.toList()); // A non-read-only list is required
+
         TWindow topLevel = null;
-        if (sorted.size() > 0) {
-            topLevel = sorted.get(0);
+        if (!sorted.isEmpty()) {
+            topLevel = sorted.getLast();
         }
-        Collections.reverse(sorted);
         for (TWindow window: sorted) {
             if (window.isShown()) {
                 // Reset the screen clipping so we can draw the next window.
@@ -2656,7 +2698,7 @@ public class TApplication implements Runnable {
                 if (SystemProperties.isTranslucence()) {
                     drawTranslucentWindow(getScreen(), menu);
                 } else {
-                    ((TWindow) menu).drawChildren();
+                    menu.drawChildren();
                 }
 
                 // Reset the screen clipping so we can draw the next title.
@@ -2671,7 +2713,7 @@ public class TApplication implements Runnable {
             if (SystemProperties.isTranslucence()) {
                 drawTranslucentWindow(getScreen(), menu);
             } else {
-                ((TWindow) menu).drawChildren();
+                menu.drawChildren();
             }
         }
 
@@ -2749,8 +2791,8 @@ public class TApplication implements Runnable {
                 }
             }
 
-            if (sorted.size() > 0) {
-                activeWidget = sorted.get(sorted.size() - 1).getActiveChild();
+            if (!sorted.isEmpty()) {
+                activeWidget = sorted.getLast().getActiveChild();
 
                 if (!(activeWidget instanceof TDesktop)) {
                     assert (activeWidget.isActive());
@@ -2770,7 +2812,6 @@ public class TApplication implements Runnable {
                     } else {
                         // Turn off the cursor.  Also place it at 0,0.
                         getScreen().putCursor(false, 0, 0);
-                        cursor = false;
                     }
                 }
             }
@@ -4003,12 +4044,10 @@ public class TApplication implements Runnable {
      * @return the menu item, or null if not found
      */
     public final TMenuItem getMenuItem(final int id) {
-        for (TMenuItem item: menuItems) {
-            if (item.getId() == id) {
-                return item;
-            }
-        }
-        return null;
+        return menuItems.stream()
+            .filter(item -> item.getId() == id)
+            .findFirst()
+            .orElse(null);
     }
 
     /**
@@ -4290,9 +4329,8 @@ public class TApplication implements Runnable {
         final TAction action) {
 
         TTimer timer = new TTimer(duration, recurring, action);
-        synchronized (timers) {
-            timers.add(timer);
-        }
+        timers.add(timer);
+
         return timer;
     }
 
