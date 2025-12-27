@@ -1478,14 +1478,12 @@ public class ECMA48Terminal extends LogicalScreen
                     if ((lCell.getForeColorRGB() < 0)
                         && ((lastAttr.getForeColorRGB() >= 0)
                             || !lCell.getForeColor().equals(lastAttr.getForeColor())
-                            || lastAttr.isDefaultColor(true)
-                            || lCell.isBold() != lastAttr.isBold())
+                            || lastAttr.isDefaultColor(true))
                     ) {
                         if (debugToStderr && reallyDebug) {
                             System.err.println("4 set foreColor");
                         }
-                        sb.append(color(lCell.getForeColor(), true, true,
-                            lCell.isBold()));
+                        sb.append(color(lCell.getForeColor(), true, true));
                     }
                 }
 
@@ -3211,47 +3209,27 @@ public class ECMA48Terminal extends LogicalScreen
      * Create a SGR parameter sequence for a single color change.
      *
      * @param color one of the Color.WHITE, Color.BLUE, etc. constants
-     * @param foreground if true, this is a foreground color
+     * @param foreground if true, this is a foreground color and bright colors
+     * (90-97) will be used. This is the AIXterm-style bright colors which are
+     * widely supported and do not rely on SGR 1 to switch to bright colors.
+     * Some terminals (e.g., Terminator, gnome-terminal) do not interpret SGR 1
+     * (bold) as switching to bright colors.
      * @param header if true, make the full header, otherwise just emit the
      * color parameter e.g. "42;"
-     * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[42m"
-     */
-    private String color(final Color color, final boolean foreground,
-        final boolean header) {
-
-        return color(color, foreground, header, false);
-    }
-
-    /**
-     * Create a SGR parameter sequence for a single color change.
-     *
-     * @param color one of the Color.WHITE, Color.BLUE, etc. constants
-     * @param foreground if true, this is a foreground color
-     * @param header if true, make the full header, otherwise just emit the
-     * color parameter e.g. "42;"
-     * @param bold if true and foreground is true, use bright colors (90-97)
-     * instead of normal colors (30-37). This is needed because some terminals
-     * (e.g., Terminator, gnome-terminal) do not interpret SGR 1 (bold) as
-     * switching to bright colors.
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[42m" or "\033[92m" for bright green
      */
     private String color(final Color color, final boolean foreground,
-        final boolean header, final boolean bold) {
+        final boolean header) {
 
         int ecmaColor = color.getValue();
 
         // Convert Color.* values to SGR numerics
         if (foreground) {
-            if (bold) {
-                // Use bright foreground colors (90-97) for bold text.
-                // This is the AIXterm-style bright colors which are widely
-                // supported and do not rely on SGR 1 to switch to bright colors.
-                ecmaColor += 90;
-            } else {
-                ecmaColor += 30;
-            }
+            // Use bright foreground colors (90-97) for foreground text.
+            // This is the AIXterm-style bright colors which are widely
+            // supported and do not rely on SGR 1 to switch to bright colors.
+            ecmaColor += 90;
         } else {
             ecmaColor += 40;
         }
@@ -3539,9 +3517,9 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String normal(final boolean header) {
         if (header) {
-            return "\033[0;37;40m";
+            return "\033[0;97;40m";
         }
-        return "0;37;40";
+        return "0;97;40";
     }
 
     /**
@@ -3569,7 +3547,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the string to emit to an ANSI / ECMA-style terminal
      */
     private String clearAll() {
-        return "\033[0;37;40m\033[2J";
+        return "\033[0;97;40m\033[2J";
     }
 
     /**
@@ -3580,7 +3558,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the string to emit to an ANSI / ECMA-style terminal
      */
     private String clearRemainingLine() {
-        return "\033[0;37;40m\033[K";
+        return "\033[0;97;40m\033[K";
     }
 
     /**
