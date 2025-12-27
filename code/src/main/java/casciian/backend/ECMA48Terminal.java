@@ -3714,10 +3714,6 @@ public class ECMA48Terminal extends LogicalScreen
         // Update MYWHITE to reflect the change
         MYWHITE = WHITE_COLOR_MINIMUM_THRESHOLD;
         whiteColorAdjusted = true;
-
-        // Redraw the screen with the new color
-        clearPhysical();
-        reallyCleared = true;
     }
 
     /**
