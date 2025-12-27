@@ -45,6 +45,9 @@ class ECMA48TerminalTest {
 
     @BeforeEach
     void setUp() {
+        // Reset static state for white color adjustment
+        ECMA48Terminal.resetWhiteColorAdjustmentState();
+
         // Create mock backend
         mockBackend = Mockito.mock(Backend.class);
 
@@ -467,6 +470,28 @@ class ECMA48TerminalTest {
         String outputAfterSecond = outputStream.toString();
         assertFalse(outputAfterSecond.contains("\033]4;7;rgb:b0/b0/b0\033\\"),
             "Terminal should not adjust white color again");
+    }
+
+    @Test
+    @DisplayName("should restore original white color when terminal is closed")
+    void shouldRestoreOriginalWhiteColorWhenTerminalClosed() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Simulate receiving a bright white color (0xFFFFFF) to trigger adjustment
+        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
+        
+        // Clear the output stream to check for restoration output
+        outputStream.reset();
+
+        // Close the terminal - should restore the original color
+        terminal.closeTerminal();
+        terminal = null; // Prevent double close in tearDown
+
+        // The output should contain the OSC 4 sequence to restore the original color
+        String output = outputStream.toString();
+        assertTrue(output.contains("\033]4;7;rgb:ff/ff/ff\033\\"),
+            "Terminal should restore original white color on close");
     }
 
     

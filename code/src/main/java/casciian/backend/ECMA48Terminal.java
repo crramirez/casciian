@@ -76,6 +76,11 @@ public class ECMA48Terminal extends LogicalScreen
      * If the terminal's color 7 (white/light gray) is brighter than this value,
      * it will be adjusted to this darker shade to improve modal dialog visibility.
      * Value is 0xB0B0B0 (RGB: 176, 176, 176).
+     * <p>
+     * Earlier discussion and issue comments referenced {@code #aaaaaa} ({@code 0xAAAAAA})
+     * as the target brightness. This implementation intentionally uses the slightly
+     * darker {@code 0xB0B0B0} to further improve contrast in modal dialogs while
+     * remaining close to the originally proposed threshold.
      */
     public static final int WHITE_COLOR_MINIMUM_THRESHOLD = 0xB0B0B0;
 
@@ -3749,6 +3754,15 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Update MYWHITE to reflect the restored original color
         MYWHITE = originalWhiteColor;
+    }
+
+    /**
+     * Reset the white color adjustment state.
+     * This is package-private and intended for testing purposes only.
+     */
+    static void resetWhiteColorAdjustmentState() {
+        whiteColorAdjusted = false;
+        originalWhiteColor = -1;
     }
 
 }
