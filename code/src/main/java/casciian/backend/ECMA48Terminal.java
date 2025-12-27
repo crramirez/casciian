@@ -3749,9 +3749,12 @@ public class ECMA48Terminal extends LogicalScreen
         int blue = WHITE_COLOR_MINIMUM_THRESHOLD & 0xFF;
 
         // Send OSC 4 to set color 7 to the threshold value
-        // Format: OSC 4 ; color-index ; rgb:rr/gg/bb ST
-        String oscSequence = String.format("\033]4;7;rgb:%02x/%02x/%02x\033\\",
-            red, green, blue);
+        // Format: OSC 4 ; color-index ; rgb:rrrr/gggg/bbbb ST
+        // Using 16-bit format (4 hex digits per component) for compatibility
+        // with terminals like wezterm that may not handle 8-bit format correctly.
+        // The 8-bit value is expanded to 16-bit by duplicating the byte (e.g., 0xB0 -> 0xB0B0).
+        String oscSequence = String.format("\033]4;7;rgb:%02x%02x/%02x%02x/%02x%02x\033\\",
+            red, red, green, green, blue, blue);
 
         if (debugToStderr) {
             System.err.printf("Adjusting white color to #%06x\n",
@@ -3786,9 +3789,12 @@ public class ECMA48Terminal extends LogicalScreen
         int blue = originalWhiteColor & 0xFF;
 
         // Send OSC 4 to restore color 7 to the original value
-        // Format: OSC 4 ; color-index ; rgb:rr/gg/bb ST
-        String oscSequence = String.format("\033]4;7;rgb:%02x/%02x/%02x\033\\",
-            red, green, blue);
+        // Format: OSC 4 ; color-index ; rgb:rrrr/gggg/bbbb ST
+        // Using 16-bit format (4 hex digits per component) for compatibility
+        // with terminals like wezterm that may not handle 8-bit format correctly.
+        // The 8-bit value is expanded to 16-bit by duplicating the byte (e.g., 0xFF -> 0xFFFF).
+        String oscSequence = String.format("\033]4;7;rgb:%02x%02x/%02x%02x/%02x%02x\033\\",
+            red, red, green, green, blue, blue);
 
         if (debugToStderr) {
             System.err.printf("Restoring original white color to #%06x\n",
