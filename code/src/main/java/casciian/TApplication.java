@@ -1125,6 +1125,20 @@ public class TApplication implements Runnable {
     }
 
     /**
+     * Helper method to get a menu item's checked state.
+     *
+     * @param menuId the ID of the menu item to get
+     */
+    protected boolean isMenuItemChecked(int menuId) {
+        TMenuItem menuItem = getMenuItem(menuId);
+        if (menuItem != null) {
+            return menuItem.isChecked();
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Method that TApplication subclasses can override to handle menu
      * events.
      *

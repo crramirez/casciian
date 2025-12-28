@@ -329,14 +329,7 @@ public class DemoApplication extends TApplication {
             setMenuItemChecked(10010, false);  // gradients
 
             // Disable gradients for all windows
-            for (TWindow window: getAllWindows()) {
-                if (window instanceof DemoMainWindow demoMainWindow) {
-                    demoMainWindow.setUseGradient(false);
-                }
-                if (window instanceof DemoCheckBoxWindow demoCheckBoxWindow) {
-                    demoCheckBoxWindow.setUseGradient(false);
-                }
-            }
+            setUseGradientAllSupportedWindows(false);
 
             // Apply bland look
             return applyBlandLook();
@@ -367,21 +360,17 @@ public class DemoApplication extends TApplication {
             TMenuItem menuItem = getMenuItem(menu.getId());
             boolean useGradient = menuItem.isChecked();
 
-            for (TWindow window: getAllWindows()) {
-                if (window instanceof DemoMainWindow) {
-                    ((DemoMainWindow) window).setUseGradient(useGradient);
-                }
-                if (window instanceof DemoCheckBoxWindow) {
-                    ((DemoCheckBoxWindow) window).setUseGradient(useGradient);
-                }
-            }
+            setUseGradientAllSupportedWindows(useGradient);
             return true;
         }
 
         if (menu.getId() == 10013) {
             // Enable/disable text mouse.
-            TMenuItem menuItem = getMenuItem(menu.getId());
-            SystemProperties.setTextMouse(menuItem.isChecked());
+            SystemProperties.setTextMouse(isMenuItemChecked(menu.getId()));
+            boolean useGradient = isMenuItemChecked(10010);
+            if (useGradient) {
+                setUseGradientAllSupportedWindows(true);
+            }
             return true;
         }
 
@@ -423,6 +412,17 @@ public class DemoApplication extends TApplication {
         }
 
         return super.onMenu(menu);
+    }
+
+    private void setUseGradientAllSupportedWindows(boolean useGradient) {
+        for (TWindow window: getAllWindows()) {
+            if (window instanceof DemoMainWindow windowMain) {
+                windowMain.setUseGradient(useGradient);
+            }
+            if (window instanceof DemoCheckBoxWindow windowCheckBox) {
+                windowCheckBox.setUseGradient(useGradient);
+            }
+        }
     }
 
     private void applyRoundBorders() {
@@ -491,10 +491,9 @@ public class DemoApplication extends TApplication {
      */
     @Override
     protected void onPreDraw() {
-        if (getScreen() instanceof ECMA48Terminal) {
-            ECMA48Terminal terminal = (ECMA48Terminal) getScreen();
+        if (getScreen() instanceof ECMA48Terminal terminal) {
             int bytes = terminal.getBytesPerSecond();
-            String bps = "";
+            String bps;
             if (bytes > 1024 * 1024 * 1024) {
                 bps = String.format("%4.2f GB/s",
                     ((double) bytes / (1024 * 1024 * 1024)));

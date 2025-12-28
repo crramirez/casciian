@@ -22,8 +22,6 @@ package demo;
 import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.ResourceBundle;
 
 import casciian.TAction;
@@ -36,8 +34,8 @@ import casciian.TLabel;
 import casciian.TProgressBar;
 import casciian.TTableWindow;
 import casciian.TTimer;
-import casciian.TWidget;
 import casciian.TWindow;
+import casciian.backend.SystemProperties;
 import casciian.effect.GradientCellTransform;
 import casciian.effect.MouseGlowCellTransform;
 import casciian.event.TCommandEvent;
@@ -124,7 +122,7 @@ public class DemoMainWindow extends TWindow {
     private DemoMainWindow(final TApplication parent, final int flags) {
         // Construct a demo window.  X and Y don't matter because it will be
         // centered on screen.
-        super(parent, "", 0, 0, 66, 23, flags);
+        super(parent, "", 0, 0, 66, 25, flags);
         i18n = ResourceBundle.getBundle(DemoMainWindow.class.getName(),
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -241,30 +239,14 @@ public class DemoMainWindow extends TWindow {
 
         addLabel(i18n.getString("terminalLabel"), 1, row);
         addButton(i18n.getString("terminalButton"), col, row,
-            new TAction() {
-                public void DO() {
-                    getApplication().openTerminal(0, 0);
-                }
-            }
-        );
+            () -> getApplication().openTerminal(0, 0));
         row += 2;
 
         addLabel(i18n.getString("colorAndStyleEditorLabel"), 1, row);
         addButton(i18n.getString("colorEditorButton"), col, row,
-            new TAction() {
-                public void DO() {
-                    new TEditColorThemeWindow(getApplication());
-                }
-            }
-        );
+            () -> new TEditColorThemeWindow(getApplication()));
         addButton(i18n.getString("styleEditorButton"), col + 13, row,
-            new TAction() {
-                public void DO() {
-                    new TEditDesktopStyleWindow(getApplication());
-                }
-            }
-        );
-        row += 2;
+            () -> new TEditDesktopStyleWindow(getApplication()));
 
         row = 15;
         progressBar1 = addProgressBar(col + 13, row, 12, 0, true);
@@ -308,7 +290,10 @@ public class DemoMainWindow extends TWindow {
             }
         );
 
-        addButton("Exception", col, row + 3,
+        row += 2;
+
+        addLabel("Exception management", 1, row);
+        addButton("Exception", col, row,
             new TAction() {
                 public void DO() {
                     try {
@@ -387,17 +372,21 @@ public class DemoMainWindow extends TWindow {
      */
     public void setUseGradient(final boolean useGradient) {
         if (useGradient) {
-            int PINK = 0xf7a8b8;
-            int BLUE = 0x55cdfc;
-            int YELLOW = 0xffff00;
-            int ORANGE = 0xffc800;
+            int pink = 0xf7a8b8;
+            int blue = 0x55cdfc;
+            int yellow = 0xffff00;
+            int orange = 0xffc800;
 
             setDrawPreTransform(new GradientCellTransform(
-                GradientCellTransform.Layer.BACKGROUND, BLUE, PINK,
-                YELLOW, BLUE), true);
+                GradientCellTransform.Layer.BACKGROUND, blue, pink,
+                yellow, blue), true);
 
-            setDrawPostTransform(new MouseGlowCellTransform(
-                MouseGlowCellTransform.Layer.BOTH, ORANGE, 7));
+            if (SystemProperties.isTextMouse()) {
+                setDrawPostTransform(new MouseGlowCellTransform(
+                    MouseGlowCellTransform.Layer.BOTH, orange, 7));
+            } else {
+                setDrawPostTransform(null);
+            }
         } else {
             setDrawPreTransform(null);
             setDrawPostTransform(null);
