@@ -1958,9 +1958,7 @@ public class TApplication implements Runnable {
         synchronized (windows) {
             windowsSnapshot = new ArrayList<TWindow>(windows);
         }
-        for (TWindow window: windowsSnapshot) {
-            window.onIdle();
-        }
+        windowsSnapshot.forEach(TWindow::onIdle);
         if (desktop != null) {
             desktop.onIdle();
         }
@@ -2135,9 +2133,7 @@ public class TApplication implements Runnable {
 
         int alpha = opacity * 255 / 100;
         synchronized (windows) {
-            for (TWindow window: windows) {
-                window.setAlpha(alpha);
-            }
+            windows.forEach(window -> window.setAlpha(alpha));
         }
     }
 
@@ -2908,13 +2904,7 @@ public class TApplication implements Runnable {
      */
     public final int shownWindowCount() {
         synchronized (windows) {
-            int n = 0;
-            for (TWindow w: windows) {
-                if (w.isShown()) {
-                    n++;
-                }
-            }
-            return n;
+            return (int) windows.stream().filter(TWindow::isShown).count();
         }
     }
 
@@ -2925,13 +2915,7 @@ public class TApplication implements Runnable {
      */
     public final int hiddenWindowCount() {
         synchronized (windows) {
-            int n = 0;
-            for (TWindow w: windows) {
-                if (w.isHidden()) {
-                    n++;
-                }
-            }
-            return n;
+            return (int) windows.stream().filter(TWindow::isHidden).count();
         }
     }
 
@@ -2943,7 +2927,7 @@ public class TApplication implements Runnable {
      */
     public final boolean hasWindow(final TWindow window) {
         synchronized (windows) {
-            if (windows.size() == 0) {
+            if (windows.isEmpty()) {
                 return false;
             }
             for (TWindow w: windows) {
