@@ -388,7 +388,7 @@ class ECMA48TerminalTest {
 
     @Test
     @DisplayName("should send CGA palette to terminal on startup")
-    void shouldSendCGAPaletteOnStartup() {
+    void shouldSendPaletteOnStartup() {
         terminal = createTerminal();
         assertNotNull(terminal);
 
@@ -409,7 +409,7 @@ class ECMA48TerminalTest {
 
     @Test
     @DisplayName("should not send CGA palette when useTerminalPalette is true")
-    void shouldNotSendCGAPaletteWhenUseTerminalPaletteIsTrue() {
+    void shouldNotSendPaletteWhenUseTerminalPaletteIsTrue() {
         // Set the property to use terminal's native palette
         SystemProperties.setUseTerminalPalette(true);
         

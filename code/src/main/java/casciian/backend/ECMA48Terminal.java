@@ -500,7 +500,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Send CGA palette to terminal (unless using terminal's native palette)
         if (!SystemProperties.isUseTerminalPalette()) {
-            sendCGAPalette();
+            sendPalette();
         }
 
         // Request xterm report its ANSI colors
@@ -617,7 +617,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Send CGA palette to terminal (unless using terminal's native palette)
         if (!SystemProperties.isUseTerminalPalette()) {
-            sendCGAPalette();
+            sendPalette();
         }
 
         // Request xterm report its ANSI colors
@@ -2855,6 +2855,8 @@ public class ECMA48Terminal extends LogicalScreen
      * Setup ECMA48 colors to match those provided in system properties.
      */
     private void setCustomSystemColors() {
+        String previousCommand = buildSendPaletteCommand();
+
         MYBLACK   = getCustomColor("casciian.ECMA48.color0", MYBLACK);
         MYRED     = getCustomColor("casciian.ECMA48.color1", MYRED);
         MYGREEN   = getCustomColor("casciian.ECMA48.color2", MYGREEN);
@@ -2876,6 +2878,10 @@ public class ECMA48Terminal extends LogicalScreen
             DEFAULT_FORECOLOR);
         DEFAULT_BACKCOLOR = getCustomColor("casciian.ECMA48.color49",
             DEFAULT_BACKCOLOR);
+
+        if (!previousCommand.equals(buildSendPaletteCommand())) {
+            sendPalette();
+        }
     }
 
     /**
@@ -3674,18 +3680,29 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Send OSC 4 sequences to set the entire terminal palette to CGA colors.
-     * This sets all 16 palette colors (0-15) to match the classic CGA
-     * color scheme defined in setCGAColors(). Uses the MY* color constants
-     * which are already initialized by setCGAColors().
+     * Send OSC 4 sequences to set the entire terminal palette.
+     * Uses the MY* color constants which are already initialized by setCGAColors() or setCustomSystemColors.
      */
-    private void sendCGAPalette() {
+    private void sendPalette() {
         if (output == null) {
             return;
         }
 
-        // CGA palette colors using the MY* constants
-        int[] cgaColors = {
+        String command = buildSendPaletteCommand();
+
+        output.write(command);
+        output.flush();
+
+        if (debugToStderr) {
+            System.err.println("Sent CGA palette (16 colors) to terminal");
+        }
+    }
+
+    @SuppressWarnings("ExtractMethodRecommender")
+    private static String buildSendPaletteCommand() {
+
+        // Palette colors using the MY* constants
+        int[] colors = {
             MYBLACK,        // 0: Black
             MYRED,          // 1: Red
             MYGREEN,        // 2: Green
@@ -3705,8 +3722,8 @@ public class ECMA48Terminal extends LogicalScreen
         };
 
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < cgaColors.length; i++) {
-            int color = cgaColors[i];
+        for (int i = 0; i < colors.length; i++) {
+            int color = colors[i];
             int red = (color >>> 16) & 0xFF;
             int green = (color >>> 8) & 0xFF;
             int blue = color & 0xFF;
@@ -3717,13 +3734,7 @@ public class ECMA48Terminal extends LogicalScreen
             sb.append("\033]4;%1$d;rgb:%2$02x%2$02x/%3$02x%3$02x/%4$02x%4$02x\033\\"
                 .formatted(i, red, green, blue));
         }
-
-        output.write(sb.toString());
-        output.flush();
-
-        if (debugToStderr) {
-            System.err.println("Sent CGA palette (16 colors) to terminal");
-        }
+        return sb.toString();
     }
 
 }
