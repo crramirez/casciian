@@ -499,6 +499,45 @@ class ECMA48TerminalTest {
             "Terminal should restore original white color on close using 16-bit format");
     }
 
+    @Test
+    @DisplayName("should force full screen repaint after white color adjustment")
+    void shouldForceFullScreenRepaintAfterWhiteColorAdjustment() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Put a character on the screen first
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColor(Color.WHITE);
+        attr.setBackColor(Color.BLACK);
+        terminal.putCharXY(0, 0, 'A', attr);
+        
+        // Flush to sync physical screen with logical screen
+        terminal.flushPhysical();
+        
+        // Clear the output stream to measure new output
+        outputStream.reset();
+        
+        // Now simulate receiving a bright white color which triggers adjustment
+        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
+        
+        // The adjustment should have set reallyCleared = true, so the next
+        // flushPhysical() should output something even though logical screen
+        // hasn't changed. The screen should be fully redrawn.
+        terminal.flushPhysical();
+        
+        String output = outputStream.toString();
+        
+        // The output should contain position commands and character output
+        // because the screen was marked as needing a full redraw
+        assertTrue(output.length() > 0,
+            "Screen should have been redrawn after white color adjustment. " +
+            "Output length: " + output.length());
+        
+        // Should contain goto XY sequence for repainted cells
+        assertTrue(output.contains("\033["),
+            "Output should contain escape sequences for screen redraw");
+    }
+
     // Mouse pointer shape tests for xterm
     
     @Test

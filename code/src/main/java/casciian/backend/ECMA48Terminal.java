@@ -3754,6 +3754,16 @@ public class ECMA48Terminal extends LogicalScreen
         // Update MYWHITE to reflect the change
         MYWHITE = WHITE_COLOR_MINIMUM_THRESHOLD;
         whiteColorAdjusted = true;
+
+        // Force a full screen repaint to ensure the new palette color is
+        // displayed immediately. Some terminals (xterm, wezterm) don't
+        // automatically repaint existing content when the palette changes
+        // via OSC 4 - they only update the palette but wait for new output
+        // to use the updated color. By clearing the physical screen state
+        // and setting reallyCleared, the next flushPhysical() will repaint
+        // all cells, causing the terminal to display the new color.
+        clearPhysical();
+        reallyCleared = true;
     }
 
     /**
