@@ -16,6 +16,7 @@ package casciian.backend;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import casciian.bits.CellAttributes;
 import casciian.event.TCommandEvent;
@@ -38,8 +39,10 @@ public class MultiBackend implements Backend {
 
     /**
      * The list of backends to use.
+     * This is a CopyOnWriteArrayList to support safe iteration while the list
+     * may be modified from another thread (e.g., adding/removing backends).
      */
-    private List<Backend> backends = new ArrayList<Backend>();
+    private List<Backend> backends = new CopyOnWriteArrayList<Backend>();
 
     /**
      * The SessionInfo to return.
