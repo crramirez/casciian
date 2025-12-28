@@ -44,8 +44,10 @@ public class TWindowBackend extends TWindow implements Backend {
 
     /**
      * The listening object that run() wakes up on new input.
+     * This field is volatile to ensure visibility across threads when the
+     * listener is changed via setListener() while events are being processed.
      */
-    private Object listener;
+    private volatile Object listener;
 
     /**
      * The object to sync on in draw().  This is normally otherScreen, but it

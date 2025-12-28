@@ -148,7 +148,7 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * If true, we want the reader thread to exit gracefully.
      */
-    private boolean stopReaderThread;
+    private volatile boolean stopReaderThread;
 
     /**
      * The reader thread.
@@ -345,8 +345,10 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * The listening object that run() wakes up on new input.
+     * This field is volatile to ensure visibility across threads when the
+     * listener is changed via setListener() while the reader thread is running.
      */
-    private Object listener;
+    private volatile Object listener;
 
     // RGB colors matching the DOS/CGA colors.
     private static int MYBLACK;
