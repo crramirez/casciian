@@ -3699,6 +3699,28 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     @SuppressWarnings("ExtractMethodRecommender")
+    /**
+     * Build the OSC 4 command sequence used to program the terminal's
+     * 16-color palette.
+     * <p>
+     * This method uses the {@code MY*} color constants (which are expected
+     * to have been initialized by {@code setCGAColors()} or
+     * {@code setCustomSystemColors()}) and generates, for each palette
+     * index 0–15, an OSC 4 sequence of the form:
+     * </p>
+     * <pre>
+     *   ESC ] 4 ; index ; rgb:rrrr/gggg/bbbb ESC \
+     * </pre>
+     * where {@code rrrr}, {@code gggg}, and {@code bbbb} are 16-bit
+     * (4-hex-digit) color components. Each 8-bit RGB component in the
+     * {@code MY*} constants is expanded to 16 bits by repeating its
+     * two-digit hexadecimal value (for example, {@code 0x12} becomes
+     * {@code 0x1212}).
+     *
+     * @return a single {@link String} containing the concatenated OSC 4
+     *         sequences for all 16 palette entries, ready to be written to
+     *         the terminal output stream
+     */
     private static String buildSendPaletteCommand() {
 
         // Palette colors using the MY* constants
