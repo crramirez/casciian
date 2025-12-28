@@ -3708,7 +3708,6 @@ public class ECMA48Terminal extends LogicalScreen
         }
     }
 
-    @SuppressWarnings("ExtractMethodRecommender")
     /**
      * Build the OSC 4 command sequence used to program the terminal's
      * 16-color palette.
@@ -3756,18 +3755,38 @@ public class ECMA48Terminal extends LogicalScreen
         // Pre-size to avoid internal resizing: ~50 bytes/color * 16 colors ≈ 800 bytes
         StringBuilder sb = new StringBuilder(800);
         for (int i = 0; i < colors.length; i++) {
-            int color = colors[i];
-            int red = (color >>> 16) & 0xFF;
-            int green = (color >>> 8) & 0xFF;
-            int blue = color & 0xFF;
-
-            // Format: OSC 4 ; color-index ; rgb:rrrr/gggg/bbbb ST
-            // Using 16-bit format (4 hex digits per component) for compatibility
-            // Using argument_index to send each component only once to the formatter
-            sb.append("\033]4;%1$d;rgb:%2$02x%2$02x/%3$02x%3$02x/%4$02x%4$02x\033\\"
-                .formatted(i, red, green, blue));
+            sb.append(buildColorOscSequence(i, colors[i]));
         }
         return sb.toString();
+    }
+
+    /**
+     * Build a single OSC 4 sequence for setting a terminal palette color.
+     * <p>
+     * The generated sequence has the form:
+     * </p>
+     * <pre>
+     *   ESC ] 4 ; index ; rgb:rrrr/gggg/bbbb ESC \
+     * </pre>
+     * where {@code rrrr}, {@code gggg}, and {@code bbbb} are 16-bit
+     * (4-hex-digit) color components. Each 8-bit RGB component is expanded
+     * to 16 bits by repeating its two-digit hexadecimal value (for example,
+     * {@code 0x12} becomes {@code 0x1212}).
+     *
+     * @param index the palette index (0-15)
+     * @param color the 24-bit RGB color value
+     * @return the OSC 4 sequence string for this color
+     */
+    private static String buildColorOscSequence(final int index, final int color) {
+        int red = (color >>> 16) & 0xFF;
+        int green = (color >>> 8) & 0xFF;
+        int blue = color & 0xFF;
+
+        // Format: OSC 4 ; color-index ; rgb:rrrr/gggg/bbbb ST
+        // Using 16-bit format (4 hex digits per component) for compatibility
+        // Using argument_index to send each component only once to the formatter
+        return "\033]4;%1$d;rgb:%2$02x%2$02x/%3$02x%3$02x/%4$02x%4$02x\033\\"
+            .formatted(index, red, green, blue);
     }
 
 }
