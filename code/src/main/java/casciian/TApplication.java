@@ -1953,8 +1953,12 @@ public class TApplication implements Runnable {
                 Thread.currentThread() + " doIdle() 3\n");
         }
 
-        // Call onIdle's
-        for (TWindow window: windows) {
+        // Call onIdle's - take a snapshot to avoid holding the lock during callbacks
+        List<TWindow> windowsSnapshot;
+        synchronized (windows) {
+            windowsSnapshot = new ArrayList<TWindow>(windows);
+        }
+        for (TWindow window: windowsSnapshot) {
             window.onIdle();
         }
         if (desktop != null) {
@@ -2130,8 +2134,10 @@ public class TApplication implements Runnable {
         }
 
         int alpha = opacity * 255 / 100;
-        for (TWindow window: windows) {
-            window.setAlpha(alpha);
+        synchronized (windows) {
+            for (TWindow window: windows) {
+                window.setAlpha(alpha);
+            }
         }
     }
 
@@ -2292,12 +2298,14 @@ public class TApplication implements Runnable {
      * @return the active window, or null if it is not set
      */
     public final TWindow getActiveWindow() {
-        for (TWindow window: windows) {
-            if (window.isShown() && window.isActive()) {
-                return window;
+        synchronized (windows) {
+            for (TWindow window: windows) {
+                if (window.isShown() && window.isActive()) {
+                    return window;
+                }
             }
+            return null;
         }
-        return null;
     }
 
     /**
@@ -2306,9 +2314,11 @@ public class TApplication implements Runnable {
      * @return a copy of the list of windows for this application
      */
     public final List<TWindow> getAllWindows() {
-        List<TWindow> result = new ArrayList<TWindow>();
-        result.addAll(windows);
-        return result;
+        synchronized (windows) {
+            List<TWindow> result = new ArrayList<TWindow>();
+            result.addAll(windows);
+            return result;
+        }
     }
 
     /**
@@ -2350,9 +2360,11 @@ public class TApplication implements Runnable {
         }
         if (!SystemProperties.isHideMenuBar()) {
             // Push any windows that are on the top line down.
-            for (TWindow window: windows) {
-                if (window.getY() == 0) {
-                    window.setY(1);
+            synchronized (windows) {
+                for (TWindow window: windows) {
+                    if (window.getY() == 0) {
+                        window.setY(1);
+                    }
                 }
             }
         }
@@ -2884,7 +2896,9 @@ public class TApplication implements Runnable {
      * @return the total number of windows
      */
     public final int windowCount() {
-        return windows.size();
+        synchronized (windows) {
+            return windows.size();
+        }
     }
 
     /**
@@ -2893,13 +2907,15 @@ public class TApplication implements Runnable {
      * @return the number of windows that are showing on screen
      */
     public final int shownWindowCount() {
-        int n = 0;
-        for (TWindow w: windows) {
-            if (w.isShown()) {
-                n++;
+        synchronized (windows) {
+            int n = 0;
+            for (TWindow w: windows) {
+                if (w.isShown()) {
+                    n++;
+                }
             }
+            return n;
         }
-        return n;
     }
 
     /**
@@ -2908,13 +2924,15 @@ public class TApplication implements Runnable {
      * @return the number of windows that are hidden
      */
     public final int hiddenWindowCount() {
-        int n = 0;
-        for (TWindow w: windows) {
-            if (w.isHidden()) {
-                n++;
+        synchronized (windows) {
+            int n = 0;
+            for (TWindow w: windows) {
+                if (w.isHidden()) {
+                    n++;
+                }
             }
+            return n;
         }
-        return n;
     }
 
     /**
@@ -2924,16 +2942,18 @@ public class TApplication implements Runnable {
      * @return true if this window is in the list
      */
     public final boolean hasWindow(final TWindow window) {
-        if (windows.size() == 0) {
+        synchronized (windows) {
+            if (windows.size() == 0) {
+                return false;
+            }
+            for (TWindow w: windows) {
+                if (w == window) {
+                    assert (window.getApplication() == this);
+                    return true;
+                }
+            }
             return false;
         }
-        for (TWindow w: windows) {
-            if (w == window) {
-                assert (window.getApplication() == this);
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -3388,17 +3408,19 @@ public class TApplication implements Runnable {
      * @return true if the active window is modal
      */
     private boolean modalWindowActive() {
-        if (windows.size() == 0) {
+        synchronized (windows) {
+            if (windows.size() == 0) {
+                return false;
+            }
+
+            for (TWindow w: windows) {
+                if (w.isModal()) {
+                    return true;
+                }
+            }
+
             return false;
         }
-
-        for (TWindow w: windows) {
-            if (w.isModal()) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -3425,8 +3447,13 @@ public class TApplication implements Runnable {
         if (activeMenu != null) {
             return;
         }
-        while (windows.size() > 0) {
-            closeWindow(windows.get(0));
+        // Get a snapshot of windows to close, since closeWindow modifies the list
+        List<TWindow> windowsToClose;
+        synchronized (windows) {
+            windowsToClose = new ArrayList<TWindow>(windows);
+        }
+        for (TWindow window : windowsToClose) {
+            closeWindow(window);
         }
     }
 
@@ -3503,7 +3530,15 @@ public class TApplication implements Runnable {
         int width = getScreen().getWidth();
         int height = getScreen().getHeight();
         int overlapMatrix[][] = new int[width][height];
-        for (TWindow w: windows) {
+
+        // Take a snapshot of windows to avoid holding the lock during
+        // the expensive overlap computation
+        List<TWindow> windowsSnapshot;
+        synchronized (windows) {
+            windowsSnapshot = new ArrayList<TWindow>(windows);
+        }
+
+        for (TWindow w: windowsSnapshot) {
             if (window == w) {
                 continue;
             }
