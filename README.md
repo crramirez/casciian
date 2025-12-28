@@ -76,3 +76,17 @@ The demos can be run as follows:
   * 'java -cp casciian-full.jar demo.Demo8 PORT' (where PORT is a
     number to run the TCP daemon on).  This will use the Xterm backend
     on a telnet server to share one screen to many terminals.
+
+Editing the Wiki
+----------------
+
+The GitHub Wiki lives in a separate repository (`crramirez/casciian.wiki`).
+Changes made in this source repository do **not** modify the wiki. To propose
+wiki updates, clone the wiki repository directly:
+
+```
+git clone https://github.com/crramirez/casciian.wiki.git
+```
+
+Submit your changes there (or share patches with the maintainer) to update the
+published wiki pages.
