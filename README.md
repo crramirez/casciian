@@ -22,6 +22,15 @@ Casciian has seen inspiration from several other projects:
 
 <img width="1612" height="996" alt="image" src="https://github.com/user-attachments/assets/69312af6-36b3-46a2-a4c9-d77a1e804e68" />
 
+Documentation
+-------------
+
+An in-repo copy of the developer-focused wiki lives at
+[`docs/wiki/Home.md`](docs/wiki/Home.md). It explains how to depend on
+Casciian, shows code examples for building your own TUI, and documents runtime
+toggles (animations, translucence, palettes, etc.). Copy updates from that file
+into the `crramirez/casciian.wiki` repository to publish them.
+
 ## License
 
 This project is distributed under the Apache License, Version 2.0.
@@ -89,4 +98,5 @@ git clone https://github.com/crramirez/casciian.wiki.git
 ```
 
 Submit your changes there (or share patches with the maintainer) to update the
-published wiki pages.
+published wiki pages. Use [`docs/wiki/Home.md`](docs/wiki/Home.md) as the
+source of truth when proposing updates.
