@@ -3746,7 +3746,8 @@ public class ECMA48Terminal extends LogicalScreen
             MYBOLD_WHITE    // 15: Bright White
         };
 
-        StringBuilder sb = new StringBuilder();
+        // Pre-size to avoid internal resizing: ~50 bytes/color * 16 colors ≈ 800 bytes
+        StringBuilder sb = new StringBuilder(800);
         for (int i = 0; i < colors.length; i++) {
             int color = colors[i];
             int red = (color >>> 16) & 0xFF;
