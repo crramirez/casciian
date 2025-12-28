@@ -45,8 +45,8 @@ class ECMA48TerminalTest {
 
     @BeforeEach
     void setUp() {
-        // Reset static state for white color adjustment
-        ECMA48Terminal.resetWhiteColorAdjustmentState();
+        // Reset system properties
+        SystemProperties.reset();
 
         // Create mock backend
         mockBackend = Mockito.mock(Backend.class);
@@ -62,6 +62,8 @@ class ECMA48TerminalTest {
         if (terminal != null) {
             terminal.closeTerminal();
         }
+        // Reset system properties to default
+        SystemProperties.reset();
     }
 
     // Color conversion tests - static methods
@@ -382,173 +384,77 @@ class ECMA48TerminalTest {
         assertEquals(52480, defaultBackColor);
     }
 
-    // White color adjustment tests
+    // CGA palette tests
 
     @Test
-    @DisplayName("WHITE_COLOR_MINIMUM_THRESHOLD is set to 0xB0B0B0")
-    void testWhiteColorMinimumThreshold() {
-        assertEquals(0xB0B0B0, ECMA48Terminal.WHITE_COLOR_MINIMUM_THRESHOLD);
-    }
-
-    @Test
-    @DisplayName("should send DOS palette when white color is brighter than threshold")
-    void shouldSendDOSPaletteWhenBrighterThanThreshold() {
+    @DisplayName("should send CGA palette to terminal on startup")
+    void shouldSendCGAPaletteOnStartup() {
         terminal = createTerminal();
         assertNotNull(terminal);
 
-        // Before the OSC response, there should be no output for color adjustment
-        String outputBefore = outputStream.toString();
+        // The terminal constructor should have sent the CGA palette
+        String output = outputStream.toString();
         
-        // Simulate receiving a bright white color (0xFFFFFF) from the terminal
-        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
-
-        // The terminal should have sent OSC commands to set the full DOS palette
-        String outputAfter = outputStream.toString();
-        
-        // The output should contain OSC 4 sequences for multiple colors
-        assertTrue(outputAfter.length() > outputBefore.length(),
-            "Terminal should send OSC commands for DOS palette");
-        // Check for color 0 (black) - 0x000000
-        assertTrue(outputAfter.contains("\033]4;0;rgb:0000/0000/0000\033\\"),
-            "Terminal should send DOS black color (color 0)");
-        // Check for color 7 (white/light gray) - 0xa8a8a8
-        assertTrue(outputAfter.contains("\033]4;7;rgb:a8a8/a8a8/a8a8\033\\"),
-            "Terminal should send DOS white color (color 7)");
-        // Check for color 15 (bright white) - 0xfcfcfc
-        assertTrue(outputAfter.contains("\033]4;15;rgb:fcfc/fcfc/fcfc\033\\"),
-            "Terminal should send DOS bright white color (color 15)");
+        // Check for CGA palette colors (using MY* constant values)
+        // Color 0 (black) - 0x000000
+        assertTrue(output.contains("\033]4;0;rgb:0000/0000/0000\033\\"),
+            "Terminal should send CGA black color (color 0)");
+        // Color 7 (white/light gray) - 0xa8a8a8
+        assertTrue(output.contains("\033]4;7;rgb:a8a8/a8a8/a8a8\033\\"),
+            "Terminal should send CGA white color (color 7)");
+        // Color 15 (bright white) - 0xfcfcfc
+        assertTrue(output.contains("\033]4;15;rgb:fcfc/fcfc/fcfc\033\\"),
+            "Terminal should send CGA bright white color (color 15)");
     }
 
     @Test
-    @DisplayName("should not send palette when white color is darker than threshold")
-    void shouldNotSendPaletteWhenDarkerThanThreshold() {
-        terminal = createTerminal();
-        assertNotNull(terminal);
-
-        // Get the output before the OSC response
-        String outputBefore = outputStream.toString();
-
-        // Simulate receiving a dark white color (0x808080) from the terminal
-        terminal.oscResponse("4;7;rgb:8080/8080/8080");
-
-        // The terminal should not send any palette adjustment
-        String outputAfter = outputStream.toString();
-        String newOutput = outputAfter.substring(outputBefore.length());
+    @DisplayName("should not send CGA palette when useTerminalPalette is true")
+    void shouldNotSendCGAPaletteWhenUseTerminalPaletteIsTrue() {
+        // Set the property to use terminal's native palette
+        SystemProperties.setUseTerminalPalette(true);
         
-        // The output should not contain any DOS palette sequences (colors 0-15)
-        for (int i = 0; i <= 15; i++) {
-            assertFalse(newOutput.contains("\033]4;" + i + ";"),
-                "Terminal should not send DOS palette color " + i + 
-                " when white color is already dark enough");
+        try {
+            terminal = createTerminal();
+            assertNotNull(terminal);
+
+            // The terminal constructor should NOT have sent the CGA palette
+            String output = outputStream.toString();
+            
+            // Check that CGA palette colors are not in the output
+            assertFalse(output.contains("\033]4;0;rgb:0000/0000/0000\033\\"),
+                "Terminal should not send CGA palette when useTerminalPalette is true");
+        } finally {
+            // Reset the property
+            SystemProperties.setUseTerminalPalette(false);
         }
     }
 
     @Test
-    @DisplayName("should not send palette when white color equals the threshold")
-    void shouldNotSendPaletteWhenEqualsThreshold() {
-        terminal = createTerminal();
-        assertNotNull(terminal);
-
-        String outputBefore = outputStream.toString();
-
-        // Simulate receiving the exact threshold color from the terminal
-        terminal.oscResponse("4;7;rgb:b0b0/b0b0/b0b0");
-
-        String output = outputStream.toString();
-        String newOutput = output.substring(outputBefore.length());
+    @DisplayName("isUseTerminalPalette defaults to false")
+    void testUseTerminalPaletteDefaultIsFalse() {
+        // Reset all properties
+        SystemProperties.reset();
         
-        // The output should not contain any DOS palette sequences (colors 0-15)
-        // because the color is equal to the threshold (not brighter)
-        for (int i = 0; i <= 15; i++) {
-            assertFalse(newOutput.contains("\033]4;" + i + ";"),
-                "Terminal should not send DOS palette color " + i + 
-                " when white color equals the threshold");
+        // Default should be false
+        assertFalse(SystemProperties.isUseTerminalPalette(),
+            "useTerminalPalette should default to false");
+    }
+
+    @Test
+    @DisplayName("setUseTerminalPalette updates the property value")
+    void testSetUseTerminalPalette() {
+        try {
+            // Set to true
+            SystemProperties.setUseTerminalPalette(true);
+            assertTrue(SystemProperties.isUseTerminalPalette());
+            
+            // Set to false
+            SystemProperties.setUseTerminalPalette(false);
+            assertFalse(SystemProperties.isUseTerminalPalette());
+        } finally {
+            // Reset to default
+            SystemProperties.setUseTerminalPalette(false);
         }
-    }
-
-    @Test
-    @DisplayName("should only send palette once per session")
-    void shouldOnlySendPaletteOncePerSession() {
-        terminal = createTerminal();
-        assertNotNull(terminal);
-
-        // First bright white color should trigger palette sending
-        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
-        String outputAfterFirst = outputStream.toString();
-        // Check for DOS white color (color 7) - 0xa8a8a8
-        assertTrue(outputAfterFirst.contains("\033]4;7;rgb:a8a8/a8a8/a8a8\033\\"),
-            "Terminal should send DOS palette on first bright color");
-
-        // Clear the output stream to check for new output
-        outputStream.reset();
-
-        // Second bright white color should not trigger another palette send
-        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
-        String outputAfterSecond = outputStream.toString();
-        assertFalse(outputAfterSecond.contains("\033]4;0;"),
-            "Terminal should not send palette again");
-    }
-
-    @Test
-    @DisplayName("should restore original white color when terminal is closed")
-    void shouldRestoreOriginalWhiteColorWhenTerminalClosed() {
-        terminal = createTerminal();
-        assertNotNull(terminal);
-
-        // Simulate receiving a bright white color (0xFFFFFF) to trigger adjustment
-        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
-        
-        // Clear the output stream to check for restoration output
-        outputStream.reset();
-
-        // Close the terminal - should restore the original color
-        terminal.closeTerminal();
-        terminal = null; // Prevent double close in tearDown
-
-        // The output should contain the OSC 4 sequence to restore the original color
-        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
-        String output = outputStream.toString();
-        assertTrue(output.contains("\033]4;7;rgb:ffff/ffff/ffff\033\\"),
-            "Terminal should restore original white color on close using 16-bit format");
-    }
-
-    @Test
-    @DisplayName("should force full screen repaint after white color adjustment")
-    void shouldForceFullScreenRepaintAfterWhiteColorAdjustment() {
-        terminal = createTerminal();
-        assertNotNull(terminal);
-
-        // Put a character on the screen first
-        CellAttributes attr = new CellAttributes();
-        attr.setForeColor(Color.WHITE);
-        attr.setBackColor(Color.BLACK);
-        terminal.putCharXY(0, 0, 'A', attr);
-        
-        // Flush to sync physical screen with logical screen
-        terminal.flushPhysical();
-        
-        // Clear the output stream to measure new output
-        outputStream.reset();
-        
-        // Now simulate receiving a bright white color which triggers adjustment
-        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
-        
-        // The adjustment should have set reallyCleared = true, so the next
-        // flushPhysical() should output something even though logical screen
-        // hasn't changed. The screen should be fully redrawn.
-        terminal.flushPhysical();
-        
-        String output = outputStream.toString();
-        
-        // The output should contain position commands and character output
-        // because the screen was marked as needing a full redraw
-        assertTrue(output.length() > 0,
-            "Screen should have been redrawn after white color adjustment. " +
-            "Output length: " + output.length());
-        
-        // Should contain goto XY sequence for repainted cells
-        assertTrue(output.contains("\033["),
-            "Output should contain escape sequences for screen redraw");
     }
 
     // Mouse pointer shape tests for xterm
