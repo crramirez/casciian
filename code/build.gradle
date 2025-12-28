@@ -236,5 +236,5 @@ release {
 }
 
 tasks.named('afterReleaseBuild') {
-    dependsOn 'publishToLocalStaging', 'centralBundleZip' // and 'nativeCompile' if desired
+    dependsOn 'jarFull', 'publishToLocalStaging', 'centralBundleZip', 'nativeCompile'
 }
