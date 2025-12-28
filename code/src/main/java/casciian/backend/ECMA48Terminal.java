@@ -3713,8 +3713,9 @@ public class ECMA48Terminal extends LogicalScreen
 
             // Format: OSC 4 ; color-index ; rgb:rrrr/gggg/bbbb ST
             // Using 16-bit format (4 hex digits per component) for compatibility
-            sb.append("\033]4;%d;rgb:%02x%02x/%02x%02x/%02x%02x\033\\"
-                .formatted(i, red, red, green, green, blue, blue));
+            // Using argument_index to send each component only once to the formatter
+            sb.append("\033]4;%1$d;rgb:%2$02x%2$02x/%3$02x%3$02x/%4$02x%4$02x\033\\"
+                .formatted(i, red, green, blue));
         }
 
         output.write(sb.toString());
