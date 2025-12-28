@@ -880,6 +880,10 @@ public class ECMA48Terminal extends LogicalScreen
      * Restore the terminal's palette to its original state.
      */
     private void restorePalette() {
+        if (output == null) {
+            return;
+        }
+
         if (SystemProperties.isUseTerminalPalette()) {
             return;
         }
@@ -2068,8 +2072,7 @@ public class ECMA48Terminal extends LogicalScreen
                 System.err.println("  -- Genuine(tm) XTerm! -- ");
             }
             isGenuineXTerm = true;
-            // Query the current mouse pointer shape so we can change it to
-            // arrow and restore it later
+
             setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
         }
 
@@ -2846,21 +2849,21 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private static void setCGAColors() {
         MYBLACK         = 0x000000;
-        MYRED           = 0xa80000;
-        MYGREEN         = 0x00a800;
-        MYYELLOW        = 0xa85400;
-        MYBLUE          = 0x0000a8;
-        MYMAGENTA       = 0xa800a8;
-        MYCYAN          = 0x00a8a8;
-        MYWHITE         = 0xa8a8a8;
-        MYBOLD_BLACK    = 0x545454;
-        MYBOLD_RED      = 0xfc5454;
-        MYBOLD_GREEN    = 0x54fc54;
-        MYBOLD_YELLOW   = 0xfcfc54;
-        MYBOLD_BLUE     = 0x5454fc;
-        MYBOLD_MAGENTA  = 0xfc54fc;
-        MYBOLD_CYAN     = 0x54fcfc;
-        MYBOLD_WHITE    = 0xfcfcfc;
+        MYRED           = 0xaa0000;
+        MYGREEN         = 0x00aa00;
+        MYYELLOW        = 0xaa5500;
+        MYBLUE          = 0x0000aa;
+        MYMAGENTA       = 0xaa00aa;
+        MYCYAN          = 0x00aaaa;
+        MYWHITE         = 0xaaaaaa;
+        MYBOLD_BLACK    = 0x555555;
+        MYBOLD_RED      = 0xff5555;
+        MYBOLD_GREEN    = 0x55ff55;
+        MYBOLD_YELLOW   = 0xffff55;
+        MYBOLD_BLUE     = 0x5555ff;
+        MYBOLD_MAGENTA  = 0xff55ff;
+        MYBOLD_CYAN     = 0x55ffff;
+        MYBOLD_WHITE    = 0xffffff;
         DEFAULT_FORECOLOR   = MYWHITE;
         DEFAULT_BACKCOLOR   = MYBLACK;
     }

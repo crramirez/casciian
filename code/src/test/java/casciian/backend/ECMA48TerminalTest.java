@@ -400,16 +400,16 @@ class ECMA48TerminalTest {
         assertTrue(output.contains("\033]4;0;rgb:0000/0000/0000\033\\"),
             "Terminal should send CGA black color (color 0)");
         // Color 1 (red) - 0xa80000
-        assertTrue(output.contains("\033]4;1;rgb:a8a8/0000/0000\033\\"),
+        assertTrue(output.contains("\033]4;1;rgb:aaaa/0000/0000\033\\"),
             "Terminal should send CGA red color (color 1)");
-        // Color 7 (white/light gray) - 0xa8a8a8
-        assertTrue(output.contains("\033]4;7;rgb:a8a8/a8a8/a8a8\033\\"),
+        // Color 7 (white/light gray) - 0xaaaaaa
+        assertTrue(output.contains("\033]4;7;rgb:aaaa/aaaa/aaaa\033\\"),
             "Terminal should send CGA white color (color 7)");
-        // Color 8 (bright black/dark gray) - 0x545454
-        assertTrue(output.contains("\033]4;8;rgb:5454/5454/5454\033\\"),
+        // Color 8 (bright black/dark gray) - 0x555555
+        assertTrue(output.contains("\033]4;8;rgb:5555/5555/5555\033\\"),
             "Terminal should send CGA bright black color (color 8)");
-        // Color 15 (bright white) - 0xfcfcfc
-        assertTrue(output.contains("\033]4;15;rgb:fcfc/fcfc/fcfc\033\\"),
+        // Color 15 (bright white) - 0xffffff
+        assertTrue(output.contains("\033]4;15;rgb:ffff/ffff/ffff\033\\"),
             "Terminal should send CGA bright white color (color 15)");
     }
 
