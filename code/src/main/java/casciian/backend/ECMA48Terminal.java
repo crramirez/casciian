@@ -3735,35 +3735,100 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Adjust the white color (color 7) to the minimum threshold to improve
-     * visibility in modal dialogs. This method sends an OSC 4 sequence to
-     * change the terminal's palette color 7.
+     * Adjust the terminal palette by sending the complete DOS color palette.
+     * This is triggered when the terminal's white color is detected as too
+     * bright, indicating the palette may not match the expected DOS colors.
+     * Sending the complete palette ensures consistent appearance across
+     * all terminals.
      */
     private void adjustWhiteColor() {
         if (output == null) {
             return;
         }
 
-        sendOsc4Color7(WHITE_COLOR_MINIMUM_THRESHOLD);
+        // Send the complete DOS palette to the terminal
+        sendDOSPalette();
 
         if (debugToStderr) {
-            System.err.printf("Adjusting white color to #%06x\n",
-                WHITE_COLOR_MINIMUM_THRESHOLD);
+            System.err.println("Sent complete DOS palette (16 colors) to terminal");
         }
 
-        // Update MYWHITE to reflect the change
-        MYWHITE = WHITE_COLOR_MINIMUM_THRESHOLD;
         whiteColorAdjusted = true;
 
-        // Force a full screen repaint to ensure the new palette color is
+        // Force a full screen repaint to ensure the new palette colors are
         // displayed immediately. Some terminals (xterm, wezterm) don't
         // automatically repaint existing content when the palette changes
         // via OSC 4 - they only update the palette but wait for new output
         // to use the updated color. By clearing the physical screen state
         // and setting reallyCleared, the next flushPhysical() will repaint
-        // all cells, causing the terminal to display the new color.
+        // all cells, causing the terminal to display the new colors.
         clearPhysical();
         reallyCleared = true;
+    }
+
+    /**
+     * Send OSC 4 sequences to set the entire terminal palette to DOS colors.
+     * This sets all 16 palette colors (0-15) to match the classic DOS/CGA
+     * color scheme defined in setDOSColors().
+     */
+    private void sendDOSPalette() {
+        if (output == null) {
+            return;
+        }
+
+        // DOS palette colors (from setDOSColors)
+        int[] dosColors = {
+            0x000000, // 0: Black
+            0xa80000, // 1: Red
+            0x00a800, // 2: Green
+            0xa85400, // 3: Yellow (brown)
+            0x0000a8, // 4: Blue
+            0xa800a8, // 5: Magenta
+            0x00a8a8, // 6: Cyan
+            0xa8a8a8, // 7: White (light gray)
+            0x545454, // 8: Bright Black (dark gray)
+            0xfc5454, // 9: Bright Red
+            0x54fc54, // 10: Bright Green
+            0xfcfc54, // 11: Bright Yellow
+            0x5454fc, // 12: Bright Blue
+            0xfc54fc, // 13: Bright Magenta
+            0x54fcfc, // 14: Bright Cyan
+            0xfcfcfc  // 15: Bright White
+        };
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < dosColors.length; i++) {
+            int color = dosColors[i];
+            int red = (color >>> 16) & 0xFF;
+            int green = (color >>> 8) & 0xFF;
+            int blue = color & 0xFF;
+
+            // Format: OSC 4 ; color-index ; rgb:rrrr/gggg/bbbb ST
+            // Using 16-bit format (4 hex digits per component) for compatibility
+            sb.append("\033]4;%d;rgb:%02x%02x/%02x%02x/%02x%02x\033\\"
+                .formatted(i, red, red, green, green, blue, blue));
+        }
+
+        output.write(sb.toString());
+        output.flush();
+
+        // Update internal color variables to match the sent palette
+        MYBLACK         = dosColors[0];
+        MYRED           = dosColors[1];
+        MYGREEN         = dosColors[2];
+        MYYELLOW        = dosColors[3];
+        MYBLUE          = dosColors[4];
+        MYMAGENTA       = dosColors[5];
+        MYCYAN          = dosColors[6];
+        MYWHITE         = dosColors[7];
+        MYBOLD_BLACK    = dosColors[8];
+        MYBOLD_RED      = dosColors[9];
+        MYBOLD_GREEN    = dosColors[10];
+        MYBOLD_YELLOW   = dosColors[11];
+        MYBOLD_BLUE     = dosColors[12];
+        MYBOLD_MAGENTA  = dosColors[13];
+        MYBOLD_CYAN     = dosColors[14];
+        MYBOLD_WHITE    = dosColors[15];
     }
 
     /**

@@ -391,8 +391,8 @@ class ECMA48TerminalTest {
     }
 
     @Test
-    @DisplayName("should adjust white color when it is brighter than threshold")
-    void shouldAdjustWhiteColorWhenBrighterThanThreshold() {
+    @DisplayName("should send DOS palette when white color is brighter than threshold")
+    void shouldSendDOSPaletteWhenBrighterThanThreshold() {
         terminal = createTerminal();
         assertNotNull(terminal);
 
@@ -402,20 +402,26 @@ class ECMA48TerminalTest {
         // Simulate receiving a bright white color (0xFFFFFF) from the terminal
         terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
 
-        // The terminal should have sent an OSC command to adjust the color
+        // The terminal should have sent OSC commands to set the full DOS palette
         String outputAfter = outputStream.toString();
         
-        // The output should contain the OSC 4 sequence to set color 7
-        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
+        // The output should contain OSC 4 sequences for multiple colors
         assertTrue(outputAfter.length() > outputBefore.length(),
-            "Terminal should send OSC command to adjust white color");
-        assertTrue(outputAfter.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
-            "Terminal should adjust white color to #b0b0b0 using 16-bit format");
+            "Terminal should send OSC commands for DOS palette");
+        // Check for color 0 (black) - 0x000000
+        assertTrue(outputAfter.contains("\033]4;0;rgb:0000/0000/0000\033\\"),
+            "Terminal should send DOS black color (color 0)");
+        // Check for color 7 (white/light gray) - 0xa8a8a8
+        assertTrue(outputAfter.contains("\033]4;7;rgb:a8a8/a8a8/a8a8\033\\"),
+            "Terminal should send DOS white color (color 7)");
+        // Check for color 15 (bright white) - 0xfcfcfc
+        assertTrue(outputAfter.contains("\033]4;15;rgb:fcfc/fcfc/fcfc\033\\"),
+            "Terminal should send DOS bright white color (color 15)");
     }
 
     @Test
-    @DisplayName("should not adjust white color when it is darker than threshold")
-    void shouldNotAdjustWhiteColorWhenDarkerThanThreshold() {
+    @DisplayName("should not send palette when white color is darker than threshold")
+    void shouldNotSendPaletteWhenDarkerThanThreshold() {
         terminal = createTerminal();
         assertNotNull(terminal);
 
@@ -425,55 +431,62 @@ class ECMA48TerminalTest {
         // Simulate receiving a dark white color (0x808080) from the terminal
         terminal.oscResponse("4;7;rgb:8080/8080/8080");
 
-        // The terminal should not send any additional output
+        // The terminal should not send any palette adjustment
         String outputAfter = outputStream.toString();
+        String newOutput = outputAfter.substring(outputBefore.length());
         
-        // The output should not contain an adjustment sequence
-        // (only the normal screen clear/redraw that oscResponse triggers)
-        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
-        assertFalse(outputAfter.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
-            "Terminal should not adjust white color when it is already dark enough");
+        // The output should not contain any DOS palette sequences (colors 0-15)
+        for (int i = 0; i <= 15; i++) {
+            assertFalse(newOutput.contains("\033]4;" + i + ";"),
+                "Terminal should not send DOS palette color " + i + 
+                " when white color is already dark enough");
+        }
     }
 
     @Test
-    @DisplayName("should not adjust white color when it equals the threshold")
-    void shouldNotAdjustWhiteColorWhenEqualsThreshold() {
+    @DisplayName("should not send palette when white color equals the threshold")
+    void shouldNotSendPaletteWhenEqualsThreshold() {
         terminal = createTerminal();
         assertNotNull(terminal);
+
+        String outputBefore = outputStream.toString();
 
         // Simulate receiving the exact threshold color from the terminal
         terminal.oscResponse("4;7;rgb:b0b0/b0b0/b0b0");
 
         String output = outputStream.toString();
+        String newOutput = output.substring(outputBefore.length());
         
-        // The output should not contain an adjustment sequence because the color
-        // is equal to the threshold (not brighter)
-        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
-        assertFalse(output.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
-            "Terminal should not adjust white color when it equals the threshold");
+        // The output should not contain any DOS palette sequences (colors 0-15)
+        // because the color is equal to the threshold (not brighter)
+        for (int i = 0; i <= 15; i++) {
+            assertFalse(newOutput.contains("\033]4;" + i + ";"),
+                "Terminal should not send DOS palette color " + i + 
+                " when white color equals the threshold");
+        }
     }
 
     @Test
-    @DisplayName("should only adjust white color once per session")
-    void shouldOnlyAdjustWhiteColorOncePerSession() {
+    @DisplayName("should only send palette once per session")
+    void shouldOnlySendPaletteOncePerSession() {
         terminal = createTerminal();
         assertNotNull(terminal);
 
-        // First bright white color should trigger adjustment
+        // First bright white color should trigger palette sending
         terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
         String outputAfterFirst = outputStream.toString();
-        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
-        assertTrue(outputAfterFirst.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
-            "Terminal should adjust white color on first bright color");
+        // Check for DOS white color (color 7) - 0xa8a8a8
+        assertTrue(outputAfterFirst.contains("\033]4;7;rgb:a8a8/a8a8/a8a8\033\\"),
+            "Terminal should send DOS palette on first bright color");
 
         // Clear the output stream to check for new output
         outputStream.reset();
 
-        // Second bright white color should not trigger another adjustment
+        // Second bright white color should not trigger another palette send
         terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
         String outputAfterSecond = outputStream.toString();
-        assertFalse(outputAfterSecond.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
-            "Terminal should not adjust white color again");
+        assertFalse(outputAfterSecond.contains("\033]4;0;"),
+            "Terminal should not send palette again");
     }
 
     @Test
