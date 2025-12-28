@@ -884,6 +884,10 @@ public class ECMA48Terminal extends LogicalScreen
             return;
         }
 
+        if (output == null) {
+            return;
+        }
+
         output.print("\033]104\033\\");
         output.flush();
     }

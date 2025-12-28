@@ -1069,7 +1069,8 @@ public class TWindow extends TWidget {
         }
 
         if (drawPreTransform != null) {
-            //applyCellTransform(0, 0, getWidth(), getHeight(), drawPreTransform, drawPreTransformWidget);
+            applyCellTransform(0, 0, getWidth(), getHeight(), drawPreTransform,
+                drawPreTransformWidget);
         }
     }
 
