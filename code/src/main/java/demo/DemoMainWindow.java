@@ -292,8 +292,8 @@ public class DemoMainWindow extends TWindow {
 
         row += 2;
 
-        addLabel("Exception management", 1, row);
-        addButton("Exception", col, row,
+        addLabel(i18n.getString("exceptionLabel"), 1, row);
+        addButton(i18n.getString("exceptionButton"), col, row,
             new TAction() {
                 public void DO() {
                     try {
