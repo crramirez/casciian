@@ -107,6 +107,20 @@ public class SystemProperties {
     public static final String CASCIIAN_USE_TERMINAL_PALETTE = "casciian.useTerminalPalette";
 
     /**
+     * System property key for disabling pre-transform cell effects (like gradients).
+     * Valid values: "true" or "false"
+     * Default: false (pre-transforms enabled)
+     */
+    public static final String CASCIIAN_DISABLE_PRE_TRANSFORM = "casciian.disablePreTransform";
+
+    /**
+     * System property key for disabling post-transform cell effects.
+     * Valid values: "true" or "false"
+     * Default: false (post-transforms enabled)
+     */
+    public static final String CASCIIAN_DISABLE_POST_TRANSFORM = "casciian.disablePostTransform";
+
+    /**
      * Atomic reference representing the animations setting.
      * When true, enable animations.
      * The default value is false if not explicitly set.
@@ -202,6 +216,22 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> useTerminalPalette = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the disable pre-transform setting.
+     * When true, disable pre-transform cell effects (like gradients).
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> disablePreTransform = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the disable post-transform setting.
+     * When true, disable post-transform cell effects.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> disablePostTransform = new AtomicReference<>(null);
 
     private SystemProperties() {
     }
@@ -499,6 +529,44 @@ public class SystemProperties {
     }
 
     /**
+     * Get the disable pre-transform value from system properties.
+     *
+     * @return true if pre-transform cell effects (like gradients) are disabled,
+     *         false otherwise. Default is false.
+     */
+    public static boolean isDisablePreTransform() {
+        return getBooleanProperty(disablePreTransform, CASCIIAN_DISABLE_PRE_TRANSFORM, false);
+    }
+
+    /**
+     * Set the disable pre-transform value in system properties.
+     *
+     * @param value true to disable pre-transform cell effects, false to enable
+     */
+    public static void setDisablePreTransform(boolean value) {
+        setBooleanProperty(disablePreTransform, CASCIIAN_DISABLE_PRE_TRANSFORM, value);
+    }
+
+    /**
+     * Get the disable post-transform value from system properties.
+     *
+     * @return true if post-transform cell effects are disabled,
+     *         false otherwise. Default is false.
+     */
+    public static boolean isDisablePostTransform() {
+        return getBooleanProperty(disablePostTransform, CASCIIAN_DISABLE_POST_TRANSFORM, false);
+    }
+
+    /**
+     * Set the disable post-transform value in system properties.
+     *
+     * @param value true to disable post-transform cell effects, false to enable
+     */
+    public static void setDisablePostTransform(boolean value) {
+        setBooleanProperty(disablePostTransform, CASCIIAN_DISABLE_POST_TRANSFORM, value);
+    }
+
+    /**
      * Reset all cached system property values to their unset state.
      * This will force values to be re-read from system properties on the next access.
      */
@@ -515,5 +583,7 @@ public class SystemProperties {
         textBlink.set(null);
         menuIcons.set(null);
         useTerminalPalette.set(null);
+        disablePreTransform.set(null);
+        disablePostTransform.set(null);
     }
 }

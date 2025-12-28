@@ -1068,7 +1068,7 @@ public class TWindow extends TWidget {
             }
         }
 
-        if (drawPreTransform != null) {
+        if (drawPreTransform != null && !SystemProperties.isDisablePreTransform()) {
             applyCellTransform(0, 0, getWidth(), getHeight(), drawPreTransform,
                 drawPreTransformWidget);
         }
@@ -1088,7 +1088,7 @@ public class TWindow extends TWidget {
      * private access.
      */
     void onPostDrawCellTransform() {
-        if (drawPostTransform != null) {
+        if (drawPostTransform != null && !SystemProperties.isDisablePostTransform()) {
             applyCellTransform(0, 0, getWidth(), getHeight(),
                 drawPostTransform, drawPostTransformWidget);
         }
