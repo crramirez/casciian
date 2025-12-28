@@ -53,26 +53,26 @@ Running The Demo
 src/demo contains official demos showing all of the stock UI controls.
 The demos can be run as follows:
 
-  * 'java -cp casciian.jar:demo.jar demo.Demo1' .  This will use
+  * 'java -jar casciian-full.jar' .  This will use
     System.in/out with Xterm-like sequences.
 
-  * 'java -cp casciian.jar:demo.jar demo.Demo2 PORT' (where PORT is a
+  * 'java -cp casciian-full.jar demo.Demo2 PORT' (where PORT is a
     number to run the TCP daemon on).  This will use the Xterm backend
     on a telnet server that will update with screen size changes.
 
-  * 'java -cp casciian.jar:demo.jar demo.Demo3' .  This will use
+  * 'java -cp casciian-full.jar demo.Demo3' .  This will use
     System.in/out with Xterm-like sequences.  One can see in the code
     how to pass a different InputReader and OutputReader to
     TApplication, permitting a different encoding than UTF-8; in this
     case, code page 437.
 
-  * 'java -cp casciian.jar:demo.jar demo.Demo4' .  This demonstrates
+  * 'java -cp casciian-full.jar demo.Demo4' .  This demonstrates
     hidden windows and a custom TDesktop.
 
-  * 'java -cp casciian.jar:demo.jar demo.Demo7' .  This demonstrates the
+  * 'java -cp casciian-full.jar demo.Demo7' .  This demonstrates the
     BoxLayoutManager, achieving a similar result as the
     javax.swing.BoxLayout apidocs example.
 
-  * 'java -cp casciian.jar:demo.jar demo.Demo8 PORT' (where PORT is a
+  * 'java -cp casciian-full.jar demo.Demo8 PORT' (where PORT is a
     number to run the TCP daemon on).  This will use the Xterm backend
     on a telnet server to share one screen to many terminals.
