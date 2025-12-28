@@ -1128,14 +1128,14 @@ public class TApplication implements Runnable {
      * Helper method to get a menu item's checked state.
      *
      * @param menuId the ID of the menu item to get
+     * @return true if this menu item is found and both checkable and checked
      */
     protected boolean isMenuItemChecked(int menuId) {
         TMenuItem menuItem = getMenuItem(menuId);
         if (menuItem != null) {
             return menuItem.isChecked();
-        } else {
-            return false;
         }
+        return false;
     }
 
     /**
