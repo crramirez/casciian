@@ -3681,7 +3681,14 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * Send OSC 4 sequences to set the entire terminal palette.
-     * Uses the MY* color constants which are already initialized by setCGAColors() or setCustomSystemColors.
+     * Uses the {@code MY*} color constants which are already initialized by
+     * {@link #setCGAColors()} or {@link #setCustomSystemColors()}.
+     * <p>
+     * This method unconditionally emits the palette update when invoked; it does
+     * not itself consult any system properties. The decision to call this method
+     * is typically controlled by the {@code useTerminalPalette} system property
+     * (via {@code SystemProperties.isUseTerminalPalette()}) in the constructors
+     * or other callers.
      */
     private void sendPalette() {
         if (output == null) {
