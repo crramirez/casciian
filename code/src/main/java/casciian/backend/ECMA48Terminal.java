@@ -880,11 +880,11 @@ public class ECMA48Terminal extends LogicalScreen
      * Restore the terminal's palette to its original state.
      */
     private void restorePalette() {
-        if (SystemProperties.isUseTerminalPalette()) {
+        if (output == null) {
             return;
         }
 
-        if (output == null) {
+        if (SystemProperties.isUseTerminalPalette()) {
             return;
         }
 
