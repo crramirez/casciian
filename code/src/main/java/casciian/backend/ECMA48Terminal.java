@@ -90,19 +90,6 @@ public class ECMA48Terminal extends LogicalScreen
     private static final String POINTER_SHAPE_DEFAULT = "default";
 
     /**
-     * Minimum threshold for white (light gray) color to ensure text visibility.
-     * If the terminal's color 7 (white/light gray) is brighter than this value,
-     * it will be adjusted to this darker shade to improve modal dialog visibility.
-     * Value is 0xB0B0B0 (RGB: 176, 176, 176).
-     * <p>
-     * Earlier discussion and issue comments referenced {@code #aaaaaa} ({@code 0xAAAAAA})
-     * as the target brightness. This implementation intentionally uses the slightly
-     * darker {@code 0xB0B0B0} to further improve contrast in modal dialogs while
-     * remaining close to the originally proposed threshold.
-     */
-    public static final int WHITE_COLOR_MINIMUM_THRESHOLD = 0xB0B0B0;
-
-    /**
      * States in the input parser.
      */
     private enum ParseState {
@@ -381,18 +368,6 @@ public class ECMA48Terminal extends LogicalScreen
     private static int DEFAULT_FORECOLOR;
     private static int DEFAULT_BACKCOLOR;
 
-    /**
-     * If true, the white color (color 7) has been adjusted to improve visibility.
-     * This flag ensures the adjustment is only done once per session.
-     */
-    private static boolean whiteColorAdjusted = false;
-
-    /**
-     * The original white color value from the terminal, stored for restoration
-     * when the terminal is closed.
-     */
-    private static int originalWhiteColor = -1;
-
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -401,7 +376,7 @@ public class ECMA48Terminal extends LogicalScreen
      * Static constructor.
      */
     static {
-        setDOSColors();
+        setCGAColors();
     }
 
     /**
@@ -523,6 +498,11 @@ public class ECMA48Terminal extends LogicalScreen
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
 
+        // Send CGA palette to terminal (unless using terminal's native palette)
+        if (!SystemProperties.isUseTerminalPalette()) {
+            sendCGAPalette();
+        }
+
         // Request xterm report its ANSI colors
         this.output.printf("%s", xtermQueryAnsiColors());
 
@@ -634,6 +614,11 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
+
+        // Send CGA palette to terminal (unless using terminal's native palette)
+        if (!SystemProperties.isUseTerminalPalette()) {
+            sendCGAPalette();
+        }
 
         // Request xterm report its ANSI colors
         this.output.printf("%s", xtermQueryAnsiColors());
@@ -853,11 +838,6 @@ public class ECMA48Terminal extends LogicalScreen
             if (debugToStderr) {
                 e.printStackTrace();
             }
-        }
-
-        // Restore original white color if it was adjusted
-        if (whiteColorAdjusted) {
-            restoreOriginalWhiteColor();
         }
 
         // Restore original xterm mouse pointer shape if it was changed
@@ -2201,11 +2181,6 @@ public class ECMA48Terminal extends LogicalScreen
                 if (debugToStderr) {
                     System.err.println("    Set WHITE");
                 }
-                // Check if the white color is too bright and adjust if necessary
-                if (!whiteColorAdjusted && isColorBrighterThan(rgbColor, WHITE_COLOR_MINIMUM_THRESHOLD)) {
-                    originalWhiteColor = rgbColor;
-                    adjustWhiteColor();
-                }
                 break;
             case 8:
                 MYBOLD_BLACK   = rgbColor;
@@ -2853,9 +2828,9 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Setup system colors to match DOS color palette.
+     * Setup system colors to match CGA color palette.
      */
-    private static void setDOSColors() {
+    private static void setCGAColors() {
         MYBLACK         = 0x000000;
         MYRED           = 0xa80000;
         MYGREEN         = 0x00a800;
@@ -3699,120 +3674,56 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Check if a color is brighter than a threshold color.
-     * Brightness is determined by comparing each RGB component individually
-     * rather than using standard luminance calculations.
-     *
-     * <p>This component-by-component approach is used because for grayscale
-     * colors like the terminal's "white" color (color 7), all components
-     * are typically equal. A simple component comparison ensures that a
-     * color like #BBBBBB is detected as brighter than #AAAAAA without
-     * the complexity of weighted luminance calculations.</p>
-     *
-     * @param color the color to check (as RGB integer)
-     * @param threshold the threshold color (as RGB integer)
-     * @return true if the color is brighter than the threshold
+     * Send OSC 4 sequences to set the entire terminal palette to CGA colors.
+     * This sets all 16 palette colors (0-15) to match the classic CGA
+     * color scheme defined in setCGAColors(). Uses the MY* color constants
+     * which are already initialized by setCGAColors().
      */
-    private boolean isColorBrighterThan(final int color, final int threshold) {
-        int colorRed = (color >>> 16) & 0xFF;
-        int colorGreen = (color >>> 8) & 0xFF;
-        int colorBlue = color & 0xFF;
-
-        int thresholdRed = (threshold >>> 16) & 0xFF;
-        int thresholdGreen = (threshold >>> 8) & 0xFF;
-        int thresholdBlue = threshold & 0xFF;
-
-        // Color is brighter if all components are >= threshold components
-        // and at least one component is > threshold
-        boolean allGreaterOrEqual = (colorRed >= thresholdRed)
-            && (colorGreen >= thresholdGreen)
-            && (colorBlue >= thresholdBlue);
-        boolean atLeastOneGreater = (colorRed > thresholdRed)
-            || (colorGreen > thresholdGreen)
-            || (colorBlue > thresholdBlue);
-
-        return allGreaterOrEqual && atLeastOneGreater;
-    }
-
-    /**
-     * Adjust the white color (color 7) to the minimum threshold to improve
-     * visibility in modal dialogs. This method sends an OSC 4 sequence to
-     * change the terminal's palette color 7.
-     */
-    private void adjustWhiteColor() {
+    private void sendCGAPalette() {
         if (output == null) {
             return;
         }
 
-        sendOsc4Color7(WHITE_COLOR_MINIMUM_THRESHOLD);
+        // CGA palette colors using the MY* constants
+        int[] cgaColors = {
+            MYBLACK,        // 0: Black
+            MYRED,          // 1: Red
+            MYGREEN,        // 2: Green
+            MYYELLOW,       // 3: Yellow (brown)
+            MYBLUE,         // 4: Blue
+            MYMAGENTA,      // 5: Magenta
+            MYCYAN,         // 6: Cyan
+            MYWHITE,        // 7: White (light gray)
+            MYBOLD_BLACK,   // 8: Bright Black (dark gray)
+            MYBOLD_RED,     // 9: Bright Red
+            MYBOLD_GREEN,   // 10: Bright Green
+            MYBOLD_YELLOW,  // 11: Bright Yellow
+            MYBOLD_BLUE,    // 12: Bright Blue
+            MYBOLD_MAGENTA, // 13: Bright Magenta
+            MYBOLD_CYAN,    // 14: Bright Cyan
+            MYBOLD_WHITE    // 15: Bright White
+        };
 
-        if (debugToStderr) {
-            System.err.printf("Adjusting white color to #%06x\n",
-                WHITE_COLOR_MINIMUM_THRESHOLD);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < cgaColors.length; i++) {
+            int color = cgaColors[i];
+            int red = (color >>> 16) & 0xFF;
+            int green = (color >>> 8) & 0xFF;
+            int blue = color & 0xFF;
+
+            // Format: OSC 4 ; color-index ; rgb:rrrr/gggg/bbbb ST
+            // Using 16-bit format (4 hex digits per component) for compatibility
+            // Using argument_index to send each component only once to the formatter
+            sb.append("\033]4;%1$d;rgb:%2$02x%2$02x/%3$02x%3$02x/%4$02x%4$02x\033\\"
+                .formatted(i, red, green, blue));
         }
 
-        // Update MYWHITE to reflect the change
-        MYWHITE = WHITE_COLOR_MINIMUM_THRESHOLD;
-        whiteColorAdjusted = true;
-    }
-
-    /**
-     * Restore the original white color (color 7) in the terminal.
-     * This method sends an OSC 4 sequence to restore the terminal's
-     * original palette color 7.
-     *
-     * <p>Note: Uses -1 as sentinel value to indicate the original color
-     * was never recorded. This means 0x000000 (pure black) cannot be
-     * restored as the original white color, but this is acceptable since
-     * a terminal would never have pure black as its "white" color.</p>
-     */
-    private void restoreOriginalWhiteColor() {
-        if (output == null || originalWhiteColor < 0) {
-            return;
-        }
-
-        sendOsc4Color7(originalWhiteColor);
-
-        if (debugToStderr) {
-            System.err.printf("Restoring original white color to #%06x\n",
-                originalWhiteColor);
-        }
-
-        // Update MYWHITE to reflect the restored original color
-        MYWHITE = originalWhiteColor;
-    }
-
-    /**
-     * Send an OSC 4 sequence to set color 7 (white) in the terminal palette.
-     *
-     * <p>Uses 16-bit format (4 hex digits per component) for compatibility
-     * with terminals like wezterm that may not handle 8-bit format correctly.
-     * The 8-bit value is expanded to 16-bit by duplicating the byte
-     * (e.g., 0xB0 -&gt; 0xB0B0).</p>
-     *
-     * @param rgbColor the 24-bit RGB color value
-     */
-    private void sendOsc4Color7(final int rgbColor) {
-        int red = (rgbColor >>> 16) & 0xFF;
-        int green = (rgbColor >>> 8) & 0xFF;
-        int blue = rgbColor & 0xFF;
-
-        // Format: OSC 4 ; color-index ; rgb:rrrr/gggg/bbbb ST
-        // Using argument_index to avoid repeating color component parameters
-        String oscSequence = "\033]4;7;rgb:%1$02x%1$02x/%2$02x%2$02x/%3$02x%3$02x\033\\"
-            .formatted(red, green, blue);
-
-        output.write(oscSequence);
+        output.write(sb.toString());
         output.flush();
-    }
 
-    /**
-     * Reset the white color adjustment state.
-     * This is package-private and intended for testing purposes only.
-     */
-    static void resetWhiteColorAdjustmentState() {
-        whiteColorAdjusted = false;
-        originalWhiteColor = -1;
+        if (debugToStderr) {
+            System.err.println("Sent CGA palette (16 colors) to terminal");
+        }
     }
 
 }
