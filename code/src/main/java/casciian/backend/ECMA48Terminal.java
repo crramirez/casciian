@@ -843,6 +843,8 @@ public class ECMA48Terminal extends LogicalScreen
         // Restore original xterm mouse pointer shape if it was changed
         restoreXtermMousePointer();
 
+        restorePalette();
+
         // Disable mouse reporting and show cursor.  Defensive null check
         // here in case closeTerminal() is called twice.
         if (output != null) {
@@ -872,6 +874,18 @@ public class ECMA48Terminal extends LogicalScreen
                 output = null;
             }
         }
+    }
+
+    /**
+     * Restore the terminal's palette to its original state.
+     */
+    private void restorePalette() {
+        if (SystemProperties.isUseTerminalPalette()) {
+            return;
+        }
+
+        output.print("\033]104\033\\");
+        output.flush();
     }
 
     /**
