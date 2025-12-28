@@ -2072,8 +2072,7 @@ public class ECMA48Terminal extends LogicalScreen
                 System.err.println("  -- Genuine(tm) XTerm! -- ");
             }
             isGenuineXTerm = true;
-            // Query the current mouse pointer shape so we can change it to
-            // arrow and restore it later
+
             setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
         }
 
