@@ -100,6 +100,13 @@ public class SystemProperties {
     public static final String CASCIIAN_MENU_ICONS = "casciian.menuIcons";
 
     /**
+     * System property key for using terminal's native palette instead of CGA colors.
+     * Valid values: "true" or "false"
+     * Default: false (use CGA colors)
+     */
+    public static final String CASCIIAN_USE_TERMINAL_PALETTE = "casciian.useTerminalPalette";
+
+    /**
      * Atomic reference representing the animations setting.
      * When true, enable animations.
      * The default value is false if not explicitly set.
@@ -187,6 +194,14 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> menuIcons = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the use terminal palette setting.
+     * When true, use the terminal's native palette instead of CGA colors.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> useTerminalPalette = new AtomicReference<>(null);
 
     private SystemProperties() {
     }
@@ -465,6 +480,25 @@ public class SystemProperties {
     }
 
     /**
+     * Get the use terminal palette value from system properties.
+     *
+     * @return true if terminal's native palette should be used, false to use CGA colors.
+     *         Default is false.
+     */
+    public static boolean isUseTerminalPalette() {
+        return getBooleanProperty(useTerminalPalette, CASCIIAN_USE_TERMINAL_PALETTE, false);
+    }
+
+    /**
+     * Set the use terminal palette value in system properties.
+     *
+     * @param value true to use terminal's native palette, false to use CGA colors
+     */
+    public static void setUseTerminalPalette(boolean value) {
+        setBooleanProperty(useTerminalPalette, CASCIIAN_USE_TERMINAL_PALETTE, value);
+    }
+
+    /**
      * Reset all cached system property values to their unset state.
      * This will force values to be re-read from system properties on the next access.
      */
@@ -480,5 +514,6 @@ public class SystemProperties {
         blinkDimPercent.set(null);
         textBlink.set(null);
         menuIcons.set(null);
+        useTerminalPalette.set(null);
     }
 }

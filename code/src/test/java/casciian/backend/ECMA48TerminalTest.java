@@ -45,8 +45,8 @@ class ECMA48TerminalTest {
 
     @BeforeEach
     void setUp() {
-        // Reset static state for white color adjustment
-        ECMA48Terminal.resetWhiteColorAdjustmentState();
+        // Reset system properties
+        SystemProperties.reset();
 
         // Create mock backend
         mockBackend = Mockito.mock(Backend.class);
@@ -62,6 +62,8 @@ class ECMA48TerminalTest {
         if (terminal != null) {
             terminal.closeTerminal();
         }
+        // Reset system properties to default
+        SystemProperties.reset();
     }
 
     // Color conversion tests - static methods
@@ -382,121 +384,83 @@ class ECMA48TerminalTest {
         assertEquals(52480, defaultBackColor);
     }
 
-    // White color adjustment tests
+    // CGA palette tests
 
     @Test
-    @DisplayName("WHITE_COLOR_MINIMUM_THRESHOLD is set to 0xB0B0B0")
-    void testWhiteColorMinimumThreshold() {
-        assertEquals(0xB0B0B0, ECMA48Terminal.WHITE_COLOR_MINIMUM_THRESHOLD);
-    }
-
-    @Test
-    @DisplayName("should adjust white color when it is brighter than threshold")
-    void shouldAdjustWhiteColorWhenBrighterThanThreshold() {
+    @DisplayName("should send CGA palette to terminal on startup")
+    void shouldSendPaletteOnStartup() {
         terminal = createTerminal();
         assertNotNull(terminal);
 
-        // Before the OSC response, there should be no output for color adjustment
-        String outputBefore = outputStream.toString();
-        
-        // Simulate receiving a bright white color (0xFFFFFF) from the terminal
-        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
-
-        // The terminal should have sent an OSC command to adjust the color
-        String outputAfter = outputStream.toString();
-        
-        // The output should contain the OSC 4 sequence to set color 7
-        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
-        assertTrue(outputAfter.length() > outputBefore.length(),
-            "Terminal should send OSC command to adjust white color");
-        assertTrue(outputAfter.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
-            "Terminal should adjust white color to #b0b0b0 using 16-bit format");
-    }
-
-    @Test
-    @DisplayName("should not adjust white color when it is darker than threshold")
-    void shouldNotAdjustWhiteColorWhenDarkerThanThreshold() {
-        terminal = createTerminal();
-        assertNotNull(terminal);
-
-        // Get the output before the OSC response
-        String outputBefore = outputStream.toString();
-
-        // Simulate receiving a dark white color (0x808080) from the terminal
-        terminal.oscResponse("4;7;rgb:8080/8080/8080");
-
-        // The terminal should not send any additional output
-        String outputAfter = outputStream.toString();
-        
-        // The output should not contain an adjustment sequence
-        // (only the normal screen clear/redraw that oscResponse triggers)
-        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
-        assertFalse(outputAfter.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
-            "Terminal should not adjust white color when it is already dark enough");
-    }
-
-    @Test
-    @DisplayName("should not adjust white color when it equals the threshold")
-    void shouldNotAdjustWhiteColorWhenEqualsThreshold() {
-        terminal = createTerminal();
-        assertNotNull(terminal);
-
-        // Simulate receiving the exact threshold color from the terminal
-        terminal.oscResponse("4;7;rgb:b0b0/b0b0/b0b0");
-
+        // The terminal constructor should have sent the CGA palette
         String output = outputStream.toString();
         
-        // The output should not contain an adjustment sequence because the color
-        // is equal to the threshold (not brighter)
-        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
-        assertFalse(output.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
-            "Terminal should not adjust white color when it equals the threshold");
+        // Check for CGA palette colors (using MY* constant values)
+        // Color 0 (black) - 0x000000
+        assertTrue(output.contains("\033]4;0;rgb:0000/0000/0000\033\\"),
+            "Terminal should send CGA black color (color 0)");
+        // Color 1 (red) - 0xa80000
+        assertTrue(output.contains("\033]4;1;rgb:a8a8/0000/0000\033\\"),
+            "Terminal should send CGA red color (color 1)");
+        // Color 7 (white/light gray) - 0xa8a8a8
+        assertTrue(output.contains("\033]4;7;rgb:a8a8/a8a8/a8a8\033\\"),
+            "Terminal should send CGA white color (color 7)");
+        // Color 8 (bright black/dark gray) - 0x545454
+        assertTrue(output.contains("\033]4;8;rgb:5454/5454/5454\033\\"),
+            "Terminal should send CGA bright black color (color 8)");
+        // Color 15 (bright white) - 0xfcfcfc
+        assertTrue(output.contains("\033]4;15;rgb:fcfc/fcfc/fcfc\033\\"),
+            "Terminal should send CGA bright white color (color 15)");
     }
 
     @Test
-    @DisplayName("should only adjust white color once per session")
-    void shouldOnlyAdjustWhiteColorOncePerSession() {
-        terminal = createTerminal();
-        assertNotNull(terminal);
-
-        // First bright white color should trigger adjustment
-        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
-        String outputAfterFirst = outputStream.toString();
-        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
-        assertTrue(outputAfterFirst.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
-            "Terminal should adjust white color on first bright color");
-
-        // Clear the output stream to check for new output
-        outputStream.reset();
-
-        // Second bright white color should not trigger another adjustment
-        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
-        String outputAfterSecond = outputStream.toString();
-        assertFalse(outputAfterSecond.contains("\033]4;7;rgb:b0b0/b0b0/b0b0\033\\"),
-            "Terminal should not adjust white color again");
-    }
-
-    @Test
-    @DisplayName("should restore original white color when terminal is closed")
-    void shouldRestoreOriginalWhiteColorWhenTerminalClosed() {
-        terminal = createTerminal();
-        assertNotNull(terminal);
-
-        // Simulate receiving a bright white color (0xFFFFFF) to trigger adjustment
-        terminal.oscResponse("4;7;rgb:ffff/ffff/ffff");
+    @DisplayName("should not send CGA palette when useTerminalPalette is true")
+    void shouldNotSendPaletteWhenUseTerminalPaletteIsTrue() {
+        // Set the property to use terminal's native palette
+        SystemProperties.setUseTerminalPalette(true);
         
-        // Clear the output stream to check for restoration output
-        outputStream.reset();
+        try {
+            terminal = createTerminal();
+            assertNotNull(terminal);
 
-        // Close the terminal - should restore the original color
-        terminal.closeTerminal();
-        terminal = null; // Prevent double close in tearDown
+            // The terminal constructor should NOT have sent the CGA palette
+            String output = outputStream.toString();
+            
+            // Check that CGA palette colors are not in the output
+            assertFalse(output.contains("\033]4;0;rgb:0000/0000/0000\033\\"),
+                "Terminal should not send CGA palette when useTerminalPalette is true");
+        } finally {
+            // Reset the property
+            SystemProperties.setUseTerminalPalette(false);
+        }
+    }
 
-        // The output should contain the OSC 4 sequence to restore the original color
-        // Using 16-bit format (4 hex digits per component) for wezterm compatibility
-        String output = outputStream.toString();
-        assertTrue(output.contains("\033]4;7;rgb:ffff/ffff/ffff\033\\"),
-            "Terminal should restore original white color on close using 16-bit format");
+    @Test
+    @DisplayName("isUseTerminalPalette defaults to false")
+    void testUseTerminalPaletteDefaultIsFalse() {
+        // Reset all properties
+        SystemProperties.reset();
+        
+        // Default should be false
+        assertFalse(SystemProperties.isUseTerminalPalette(),
+            "useTerminalPalette should default to false");
+    }
+
+    @Test
+    @DisplayName("setUseTerminalPalette updates the property value")
+    void testSetUseTerminalPalette() {
+        try {
+            // Set to true
+            SystemProperties.setUseTerminalPalette(true);
+            assertTrue(SystemProperties.isUseTerminalPalette());
+            
+            // Set to false
+            SystemProperties.setUseTerminalPalette(false);
+            assertFalse(SystemProperties.isUseTerminalPalette());
+        } finally {
+            // Reset to default
+            SystemProperties.setUseTerminalPalette(false);
+        }
     }
 
     // Mouse pointer shape tests for xterm
