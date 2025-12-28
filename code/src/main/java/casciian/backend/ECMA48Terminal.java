@@ -3685,6 +3685,9 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private void sendPalette() {
         if (output == null) {
+            if (debugToStderr) {
+                System.err.println("sendPalette(): output is null, skipping palette transmission");
+            }
             return;
         }
 
