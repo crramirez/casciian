@@ -446,9 +446,9 @@ public class TField extends TWidget implements EditMenuUser {
         CellAttributes fieldColor;
 
         if (isAbsoluteActive()) {
-            fieldColor = getTheme().getColor(activeColorKey);
+            fieldColor = new CellAttributes(getTheme().getColor(activeColorKey));
         } else {
-            fieldColor = getTheme().getColor(inactiveColorKey);
+            fieldColor = new CellAttributes(getTheme().getColor(inactiveColorKey));
         }
         // Pulse color.
         if (isActive() && getWindow().isActive()
