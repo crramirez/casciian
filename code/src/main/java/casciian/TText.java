@@ -437,10 +437,13 @@ public class TText extends TScrollable {
      * Set the number of lines between each paragraph.
      *
      * @param lineSpacing the number of blank lines between paragraphs
+     * @return this to allow chaining initialization
      */
-    public void setLineSpacing(final int lineSpacing) {
+    @SuppressWarnings("UnusedReturnValue")
+    public TText setLineSpacing(final int lineSpacing) {
         this.lineSpacing = lineSpacing;
         reflowData();
-    }
 
+        return this;
+    }
 }

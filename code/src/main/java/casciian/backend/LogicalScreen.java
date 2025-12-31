@@ -715,7 +715,7 @@ public class LogicalScreen implements Screen {
      * @param y row coordinate.  0 is the top-most row.
      * @param ch character + attributes to draw
      */
-    private final void putCharXY(final int x, final int y, final Cell ch,
+    private void putCharXY(final int x, final int y, final Cell ch,
         final boolean direct) {
 
         if ((x < clipLeft)
@@ -729,8 +729,8 @@ public class LogicalScreen implements Screen {
         }
 
         if ((ch.getDisplayWidth() == 2) && !direct) {
-            if (ch instanceof ComplexCell) {
-                putFullwidthCharXY(x, y, (ComplexCell) ch);
+            if (ch instanceof ComplexCell complexCell) {
+                putFullwidthCharXY(x, y, complexCell);
             } else {
                 putFullwidthCharXY(x, y, new ComplexCell(ch));
             }
@@ -1426,7 +1426,7 @@ public class LogicalScreen implements Screen {
      * @param y row coordinate.  0 is the top-most row.
      * @param cell the cell to draw
      */
-    private final void putFullwidthCharXY(final int x, final int y,
+    private void putFullwidthCharXY(final int x, final int y,
         final ComplexCell cell) {
 
         ComplexCell left = new ComplexCell(cell);
@@ -1435,6 +1435,7 @@ public class LogicalScreen implements Screen {
 
         ComplexCell right = new ComplexCell(cell);
         right.setWidth(Cell.Width.RIGHT);
+        right.setChar(' ');
         putCharXY(x + 1, y, right, true);
     }
 

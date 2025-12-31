@@ -244,17 +244,16 @@ public class ComplexCell extends Cell {
     public void setTo(final Object rhs) {
         super.setTo(rhs);
 
-        if (rhs instanceof Cell) {
-            Cell that = (Cell) rhs;
-            codePoints = new int[1];
-            codePoints[0] = that.getChar();
-        }
-
-        if (rhs instanceof ComplexCell) {
-            ComplexCell that = (ComplexCell) rhs;
+        if (rhs instanceof ComplexCell that) {
             this.codePoints = new int[that.codePoints.length];
             System.arraycopy(that.codePoints, 0, this.codePoints, 0,
                 codePoints.length);
+            return;
+        }
+
+        if (rhs instanceof Cell that) {
+            codePoints = new int[1];
+            codePoints[0] = that.getChar();
         }
     }
 
