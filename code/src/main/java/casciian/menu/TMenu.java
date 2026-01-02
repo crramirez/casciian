@@ -883,31 +883,27 @@ public class TMenu extends TWindow {
      * @return the new menu item
      */
     public TMenuItem addDefaultItem(final int id, final boolean enabled) {
-        assert (id >= 0);
-        assert (id < 1024);
-
+        if (id < 0 || id >= 1024) {
+            throw new IllegalArgumentException("Invalid id: " + id);
+        }
         String label;
         TKeypress key = null;
         int icon = -1;
         boolean checkable = false;
-        boolean checked = false;
 
         switch (id) {
 
         case MID_REPAINT:
             label = i18n.getString("menuRepaintDesktop");
-            icon = 0x1F3A8;
             break;
 
         case MID_VIEW_ANSI:
             label = i18n.getString("menuViewAnsiArt");
-            icon = 0x1F4F0;
             break;
 
         case MID_TEXT_CURSOR_GLINT:
             label = i18n.getString("menuTextCursorGlint");
             key = kbAltF12;
-            icon = 0x2728;
             break;
 
         case MID_NEW:
@@ -954,17 +950,14 @@ public class TMenu extends TWindow {
         case MID_CUT:
             label = i18n.getString("menuCut");
             key = kbCtrlX;
-            icon = 0x1F5F6;
             break;
         case MID_COPY:
             label = i18n.getString("menuCopy");
             key = kbCtrlC;
-            icon = 0x1F5D0;
             break;
         case MID_PASTE:
             label = i18n.getString("menuPaste");
             key = kbCtrlV;
-            icon = 0x1F4CB;
             break;
         case MID_CLEAR:
             label = i18n.getString("menuClear");
@@ -1059,22 +1052,18 @@ public class TMenu extends TWindow {
         case MID_TABLE_VIEW_ROW_LABELS:
             label = i18n.getString("menuTableViewRowLabels");
             checkable = true;
-            checked = true;
             break;
         case MID_TABLE_VIEW_COLUMN_LABELS:
             label = i18n.getString("menuTableViewColumnLabels");
             checkable = true;
-            checked = true;
             break;
         case MID_TABLE_VIEW_HIGHLIGHT_ROW:
             label = i18n.getString("menuTableViewHighlightRow");
             checkable = true;
-            checked = true;
             break;
         case MID_TABLE_VIEW_HIGHLIGHT_COLUMN:
             label = i18n.getString("menuTableViewHighlightColumn");
             checkable = true;
-            checked = true;
             break;
 
         case MID_TABLE_BORDER_NONE:
