@@ -536,7 +536,7 @@ public class SystemProperties {
     /**
      * Set the use icons value in system properties.
      *
-     * @param value true to use icons, false to hide
+     * @param value true to use icons, false to disable
      */
     public static void setUseIcons(boolean value) {
         setBooleanProperty(useIcons, CASCIIAN_USE_ICONS, value);
