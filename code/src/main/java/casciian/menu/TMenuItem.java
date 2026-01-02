@@ -17,6 +17,7 @@ package casciian.menu;
 import casciian.TKeypress;
 import casciian.TWidget;
 import casciian.backend.Backend;
+import casciian.backend.SystemProperties;
 import casciian.bits.BorderStyle;
 import casciian.bits.CellAttributes;
 import casciian.bits.ComplexCell;
@@ -135,7 +136,7 @@ public class TMenuItem extends TWidget {
         setY(y);
         setHeight(1);
         this.label = mnemonic.getRawLabel();
-        if (parent.useIcons) {
+        if (SystemProperties.isUseIcons()) {
             setWidth(StringUtils.width(label) + 6);
         } else {
             setWidth(StringUtils.width(label) + 4);
@@ -255,7 +256,7 @@ public class TMenuItem extends TWidget {
             }
         }
 
-        boolean useIcons = ((TMenu) getParent()).useIcons;
+        boolean useIcons = SystemProperties.isUseIcons();
 
         BorderStyle borderStyle = ((TMenu) getParent()).getBorderStyle();
         int cVSide = borderStyle.getVertical();
@@ -359,7 +360,7 @@ public class TMenuItem extends TWidget {
         if (key != null) {
             int newWidth = (StringUtils.width(label) + 4 +
                 StringUtils.width(key.toString()) + 2);
-            if (((TMenu) getParent()).useIcons) {
+            if (SystemProperties.isUseIcons()) {
                 newWidth += 2;
             }
             if (newWidth > getWidth()) {

@@ -44,6 +44,7 @@ class SystemPropertiesTest {
         System.clearProperty(SystemProperties.CASCIIAN_BLINK_DIM_PERCENT);
         System.clearProperty(SystemProperties.CASCIIAN_TEXT_BLINK);
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS);
+        System.clearProperty(SystemProperties.CASCIIAN_USE_ICONS);
         SystemProperties.reset();
     }
 
@@ -622,5 +623,36 @@ class SystemPropertiesTest {
     void testSetMenuIconsFalse() {
         SystemProperties.setMenuIcons(false);
         assertFalse(SystemProperties.isMenuIcons());
+    }
+
+    // -------------------------------------------------------------------------
+    // Use Icons Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get useIcons returns default value (true) when not set")
+    void testIsUseIconsDefault() {
+        assertTrue(SystemProperties.isUseIcons());
+    }
+
+    @Test
+    @DisplayName("Get useIcons returns false when set to 'false'")
+    void testIsUseIconsSetFalse() {
+        System.setProperty(SystemProperties.CASCIIAN_USE_ICONS, "false");
+        assertFalse(SystemProperties.isUseIcons());
+    }
+
+    @Test
+    @DisplayName("Set useIcons to true")
+    void testSetUseIconsTrue() {
+        SystemProperties.setUseIcons(true);
+        assertTrue(SystemProperties.isUseIcons());
+    }
+
+    @Test
+    @DisplayName("Set useIcons to false")
+    void testSetUseIconsFalse() {
+        SystemProperties.setUseIcons(false);
+        assertFalse(SystemProperties.isUseIcons());
     }
 }

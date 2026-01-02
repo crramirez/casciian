@@ -410,11 +410,6 @@ public class TMenu extends TWindow {
     private MnemonicString mnemonic;
 
     /**
-     * If true, draw icons with menu items.  Note package private access.
-     */
-    boolean useIcons = false;
-
-    /**
      * If true, this is a context menu.
      */
     private boolean context = false;
@@ -452,10 +447,6 @@ public class TMenu extends TWindow {
         setHeight(2);
 
         setActive(false);
-
-        if (!SystemProperties.isMenuIcons()) {
-            useIcons = false;
-        }
 
         // Set the border style from the system properties
         setBorderStyleForeground(null);

@@ -100,6 +100,13 @@ public class SystemProperties {
     public static final String CASCIIAN_MENU_ICONS = "casciian.menuIcons";
 
     /**
+     * System property key for use icons.
+     * Valid values: "true" or "false"
+     * Default: true
+     */
+    public static final String CASCIIAN_USE_ICONS = "casciian.useIcons";
+
+    /**
      * System property key for using terminal's native palette instead of CGA colors.
      * Valid values: "true" or "false"
      * Default: false (use CGA colors)
@@ -208,6 +215,14 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> menuIcons = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the use icons setting.
+     * When true, use icons throughout the UI.
+     * The default value is true if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> useIcons = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the use terminal palette setting.
@@ -510,6 +525,24 @@ public class SystemProperties {
     }
 
     /**
+     * Get the use icons value from system properties.
+     *
+     * @return true if icons should be used, false otherwise. Default is true.
+     */
+    public static boolean isUseIcons() {
+        return getBooleanProperty(useIcons, CASCIIAN_USE_ICONS, true);
+    }
+
+    /**
+     * Set the use icons value in system properties.
+     *
+     * @param value true to use icons, false to hide
+     */
+    public static void setUseIcons(boolean value) {
+        setBooleanProperty(useIcons, CASCIIAN_USE_ICONS, value);
+    }
+
+    /**
      * Get the use terminal palette value from system properties.
      *
      * @return true if terminal's native palette should be used, false to use CGA colors.
@@ -582,6 +615,7 @@ public class SystemProperties {
         blinkDimPercent.set(null);
         textBlink.set(null);
         menuIcons.set(null);
+        useIcons.set(null);
         useTerminalPalette.set(null);
         disablePreTransform.set(null);
         disablePostTransform.set(null);
