@@ -37,7 +37,7 @@ public class Demo1 {
     /**
      * Default constructor.
      */
-    public Demo1() {}
+    private Demo1() {}
 
     // ------------------------------------------------------------------------
     // Demo1 ------------------------------------------------------------------
@@ -55,6 +55,7 @@ public class Demo1 {
                 SystemProperties.setAnimations(true);
                 SystemProperties.setTextMouse(true);
                 SystemProperties.setTranslucence(true);
+                SystemProperties.setMenuIcons(true);
 
                 defaults = false;
             } else {

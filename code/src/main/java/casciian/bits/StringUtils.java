@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.bits;
 
@@ -394,105 +399,7 @@ public class StringUtils {
      * point, one of 0, 1, or 2
      */
     public static int width(final int ch) {
-        /*
-         * This routine is a modified version of mk_wcwidth() available
-         * at: http://www.cl.cam.ac.uk/~mgk25/ucs/wcwidth.c
-         *
-         * The combining characters list has been omitted from this
-         * implementation.  Hopefully no users will be impacted.
-         */
-
-        // 8-bit control characters: width 0
-        if (ch == 0) {
-            return 0;
-        }
-        if ((ch < 32) || ((ch >= 0x7f) && (ch < 0xa0))) {
-            return 0;
-        }
-
-        // All others: either 1 or 2
-        if ((ch >= 0x1100)
-            && ((ch <= 0x115f)
-                // Hangul Jamo init. consonants
-                || (ch == 0x2329)
-                || (ch == 0x232a)
-                // CJK ... Yi
-                || ((ch >= 0x2e80) && (ch <= 0xa4cf) && (ch != 0x303f))
-                // Hangul Syllables
-                || ((ch >= 0xac00) && (ch <= 0xd7a3))
-                // CJK Compatibility Ideographs
-                || ((ch >= 0xf900) && (ch <= 0xfaff))
-                // Vertical forms
-                || ((ch >= 0xfe10) && (ch <= 0xfe19))
-                // CJK Compatibility Forms
-                || ((ch >= 0xfe30) && (ch <= 0xfe6f))
-                // Fullwidth Forms
-                || ((ch >= 0xff00) && (ch <= 0xff60))
-                || ((ch >= 0xffe0) && (ch <= 0xffe6))
-                || ((ch >= 0x20000) && (ch <= 0x2fffd))
-                || ((ch >= 0x30000) && (ch <= 0x3fffd))
-                // emoji - exclude symbols for legacy computing
-                || ((ch >= 0x1f004) && (ch < 0x1fb00))
-                // Symbols for Legacy Computing, 1 or 2?
-                // || ((ch >= 0x1fb00) && (ch <= 0x1fbff))
-                || ((ch >= 0x1fc00) && (ch <= 0x1fffd))
-
-                // Arrows - but not the ones in CP437
-                // || ((ch >= 0x2190) && (ch <= 0x21ff))
-                || ((ch >= 0x2196) && (ch <= 0x21ff) && (ch != 0x21a8))
-
-                // Supplemental Arrows
-                || ((ch >= 0x2900) && (ch <= 0x297f))
-
-                // Miscellaneous Symbols - a random smattering
-                // || ((ch >= 0x2600) && (ch <= 0x26ff))
-                || (ch >= 0x2614) && (ch <= 0x2615)
-                || (ch >= 0x2630) && (ch <= 0x2637)
-                || (ch >= 0x2648) && (ch <= 0x2653)
-                || (ch == 0x267f)
-                || (ch >= 0x268a) && (ch <= 0x268f)
-                || (ch == 0x2693)
-                || (ch == 0x26a0)
-                || (ch == 0x26a1)
-                || (ch >= 0x26aa) && (ch <= 0x26ab)
-                || (ch >= 0x26bd) && (ch <= 0x26be)
-                || (ch >= 0x26c4) && (ch <= 0x26c5)
-                || (ch == 0x26ce)
-                || (ch == 0x26d4)
-                || (ch == 0x26ea)
-                || (ch >= 0x26f2) && (ch <= 0x26f3)
-                || (ch == 0x26f5)
-                || (ch == 0x26fa)
-                || (ch == 0x26fd)
-
-                // Dingbats - a smattering
-                // || ((ch >= 0x2700) && (ch <= 0x27bf))
-                || (ch == 0x2705)
-                || (ch >= 0x270a) && (ch <= 0x270b)
-                || (ch == 0x2728)
-                || (ch == 0x274c)
-                || (ch == 0x274e)
-                || (ch >= 0x2753) && (ch <= 0x2755)
-                || (ch == 0x2757)
-                || (ch >= 0x2795) && (ch <= 0x2797)
-                || (ch == 0x27b0)
-                || (ch == 0x27bf)
-
-                // Miscellaneous Symbols and Arrows - a smattering
-                // || ((ch >= 0x2b00) && (ch <= 0x2bff))
-                || (ch >= 0x2b1b) && (ch <= 0x2b1c)
-                || (ch == 0x2b50)
-                || (ch == 0x2b55)
-
-                // Specific glyphs we use in Casciian
-                || (ch == 0x2b6e)
-                || (ch == 0x2b6f)
-
-            )
-        ) {
-            return 2;
-        }
-        return 1;
+        return UnicodeWidth.width(ch);
     }
 
     /**

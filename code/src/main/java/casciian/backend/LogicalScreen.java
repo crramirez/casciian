@@ -1435,7 +1435,7 @@ public class LogicalScreen implements Screen {
 
         ComplexCell right = new ComplexCell(cell);
         right.setWidth(Cell.Width.RIGHT);
-        right.setChar(' ');
+        right.setChar(0xFE0E);
         putCharXY(x + 1, y, right, true);
     }
 

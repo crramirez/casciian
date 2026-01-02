@@ -44,6 +44,7 @@ class SystemPropertiesTest {
         System.clearProperty(SystemProperties.CASCIIAN_BLINK_DIM_PERCENT);
         System.clearProperty(SystemProperties.CASCIIAN_TEXT_BLINK);
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS);
+        System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET);
         SystemProperties.reset();
     }
 
@@ -600,7 +601,7 @@ class SystemPropertiesTest {
     @Test
     @DisplayName("Get menuIcons returns default value (true) when not set")
     void testIsMenuIconsDefault() {
-        assertTrue(SystemProperties.isMenuIcons());
+        assertFalse(SystemProperties.isMenuIcons());
     }
 
     @Test
@@ -622,5 +623,124 @@ class SystemPropertiesTest {
     void testSetMenuIconsFalse() {
         SystemProperties.setMenuIcons(false);
         assertFalse(SystemProperties.isMenuIcons());
+    }
+
+    // -------------------------------------------------------------------------
+    // Menu Icons Offset Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get menuIconsOffset returns default value (3) when not set")
+    void testGetMenuIconsOffsetDefault() {
+        assertEquals(3, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Get menuIconsOffset returns valid value when set")
+    void testGetMenuIconsOffsetValidValue() {
+        System.setProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET, "2");
+        assertEquals(2, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Get menuIconsOffset handles minimum boundary (0)")
+    void testGetMenuIconsOffsetMinBoundary() {
+        System.setProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET, "0");
+        assertEquals(0, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Get menuIconsOffset handles maximum boundary (5)")
+    void testGetMenuIconsOffsetMaxBoundary() {
+        System.setProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET, "5");
+        assertEquals(5, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Get menuIconsOffset returns 0 for negative values")
+    void testGetMenuIconsOffsetInvalidNegative() {
+        System.setProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET, "-1");
+        assertEquals(0, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Get menuIconsOffset returns 5 for values over 5")
+    void testGetMenuIconsOffsetInvalidTooLarge() {
+        System.setProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET, "6");
+        assertEquals(5, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Get menuIconsOffset returns default for invalid string values")
+    void testGetMenuIconsOffsetInvalidString() {
+        System.setProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET, "invalid");
+        assertEquals(3, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Set menuIconsOffset stores valid value")
+    void testSetMenuIconsOffsetValidValue() {
+        SystemProperties.setMenuIconsOffset(4);
+        assertEquals(4, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Set menuIconsOffset stores minimum boundary value (0)")
+    void testSetMenuIconsOffsetMinBoundary() {
+        SystemProperties.setMenuIconsOffset(0);
+        assertEquals(0, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Set menuIconsOffset stores maximum boundary value (5)")
+    void testSetMenuIconsOffsetMaxBoundary() {
+        SystemProperties.setMenuIconsOffset(5);
+        assertEquals(5, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Set menuIconsOffset clamps negative values to 0")
+    void testSetMenuIconsOffsetClampNegative() {
+        SystemProperties.setMenuIconsOffset(-1);
+        assertEquals(0, SystemProperties.getMenuIconsOffset());
+
+        SystemProperties.setMenuIconsOffset(-100);
+        assertEquals(0, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Set menuIconsOffset clamps values over 5")
+    void testSetMenuIconsOffsetClampTooLarge() {
+        SystemProperties.setMenuIconsOffset(6);
+        assertEquals(5, SystemProperties.getMenuIconsOffset());
+
+        SystemProperties.setMenuIconsOffset(999);
+        assertEquals(5, SystemProperties.getMenuIconsOffset());
+    }
+
+    @Test
+    @DisplayName("Set and get menuIconsOffset works correctly for all valid values")
+    void testSetMenuIconsOffsetRoundTrip() {
+        // Verify setting and getting works correctly for all values in range
+        int[] testValues = {0, 1, 2, 3, 4, 5};
+        for (int value : testValues) {
+            SystemProperties.setMenuIconsOffset(value);
+            assertEquals(value, SystemProperties.getMenuIconsOffset());
+        }
+    }
+
+    @Test
+    @DisplayName("Reset clears menuIconsOffset cached value")
+    void testResetClearsMenuIconsOffset() {
+        // Set menuIconsOffset to 5
+        SystemProperties.setMenuIconsOffset(5);
+        assertEquals(5, SystemProperties.getMenuIconsOffset());
+
+        // Set system property to 1 and reset
+        System.setProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET, "1");
+        SystemProperties.reset();
+
+        // After reset, should read from system property again
+        assertEquals(1, SystemProperties.getMenuIconsOffset());
     }
 }
