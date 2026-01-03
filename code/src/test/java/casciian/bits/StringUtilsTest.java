@@ -27,13 +27,9 @@ class StringUtilsTest {
         // Test with tab/multiple spaces
         input = "Word\twith\t\ttabs   and spaces";
         result = StringUtils.left(input, 10);
-        // "Word\twith" -> width 9. Next is "\ttabs" which makes it too long?
-        // Let's see how width() handles tabs.
-        // width('\t') returns 0 according to width(int ch) line 409-411.
-        // Wait, width(int ch) says:
-        // if ((ch < 32) || ((ch >= 0x7f) && (ch < 0xa0))) { return 0; }
-        // Tab is 9. So width('\t') is 0.
-        // This might be unexpected but that's what the code does.
+        // Let's see how the width-calculation logic handles tabs.
+        // By current definition, width('\t') is treated as 0.
+        // This might be unexpected but that's what the code under test does.
         
         // Let's test basic left justification
         assertEquals(Arrays.asList("a", "b"), StringUtils.left("a b", 1));
@@ -138,11 +134,11 @@ class StringUtilsTest {
         assertEquals(1, StringUtils.width(cell));
 
         ComplexCell complexCell = new ComplexCell(new int[]{0x41, 0x301}); // A + combining acute accent
-        // width(ComplexCell) calls getCodePoints() and returns max width of any codepoint.
-        // width('A') = 1, width(0x301) = 1 (since it's not in the 0 width list or 2 width list)
-        // Wait, 0x301 is a combining character.
-        // In width(int ch), 0x301 is not < 32, not >= 0x7f && < 0xa0.
-        // So it returns 1.
+        // width(ComplexCell) calls getCodePoints() and returns the max width of any codepoint.
+        // Under the current Unicode width implementation:
+        //   - width('A' / 0x41) = 1
+        //   - width(0x301) = 0 because it is a combining character
+        // Therefore, width(complexCell) = max(width('A'), width(0x301)) = max(1, 0) = 1.
         assertEquals(1, StringUtils.width(complexCell));
         
         ComplexCell cjkCell = new ComplexCell(0x4E2D); // 中

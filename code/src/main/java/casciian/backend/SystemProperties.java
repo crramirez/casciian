@@ -509,7 +509,7 @@ public class SystemProperties {
     /**
      * Get the menu icons value from system properties.
      *
-     * @return true if menu icons are shown, false otherwise. Default is true.
+     * @return true if menu icons are shown, false otherwise. Default is false.
      */
     public static boolean isMenuIcons() {
         return getBooleanProperty(menuIcons, CASCIIAN_MENU_ICONS, false);

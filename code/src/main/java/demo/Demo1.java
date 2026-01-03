@@ -28,7 +28,7 @@ import java.util.stream.Stream;
  * This class is the main driver for a simple demonstration of Casciian's
  * capabilities.
  */
-public class Demo1 {
+public final class Demo1 {
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
