@@ -87,19 +87,28 @@ public class TPasswordField extends TField {
      */
     @Override
     public void draw() {
-        CellAttributes fieldColor;
+        final CellAttributes fieldColor = new CellAttributes();
 
         boolean showStars = false;
         if (isAbsoluteActive()) {
-            fieldColor = new CellAttributes(getTheme().getColor("tfield.active"));
+            fieldColor.setTo(getTheme().getColor("tfield.active"));
         } else {
-            fieldColor = new CellAttributes(getTheme().getColor("tfield.inactive"));
+            fieldColor.setTo(getTheme().getColor("tfield.inactive"));
             showStars = true;
         }
 
         int end = windowStart + getWidth();
         if (end > StringUtils.width(text)) {
             end = StringUtils.width(text);
+        }
+        // Pulse color.
+        if (isActive() && getWindow().isActive()
+            && getApplication().hasAnimations()
+        ) {
+            fieldColor.setPulse(true, false, 0);
+            fieldColor.setPulseColorRGB(getScreen().getBackend().
+                attrToForegroundColor(getTheme().getColor(
+                    "tfield.pulse")));
         }
 
         hLineXY(0, 0, getWidth(), backgroundChar, fieldColor);
