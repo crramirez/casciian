@@ -1732,7 +1732,6 @@ public class ECMA48 implements Runnable {
      * </p>
      *
      * @param hexValue the hex string representing a color component
-     * @return the 8-bit (0-255) value for the component
      * @return the 8-bit (0-255) value for the component, or 0 for invalid input
      */
     private int parseColorComponent(final String hexValue) {
