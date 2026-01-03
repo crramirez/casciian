@@ -96,11 +96,6 @@ public class TPasswordField extends TField {
             fieldColor.setTo(getTheme().getColor("tfield.inactive"));
             showStars = true;
         }
-
-        int end = windowStart + getWidth();
-        if (end > StringUtils.width(text)) {
-            end = StringUtils.width(text);
-        }
         // Pulse color.
         if (isActive() && getWindow().isActive()
             && getApplication().hasAnimations()
@@ -109,6 +104,11 @@ public class TPasswordField extends TField {
             fieldColor.setPulseColorRGB(getScreen().getBackend().
                 attrToForegroundColor(getTheme().getColor(
                     "tfield.pulse")));
+        }
+
+        int end = windowStart + getWidth();
+        if (end > StringUtils.width(text)) {
+            end = StringUtils.width(text);
         }
 
         hLineXY(0, 0, getWidth(), backgroundChar, fieldColor);
