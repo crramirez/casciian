@@ -61,10 +61,8 @@ class ECMA48Test {
             outputStream, null, backend);
         
         // Wait for the emulator to process the input
-        emulator.waitForOutput(500);
-        
-        // Give the reader thread time to process
-        Thread.sleep(100);
+        // waitForOutput returns true when output has been processed
+        emulator.waitForOutput(1000);
         
         // Close the emulator
         emulator.close();
@@ -94,8 +92,7 @@ class ECMA48Test {
         ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
             outputStream, null, backend);
         
-        emulator.waitForOutput(500);
-        Thread.sleep(100);
+        emulator.waitForOutput(1000);
         emulator.close();
         
         assertTrue(true, "OSC 4 sequence with 8-bit colors processed successfully");
@@ -118,8 +115,7 @@ class ECMA48Test {
         ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
             outputStream, null, backend);
         
-        emulator.waitForOutput(500);
-        Thread.sleep(100);
+        emulator.waitForOutput(1000);
         emulator.close();
         
         assertTrue(true, "OSC 4 sequence with 4-bit colors processed successfully");
@@ -142,8 +138,7 @@ class ECMA48Test {
         ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
             outputStream, null, backend);
         
-        emulator.waitForOutput(500);
-        Thread.sleep(100);
+        emulator.waitForOutput(1000);
         emulator.close();
         
         assertTrue(true, "OSC 4 sequence with 12-bit colors processed successfully");
