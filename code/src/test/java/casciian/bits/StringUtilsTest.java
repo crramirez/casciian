@@ -24,13 +24,11 @@ class StringUtilsTest {
         result = StringUtils.left(input, 10);
         assertEquals(Arrays.asList("First", "paragraph", "Second", "paragraph"), result);
 
-        // Test with tab/multiple spaces
+        // Test with tabs and multiple spaces; ensure the method handles such input without error
         input = "Word\twith\t\ttabs   and spaces";
         result = StringUtils.left(input, 10);
-        // Let's see how the width-calculation logic handles tabs.
-        // By current definition, width('\t') is treated as 0.
-        // This might be unexpected but that's what the code under test does.
-        
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
         // Let's test basic left justification
         assertEquals(Arrays.asList("a", "b"), StringUtils.left("a b", 1));
         assertEquals(Arrays.asList("a b"), StringUtils.left("a b", 3));
