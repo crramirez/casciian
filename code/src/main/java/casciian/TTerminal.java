@@ -50,6 +50,15 @@ public class TTerminal extends TScrollable
                        implements TerminalListener, EditMenuUser {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = TTerminal.class.getName() + "Bundle";
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -209,7 +218,7 @@ public class TTerminal extends TScrollable
         final TAction closeAction) {
 
         super(parent, x, y, width, height);
-        i18n = ResourceBundle.getBundle(TTerminal.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         setMouseStyle("text");
@@ -315,7 +324,7 @@ public class TTerminal extends TScrollable
         final int width, final int height, final TAction closeAction) {
 
         super(parent, x, y, width, height);
-        i18n = ResourceBundle.getBundle(TTerminal.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         setMouseStyle("text");

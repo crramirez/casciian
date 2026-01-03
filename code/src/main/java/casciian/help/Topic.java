@@ -28,14 +28,19 @@ import java.util.regex.Pattern;
  */
 public class Topic implements Comparable<Topic> {
 
-    /**
-     * Translated strings.
-     */
-    private static final ResourceBundle i18n = ResourceBundle.getBundle(Topic.class.getName() + "Bundle");
-
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = Topic.class.getName() + "Bundle";
+
+    /**
+     * Translated strings.
+     */
+    private static final ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME);
 
     /**
      * The "not found" topic to display when a key or index term does not

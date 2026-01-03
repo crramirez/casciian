@@ -39,6 +39,11 @@ public class TMenu extends TWindow {
     // Constants --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = TMenu.class.getName() + "Bundle";
+
     // Reserved menu item IDs -------------------------------------------------
 
     /**
@@ -440,7 +445,7 @@ public class TMenu extends TWindow {
         super(parent, label, x, y, parent.getScreen().getWidth(),
             parent.getScreen().getHeight());
 
-        i18n = ResourceBundle.getBundle(TMenu.class.getName() + "Bundle", getLocale());
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME, getLocale());
 
         // Setup the menu shortcut
         mnemonic = new MnemonicString(label);

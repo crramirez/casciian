@@ -35,6 +35,11 @@ public class TExceptionDialog extends TWindow {
     // Constants --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = TExceptionDialog.class.getName() + "Bundle";
+
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -75,7 +80,7 @@ public class TExceptionDialog extends TWindow {
         final Throwable exception) {
 
         super(application, "", 1, 1, 78, 22, CENTERED | RESIZABLE | MODAL);
-        i18n = ResourceBundle.getBundle(TExceptionDialog.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 

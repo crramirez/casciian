@@ -30,6 +30,11 @@ public class THelpWindow extends TWindow {
     // Constants --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = THelpWindow.class.getName() + "Bundle";
+
     // Default help topic keys.
 
     /**
@@ -100,7 +105,7 @@ public class THelpWindow extends TWindow {
     public THelpWindow(final TApplication application, final Topic topic) {
         super(application, "", 1, 1, 78, 22, CENTERED | RESIZABLE);
 
-        i18n = ResourceBundle.getBundle(THelpWindow.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 

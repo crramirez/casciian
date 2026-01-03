@@ -47,6 +47,11 @@ public class TFileOpenBox extends TWindow {
     // ------------------------------------------------------------------------
 
     /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = TFileOpenBox.class.getName() + "Bundle";
+
+    /**
      * TFileOpenBox can be called for either Open or Save actions.
      */
     public enum Type {
@@ -143,7 +148,7 @@ public class TFileOpenBox extends TWindow {
 
         // Register with the TApplication
         super(application, "", 0, 0, 78, 22, MODAL | RESIZABLE);
-        i18n = ResourceBundle.getBundle(TFileOpenBox.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         setMinimumWindowWidth(getWidth());

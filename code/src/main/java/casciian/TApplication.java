@@ -86,6 +86,11 @@ public class TApplication implements Runnable {
     // ------------------------------------------------------------------------
 
     /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = TApplication.class.getName() + "Bundle";
+
+    /**
      * If true, emit thread stuff to System.err.
      */
     private static final boolean debugThreads = false;
@@ -133,7 +138,7 @@ public class TApplication implements Runnable {
     /**
      * Translated strings.
      */
-    private ResourceBundle i18n = ResourceBundle.getBundle(TApplication.class.getName() + "Bundle");
+    private ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME);
 
     /**
      * The primary event handler thread.
@@ -2092,7 +2097,7 @@ public class TApplication implements Runnable {
         } else {
             this.locale = Locale.getDefault();
         }
-        i18n = ResourceBundle.getBundle(TApplication.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
     }
 

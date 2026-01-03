@@ -40,14 +40,23 @@ import org.w3c.dom.NodeList;
  */
 public class HelpFile {
 
+    // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
     /**
-     * Translated strings.
+     * The name of the resource bundle for this class.
      */
-    private static final ResourceBundle i18n = ResourceBundle.getBundle(HelpFile.class.getName() + "Bundle");
+    public static final String RESOURCE_BUNDLE_NAME = HelpFile.class.getName() + "Bundle";
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Translated strings.
+     */
+    private static final ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME);
 
     /**
      * The XML factory.

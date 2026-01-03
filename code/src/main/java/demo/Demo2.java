@@ -28,10 +28,19 @@ import casciian.net.TelnetServerSocket;
  */
 public class Demo2 {
 
+    // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = Demo2.class.getName() + "Bundle";
+
     /**
      * Translated strings.
      */
-    private static final ResourceBundle i18n = ResourceBundle.getBundle(Demo2.class.getName() + "Bundle");
+    private static final ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME);
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------

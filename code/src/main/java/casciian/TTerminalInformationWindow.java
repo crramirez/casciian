@@ -32,6 +32,15 @@ import static casciian.TKeypress.*;
 public class TTerminalInformationWindow extends TWindow {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = TTerminalInformationWindow.class.getName() + "Bundle";
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -59,7 +68,7 @@ public class TTerminalInformationWindow extends TWindow {
 
         // Register with the TApplication
         super(application, "", 0, 0, 70, 17, MODAL);
-        i18n = ResourceBundle.getBundle(TTerminalInformationWindow.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 

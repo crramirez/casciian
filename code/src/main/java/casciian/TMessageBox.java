@@ -45,6 +45,11 @@ public class TMessageBox extends TWindow {
     // ------------------------------------------------------------------------
 
     /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = TMessageBox.class.getName() + "Bundle";
+
+    /**
      * Message boxes have these supported types.
      */
     public enum Type {
@@ -169,7 +174,7 @@ public class TMessageBox extends TWindow {
         // Start as 100x100 at (1, 1).  These will be changed later.
         super(application, title, 1, 1, 100, 100, CENTERED | MODAL);
 
-        i18n = ResourceBundle.getBundle(TMessageBox.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         // Hang onto type so that we can provide more convenience in

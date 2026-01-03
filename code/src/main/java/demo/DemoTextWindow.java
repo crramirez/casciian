@@ -32,6 +32,15 @@ import static casciian.TKeypress.*;
 public class DemoTextWindow extends TWindow {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = DemoTextWindow.class.getName() + "Bundle";
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -61,7 +70,7 @@ public class DemoTextWindow extends TWindow {
         final String text) {
 
         super(parent, title, 0, 0, 44, 22, RESIZABLE);
-        i18n = ResourceBundle.getBundle(DemoTextWindow.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         textField = addText(text, 1, 3, 40, 16);
@@ -131,7 +140,7 @@ public class DemoTextWindow extends TWindow {
 "This library is licensed MIT.  See the file LICENSE for the full license " +
 "for the details.\n");
 
-        i18n = ResourceBundle.getBundle(DemoTextWindow.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
     }

@@ -37,6 +37,15 @@ import static casciian.TKeypress.*;
 public class TEditorWindow extends TScrollableWindow {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = TEditorWindow.class.getName() + "Bundle";
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -81,7 +90,7 @@ public class TEditorWindow extends TScrollableWindow {
 
         super(parent, title, 0, 0, parent.getScreen().getWidth(),
             parent.getDesktopBottom() - parent.getDesktopTop(), RESIZABLE);
-        i18n = ResourceBundle.getBundle(TEditorWindow.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         editField = addEditor("", 0, 0, getWidth() - 2, getHeight() - 2);
@@ -101,7 +110,7 @@ public class TEditorWindow extends TScrollableWindow {
 
         super(parent, title, 0, 0, parent.getScreen().getWidth(),
             parent.getDesktopBottom() - parent.getDesktopTop(), RESIZABLE);
-        i18n = ResourceBundle.getBundle(TEditorWindow.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         filename = title;
@@ -122,7 +131,7 @@ public class TEditorWindow extends TScrollableWindow {
 
         super(parent, file.getName(), 0, 0, parent.getScreen().getWidth(),
             parent.getDesktopBottom() - parent.getDesktopTop(), RESIZABLE);
-        i18n = ResourceBundle.getBundle(TEditorWindow.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         filename = file.getName();

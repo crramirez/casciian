@@ -30,6 +30,15 @@ import static casciian.TKeypress.*;
 public class DemoTableWindow extends TWindow {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = DemoTableWindow.class.getName() + "Bundle";
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -57,7 +66,7 @@ public class DemoTableWindow extends TWindow {
     public DemoTableWindow(final TApplication parent, final String title) {
 
         super(parent, title, 0, 0, 44, 22, RESIZABLE);
-        i18n = ResourceBundle.getBundle(DemoTableWindow.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         tableField = new TTable(this, 0, 0, 42, 20);
@@ -79,7 +88,7 @@ public class DemoTableWindow extends TWindow {
     @SuppressWarnings("this-escape")
     public DemoTableWindow(final TApplication parent) {
         this(parent, "");
-        i18n = ResourceBundle.getBundle(DemoTableWindow.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
     }

@@ -51,6 +51,15 @@ import static casciian.TKeypress.*;
 public class DemoMainWindow extends TWindow {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = DemoMainWindow.class.getName() + "Bundle";
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -123,7 +132,7 @@ public class DemoMainWindow extends TWindow {
         // Construct a demo window.  X and Y don't matter because it will be
         // centered on screen.
         super(parent, "", 0, 0, 66, 25, flags);
-        i18n = ResourceBundle.getBundle(DemoMainWindow.class.getName() + "Bundle",
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 
