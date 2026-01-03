@@ -599,7 +599,7 @@ class SystemPropertiesTest {
     // -------------------------------------------------------------------------
 
     @Test
-    @DisplayName("Get menuIcons returns default value (true) when not set")
+    @DisplayName("Get menuIcons returns default value (false) when not set")
     void testIsMenuIconsDefault() {
         assertFalse(SystemProperties.isMenuIcons());
     }
