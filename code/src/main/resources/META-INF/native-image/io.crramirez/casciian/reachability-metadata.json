@@ -41,7 +41,7 @@
         { "bundle": "casciian.TExceptionDialog" },
         { "bundle": "casciian.TFileOpenBox" },
         { "bundle": "casciian.THelpWindow" },
-        { "bundle": "casciian.TMessageBox" },
+        { "bundle": "casciian.TMessageBoxBundle" },
         { "bundle": "casciian.TTableWindow" },
         { "bundle": "casciian.TTerminal" },
         { "bundle": "casciian.TTerminalInformationWindow" },
