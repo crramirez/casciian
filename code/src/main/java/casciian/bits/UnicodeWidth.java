@@ -53,7 +53,7 @@ public class UnicodeWidth {
     /**
      * Determine the display width of a Unicode code point.
      *
-     * @param ch the code point can be char
+     * @param ch the Unicode code point to measure
      * @return the number of text cell columns required to display this code
      * point, one of 0, 1, or 2
      */
