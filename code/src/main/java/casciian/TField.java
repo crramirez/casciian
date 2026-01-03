@@ -443,12 +443,12 @@ public class TField extends TWidget implements EditMenuUser {
      */
     @Override
     public void draw() {
-        CellAttributes fieldColor;
+        final CellAttributes fieldColor = new CellAttributes();
 
         if (isAbsoluteActive()) {
-            fieldColor = new CellAttributes(getTheme().getColor(activeColorKey));
+            fieldColor.setTo(getTheme().getColor(activeColorKey));
         } else {
-            fieldColor = new CellAttributes(getTheme().getColor(inactiveColorKey));
+            fieldColor.setTo(getTheme().getColor(inactiveColorKey));
         }
         // Pulse color.
         if (isActive() && getWindow().isActive()

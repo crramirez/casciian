@@ -378,7 +378,7 @@ public class ComplexCell extends Cell {
     public void add(final int codePoint) {
         int [] oldCodePoints = codePoints;
         codePoints = new int[oldCodePoints.length + 1];
-        System.arraycopy(codePoints, 0, oldCodePoints, 0, oldCodePoints.length);
+        System.arraycopy(oldCodePoints, 0, codePoints, 0, oldCodePoints.length);
         codePoints[oldCodePoints.length] = codePoint;
     }
 
