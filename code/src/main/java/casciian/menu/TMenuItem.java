@@ -281,7 +281,7 @@ public class TMenuItem extends TWidget {
             assert (checkable);
             putCharXY(1, 0, GraphicsChars.CHECK, menuColor);
         }
-        if ((useIcons) && (icon != null)) {
+        if (useIcons && icon != null) {
             putCharXY(2, 0, new ComplexCell(icon, menuColor));
         }
     }
