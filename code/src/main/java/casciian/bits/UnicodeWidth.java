@@ -141,13 +141,31 @@ public class UnicodeWidth {
 
     /**
      * Check if a codepoint is a single-width emoji.
+     * <p>
+     * Most emoji are treated as wide characters via {@link #isWideCharacter(int)}
+     * (see {@code isEmojiRange(int)}). However, a small number of emoji are commonly
+     * rendered as single-width glyphs in many terminal/font combinations. Those code
+     * points are explicitly whitelisted here so that their width matches actual
+     * observed behavior in typical terminal environments.
+     * <p>
+     * This list is intentionally conservative and is <strong>not</strong> meant to
+     * automatically track all future Unicode emoji. If you need to adjust the
+     * behavior for a specific environment (e.g., when new emoji are known to be
+     * rendered as single-width), extend or modify this set after validating the
+     * rendering behavior in your target terminals, or consider wiring this through
+     * a configuration layer external to this class.
      *
      * @param ch the code point
      * @return true if single-width emoji
      */
     private static boolean isSingleWidthEmoji(final int ch) {
-        return ch == 0x1F5AE || ch == 0x1F5D9 || ch == 0x2B6F || ch == 0x2B6E
-            || ch == 0x1F5F6 || ch == 0x1F5D0 || ch == 0x1F5D7;
+        return ch == 0x1F5AE  // 📮 Postbox
+            || ch == 0x1F5D9  // 🗙 Dismiss/close symbol
+            || ch == 0x2B6F   // ⭯ Three-dimensional arrow (clockwise)
+            || ch == 0x2B6E   // ⭮ Three-dimensional arrow (anticlockwise)
+            || ch == 0x1F5F6  // 🗶 Ballot X
+            || ch == 0x1F5D0  // 🗐 Page
+            || ch == 0x1F5D7; // 🗗 Window
     }
 
     /**
