@@ -7,6 +7,11 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for {@link StringUtils}, covering text wrapping, alignment, and
+ * related utility methods, including behavior with whitespace, newlines, and
+ * Unicode or variable-width characters.
+ */
 class StringUtilsTest {
 
     @Test
