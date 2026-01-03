@@ -17,6 +17,7 @@ package casciian.menu;
 import casciian.TKeypress;
 import casciian.TWidget;
 import casciian.backend.Backend;
+import casciian.backend.SystemProperties;
 import casciian.bits.BorderStyle;
 import casciian.bits.CellAttributes;
 import casciian.bits.ComplexCell;
@@ -135,8 +136,8 @@ public class TMenuItem extends TWidget {
         setY(y);
         setHeight(1);
         this.label = mnemonic.getRawLabel();
-        if (parent.useIcons) {
-            setWidth(StringUtils.width(label) + 6);
+        if (SystemProperties.isMenuIcons()) {
+            setWidth(StringUtils.width(label) + 4 + SystemProperties.getMenuIconsOffset());
         } else {
             setWidth(StringUtils.width(label) + 4);
         }
@@ -255,7 +256,7 @@ public class TMenuItem extends TWidget {
             }
         }
 
-        boolean useIcons = ((TMenu) getParent()).useIcons;
+        boolean useIcons = SystemProperties.isMenuIcons();
 
         BorderStyle borderStyle = ((TMenu) getParent()).getBorderStyle();
         int cVSide = borderStyle.getVertical();
@@ -263,7 +264,9 @@ public class TMenuItem extends TWidget {
         vLineXY(getWidth() - 1, 0, 1, cVSide, background);
 
         hLineXY(1, 0, getWidth() - 2, ' ', menuColor);
-        putStringXY(2 + (useIcons ? 2 : 0), 0, mnemonic.getRawLabel(),
+        int labelOffset = 2 + (useIcons ? SystemProperties.getMenuIconsOffset() : 0);
+
+        putStringXY(labelOffset, 0, mnemonic.getRawLabel(),
             menuColor);
         if (key != null) {
             String keyLabel = key.toString();
@@ -271,14 +274,14 @@ public class TMenuItem extends TWidget {
                 keyLabel, menuColor);
         }
         if (mnemonic.getScreenShortcutIdx() >= 0) {
-            putCharXY(2 + (useIcons ? 2 : 0) + mnemonic.getScreenShortcutIdx(),
+            putCharXY(labelOffset + mnemonic.getScreenShortcutIdx(),
                 0, mnemonic.getShortcut(), menuMnemonicColor);
         }
         if (checked) {
             assert (checkable);
             putCharXY(1, 0, GraphicsChars.CHECK, menuColor);
         }
-        if ((useIcons == true) && (icon != null)) {
+        if (useIcons && icon != null) {
             putCharXY(2, 0, new ComplexCell(icon, menuColor));
         }
     }
@@ -359,8 +362,8 @@ public class TMenuItem extends TWidget {
         if (key != null) {
             int newWidth = (StringUtils.width(label) + 4 +
                 StringUtils.width(key.toString()) + 2);
-            if (((TMenu) getParent()).useIcons) {
-                newWidth += 2;
+            if (SystemProperties.isMenuIcons()) {
+                newWidth += SystemProperties.getMenuIconsOffset();
             }
             if (newWidth > getWidth()) {
                 setWidth(newWidth);

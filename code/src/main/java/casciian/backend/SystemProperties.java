@@ -100,6 +100,13 @@ public class SystemProperties {
     public static final String CASCIIAN_MENU_ICONS = "casciian.menuIcons";
 
     /**
+     * System property key for menu icons offset.
+     * Valid values: 0-5
+     * Default: 3
+     */
+    public static final String CASCIIAN_MENU_ICONS_OFFSET = "casciian.menuIconsOffset";
+
+    /**
      * System property key for using terminal's native palette instead of CGA colors.
      * Valid values: "true" or "false"
      * Default: false (use CGA colors)
@@ -208,6 +215,14 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> menuIcons = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the menu icons offset setting.
+     * This value is expected to range from 0 to 5.
+     * The default value is 3 if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Integer> menuIconsOffset = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the use terminal palette setting.
@@ -494,10 +509,10 @@ public class SystemProperties {
     /**
      * Get the menu icons value from system properties.
      *
-     * @return true if menu icons are shown, false otherwise. Default is true.
+     * @return true if menu icons are shown, false otherwise. Default is false.
      */
     public static boolean isMenuIcons() {
-        return getBooleanProperty(menuIcons, CASCIIAN_MENU_ICONS, true);
+        return getBooleanProperty(menuIcons, CASCIIAN_MENU_ICONS, false);
     }
 
     /**
@@ -507,6 +522,40 @@ public class SystemProperties {
      */
     public static void setMenuIcons(boolean value) {
         setBooleanProperty(menuIcons, CASCIIAN_MENU_ICONS, value);
+    }
+
+    /**
+     * Get the menu icons offset value from system properties.
+     *
+     * @return menu icons offset between 0 and 5, or default value of 3
+     */
+    public static int getMenuIconsOffset() {
+        if (menuIconsOffset.get() == null) {
+            final int defaultMenuIconsOffset = 3;
+            int value = defaultMenuIconsOffset;
+            try {
+                value = Integer.parseInt(System.getProperty(CASCIIAN_MENU_ICONS_OFFSET,
+                    String.valueOf(defaultMenuIconsOffset)));
+            } catch (NumberFormatException e) {
+                // SQUASH
+            }
+            value = Math.clamp(value, 0, 5);
+            menuIconsOffset.set(value);
+        }
+
+        return menuIconsOffset.get();
+    }
+
+    /**
+     * Set the menu icons offset value in system properties.
+     * Values outside the valid range (0-5) will be clamped to the nearest valid value.
+     *
+     * @param value menu icons offset (will be clamped to 0-5)
+     */
+    public static void setMenuIconsOffset(int value) {
+        int clampedValue = Math.clamp(value, 0, 5);
+        System.setProperty(CASCIIAN_MENU_ICONS_OFFSET, String.valueOf(clampedValue));
+        menuIconsOffset.set(clampedValue);
     }
 
     /**
@@ -582,6 +631,7 @@ public class SystemProperties {
         blinkDimPercent.set(null);
         textBlink.set(null);
         menuIcons.set(null);
+        menuIconsOffset.set(null);
         useTerminalPalette.set(null);
         disablePreTransform.set(null);
         disablePostTransform.set(null);
