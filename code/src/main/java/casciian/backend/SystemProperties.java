@@ -539,8 +539,7 @@ public class SystemProperties {
             } catch (NumberFormatException e) {
                 // SQUASH
             }
-            value = Math.max(0, value);
-            value = Math.min(value, 5);
+            value = Math.clamp(value, 0, 5);
             menuIconsOffset.set(value);
         }
 
