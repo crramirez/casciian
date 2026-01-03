@@ -28,10 +28,19 @@ import casciian.layout.BoxLayoutManager;
  */
 public class Demo7 {
 
+    // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = Demo7.class.getName() + "Bundle";
+
     /**
      * Translated strings.
      */
-    private static final ResourceBundle i18n = ResourceBundle.getBundle(Demo7.class.getName());
+    private static final ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME);
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------

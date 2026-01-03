@@ -11,105 +11,105 @@
   },
   "bundles": [
     {
-      "name": "casciian.TApplication",
+      "name": "casciian.TApplicationBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.TEditColorThemeWindow",
+      "name": "casciian.TEditColorThemeWindowBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.TEditDesktopStyleWindow",
+      "name": "casciian.TEditDesktopStyleWindowBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.TEditorWindow",
+      "name": "casciian.TEditorWindowBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.TExceptionDialog",
+      "name": "casciian.TExceptionDialogBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.TFileOpenBox",
+      "name": "casciian.TFileOpenBoxBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.THelpWindow",
+      "name": "casciian.THelpWindowBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.TMessageBox",
+      "name": "casciian.TMessageBoxBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.TTableWindow",
+      "name": "casciian.TTableWindowBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.TTerminal",
+      "name": "casciian.TTerminalBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.TTerminalInformationWindow",
+      "name": "casciian.TTerminalInformationWindowBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.TTerminalWindow",
+      "name": "casciian.TTerminalWindowBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.help.HelpFile",
+      "name": "casciian.help.HelpFileBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.help.Topic",
+      "name": "casciian.help.TopicBundle",
       "locales": [
         "",
         "es"
       ]
     },
     {
-      "name": "casciian.menu.TMenu",
+      "name": "casciian.menu.TMenuBundle",
       "locales": [
         "",
         "es"

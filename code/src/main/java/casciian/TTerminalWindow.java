@@ -31,6 +31,15 @@ import static casciian.TKeypress.*;
 public class TTerminalWindow extends TScrollableWindow {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = TTerminalWindow.class.getName() + "Bundle";
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -132,7 +141,7 @@ public class TTerminalWindow extends TScrollableWindow {
 
         super(application, "", x, y, 80 + 2, 24 + 2, flags);
 
-        i18n = ResourceBundle.getBundle(TTerminalWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 
@@ -202,7 +211,7 @@ public class TTerminalWindow extends TScrollableWindow {
         final int y, final int flags, final boolean closeOnExit) {
 
         super(application, "", x, y, 80 + 2, 24 + 2, flags);
-        i18n = ResourceBundle.getBundle(TTerminalWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 

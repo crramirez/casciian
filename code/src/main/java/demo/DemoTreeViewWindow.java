@@ -32,6 +32,15 @@ import static casciian.TKeypress.*;
 public class DemoTreeViewWindow extends TWindow {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = DemoTreeViewWindow.class.getName() + "Bundle";
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -58,7 +67,7 @@ public class DemoTreeViewWindow extends TWindow {
     @SuppressWarnings("this-escape")
     public DemoTreeViewWindow(final TApplication parent) throws IOException {
         super(parent, "", 0, 0, 44, 16, TWindow.RESIZABLE);
-        i18n = ResourceBundle.getBundle(DemoTreeViewWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 
