@@ -554,9 +554,7 @@ public class SystemProperties {
      * @param value menu icons offset (will be clamped to 0-5)
      */
     public static void setMenuIconsOffset(int value) {
-        int clampedValue = value;
-        clampedValue = Math.max(0, clampedValue);
-        clampedValue = Math.min(clampedValue, 5);
+        int clampedValue = Math.clamp(value, 0, 5);
         System.setProperty(CASCIIAN_MENU_ICONS_OFFSET, String.valueOf(clampedValue));
         menuIconsOffset.set(clampedValue);
     }
