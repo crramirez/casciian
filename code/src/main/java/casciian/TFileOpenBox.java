@@ -143,7 +143,7 @@ public class TFileOpenBox extends TWindow {
 
         // Register with the TApplication
         super(application, "", 0, 0, 78, 22, MODAL | RESIZABLE);
-        i18n = ResourceBundle.getBundle(TFileOpenBox.class.getName(),
+        i18n = ResourceBundle.getBundle(TFileOpenBox.class.getName() + "Bundle",
             getLocale());
 
         setMinimumWindowWidth(getWidth());

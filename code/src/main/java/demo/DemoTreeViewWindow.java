@@ -58,7 +58,7 @@ public class DemoTreeViewWindow extends TWindow {
     @SuppressWarnings("this-escape")
     public DemoTreeViewWindow(final TApplication parent) throws IOException {
         super(parent, "", 0, 0, 44, 16, TWindow.RESIZABLE);
-        i18n = ResourceBundle.getBundle(DemoTreeViewWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(DemoTreeViewWindow.class.getName() + "Bundle",
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 

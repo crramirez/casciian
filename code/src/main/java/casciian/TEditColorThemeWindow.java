@@ -678,7 +678,7 @@ public class TEditColorThemeWindow extends TWindow {
 
         // Register with the TApplication
         super(application, "", 0, 0, 60, 22, MODAL);
-        i18n = ResourceBundle.getBundle(TEditColorThemeWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(TEditColorThemeWindow.class.getName() + "Bundle",
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 

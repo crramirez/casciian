@@ -33,7 +33,7 @@ public class DesktopDemoApplication extends TApplication {
     /**
      * Translated strings.
      */
-    private static final ResourceBundle i18n = ResourceBundle.getBundle(DesktopDemoApplication.class.getName());
+    private static final ResourceBundle i18n = ResourceBundle.getBundle(DesktopDemoApplication.class.getName() + "Bundle");
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------

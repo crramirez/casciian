@@ -100,7 +100,7 @@ public class THelpWindow extends TWindow {
     public THelpWindow(final TApplication application, final Topic topic) {
         super(application, "", 1, 1, 78, 22, CENTERED | RESIZABLE);
 
-        i18n = ResourceBundle.getBundle(THelpWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(THelpWindow.class.getName() + "Bundle",
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 

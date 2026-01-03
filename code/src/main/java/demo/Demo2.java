@@ -31,7 +31,7 @@ public class Demo2 {
     /**
      * Translated strings.
      */
-    private static final ResourceBundle i18n = ResourceBundle.getBundle(Demo2.class.getName());
+    private static final ResourceBundle i18n = ResourceBundle.getBundle(Demo2.class.getName() + "Bundle");
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------

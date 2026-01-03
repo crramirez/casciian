@@ -60,7 +60,7 @@ public class DemoShadowOpacityDialog extends TWindow {
     public DemoShadowOpacityDialog(final TApplication parent) {
         super(parent, "", 0, 0, 50, 9, MODAL | CENTERED);
 
-        ResourceBundle i18n = ResourceBundle.getBundle(DemoShadowOpacityDialog.class.getName(), getLocale());
+        ResourceBundle i18n = ResourceBundle.getBundle(DemoShadowOpacityDialog.class.getName() + "Bundle", getLocale());
         setTitle(i18n.getString("title"));
 
         int opacity = SystemProperties.getShadowOpacity();

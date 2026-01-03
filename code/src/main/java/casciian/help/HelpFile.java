@@ -43,7 +43,7 @@ public class HelpFile {
     /**
      * Translated strings.
      */
-    private static final ResourceBundle i18n = ResourceBundle.getBundle(HelpFile.class.getName());
+    private static final ResourceBundle i18n = ResourceBundle.getBundle(HelpFile.class.getName() + "Bundle");
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------

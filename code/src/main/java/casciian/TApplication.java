@@ -133,7 +133,7 @@ public class TApplication implements Runnable {
     /**
      * Translated strings.
      */
-    private ResourceBundle i18n = ResourceBundle.getBundle(TApplication.class.getName());
+    private ResourceBundle i18n = ResourceBundle.getBundle(TApplication.class.getName() + "Bundle");
 
     /**
      * The primary event handler thread.
@@ -2092,7 +2092,7 @@ public class TApplication implements Runnable {
         } else {
             this.locale = Locale.getDefault();
         }
-        i18n = ResourceBundle.getBundle(TApplication.class.getName(),
+        i18n = ResourceBundle.getBundle(TApplication.class.getName() + "Bundle",
             getLocale());
     }
 

@@ -440,7 +440,7 @@ public class TMenu extends TWindow {
         super(parent, label, x, y, parent.getScreen().getWidth(),
             parent.getScreen().getHeight());
 
-        i18n = ResourceBundle.getBundle(TMenu.class.getName(), getLocale());
+        i18n = ResourceBundle.getBundle(TMenu.class.getName() + "Bundle", getLocale());
 
         // Setup the menu shortcut
         mnemonic = new MnemonicString(label);

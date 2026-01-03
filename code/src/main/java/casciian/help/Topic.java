@@ -31,7 +31,7 @@ public class Topic implements Comparable<Topic> {
     /**
      * Translated strings.
      */
-    private static final ResourceBundle i18n = ResourceBundle.getBundle(Topic.class.getName());
+    private static final ResourceBundle i18n = ResourceBundle.getBundle(Topic.class.getName() + "Bundle");
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------

@@ -93,7 +93,7 @@ public class DemoCheckBoxWindow extends TWindow {
         // Construct a demo window.  X and Y don't matter because it will be
         // centered on screen.
         super(parent, "", 0, 0, 60, 17, flags);
-        i18n = ResourceBundle.getBundle(DemoCheckBoxWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(DemoCheckBoxWindow.class.getName() + "Bundle",
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 

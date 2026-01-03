@@ -209,7 +209,7 @@ public class TTerminal extends TScrollable
         final TAction closeAction) {
 
         super(parent, x, y, width, height);
-        i18n = ResourceBundle.getBundle(TTerminal.class.getName(),
+        i18n = ResourceBundle.getBundle(TTerminal.class.getName() + "Bundle",
             getLocale());
 
         setMouseStyle("text");
@@ -315,7 +315,7 @@ public class TTerminal extends TScrollable
         final int width, final int height, final TAction closeAction) {
 
         super(parent, x, y, width, height);
-        i18n = ResourceBundle.getBundle(TTerminal.class.getName(),
+        i18n = ResourceBundle.getBundle(TTerminal.class.getName() + "Bundle",
             getLocale());
 
         setMouseStyle("text");

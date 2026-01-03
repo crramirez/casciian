@@ -99,7 +99,7 @@ public class TEditDesktopStyleWindow extends TWindow {
 
         // Register with the TApplication
         super(application, "", 0, 0, 70, 22, MODAL);
-        i18n = ResourceBundle.getBundle(TEditDesktopStyleWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(TEditDesktopStyleWindow.class.getName() + "Bundle",
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 

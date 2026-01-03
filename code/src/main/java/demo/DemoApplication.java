@@ -56,7 +56,7 @@ public class DemoApplication extends TApplication {
     /**
      * Translated strings.
      */
-    private ResourceBundle i18n = ResourceBundle.getBundle(DemoApplication.class.getName());
+    private ResourceBundle i18n = ResourceBundle.getBundle(DemoApplication.class.getName() + "Bundle");
 
     /**
      * The desktop visible before selecting "Expose terminal background image".
@@ -337,7 +337,7 @@ public class DemoApplication extends TApplication {
 
         if (menu.getId() == 10005) {
             setLocale(Locale.forLanguageTag(""));
-            i18n = ResourceBundle.getBundle(DemoApplication.class.getName(),
+            i18n = ResourceBundle.getBundle(DemoApplication.class.getName() + "Bundle",
                 getLocale());
             getBackend().setTitle(i18n.getString("applicationTitle"));
             clearAllWidgets();
@@ -347,7 +347,7 @@ public class DemoApplication extends TApplication {
 
         if (menu.getId() == 10006) {
             setLocale(Locale.forLanguageTag("es"));
-            i18n = ResourceBundle.getBundle(DemoApplication.class.getName(),
+            i18n = ResourceBundle.getBundle(DemoApplication.class.getName() + "Bundle",
                 getLocale());
             getBackend().setTitle(i18n.getString("applicationTitle"));
             clearAllWidgets();

@@ -81,7 +81,7 @@ public class TEditorWindow extends TScrollableWindow {
 
         super(parent, title, 0, 0, parent.getScreen().getWidth(),
             parent.getDesktopBottom() - parent.getDesktopTop(), RESIZABLE);
-        i18n = ResourceBundle.getBundle(TEditorWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(TEditorWindow.class.getName() + "Bundle",
             getLocale());
 
         editField = addEditor("", 0, 0, getWidth() - 2, getHeight() - 2);
@@ -101,7 +101,7 @@ public class TEditorWindow extends TScrollableWindow {
 
         super(parent, title, 0, 0, parent.getScreen().getWidth(),
             parent.getDesktopBottom() - parent.getDesktopTop(), RESIZABLE);
-        i18n = ResourceBundle.getBundle(TEditorWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(TEditorWindow.class.getName() + "Bundle",
             getLocale());
 
         filename = title;
@@ -122,7 +122,7 @@ public class TEditorWindow extends TScrollableWindow {
 
         super(parent, file.getName(), 0, 0, parent.getScreen().getWidth(),
             parent.getDesktopBottom() - parent.getDesktopTop(), RESIZABLE);
-        i18n = ResourceBundle.getBundle(TEditorWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(TEditorWindow.class.getName() + "Bundle",
             getLocale());
 
         filename = file.getName();
