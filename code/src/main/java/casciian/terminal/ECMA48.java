@@ -1688,9 +1688,15 @@ public class ECMA48 implements Runnable {
             String [] rgbTokens = spec.substring(4).split("/");
             if (rgbTokens.length == 3) {
                 try {
-                    int rgb = (Integer.parseInt(rgbTokens[0], 16) << 16);
-                    rgb |= Integer.parseInt(rgbTokens[1], 16) << 8;
-                    rgb |= Integer.parseInt(rgbTokens[2], 16);
+                    // Parse each RGB component and normalize to 8-bit.
+                    // OSC 4 can send 4-bit (1 hex digit), 8-bit (2 digits),
+                    // 12-bit (3 digits), or 16-bit (4 digits) per component.
+                    // We extract the upper 8 bits of each component for an
+                    // 8-bit RGB value.
+                    int red = parseColorComponent(rgbTokens[0]);
+                    int green = parseColorComponent(rgbTokens[1]);
+                    int blue = parseColorComponent(rgbTokens[2]);
+                    int rgb = (red << 16) | (green << 8) | blue;
                     // System.err.printf("  set to %08x\n", rgb);
                     colors88.set(index, rgb);
                 } catch (NumberFormatException e) {
@@ -1718,6 +1724,34 @@ public class ECMA48 implements Runnable {
             colors88.set(index, 0x00a8a8a8);
         }
 
+    }
+
+    /**
+     * Parse a single RGB color component from a hex string.
+     * <p>
+     * OSC 4 color specifications can have 1, 2, 3, or 4 hex digits per
+     * component (4-bit, 8-bit, 12-bit, or 16-bit respectively). This method
+     * normalizes any precision to an 8-bit value by taking the upper 8 bits
+     * of the component's full precision value.
+     * </p>
+     *
+     * @param hexValue the hex string representing a color component
+     * @return the 8-bit (0-255) value for the component
+     * @throws NumberFormatException if the string is not a valid hex number
+     */
+    private int parseColorComponent(final String hexValue) {
+        int value = Integer.parseInt(hexValue, 16);
+        int digits = hexValue.length();
+
+        // Normalize to 8-bit based on the number of hex digits.
+        // For each precision, we scale the value to 0-255.
+        return switch (digits) {
+            case 1 -> (value * 255) / 15;       // 4-bit (0-15) -> 8-bit
+            case 2 -> value;                    // 8-bit (0-255), no change
+            case 3 -> value >>> 4;              // 12-bit (0-4095) -> 8-bit
+            case 4 -> value >>> 8;              // 16-bit (0-65535) -> 8-bit
+            default -> value & 0xFF;            // Fallback to lower 8 bits
+        };
     }
 
     /**
