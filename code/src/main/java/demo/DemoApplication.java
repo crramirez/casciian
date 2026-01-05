@@ -50,13 +50,22 @@ import casciian.backend.Backend;
 public class DemoApplication extends TApplication {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = DemoApplication.class.getName() + "Bundle";
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
     /**
      * Translated strings.
      */
-    private ResourceBundle i18n = ResourceBundle.getBundle(DemoApplication.class.getName());
+    private ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME);
 
     /**
      * The desktop visible before selecting "Expose terminal background image".
@@ -339,7 +348,7 @@ public class DemoApplication extends TApplication {
 
         if (menu.getId() == 10005) {
             setLocale(Locale.forLanguageTag(""));
-            i18n = ResourceBundle.getBundle(DemoApplication.class.getName(),
+            i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
                 getLocale());
             getBackend().setTitle(i18n.getString("applicationTitle"));
             clearAllWidgets();
@@ -349,7 +358,7 @@ public class DemoApplication extends TApplication {
 
         if (menu.getId() == 10006) {
             setLocale(Locale.forLanguageTag("es"));
-            i18n = ResourceBundle.getBundle(DemoApplication.class.getName(),
+            i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
                 getLocale());
             getBackend().setTitle(i18n.getString("applicationTitle"));
             clearAllWidgets();

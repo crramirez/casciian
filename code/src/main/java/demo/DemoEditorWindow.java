@@ -30,6 +30,15 @@ import static casciian.TKeypress.*;
 public class DemoEditorWindow extends TWindow {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = DemoEditorWindow.class.getName() + "Bundle";
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -59,7 +68,7 @@ public class DemoEditorWindow extends TWindow {
         final String text) {
 
         super(parent, title, 0, 0, 44, 22, RESIZABLE);
-        i18n = ResourceBundle.getBundle(DemoEditorWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         editField = addEditor(text, 0, 0, 42, 20);
@@ -108,7 +117,7 @@ public class DemoEditorWindow extends TWindow {
 "1 2 3 123\n" +
 "\n"
         );
-        i18n = ResourceBundle.getBundle(DemoEditorWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
 

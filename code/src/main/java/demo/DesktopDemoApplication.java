@@ -30,10 +30,19 @@ import casciian.menu.TMenu;
  */
 public class DesktopDemoApplication extends TApplication {
 
+    // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = DesktopDemoApplication.class.getName() + "Bundle";
+
     /**
      * Translated strings.
      */
-    private static final ResourceBundle i18n = ResourceBundle.getBundle(DesktopDemoApplication.class.getName());
+    private static final ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME);
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------

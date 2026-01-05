@@ -36,6 +36,15 @@ import static casciian.TKeypress.*;
 public class TTableWindow extends TScrollableWindow {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The name of the resource bundle for this class.
+     */
+    public static final String RESOURCE_BUNDLE_NAME = TTableWindow.class.getName() + "Bundle";
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -115,7 +124,7 @@ public class TTableWindow extends TScrollableWindow {
         final int flags) {
 
         super(parent, title, x, y, width, height, flags);
-        i18n = ResourceBundle.getBundle(TTableWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         tableField = addTable(0, 0, getWidth() - 2, getHeight() - 2);
@@ -149,7 +158,7 @@ public class TTableWindow extends TScrollableWindow {
             parent.getScreen().getWidth() * 4 / 5,
             parent.getScreen().getHeight() / 2 - 2,
             RESIZABLE | CENTERED);
-        i18n = ResourceBundle.getBundle(TTableWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         tableField = addTable(0, 0, getWidth() - 2, getHeight() - 2, 1, 1);
@@ -224,7 +233,7 @@ public class TTableWindow extends TScrollableWindow {
         final int flags) throws IOException {
 
         super(parent, csvFile.getName(), x, y, width, height, flags);
-        i18n = ResourceBundle.getBundle(TTableWindow.class.getName(),
+        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         tableField = addTable(0, 0, getWidth() - 2, getHeight() - 2, 1, 1);
