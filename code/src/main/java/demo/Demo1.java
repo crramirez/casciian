@@ -55,7 +55,7 @@ public final class Demo1 {
                 SystemProperties.setAnimations(true);
                 SystemProperties.setTextMouse(true);
                 SystemProperties.setTranslucence(true);
-                SystemProperties.setMenuIcons(true);
+                SystemProperties.setMenuIcons(false);
 
                 defaults = false;
             } else {
