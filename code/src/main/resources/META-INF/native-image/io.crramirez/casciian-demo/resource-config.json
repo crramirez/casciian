@@ -1,112 +1,112 @@
 {
-  "resources": {
-    "includes": [
-      {
-        "pattern": "\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
-      },
-      {
-        "pattern": "\\Qhelp.xml\\E"
-      }
+    "resources": {
+        "includes": [
+            {
+                "pattern": "\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
+            },
+            {
+                "pattern": "\\Qhelp.xml\\E"
+            }
+        ]
+    },
+    "bundles": [
+        {
+            "name": "demo.Demo2Bundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.Demo7Bundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.Demo8Bundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DemoApplicationBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DemoCheckBoxWindowBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DemoEditorWindowBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DemoMainWindowBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DemoMsgBoxWindowBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DemoShadowOpacityDialogBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DemoTableWindowBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DemoTextFieldWindowBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DemoTextWindowBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DemoTreeViewWindowBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DesktopDemoApplicationBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        }
     ]
-  },
-  "bundles": [
-    {
-      "name": "demo.Demo2",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.Demo7",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.Demo8",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.DemoApplication",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.DemoCheckBoxWindow",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.DemoEditorWindow",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.DemoMainWindow",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.DemoMsgBoxWindow",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.DemoShadowOpacityDialog",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.DemoTableWindow",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.DemoTextFieldWindow",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.DemoTextWindow",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.DemoTreeViewWindow",
-      "locales": [
-        "",
-        "es"
-      ]
-    },
-    {
-      "name": "demo.DesktopDemoApplication",
-      "locales": [
-        "",
-        "es"
-      ]
-    }
-  ]
 }
