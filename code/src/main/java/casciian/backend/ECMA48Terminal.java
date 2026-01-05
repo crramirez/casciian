@@ -1516,7 +1516,10 @@ public class ECMA48Terminal extends LogicalScreen
                 }
 
                 // Emit the character
-                sb.append(lCell.toCharArray());
+                if (lCell.getWidth() != Cell.Width.RIGHT) {
+                    // Don't emit the right-half of full-width chars.
+                    sb.append(lCell.toCharArray());
+                }
 
                 // Save the last rendered cell
                 lastX = x;

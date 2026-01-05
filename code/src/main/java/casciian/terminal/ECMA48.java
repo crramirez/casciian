@@ -1966,55 +1966,18 @@ public class ECMA48 implements Runnable {
     private void printCharacter(final int ch) {
         screenIsDirty = true;
 
-        int rightMargin = this.rightMargin;
-
-        if ((StringUtils.width(ch) == 2)
-            || ExtendedGraphemeClusterUtils.isEmoji(ch)
-            // Component: skin-tone
-            || ((ch >= 0x1F3FB) && (ch <= 0x1F3FF))
-            // Component: hair-style
-            || ((ch >= 0x1F9B0) && (ch <= 0x1F9B3))
-        ) {
-            // This is a full-width character.  Save two spaces, and then
-            // draw the character as two image halves.
-            int x0 = currentState.cursorX;
-            int y0 = currentState.cursorY;
-            printCharacter(' ');
-            printCharacter(' ');
-            if ((currentState.cursorX == x0 + 2)
-                && (currentState.cursorY == y0)
-            ) {
-                // We can draw both halves of the character.
-                drawHalves(x0, y0, x0 + 1, y0, ch);
-            } else if ((currentState.cursorX == x0 + 1)
-                && (currentState.cursorY == y0)
-            ) {
-                // VT100 line wrap behavior: we should be at the right
-                // margin.  We can draw both halves of the character.
-                drawHalves(x0, y0, x0 + 1, y0, ch);
-            } else {
-                // The character splits across the line.  Draw the entire
-                // character on the new line, giving one more space for it.
-                x0 = currentState.cursorX - 1;
-                y0 = currentState.cursorY;
-                printCharacter(' ');
-                drawHalves(x0, y0, x0 + 1, y0, ch);
-            }
-            lastEmojiX = x0;
-            lastEmojiY = y0;
-            return;
-        }
+        int rMargin = this.rightMargin;
 
         // Check if we have double-width, and if so chop at 40/66 instead of
         // 80/132
         if (display.get(currentState.cursorY).isDoubleWidth()) {
-            rightMargin = ((rightMargin + 1) / 2) - 1;
+            rMargin = ((rMargin + 1) / 2) - 1;
         }
 
         // Check the unusually-complicated line wrapping conditions...
-        if (currentState.cursorX == rightMargin) {
+        if (currentState.cursorX == rMargin) {
 
-            if (currentState.lineWrap == true) {
+            if (currentState.lineWrap) {
                 /*
                  * This case happens when: the cursor was already on the
                  * right margin (either through printing or by an explicit
@@ -2024,7 +1987,7 @@ public class ECMA48 implements Runnable {
                  * cursor is already on the right margin AND has placed a
                  * character in its cell.  Easier to see than to explain.
                  */
-                if (wrapLineFlag == false) {
+                if (!wrapLineFlag) {
                     /*
                      * This block marks the case that we are in the margin
                      * and the first character has been received and printed.
@@ -2040,7 +2003,7 @@ public class ECMA48 implements Runnable {
                     wrapCurrentLine();
                 }
             }
-        } else if (currentState.cursorX <= rightMargin) {
+        } else if (currentState.cursorX <= rMargin) {
             /*
              * This is the normal case: a character came in and was printed
              * to the left of the right margin column.
@@ -2052,27 +2015,25 @@ public class ECMA48 implements Runnable {
 
         // "Print" the character
         ComplexCell newCell = new ComplexCell(ch);
-        CellAttributes newCellAttributes = (CellAttributes) newCell;
+        CellAttributes newCellAttributes = newCell;
         newCellAttributes.setTo(currentState.attr);
         DisplayLine line = display.get(currentState.cursorY);
 
-        if (StringUtils.width(ch) == 1) {
-            // Insert mode special case
-            if (insertMode == true) {
-                line.insert(currentState.cursorX, newCell);
-            } else {
-                // Replace an existing character
-                line.replace(currentState.cursorX, newCell);
-            }
-            lastEmojiX = currentState.cursorX;
-            lastEmojiY = currentState.cursorY;
+        // Insert mode special case
+        if (insertMode) {
+            line.insert(currentState.cursorX, newCell);
+        } else {
+            // Replace an existing character
+            line.replace(currentState.cursorX, newCell);
+        }
+        lastEmojiX = currentState.cursorX;
+        lastEmojiY = currentState.cursorY;
 
-            // Increment horizontal
-            if (wrapLineFlag == false) {
-                currentState.cursorX++;
-                if (currentState.cursorX > rightMargin) {
-                    currentState.cursorX--;
-                }
+        // Increment horizontal
+        if (!wrapLineFlag) {
+            currentState.cursorX++;
+            if (currentState.cursorX > rMargin) {
+                currentState.cursorX--;
             }
         }
     }
@@ -4397,7 +4358,7 @@ public class ECMA48 implements Runnable {
                 lastEmojiY = y0;
             } else {
                 assert (repCodePoints.size() == 1);
-                printCharacter(repCodePoints.get(0));
+                printCharacter(repCodePoints.getFirst());
             }
         }
     }
@@ -5954,7 +5915,7 @@ public class ECMA48 implements Runnable {
                 // VT220 printer --> trash bin
                 if (((type == DeviceType.VT220)
                         || (type == DeviceType.XTERM))
-                    && (printerControllerMode == true)
+                    && printerControllerMode
                 ) {
                     return;
                 }
@@ -5962,9 +5923,9 @@ public class ECMA48 implements Runnable {
                 if ((ExtendedGraphemeClusterUtils.isEmojiCombiner(ch)
                         || ExtendedGraphemeClusterUtils.isEmojiComponent(ch))
                     && (lastScanState == ScanState.GROUND)
-                    && ((repCodePoints.size() > 0)
-                        && (ExtendedGraphemeClusterUtils.isEmoji(repCodePoints.get(0))
-                            || ExtendedGraphemeClusterUtils.isEmojiBMP(repCodePoints.get(0))))
+                    && ((!repCodePoints.isEmpty())
+                        && (ExtendedGraphemeClusterUtils.isEmoji(repCodePoints.getFirst())
+                            || ExtendedGraphemeClusterUtils.isEmojiBMP(repCodePoints.getFirst())))
                 ) {
                     // Modify the grapheme, or combine with upcoming.
                     repCodePoints.add(ch);
@@ -5972,20 +5933,19 @@ public class ECMA48 implements Runnable {
                     // Modify the last printed graphic character, replace
                     // with repCodePoints.
                     printEmojiXY(lastEmojiX, lastEmojiY, 2);
-                } else if ((repCodePoints.size() > 0)
-                    && (repCodePoints.get(repCodePoints.size() - 1) == 0x200D)
+                } else if ((!repCodePoints.isEmpty())
+                    && (repCodePoints.getLast() == 0x200D)
                     && (lastScanState == ScanState.GROUND)
                 ) {
                     // ZWJ combine with previous.
                     repCodePoints.add(ch);
-                } else if ((repCodePoints.size() > 0)
+                } else if ((!repCodePoints.isEmpty())
                     && (lastScanState == ScanState.GROUND)
                     && !(ExtendedGraphemeClusterUtils.isEmoji(ch)
                         || ExtendedGraphemeClusterUtils.isEmojiBMP(ch)
                         || ExtendedGraphemeClusterUtils.isEmojiCombiner(ch)
                         || ExtendedGraphemeClusterUtils.isEmojiComponent(ch))
-                    && !ExtendedGraphemeClusterUtils.shouldBreak(repCodePoints.
-                        get(repCodePoints.size() - 1), ch)
+                    && !ExtendedGraphemeClusterUtils.shouldBreak(repCodePoints.getLast(), ch)
                 ) {
                     // Extended grapheme cluster combine with previous.
                     repCodePoints.add(ch);

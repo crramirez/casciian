@@ -28,7 +28,7 @@ import java.util.stream.Stream;
  * This class is the main driver for a simple demonstration of Casciian's
  * capabilities.
  */
-public class Demo1 {
+public final class Demo1 {
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -37,7 +37,7 @@ public class Demo1 {
     /**
      * Default constructor.
      */
-    public Demo1() {}
+    private Demo1() {}
 
     // ------------------------------------------------------------------------
     // Demo1 ------------------------------------------------------------------
@@ -55,6 +55,7 @@ public class Demo1 {
                 SystemProperties.setAnimations(true);
                 SystemProperties.setTextMouse(true);
                 SystemProperties.setTranslucence(true);
+                SystemProperties.setMenuIcons(false);
 
                 defaults = false;
             } else {

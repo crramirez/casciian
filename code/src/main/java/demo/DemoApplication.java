@@ -329,12 +329,14 @@ public class DemoApplication extends TApplication {
 
             SystemProperties.setTextMouse(false);
             SystemProperties.setTranslucence(false);
+            SystemProperties.setMenuIcons(false);
             SystemProperties.setShadowOpacity(60);
 
             // Update menu checkboxes
             setMenuItemChecked(10013, false);  // textMouse
             setMenuItemChecked(10014, false);  // animations
             setMenuItemChecked(10015, false);  // translucence
+            setMenuItemChecked(10016, false);  // menuIcons
             setMenuItemChecked(10010, false);  // gradients
 
             // Disable gradients for all windows
@@ -396,6 +398,13 @@ public class DemoApplication extends TApplication {
             // Enable/disable translucence.
             TMenuItem menuItem = getMenuItem(menu.getId());
             SystemProperties.setTranslucence(menuItem.isChecked());
+            return true;
+        }
+
+        if (menu.getId() == 10016) {
+            // Enable/disable menu icons.
+            TMenuItem menuItem = getMenuItem(menu.getId());
+            SystemProperties.setMenuIcons(menuItem.isChecked());
             return true;
         }
 
@@ -566,6 +575,10 @@ public class DemoApplication extends TApplication {
             i18n.getString("translucence"));
         translucenceItem.setCheckable(true);
         translucenceItem.setChecked(SystemProperties.isTranslucence());
+        TMenuItem menuIconsItem = demoMenu.addItem(10016,
+            i18n.getString("menuIcons"));
+        menuIconsItem.setCheckable(true);
+        menuIconsItem.setChecked(SystemProperties.isMenuIcons());
         TMenuItem backgroundImage = demoMenu.addItem(10011,
             i18n.getString("exposeBackground"));
         backgroundImage.setCheckable(true);

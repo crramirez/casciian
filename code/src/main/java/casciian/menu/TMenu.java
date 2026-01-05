@@ -415,11 +415,6 @@ public class TMenu extends TWindow {
     private MnemonicString mnemonic;
 
     /**
-     * If true, draw icons with menu items.  Note package private access.
-     */
-    boolean useIcons = false;
-
-    /**
      * If true, this is a context menu.
      */
     private boolean context = false;
@@ -457,10 +452,6 @@ public class TMenu extends TWindow {
         setHeight(2);
 
         setActive(false);
-
-        if (!SystemProperties.isMenuIcons()) {
-            useIcons = false;
-        }
 
         // Set the border style from the system properties
         setBorderStyleForeground(null);
@@ -900,15 +891,18 @@ public class TMenu extends TWindow {
 
         case MID_REPAINT:
             label = i18n.getString("menuRepaintDesktop");
+            icon = 0x1F3A8;
             break;
 
         case MID_VIEW_ANSI:
             label = i18n.getString("menuViewAnsiArt");
+            icon = 0x1F4F0;
             break;
 
         case MID_TEXT_CURSOR_GLINT:
             label = i18n.getString("menuTextCursorGlint");
             key = kbAltF12;
+            icon = 0x2728;
             break;
 
         case MID_NEW:
@@ -955,14 +949,17 @@ public class TMenu extends TWindow {
         case MID_CUT:
             label = i18n.getString("menuCut");
             key = kbCtrlX;
+            icon = 0x1F5F6;
             break;
         case MID_COPY:
             label = i18n.getString("menuCopy");
             key = kbCtrlC;
+            icon = 0x1F5D0;
             break;
         case MID_PASTE:
             label = i18n.getString("menuPaste");
             key = kbCtrlV;
+            icon = 0x1F4CB;
             break;
         case MID_CLEAR:
             label = i18n.getString("menuClear");
