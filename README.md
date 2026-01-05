@@ -22,6 +22,8 @@ Casciian has seen inspiration from several other projects:
 
 <img width="1612" height="996" alt="image" src="https://github.com/user-attachments/assets/69312af6-36b3-46a2-a4c9-d77a1e804e68" />
 
+## Getting Started
+
 If you want to start your own Casciian-based application, there is a
 [project template](https://github.com/crramirez/casciian-app-template)
 ready to use as a repository seed.
