@@ -473,10 +473,14 @@ public class ECMA48Terminal extends LogicalScreen
             inputStream = new FileInputStream(FileDescriptor.in);
             sttyRaw();
             setRawMode = true;
+
+            if (jlineTerminal != null && isWindows()) {
+                inputStream = jlineTerminal.input();
+            }
         } else {
             inputStream = input;
         }
-        this.input = new InputStreamReader(inputStream, "UTF-8");
+        this.input = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
 
         if (input instanceof SessionInfo) {
             // This is a TelnetInputStream that exposes window size and
