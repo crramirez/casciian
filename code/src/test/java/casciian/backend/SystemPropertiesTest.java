@@ -45,6 +45,7 @@ class SystemPropertiesTest {
         System.clearProperty(SystemProperties.CASCIIAN_TEXT_BLINK);
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS);
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET);
+        System.clearProperty(SystemProperties.CASCIIAN_USE_JLINE);
         SystemProperties.reset();
     }
 
@@ -742,5 +743,72 @@ class SystemPropertiesTest {
 
         // After reset, should read from system property again
         assertEquals(1, SystemProperties.getMenuIconsOffset());
+    }
+
+    // -------------------------------------------------------------------------
+    // Use JLine Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get useJline returns default value (false) when not set")
+    void testIsUseJlineDefault() {
+        assertFalse(SystemProperties.isUseJline());
+    }
+
+    @Test
+    @DisplayName("Get useJline returns true when set to 'true'")
+    void testIsUseJlineSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_USE_JLINE, "true");
+        assertTrue(SystemProperties.isUseJline());
+    }
+
+    @Test
+    @DisplayName("Get useJline returns false when set to 'false'")
+    void testIsUseJlineSetFalse() {
+        System.setProperty(SystemProperties.CASCIIAN_USE_JLINE, "false");
+        assertFalse(SystemProperties.isUseJline());
+    }
+
+    @Test
+    @DisplayName("Set useJline to true")
+    void testSetUseJlineTrue() {
+        SystemProperties.setUseJline(true);
+        assertTrue(SystemProperties.isUseJline());
+    }
+
+    @Test
+    @DisplayName("Set useJline to false")
+    void testSetUseJlineFalse() {
+        SystemProperties.setUseJline(false);
+        assertFalse(SystemProperties.isUseJline());
+    }
+
+    @Test
+    @DisplayName("Set and get useJline round trip")
+    void testSetUseJlineRoundTrip() {
+        // Test toggling the value
+        SystemProperties.setUseJline(true);
+        assertTrue(SystemProperties.isUseJline());
+        
+        SystemProperties.setUseJline(false);
+        assertFalse(SystemProperties.isUseJline());
+        
+        SystemProperties.setUseJline(true);
+        assertTrue(SystemProperties.isUseJline());
+    }
+
+    @Test
+    @DisplayName("Reset clears useJline cached value")
+    void testResetClearsUseJline() {
+        // Set useJline to true
+        SystemProperties.setUseJline(true);
+        assertTrue(SystemProperties.isUseJline());
+        
+        // Set system property to false and reset
+        System.setProperty(SystemProperties.CASCIIAN_USE_JLINE, "false");
+        SystemProperties.reset();
+        
+        // After reset, should read from system property again
+        assertFalse(SystemProperties.isUseJline());
     }
 }
