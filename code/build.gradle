@@ -91,12 +91,21 @@ tasks.jar {
     }
 }
 
-// Full JAR: includes EVERYTHING (library + demo), not published
+// Full JAR: includes EVERYTHING (library + demo + dependencies), not published
 tasks.register('jarFull', Jar) {
     group = 'build'
-    description = 'Assembles a full JAR containing both casciian/** and demo/**.'
+    description = 'Assembles a fat JAR containing casciian/**, demo/**, and all runtime dependencies.'
 
     from(sourceSets.main.output)
+
+    // Include all runtime dependencies (including jline) for a fat JAR
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    // Handle duplicate files from dependencies
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     archiveBaseName.set('casciian-full')
     manifest {
