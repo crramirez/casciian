@@ -1254,10 +1254,18 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * Set terminal to raw or cooked mode using jline-terminal in a platform-agnostic way.
+     * On Windows, the raw mode settings are skipped as they can interfere with console encoding.
      *
      * @param mode if true, set raw mode, otherwise restore to cooked mode
      */
     private void doStty(final boolean mode) {
+        // On Windows, skip raw mode settings as they can interfere with console encoding.
+        // The original stty commands would fail silently on Windows anyway.
+        String osName = System.getProperty("os.name", "");
+        if (osName.startsWith("Windows")) {
+            return;
+        }
+
         try {
             if (mode) {
                 // Set raw mode
