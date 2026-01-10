@@ -14,7 +14,6 @@
  */
 package casciian.backend;
 
-import java.io.BufferedReader;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -28,6 +27,10 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
@@ -249,6 +252,16 @@ public class ECMA48Terminal extends LogicalScreen
      * If true, then we changed System.in and need to change it back.
      */
     private boolean setRawMode = false;
+
+    /**
+     * The jline Terminal used for setting raw/cooked mode in a platform-agnostic way.
+     */
+    private Terminal jlineTerminal = null;
+
+    /**
+     * The original terminal attributes to restore when switching back to cooked mode.
+     */
+    private Attributes originalAttributes = null;
 
     /**
      * If true, the DA response has been seen and options that it affects
@@ -858,6 +871,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         if (setRawMode) {
             sttyCooked();
+            closeJlineTerminal();
             setRawMode = false;
             // We don't close System.in/out
         } else {
@@ -1214,70 +1228,106 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Call 'stty' to set cooked mode.
+     * Set terminal to cooked (normal) mode using jline-terminal.
      *
-     * <p>Actually executes '/bin/sh -c stty sane cooked &lt; /dev/tty'
+     * <p>Restores the original terminal attributes that were saved when entering raw mode.
      */
     private void sttyCooked() {
         doStty(false);
     }
 
     /**
-     * Call 'stty' to set raw mode.
+     * Set terminal to raw mode using jline-terminal.
      *
-     * <p>Actually executes '/bin/sh -c stty -ignbrk -brkint -parmrk -istrip
-     * -inlcr -igncr -icrnl -ixon -opost -echo -echonl -icanon -isig -iexten
-     * -parenb cs8 min 1 &lt; /dev/tty'
+     * <p>Configures the terminal in a platform-agnostic way to:
+     * <ul>
+     *   <li>Disable input flags: IGNBRK, BRKINT, PARMRK, ISTRIP, INLCR, IGNCR, ICRNL, IXON</li>
+     *   <li>Disable output flags: OPOST</li>
+     *   <li>Disable local flags: ECHO, ECHONL, ICANON, ISIG, IEXTEN</li>
+     *   <li>Disable control flags: PARENB, and enable CS8</li>
+     *   <li>Set VMIN to 1 and VTIME to 0 for immediate character-by-character input</li>
+     * </ul>
      */
     private void sttyRaw() {
         doStty(true);
     }
 
     /**
-     * Call 'stty' to set raw or cooked mode.
+     * Set terminal to raw or cooked mode using jline-terminal in a platform-agnostic way.
      *
-     * @param mode if true, set raw mode, otherwise set cooked mode
+     * @param mode if true, set raw mode, otherwise restore to cooked mode
      */
     private void doStty(final boolean mode) {
-        String [] cmdRaw = {
-            "/bin/sh", "-c", "stty -ignbrk -brkint -parmrk -istrip -inlcr -igncr -icrnl -ixon -opost -echo -echonl -icanon -isig -iexten -parenb cs8 min 1 < /dev/tty"
-        };
-        String [] cmdCooked = {
-            "/bin/sh", "-c", "stty sane cooked < /dev/tty"
-        };
         try {
-            Process process;
             if (mode) {
-                process = Runtime.getRuntime().exec(cmdRaw);
+                // Set raw mode
+                if (jlineTerminal == null) {
+                    jlineTerminal = TerminalBuilder.builder()
+                        .system(true)
+                        .build();
+                    // Save original attributes for later restoration
+                    originalAttributes = new Attributes(jlineTerminal.getAttributes());
+                }
+
+                // Create raw mode attributes
+                Attributes rawAttrs = new Attributes(jlineTerminal.getAttributes());
+
+                // Disable input flags: -ignbrk -brkint -parmrk -istrip -inlcr -igncr -icrnl -ixon
+                rawAttrs.setInputFlag(Attributes.InputFlag.IGNBRK, false);
+                rawAttrs.setInputFlag(Attributes.InputFlag.BRKINT, false);
+                rawAttrs.setInputFlag(Attributes.InputFlag.PARMRK, false);
+                rawAttrs.setInputFlag(Attributes.InputFlag.ISTRIP, false);
+                rawAttrs.setInputFlag(Attributes.InputFlag.INLCR, false);
+                rawAttrs.setInputFlag(Attributes.InputFlag.IGNCR, false);
+                rawAttrs.setInputFlag(Attributes.InputFlag.ICRNL, false);
+                rawAttrs.setInputFlag(Attributes.InputFlag.IXON, false);
+
+                // Disable output flags: -opost
+                rawAttrs.setOutputFlag(Attributes.OutputFlag.OPOST, false);
+
+                // Disable local flags: -echo -echonl -icanon -isig -iexten
+                rawAttrs.setLocalFlag(Attributes.LocalFlag.ECHO, false);
+                rawAttrs.setLocalFlag(Attributes.LocalFlag.ECHONL, false);
+                rawAttrs.setLocalFlag(Attributes.LocalFlag.ICANON, false);
+                rawAttrs.setLocalFlag(Attributes.LocalFlag.ISIG, false);
+                rawAttrs.setLocalFlag(Attributes.LocalFlag.IEXTEN, false);
+
+                // Control flags: -parenb cs8
+                rawAttrs.setControlFlag(Attributes.ControlFlag.PARENB, false);
+                rawAttrs.setControlFlag(Attributes.ControlFlag.CS8, true);
+
+                // Set VMIN=1 and VTIME=0 for immediate character-by-character input
+                rawAttrs.setControlChar(Attributes.ControlChar.VMIN, 1);
+                rawAttrs.setControlChar(Attributes.ControlChar.VTIME, 0);
+
+                jlineTerminal.setAttributes(rawAttrs);
             } else {
-                process = Runtime.getRuntime().exec(cmdCooked);
-            }
-            BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream(), "UTF-8"));
-            String line = in.readLine();
-            if ((line != null) && (line.length() > 0)) {
-                System.err.println("WEIRD?! Normal output from stty: " + line);
-            }
-            while (true) {
-                BufferedReader err = new BufferedReader(new InputStreamReader(process.getErrorStream(), "UTF-8"));
-                line = err.readLine();
-                if ((line != null) && (line.length() > 0)) {
-                    System.err.println("Error output from stty: " + line);
+                // Restore cooked mode
+                if (jlineTerminal != null && originalAttributes != null) {
+                    jlineTerminal.setAttributes(originalAttributes);
                 }
-                try {
-                    process.waitFor();
-                    break;
-                } catch (InterruptedException e) {
-                    if (debugToStderr) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            int rc = process.exitValue();
-            if (rc != 0) {
-                System.err.println("stty returned error code: " + rc);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            if (debugToStderr) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Close the jline terminal if it was opened.
+     */
+    private void closeJlineTerminal() {
+        if (jlineTerminal != null) {
+            try {
+                jlineTerminal.close();
+            } catch (IOException e) {
+                if (debugToStderr) {
+                    e.printStackTrace();
+                }
+            }
+            jlineTerminal = null;
+            originalAttributes = null;
         }
     }
 

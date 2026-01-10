@@ -26,6 +26,7 @@
 module casciian {
     requires java.base;
     requires transitive java.xml;
+    requires org.jline.terminal;
 
     exports casciian;
     exports casciian.backend;
