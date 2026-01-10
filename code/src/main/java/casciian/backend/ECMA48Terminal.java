@@ -1269,8 +1269,8 @@ public class ECMA48Terminal extends LogicalScreen
                     originalAttributes = new Attributes(jlineTerminal.getAttributes());
                 }
 
-                // Create raw mode attributes
-                Attributes rawAttrs = new Attributes(jlineTerminal.getAttributes());
+                // Create raw mode attributes based on the saved original attributes
+                Attributes rawAttrs = new Attributes(originalAttributes);
 
                 // Disable input flags: -ignbrk -brkint -parmrk -istrip -inlcr -igncr -icrnl -ixon
                 rawAttrs.setInputFlag(Attributes.InputFlag.IGNBRK, false);
