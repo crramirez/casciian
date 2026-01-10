@@ -139,8 +139,7 @@ public class TerminalJlineImpl implements Terminal {
 
     @Override
     public boolean hasCustomWriter() {
-        // On Windows, JLine uses WriteConsoleW which properly handles Unicode
-        return jlineTerminal != null && OsUtils.isWindows();
+        return jlineTerminal != null;
     }
 
     @Override
@@ -153,7 +152,6 @@ public class TerminalJlineImpl implements Terminal {
 
     @Override
     public boolean hasCustomInputStream() {
-        // On Windows, JLine provides a proper input stream
-        return jlineTerminal != null && OsUtils.isWindows();
+        return jlineTerminal != null;
     }
 }

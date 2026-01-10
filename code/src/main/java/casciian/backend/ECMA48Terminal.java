@@ -491,12 +491,11 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         if (output == null) {
-            // On Windows, terminal implementation provides its own writer for proper UTF-8/Unicode support
             if (terminal != null && terminal.hasCustomWriter()) {
                 this.output = terminal.getWriter();
             } else {
                 this.output = new PrintWriter(new OutputStreamWriter(System.out,
-                        "UTF-8"));
+                        StandardCharsets.UTF_8));
             }
         } else {
             this.output = new PrintWriter(new OutputStreamWriter(output,
