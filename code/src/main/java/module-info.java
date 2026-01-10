@@ -31,6 +31,7 @@ module casciian {
 
     exports casciian;
     exports casciian.backend;
+    exports casciian.backend.terminal;
     exports casciian.bits;
     exports casciian.effect;
     exports casciian.event;

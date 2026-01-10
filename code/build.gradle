@@ -36,9 +36,9 @@ repositories {
 
 dependencies {
     // JLine terminal for platform-agnostic raw mode support
-    implementation 'org.jline:jline-terminal:3.30.6'
-    implementation 'org.jline:jline-terminal-ffm:3.30.6'
-    implementation 'org.jline:jline-graal:3.30.6'
+    implementation "org.jline:jline-terminal:${jlineVersion}"
+    implementation "org.jline:jline-terminal-ffm:${jlineVersion}"
+    implementation "org.jline:jline-graal:${jlineVersion}"
 
     testImplementation platform('org.junit:junit-bom:5.10.1')
     testImplementation 'org.junit.jupiter:junit-jupiter-api'

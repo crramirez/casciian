@@ -28,10 +28,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-
+import casciian.backend.terminal.Terminal;
+import casciian.backend.terminal.TerminalFactory;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.Color;
@@ -254,14 +252,9 @@ public class ECMA48Terminal extends LogicalScreen
     private boolean setRawMode = false;
 
     /**
-     * The jline Terminal used for setting raw/cooked mode in a platform-agnostic way.
+     * The terminal implementation used for setting raw/cooked mode.
      */
-    private Terminal jlineTerminal = null;
-
-    /**
-     * The original terminal attributes to restore when switching back to cooked mode.
-     */
-    private Attributes originalAttributes = null;
+    private Terminal terminal = null;
 
     /**
      * If true, the DA response has been seen and options that it affects
@@ -474,8 +467,9 @@ public class ECMA48Terminal extends LogicalScreen
             sttyRaw();
             setRawMode = true;
 
-            if (jlineTerminal != null && isWindows()) {
-                inputStream = jlineTerminal.input();
+            // On Windows, use terminal's input stream for proper handling
+            if (terminal != null && terminal.hasCustomInputStream()) {
+                inputStream = terminal.getInputStream();
             }
         } else {
             inputStream = input;
@@ -497,10 +491,9 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         if (output == null) {
-            // On Windows, use jline's writer for proper UTF-8/Unicode support
-            // jline uses WriteConsoleW on Windows which properly handles Unicode
-            if (jlineTerminal != null && isWindows()) {
-                this.output = jlineTerminal.writer();
+            // On Windows, terminal implementation provides its own writer for proper UTF-8/Unicode support
+            if (terminal != null && terminal.hasCustomWriter()) {
+                this.output = terminal.getWriter();
             } else {
                 this.output = new PrintWriter(new OutputStreamWriter(System.out,
                         "UTF-8"));
@@ -881,7 +874,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         if (setRawMode) {
             sttyCooked();
-            closeJlineTerminal();
+            closeTerminalImpl();
             setRawMode = false;
             // We don't close System.in/out
         } else {
@@ -1238,117 +1231,34 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Set terminal to cooked (normal) mode using jline-terminal.
+     * Set terminal to raw mode.
      *
-     * <p>Restores the original terminal attributes that were saved when entering raw mode.
-     */
-    private void sttyCooked() {
-        doStty(false);
-    }
-
-    /**
-     * Set terminal to raw mode using jline-terminal.
-     *
-     * <p>Configures the terminal in a platform-agnostic way to:
-     * <ul>
-     *   <li>Disable input flags: IGNBRK, BRKINT, PARMRK, ISTRIP, INLCR, IGNCR, ICRNL, IXON</li>
-     *   <li>Disable output flags: OPOST</li>
-     *   <li>Disable local flags: ECHO, ECHONL, ICANON, ISIG, IEXTEN</li>
-     *   <li>Disable control flags: PARENB, and enable CS8</li>
-     *   <li>Set VMIN to 1 and VTIME to 0 for immediate character-by-character input</li>
-     * </ul>
+     * <p>Configures the terminal for character-by-character input without echo.
      */
     private void sttyRaw() {
-        doStty(true);
+        if (terminal == null) {
+            terminal = TerminalFactory.create(debugToStderr);
+        }
+        terminal.setRawMode();
     }
 
     /**
-     * Set terminal to raw or cooked mode using jline-terminal in a platform-agnostic way.
-     *
-     * @param mode if true, set raw mode, otherwise restore to cooked mode
+     * Set terminal to cooked (normal) mode.
      */
-    private void doStty(final boolean mode) {
-        try {
-            if (mode) {
-                // Set raw mode
-                if (jlineTerminal == null) {
-                    jlineTerminal = TerminalBuilder.builder()
-                        .system(true)
-                        .encoding(StandardCharsets.UTF_8)
-                        .build();
-                    // Save original attributes for later restoration
-                    originalAttributes = new Attributes(jlineTerminal.getAttributes());
-                }
-
-                // Create raw mode attributes based on the saved original attributes
-                Attributes rawAttrs = new Attributes(originalAttributes);
-
-                // Disable input flags: -ignbrk -brkint -parmrk -istrip -inlcr -igncr -icrnl -ixon
-                rawAttrs.setInputFlag(Attributes.InputFlag.IGNBRK, false);
-                rawAttrs.setInputFlag(Attributes.InputFlag.BRKINT, false);
-                rawAttrs.setInputFlag(Attributes.InputFlag.PARMRK, false);
-                rawAttrs.setInputFlag(Attributes.InputFlag.ISTRIP, false);
-                rawAttrs.setInputFlag(Attributes.InputFlag.INLCR, false);
-                rawAttrs.setInputFlag(Attributes.InputFlag.IGNCR, false);
-                rawAttrs.setInputFlag(Attributes.InputFlag.ICRNL, false);
-                rawAttrs.setInputFlag(Attributes.InputFlag.IXON, false);
-
-                // Disable output flags: -opost
-                rawAttrs.setOutputFlag(Attributes.OutputFlag.OPOST, false);
-
-                // Disable local flags: -echo -echonl -icanon -isig -iexten
-                rawAttrs.setLocalFlag(Attributes.LocalFlag.ECHO, false);
-                rawAttrs.setLocalFlag(Attributes.LocalFlag.ECHONL, false);
-                rawAttrs.setLocalFlag(Attributes.LocalFlag.ICANON, false);
-                rawAttrs.setLocalFlag(Attributes.LocalFlag.ISIG, false);
-                rawAttrs.setLocalFlag(Attributes.LocalFlag.IEXTEN, false);
-
-                // Control flags: -parenb cs8
-                rawAttrs.setControlFlag(Attributes.ControlFlag.PARENB, false);
-                rawAttrs.setControlFlag(Attributes.ControlFlag.CS8, true);
-
-                // Set VMIN=1 and VTIME=0 for immediate character-by-character input
-                rawAttrs.setControlChar(Attributes.ControlChar.VMIN, 1);
-                rawAttrs.setControlChar(Attributes.ControlChar.VTIME, 0);
-
-                jlineTerminal.setAttributes(rawAttrs);
-            } else {
-                // Restore cooked mode
-                if (jlineTerminal != null && originalAttributes != null) {
-                    jlineTerminal.setAttributes(originalAttributes);
-                }
-            }
-        } catch (IOException e) {
-            if (debugToStderr) {
-                e.printStackTrace();
-            }
+    private void sttyCooked() {
+        if (terminal != null) {
+            terminal.setCookedMode();
         }
     }
 
     /**
-     * Close the jline terminal if it was opened.
+     * Close the terminal if it was opened.
      */
-    private void closeJlineTerminal() {
-        if (jlineTerminal != null) {
-            try {
-                jlineTerminal.close();
-            } catch (IOException e) {
-                if (debugToStderr) {
-                    e.printStackTrace();
-                }
-            }
-            jlineTerminal = null;
-            originalAttributes = null;
+    private void closeTerminalImpl() {
+        if (terminal != null) {
+            terminal.close();
+            terminal = null;
         }
-    }
-
-    /**
-     * Check if the current operating system is Windows.
-     *
-     * @return true if running on Windows, false otherwise
-     */
-    private static boolean isWindows() {
-        return System.getProperty("os.name", "").startsWith("Windows");
     }
 
     /**
