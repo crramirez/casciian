@@ -1264,6 +1264,7 @@ public class ECMA48Terminal extends LogicalScreen
                 if (jlineTerminal == null) {
                     jlineTerminal = TerminalBuilder.builder()
                         .system(true)
+                        .encoding(StandardCharsets.UTF_8)
                         .build();
                     // Save original attributes for later restoration
                     originalAttributes = new Attributes(jlineTerminal.getAttributes());
