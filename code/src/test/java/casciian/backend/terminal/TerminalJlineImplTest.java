@@ -21,6 +21,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
+import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -108,5 +111,28 @@ class TerminalJlineImplTest {
         // Should still have valid streams
         assertNotNull(terminal.getWriter());
         assertNotNull(terminal.getInputStream());
+    }
+
+    @Test
+    @DisplayName("hasInput does not throw exception")
+    void testHasInputDoesNotThrow() {
+        // hasInput should not throw - it returns false when no input is available
+        assertDoesNotThrow(() -> terminal.hasInput());
+    }
+
+    @Test
+    @DisplayName("hasInput returns boolean value without throwing")
+    void testHasInputReturnsBoolean() throws IOException {
+        // hasInput should return a boolean without throwing
+        // (we can't easily simulate input in a test environment)
+        // Just calling the method is sufficient to verify it works
+        terminal.hasInput();
+    }
+
+    @Test
+    @DisplayName("readWithTimeout does not throw exception")
+    void testReadWithTimeoutDoesNotThrow() {
+        // readWithTimeout should not throw even with short timeout
+        assertDoesNotThrow(() -> terminal.readWithTimeout(1));
     }
 }

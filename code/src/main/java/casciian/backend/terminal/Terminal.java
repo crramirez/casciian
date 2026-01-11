@@ -15,6 +15,7 @@
  */
 package casciian.backend.terminal;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -68,4 +69,31 @@ public interface Terminal {
      * @param on If true, enable mouse reporting; if false, disable mouse reporting.
      */
     void enableMouseReporting(boolean on);
+
+    /**
+     * Check if there is input available to read without blocking.
+     * 
+     * <p>This method provides a platform-agnostic way to check for available input.
+     * On Windows with JLine, this uses Reader.ready() which properly detects
+     * console input including arrow keys. On Unix systems, this typically uses
+     * InputStream.available() which works reliably for terminal input.
+     *
+     * @return true if there is input available, false otherwise
+     * @throws IOException if an I/O error occurs
+     */
+    boolean hasInput() throws IOException;
+
+    /**
+     * Read a single character with a timeout.
+     * 
+     * <p>This method provides a way to read input that doesn't rely on checking
+     * availability first. On platforms where availability checking doesn't work
+     * correctly (like Windows with JLine), this uses a timed read to wait for
+     * input without blocking indefinitely.
+     *
+     * @param timeout the timeout in milliseconds; 0 means wait forever
+     * @return the character read, -1 for EOF, or -2 if the timeout expired
+     * @throws IOException if an I/O error occurs
+     */
+    int readWithTimeout(long timeout) throws IOException;
 }
