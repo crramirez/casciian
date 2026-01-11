@@ -17,6 +17,8 @@ package casciian.backend.terminal;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.Reader;
 
 import casciian.backend.SystemProperties;
 
@@ -55,6 +57,25 @@ public final class TerminalFactory {
         }
         // Default to stty-based implementation
         return new TerminalShImpl(input, output, debugToStderr);
+    }
+
+    /**
+     * Create a Terminal instance with pre-wired Reader and PrintWriter.
+     * 
+     * <p>This method is used when the caller already has Reader and PrintWriter
+     * objects (e.g., from a telnet connection) and wants to use them directly
+     * without the terminal creating new ones.
+     *
+     * @param input the input stream (must not be null)
+     * @param reader the reader (must not be null)
+     * @param writer the print writer (must not be null)
+     * @param debugToStderr if true, print debug output to stderr
+     * @return a Terminal instance using the provided streams
+     */
+    public static Terminal create(InputStream input, Reader reader, PrintWriter writer, boolean debugToStderr) {
+        // When pre-wired streams are provided, always use stty-based implementation
+        // since JLine manages its own streams
+        return new TerminalShImpl(input, reader, writer, debugToStderr);
     }
 
     /**

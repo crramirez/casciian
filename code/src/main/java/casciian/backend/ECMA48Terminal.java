@@ -580,9 +580,9 @@ public class ECMA48Terminal extends LogicalScreen
         stopReaderThread = false;
         this.listener    = listener;
 
-        // Create a terminal instance - use TerminalShImpl since streams are provided
+        // Create a terminal instance with the pre-wired streams
         // This allows future delegation of terminal features
-        terminal = TerminalFactory.create(input, null, debugToStderr);
+        terminal = TerminalFactory.create(input, reader, writer, debugToStderr);
 
         inputStream = input;
         this.input = reader;

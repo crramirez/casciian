@@ -82,6 +82,24 @@ public class TerminalShImpl implements Terminal {
         }
     }
 
+    /**
+     * Create a new shell-based terminal implementation with pre-wired Reader and PrintWriter.
+     * 
+     * <p>This constructor is used when the caller already has Reader and PrintWriter
+     * objects (e.g., from a telnet connection) and wants to use them directly.
+     *
+     * @param input the input stream (must not be null)
+     * @param reader the reader (must not be null)
+     * @param writer the print writer (must not be null)
+     * @param debugToStderr if true, print debug output to stderr
+     */
+    public TerminalShImpl(InputStream input, Reader reader, PrintWriter writer, boolean debugToStderr) {
+        this.debugToStderr = debugToStderr;
+        this.inputStream = input;
+        this.reader = reader;
+        this.writer = writer;
+    }
+
     @Override
     public void setRawMode() {
         doStty(true);

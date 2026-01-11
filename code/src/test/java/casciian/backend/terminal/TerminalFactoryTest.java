@@ -27,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -179,6 +180,40 @@ class TerminalFactoryTest {
         Terminal terminal = TerminalFactory.create(false);
         assertNotNull(terminal);
         assertInstanceOf(TerminalShImpl.class, terminal);
+        terminal.close();
+    }
+
+    @Test
+    @DisplayName("create with pre-wired Reader and PrintWriter returns TerminalShImpl")
+    void testCreateWithPreWiredStreams() {
+        System.setProperty("os.name", "Windows 10");
+        System.setProperty(SystemProperties.CASCIIAN_USE_JLINE, "true");
+        SystemProperties.reset();
+        
+        InputStream input = new ByteArrayInputStream("test".getBytes());
+        java.io.Reader reader = new java.io.StringReader("test");
+        java.io.PrintWriter writer = new java.io.PrintWriter(new ByteArrayOutputStream());
+        
+        Terminal terminal = TerminalFactory.create(input, reader, writer, false);
+        assertNotNull(terminal);
+        // Even on Windows with useJline=true, pre-wired streams always use shell implementation
+        assertInstanceOf(TerminalShImpl.class, terminal);
+        terminal.close();
+    }
+
+    @Test
+    @DisplayName("create with pre-wired streams returns correct streams")
+    void testCreateWithPreWiredStreamsReturnsCorrectStreams() {
+        InputStream input = new ByteArrayInputStream("test".getBytes());
+        java.io.Reader reader = new java.io.StringReader("test");
+        java.io.PrintWriter writer = new java.io.PrintWriter(new ByteArrayOutputStream());
+        
+        Terminal terminal = TerminalFactory.create(input, reader, writer, false);
+        assertNotNull(terminal);
+        // Verify the terminal returns the exact same streams
+        assertEquals(input, terminal.getInputStream());
+        assertEquals(reader, terminal.getReader());
+        assertEquals(writer, terminal.getWriter());
         terminal.close();
     }
 }

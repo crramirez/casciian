@@ -24,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -112,6 +113,22 @@ class TerminalShImplTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         TerminalShImpl customTerminal = new TerminalShImpl(null, output, false);
         assertNotNull(customTerminal.getWriter());
+        customTerminal.close();
+    }
+
+    @Test
+    @DisplayName("constructor with pre-wired Reader and PrintWriter uses them directly")
+    void testConstructorWithPreWiredStreams() {
+        ByteArrayInputStream input = new ByteArrayInputStream("test".getBytes());
+        java.io.Reader reader = new java.io.StringReader("test");
+        java.io.PrintWriter writer = new java.io.PrintWriter(new ByteArrayOutputStream());
+        
+        TerminalShImpl customTerminal = new TerminalShImpl(input, reader, writer, false);
+        
+        // Verify the terminal returns the exact same streams that were passed in
+        assertEquals(input, customTerminal.getInputStream());
+        assertEquals(reader, customTerminal.getReader());
+        assertEquals(writer, customTerminal.getWriter());
         customTerminal.close();
     }
 }
