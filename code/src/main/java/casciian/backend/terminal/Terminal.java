@@ -63,5 +63,22 @@ public interface Terminal {
      */
     void enableMouseReporting(boolean on);
 
+    /**
+     * Returns the number of bytes that can be read from the input without blocking.
+     *
+     * @return the number of bytes available to read
+     * @throws IOException if an I/O error occurs while determining the availability
+     */
     int available() throws IOException;
+
+    /**
+     * Read characters from the terminal input into the provided buffer.
+     *
+     * @param buffer the buffer to read characters into
+     * @param off the offset in the buffer to start writing characters
+     * @param len the maximum number of characters to read
+     * @return the number of characters read, or -1 if end of stream is reached
+     * @throws IOException if an I/O error occurs while reading
+     */
+    int read(char[] buffer, int off, int len) throws IOException;
 }

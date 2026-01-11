@@ -38,6 +38,11 @@ import org.jline.utils.NonBlockingReader;
 public class TerminalJlineImpl implements Terminal {
 
     /**
+     * The timeout for non-blocking reads in milliseconds.
+     */
+    public static final long TIMEOUT = 20L;
+
+    /**
      * The JLine terminal instance.
      */
     private final org.jline.terminal.Terminal jlineTerminal;
@@ -89,6 +94,13 @@ public class TerminalJlineImpl implements Terminal {
         }
     }
 
+    /**
+     * Set the terminal to raw mode.
+     * In raw mode, input is available character-by-character, echoing is disabled,
+     * and special processing of input and output is disabled.
+     *
+     * @throws IllegalStateException if the terminal is not initialized
+     */
     @Override
     public void setRawMode() {
         if (jlineTerminal == null || originalAttributes == null) {
@@ -129,6 +141,13 @@ public class TerminalJlineImpl implements Terminal {
         jlineTerminal.setAttributes(rawAttrs);
     }
 
+    /**
+     * Restore the terminal to cooked mode.
+     * Cooked mode restores the original terminal attributes, including
+     * line buffering, echoing, and special character processing.
+     *
+     * @throws IllegalStateException if the terminal is not initialized
+     */
     @Override
     public void setCookedMode() {
         if (jlineTerminal == null || originalAttributes == null) {
@@ -138,6 +157,10 @@ public class TerminalJlineImpl implements Terminal {
         jlineTerminal.setAttributes(originalAttributes);
     }
 
+    /**
+     * Close the terminal and restore its original state.
+     * Clears the screen and releases any resources held by the terminal.
+     */
     @Override
     public void close() {
         if (jlineTerminal != null) {
@@ -152,6 +175,12 @@ public class TerminalJlineImpl implements Terminal {
         }
     }
 
+    /**
+     * Get the writer for writing to the terminal output.
+     *
+     * @return a PrintWriter for terminal output
+     * @throws IllegalStateException if the terminal is not initialized
+     */
     @Override
     public PrintWriter getWriter() {
         if (jlineTerminal == null) {
@@ -161,6 +190,12 @@ public class TerminalJlineImpl implements Terminal {
         return jlineTerminal.writer();
     }
 
+    /**
+     * Get the reader for reading from the terminal input.
+     *
+     * @return a Reader for terminal input
+     * @throws IllegalStateException if the terminal is not initialized
+     */
     @Override
     public Reader getReader() {
         if (jlineTerminal == null) {
@@ -188,6 +223,13 @@ public class TerminalJlineImpl implements Terminal {
         return "\033^showMousePointer\033\\";
     }
 
+    /**
+     * Enable or disable mouse event reporting.
+     * When enabled, the terminal will report mouse events and track focus changes.
+     *
+     * @param on if true, enable mouse reporting; if false, disable it
+     * @throws IllegalStateException if the terminal is not initialized
+     */
     @Override
     public void enableMouseReporting(boolean on) {
         if (jlineTerminal == null) {
@@ -204,6 +246,14 @@ public class TerminalJlineImpl implements Terminal {
         jlineTerminal.writer().printf("%s", mouse(on));
     }
 
+    /**
+     * Return the number of bytes available to be read from the input stream.
+     * This method performs a non-blocking peek operation to determine if data is available.
+     *
+     * @return the number of bytes available, or 0 if none are available
+     * @throws IOException if an I/O error occurs
+     * @throws IllegalStateException if the terminal is not initialized
+     */
     @Override
     public int available() throws IOException {
         if (jlineTerminal == null) {
@@ -216,11 +266,26 @@ public class TerminalJlineImpl implements Terminal {
             return amount;
         }
 
-        int ch = reader.peek(20L);
+        int ch = reader.peek(TIMEOUT);
         if (ch < 0) {
             return 0;
         }
 
         return 1;
+    }
+
+    /**
+     * Read characters from the terminal input into a buffer.
+     * This method performs a buffered read operation with a timeout.
+     *
+     * @param buffer the character array to read data into
+     * @param off the starting offset in the buffer
+     * @param len the maximum number of characters to read
+     * @return the number of characters read, or -1 if end of stream is reached
+     * @throws IOException if an I/O error occurs
+     */
+    @Override
+    public int read(char[] buffer, int off, int len) throws IOException {
+        return jlineTerminal.reader().readBuffered(buffer, off, len, TIMEOUT);
     }
 }

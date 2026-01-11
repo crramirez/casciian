@@ -100,27 +100,52 @@ public class TerminalShImpl implements Terminal {
         this.writer = writer;
     }
 
+    /**
+     * Set the terminal to raw mode using stty commands.
+     * In raw mode, input is available character-by-character, echoing is disabled,
+     * and special processing of input and output is disabled.
+     */
     @Override
     public void setRawMode() {
         doStty(true);
     }
 
+    /**
+     * Restore the terminal to cooked mode using stty commands.
+     * Cooked mode restores sane terminal settings, including
+     * line buffering, echoing, and special character processing.
+     */
     @Override
     public void setCookedMode() {
         doStty(false);
     }
 
+    /**
+     * Close the terminal.
+     * This implementation does not close System.in/out streams as the caller
+     * is responsible for managing their lifecycle.
+     */
     @Override
     public void close() {
         // We don't close System.in/out if we created them from null
         // The caller is responsible for managing the lifecycle
     }
 
+    /**
+     * Get the writer for writing to the terminal output.
+     *
+     * @return a PrintWriter for terminal output
+     */
     @Override
     public PrintWriter getWriter() {
         return writer;
     }
 
+    /**
+     * Get the reader for reading from the terminal input.
+     *
+     * @return a Reader for terminal input
+     */
     @Override
     public Reader getReader() {
         return reader;
@@ -153,6 +178,12 @@ public class TerminalShImpl implements Terminal {
         return "\033[?1004l\033[?1002;1003;1006;1005l\033[?1049l\033^showMousePointer\033\\";
     }
 
+    /**
+     * Enable or disable mouse event reporting.
+     * When enabled, the terminal will report mouse events using xterm control sequences.
+     *
+     * @param on if true, enable mouse reporting; if false, disable it
+     */
     @Override
     public void enableMouseReporting(boolean on) {
         if (writer != null) {
@@ -160,9 +191,29 @@ public class TerminalShImpl implements Terminal {
         }
     }
 
+    /**
+     * Return the number of bytes available to be read from the input stream.
+     *
+     * @return the number of bytes available, or 0 if none are available
+     * @throws IOException if an I/O error occurs
+     */
     @Override
     public int available() throws IOException {
         return inputStream.available();
+    }
+
+    /**
+     * Read characters from the terminal input into a buffer.
+     *
+     * @param buffer the character array to read data into
+     * @param off the starting offset in the buffer
+     * @param len the maximum number of characters to read
+     * @return the number of characters read, or -1 if end of stream is reached
+     * @throws IOException if an I/O error occurs
+     */
+    @Override
+    public int read(char[] buffer, int off, int len) throws IOException {
+        return reader.read(buffer, off, len);
     }
 
     /**

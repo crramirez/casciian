@@ -1019,7 +1019,7 @@ public class ECMA48Terminal extends LogicalScreen
                             readBuffer.length);
                     }
 
-                    int rc = input.read(readBuffer, 0, readBuffer.length);
+                    int rc = terminal.read(readBuffer, 0, readBuffer.length);
 
                     /*
                     System.err.printf("AFTER read() %d\n", rc);
