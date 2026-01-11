@@ -35,6 +35,10 @@ repositories {
 }
 
 dependencies {
+    // JLine terminal for platform-agnostic raw mode support
+    implementation "org.jline:jline-terminal:${jlineVersion}"
+    implementation "org.jline:jline-terminal-ffm:${jlineVersion}"
+
     testImplementation platform('org.junit:junit-bom:5.10.1')
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
     testImplementation 'org.junit.jupiter:junit-jupiter-params'
@@ -87,12 +91,21 @@ tasks.jar {
     }
 }
 
-// Full JAR: includes EVERYTHING (library + demo), not published
+// Full JAR: includes EVERYTHING (library + demo + dependencies), not published
 tasks.register('jarFull', Jar) {
     group = 'build'
-    description = 'Assembles a full JAR containing both casciian/** and demo/**.'
+    description = 'Assembles a fat JAR containing casciian/**, demo/**, and all runtime dependencies.'
 
     from(sourceSets.main.output)
+
+    // Include all runtime dependencies (including jline) for a fat JAR
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    // Handle duplicate files from dependencies
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     archiveBaseName.set('casciian-full')
     manifest {
@@ -214,6 +227,7 @@ graalvmNative {
             imageName = 'casciian'
             buildArgs.add('-march=compatibility')
             buildArgs.add('-Os')
+            buildArgs.add('--enable-native-access=ALL-UNNAMED')
             buildArgs.addAll(providers.provider {
                 [
                     '-cp',

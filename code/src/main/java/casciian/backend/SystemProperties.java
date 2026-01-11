@@ -128,6 +128,22 @@ public class SystemProperties {
     public static final String CASCIIAN_DISABLE_POST_TRANSFORM = "casciian.disablePostTransform";
 
     /**
+     * System property key for using JLine for terminal handling.
+     * On non-Windows platforms, when this property is {@code true}, use the JLine
+     * library for raw/cooked mode instead of relying on {@code stty} commands.
+     * <p>
+     * On Windows, JLine is always used for proper Unicode support (for example,
+     * when the terminal streams are managed by JLine), regardless of the value
+     * of this property. In other words, this property only has an effect on
+     * non-Windows systems.
+     * <p>
+     * Valid values: "true" or "false"
+     * Default: false (use {@code stty} commands on Unix-like systems when false;
+     * always use JLine on Windows)
+     */
+    public static final String CASCIIAN_USE_JLINE = "casciian.useJline";
+
+    /**
      * Atomic reference representing the animations setting.
      * When true, enable animations.
      * The default value is false if not explicitly set.
@@ -247,6 +263,14 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> disablePostTransform = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the useJline setting.
+     * When true, use JLine library for terminal handling.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> useJline = new AtomicReference<>(null);
 
     private SystemProperties() {
     }
@@ -616,6 +640,25 @@ public class SystemProperties {
     }
 
     /**
+     * Get the useJline value from system properties.
+     *
+     * @return true if JLine should be used for terminal handling,
+     *         false to use stty commands. Default is false.
+     */
+    public static boolean isUseJline() {
+        return getBooleanProperty(useJline, CASCIIAN_USE_JLINE, false);
+    }
+
+    /**
+     * Set the useJline value in system properties.
+     *
+     * @param value true to use JLine for terminal handling, false to use stty
+     */
+    public static void setUseJline(boolean value) {
+        setBooleanProperty(useJline, CASCIIAN_USE_JLINE, value);
+    }
+
+    /**
      * Reset all cached system property values to their unset state.
      * This will force values to be re-read from system properties on the next access.
      */
@@ -635,5 +678,6 @@ public class SystemProperties {
         useTerminalPalette.set(null);
         disablePreTransform.set(null);
         disablePostTransform.set(null);
+        useJline.set(null);
     }
 }

@@ -14,14 +14,9 @@
  */
 package casciian.backend;
 
-import java.io.BufferedReader;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
@@ -29,6 +24,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import casciian.backend.terminal.Terminal;
+import casciian.backend.terminal.TerminalFactory;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.Color;
@@ -251,6 +248,11 @@ public class ECMA48Terminal extends LogicalScreen
     private boolean setRawMode = false;
 
     /**
+     * The terminal implementation used for setting raw/cooked mode.
+     */
+    private final Terminal terminal;
+
+    /**
      * If true, the DA response has been seen and options that it affects
      * should not be reset in reloadOptions().
      */
@@ -334,7 +336,7 @@ public class ECMA48Terminal extends LogicalScreen
      * This is used by run() to see if bytes are available() before calling
      * (Reader)input.read().
      */
-    private InputStream inputStream;
+    private final InputStream inputStream;
 
     /**
      * The terminal's output.  If an OutputStream is not specified in the
@@ -455,21 +457,25 @@ public class ECMA48Terminal extends LogicalScreen
         stopReaderThread = false;
         this.listener    = listener;
 
+        // Always create a terminal instance - it manages streams and features
+        terminal = TerminalFactory.create(input, output, debugToStderr);
+
+        // Get input stream from terminal
+        inputStream = terminal.getInputStream();
+        this.input = terminal.getReader();
+
+        // Set raw mode if using system input
         if (input == null) {
-            // inputStream = System.in;
-            inputStream = new FileInputStream(FileDescriptor.in);
             sttyRaw();
             setRawMode = true;
-        } else {
-            inputStream = input;
         }
-        this.input = new InputStreamReader(inputStream, "UTF-8");
 
-        if (input instanceof SessionInfo) {
+        if (input instanceof SessionInfo inputAsSessionInfo) {
             // This is a TelnetInputStream that exposes window size and
             // environment variables from the telnet layer.
-            sessionInfo = (SessionInfo) input;
+            sessionInfo = inputAsSessionInfo;
         }
+
         if (sessionInfo == null) {
             if (input == null) {
                 // Reading right off the tty
@@ -479,13 +485,8 @@ public class ECMA48Terminal extends LogicalScreen
             }
         }
 
-        if (output == null) {
-            this.output = new PrintWriter(new OutputStreamWriter(System.out,
-                    "UTF-8"));
-        } else {
-            this.output = new PrintWriter(new OutputStreamWriter(output,
-                    "UTF-8"));
-        }
+        // Get output writer from terminal
+        this.output = terminal.getWriter();
 
         // Request xterm version.  Due to the ambiguity between the response
         // and Alt-P, this must be the first thing to request.
@@ -494,8 +495,11 @@ public class ECMA48Terminal extends LogicalScreen
         // Request Device Attributes
         this.output.printf("\033[c");
 
-        // Enable mouse reporting and metaSendsEscape
-        this.output.printf("%s%s", mouse(true), xtermMetaSendsEscape(true));
+        // Enable mouse reporting
+        this.terminal.enableMouseReporting(true);
+
+        // Enable metaSendsEscape
+        this.output.printf("%s", xtermMetaSendsEscape(true));
 
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
@@ -580,6 +584,10 @@ public class ECMA48Terminal extends LogicalScreen
         stopReaderThread = false;
         this.listener    = listener;
 
+        // Create a terminal instance with the pre-wired streams
+        // This allows future delegation of terminal features
+        terminal = TerminalFactory.create(input, reader, writer, debugToStderr);
+
         inputStream = input;
         this.input = reader;
 
@@ -611,8 +619,11 @@ public class ECMA48Terminal extends LogicalScreen
         // Request Device Attributes
         this.output.printf("\033[c");
 
-        // Enable mouse reporting and metaSendsEscape
-        this.output.printf("%s%s", mouse(true), xtermMetaSendsEscape(true));
+        // Enable mouse reporting
+        this.terminal.enableMouseReporting(true);
+
+        // Enable metaSendsEscape
+        this.output.printf("%s", xtermMetaSendsEscape(true));
 
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
@@ -850,8 +861,8 @@ public class ECMA48Terminal extends LogicalScreen
         // Disable mouse reporting and show cursor.  Defensive null check
         // here in case closeTerminal() is called twice.
         if (output != null) {
-            output.printf("%s%s%s", mouse(false), cursor(true),
-                defaultColor());
+            this.terminal.enableMouseReporting(false);
+            output.printf("%s%s", cursor(true), defaultColor());
             output.printf("\033[>4m");
             output.flush();
         }
@@ -876,6 +887,8 @@ public class ECMA48Terminal extends LogicalScreen
                 output = null;
             }
         }
+
+        closeTerminalImpl();
     }
 
     /**
@@ -914,8 +927,8 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Permit RGB colors only if externally requested.
         if (System.getProperty("casciian.ECMA48.modifyOtherKeys",
-                "false").equals("true")
-        ) {
+                "false").equals("true")) {
+
             modifyOtherKeys = true;
         } else {
             modifyOtherKeys = false;
@@ -1214,70 +1227,31 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Call 'stty' to set cooked mode.
+     * Set terminal to raw mode.
      *
-     * <p>Actually executes '/bin/sh -c stty sane cooked &lt; /dev/tty'
-     */
-    private void sttyCooked() {
-        doStty(false);
-    }
-
-    /**
-     * Call 'stty' to set raw mode.
-     *
-     * <p>Actually executes '/bin/sh -c stty -ignbrk -brkint -parmrk -istrip
-     * -inlcr -igncr -icrnl -ixon -opost -echo -echonl -icanon -isig -iexten
-     * -parenb cs8 min 1 &lt; /dev/tty'
+     * <p>Configures the terminal for character-by-character input without echo.
      */
     private void sttyRaw() {
-        doStty(true);
+        if (terminal != null) {
+            terminal.setRawMode();
+        }
     }
 
     /**
-     * Call 'stty' to set raw or cooked mode.
-     *
-     * @param mode if true, set raw mode, otherwise set cooked mode
+     * Set terminal to cooked (normal) mode.
      */
-    private void doStty(final boolean mode) {
-        String [] cmdRaw = {
-            "/bin/sh", "-c", "stty -ignbrk -brkint -parmrk -istrip -inlcr -igncr -icrnl -ixon -opost -echo -echonl -icanon -isig -iexten -parenb cs8 min 1 < /dev/tty"
-        };
-        String [] cmdCooked = {
-            "/bin/sh", "-c", "stty sane cooked < /dev/tty"
-        };
-        try {
-            Process process;
-            if (mode) {
-                process = Runtime.getRuntime().exec(cmdRaw);
-            } else {
-                process = Runtime.getRuntime().exec(cmdCooked);
-            }
-            BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream(), "UTF-8"));
-            String line = in.readLine();
-            if ((line != null) && (line.length() > 0)) {
-                System.err.println("WEIRD?! Normal output from stty: " + line);
-            }
-            while (true) {
-                BufferedReader err = new BufferedReader(new InputStreamReader(process.getErrorStream(), "UTF-8"));
-                line = err.readLine();
-                if ((line != null) && (line.length() > 0)) {
-                    System.err.println("Error output from stty: " + line);
-                }
-                try {
-                    process.waitFor();
-                    break;
-                } catch (InterruptedException e) {
-                    if (debugToStderr) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            int rc = process.exitValue();
-            if (rc != 0) {
-                System.err.println("stty returned error code: " + rc);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+    private void sttyCooked() {
+        if (terminal != null) {
+            terminal.setCookedMode();
+        }
+    }
+
+    /**
+     * Close the terminal if it was opened.
+     */
+    private void closeTerminalImpl() {
+        if (terminal != null) {
+            terminal.close();
         }
     }
 
@@ -3564,33 +3538,6 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String sortableGotoXY(final int x, final int y) {
         return String.format("\033[%02d;%02dH", y + 1, x + 1);
-    }
-
-    /**
-     * Tell (u)xterm that we want to receive mouse events based on "Any event
-     * tracking", UTF-8 coordinates, and then SGR coordinates.  Ideally we
-     * will end up with SGR coordinates with UTF-8 coordinates as a fallback.
-     * See
-     * http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
-     *
-     * Note that this also sets the alternate/primary screen buffer and
-     * requests focus in/out sequences.
-     *
-     * Finally, also emit a Privacy Message sequence that Casciian recognizes to
-     * mean "hide the mouse pointer."  We have to use our own sequence to do
-     * this because there is no standard in xterm for unilaterally hiding the
-     * pointer all the time (regardless of typing).
-     *
-     * @param on If true, enable mouse report and use the alternate screen
-     * buffer.  If false disable mouse reporting and use the primary screen
-     * buffer.
-     * @return the string to emit to xterm
-     */
-    private String mouse(final boolean on) {
-        if (on) {
-            return "\033[?1004h\033[?1002;1003;1005;1006h\033[?1049h\033^hideMousePointer\033\\";
-        }
-        return "\033[?1004l\033[?1002;1003;1006;1005l\033[?1049l\033^showMousePointer\033\\";
     }
 
     /**
