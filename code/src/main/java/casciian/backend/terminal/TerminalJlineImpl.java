@@ -15,8 +15,14 @@
  */
 package casciian.backend.terminal;
 
+import java.io.BufferedReader;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -26,7 +32,7 @@ import org.jline.terminal.TerminalBuilder;
 
 /**
  * JLine-based terminal implementation for raw/cooked mode handling.
- * 
+ *
  * <p>This implementation uses JLine's terminal abstraction to set terminal
  * attributes in a platform-agnostic way. On Windows, JLine uses native
  * Windows Console APIs (WriteConsoleW) for proper Unicode support.
@@ -36,17 +42,27 @@ public class TerminalJlineImpl implements Terminal {
     /**
      * The JLine terminal instance.
      */
-    private org.jline.terminal.Terminal jlineTerminal;
+    private final org.jline.terminal.Terminal jlineTerminal;
 
     /**
      * The original terminal attributes to restore when switching back to cooked mode.
      */
-    private Attributes originalAttributes;
+    private final Attributes originalAttributes;
 
     /**
      * If true, print debug output to stderr.
      */
     private final boolean debugToStderr;
+
+    /**
+     * The input stream for this terminal.
+     */
+    private final InputStream inputStream;
+
+    /**
+     * The reader for this terminal.
+     */
+    private final Reader reader;
 
     /**
      * Create a new JLine terminal implementation.
@@ -61,12 +77,23 @@ public class TerminalJlineImpl implements Terminal {
                 .system(true)
                 .encoding(StandardCharsets.UTF_8)
                 .build();
+
+            if (OsUtils.isWindows()) {
+                this.inputStream = jlineTerminal.input();
+                this.reader = jlineTerminal.reader();
+            } else {
+                this.inputStream = new FileInputStream(FileDescriptor.in);
+                this.reader = new InputStreamReader(this.inputStream, StandardCharsets.UTF_8);
+            }
+
             // Save original attributes for later restoration
             originalAttributes = new Attributes(jlineTerminal.getAttributes());
         } catch (IOException e) {
             if (debugToStderr) {
                 e.printStackTrace();
             }
+
+            throw new RuntimeException("Failed to initialize JLine terminal", e);
         }
     }
 
@@ -112,47 +139,60 @@ public class TerminalJlineImpl implements Terminal {
 
     @Override
     public void setCookedMode() {
-        if (jlineTerminal != null && originalAttributes != null) {
-            jlineTerminal.setAttributes(originalAttributes);
-        }
+        jlineTerminal.setAttributes(originalAttributes);
     }
 
     @Override
     public void close() {
-        if (jlineTerminal != null) {
-            try {
-                jlineTerminal.close();
-            } catch (IOException e) {
-                if (debugToStderr) {
-                    e.printStackTrace();
-                }
+        try {
+            jlineTerminal.close();
+        } catch (IOException e) {
+            if (debugToStderr) {
+                e.printStackTrace();
             }
-            jlineTerminal = null;
-            originalAttributes = null;
         }
     }
 
     @Override
     public PrintWriter getWriter() {
-        if (jlineTerminal != null) {
-            return jlineTerminal.writer();
-        }
-        return null;
+        return jlineTerminal.writer();
     }
 
     @Override
     public InputStream getInputStream() {
-        if (jlineTerminal != null) {
-            return jlineTerminal.input();
-        }
-        return null;
+        return inputStream;
     }
 
     @Override
     public Reader getReader() {
-        if (jlineTerminal != null) {
-            return jlineTerminal.reader();
+        return reader;
+    }
+
+    /**
+     * Emit a Privacy Message sequence that Casciian recognizes to
+     * mean "hide the mouse pointer."  We have to use our own sequence to do
+     * this because there is no standard in xterm for unilaterally hiding the
+     * pointer all the time (regardless of typing).
+     *
+     * @param on If true, enable mouse report and use the alternate screen
+     *           buffer.  If false disable mouse reporting and use the primary screen
+     *           buffer.
+     * @return the string to emit to xterm
+     */
+    private String mouse(final boolean on) {
+        if (on) {
+            return "\033^hideMousePointer\033\\";
         }
-        return null;
+        return "\033^showMousePointer\033\\";
+    }
+
+    @Override
+    public void enableMouseReporting(boolean on) {
+        if (on) {
+            jlineTerminal.trackMouse(org.jline.terminal.Terminal.MouseTracking.Any);
+        } else {
+            jlineTerminal.trackMouse(org.jline.terminal.Terminal.MouseTracking.Off);
+        }
+        jlineTerminal.writer().printf("%s", mouse(on));
     }
 }

@@ -61,4 +61,6 @@ public interface Terminal {
      * @return the Reader for terminal input, never null
      */
     Reader getReader();
+
+    void enableMouseReporting(boolean on);
 }

@@ -132,6 +132,38 @@ public class TerminalShImpl implements Terminal {
     }
 
     /**
+     * Tell (u)xterm that we want to receive mouse events based on "Any event
+     * tracking", UTF-8 coordinates, and then SGR coordinates.  Ideally we
+     * will end up with SGR coordinates with UTF-8 coordinates as a fallback.
+     * See
+     * <a href="http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking">...</a>
+     * <br>
+     * Note that this also sets the alternate/primary screen buffer and
+     * requests focus in/out sequences.
+     * <br>
+     * Finally, also emit a Privacy Message sequence that Casciian recognizes to
+     * mean "hide the mouse pointer."  We have to use our own sequence to do
+     * this because there is no standard in xterm for unilaterally hiding the
+     * pointer all the time (regardless of typing).
+     *
+     * @param on If true, enable mouse report and use the alternate screen
+     * buffer.  If false disable mouse reporting and use the primary screen
+     * buffer.
+     * @return the string to emit to xterm
+     */
+    private String mouse(final boolean on) {
+        if (on) {
+            return "\033[?1004h\033[?1002;1003;1005;1006h\033[?1049h\033^hideMousePointer\033\\";
+        }
+        return "\033[?1004l\033[?1002;1003;1006;1005l\033[?1049l\033^showMousePointer\033\\";
+    }
+
+    @Override
+    public void enableMouseReporting(boolean on) {
+        writer.printf("%s", mouse(on));
+    }
+
+    /**
      * Call stty to set raw or cooked mode.
      *
      * @param mode if true, set raw mode, otherwise set cooked mode

@@ -250,7 +250,7 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * The terminal implementation used for setting raw/cooked mode.
      */
-    private Terminal terminal = null;
+    private final Terminal terminal;
 
     /**
      * If true, the DA response has been seen and options that it affects
@@ -470,11 +470,12 @@ public class ECMA48Terminal extends LogicalScreen
             setRawMode = true;
         }
 
-        if (input instanceof SessionInfo) {
+        if (input instanceof SessionInfo inputAsSessionInfo) {
             // This is a TelnetInputStream that exposes window size and
             // environment variables from the telnet layer.
-            sessionInfo = (SessionInfo) input;
+            sessionInfo = inputAsSessionInfo;
         }
+
         if (sessionInfo == null) {
             if (input == null) {
                 // Reading right off the tty
@@ -494,8 +495,11 @@ public class ECMA48Terminal extends LogicalScreen
         // Request Device Attributes
         this.output.printf("\033[c");
 
-        // Enable mouse reporting and metaSendsEscape
-        this.output.printf("%s%s", mouse(true), xtermMetaSendsEscape(true));
+        // Enable mouse reporting
+        this.terminal.enableMouseReporting(true);
+
+        // Enable metaSendsEscape
+        this.output.printf("%s", xtermMetaSendsEscape(true));
 
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
@@ -615,8 +619,11 @@ public class ECMA48Terminal extends LogicalScreen
         // Request Device Attributes
         this.output.printf("\033[c");
 
-        // Enable mouse reporting and metaSendsEscape
-        this.output.printf("%s%s", mouse(true), xtermMetaSendsEscape(true));
+        // Enable mouse reporting
+        this.terminal.enableMouseReporting(true);
+
+        // Enable metaSendsEscape
+        this.output.printf("%s", xtermMetaSendsEscape(true));
 
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
@@ -854,20 +861,17 @@ public class ECMA48Terminal extends LogicalScreen
         // Disable mouse reporting and show cursor.  Defensive null check
         // here in case closeTerminal() is called twice.
         if (output != null) {
-            output.printf("%s%s%s", mouse(false), cursor(true),
-                defaultColor());
+            this.terminal.enableMouseReporting(false);
+            output.printf("%s%s", cursor(true), defaultColor());
             output.printf("\033[>4m");
             output.flush();
         }
 
         if (setRawMode) {
             sttyCooked();
-            closeTerminalImpl();
             setRawMode = false;
             // We don't close System.in/out
         } else {
-            // Close the terminal (for proper cleanup even with custom streams)
-            closeTerminalImpl();
             // Shut down the streams, this should wake up the reader thread
             // and make it exit.
             if (input != null) {
@@ -883,6 +887,8 @@ public class ECMA48Terminal extends LogicalScreen
                 output = null;
             }
         }
+
+        closeTerminalImpl();
     }
 
     /**
@@ -921,8 +927,8 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Permit RGB colors only if externally requested.
         if (System.getProperty("casciian.ECMA48.modifyOtherKeys",
-                "false").equals("true")
-        ) {
+                "false").equals("true")) {
+
             modifyOtherKeys = true;
         } else {
             modifyOtherKeys = false;
@@ -1243,10 +1249,7 @@ public class ECMA48Terminal extends LogicalScreen
      * Close the terminal if it was opened.
      */
     private void closeTerminalImpl() {
-        if (terminal != null) {
-            terminal.close();
-            terminal = null;
-        }
+        terminal.close();
     }
 
     /**
@@ -3532,33 +3535,6 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String sortableGotoXY(final int x, final int y) {
         return String.format("\033[%02d;%02dH", y + 1, x + 1);
-    }
-
-    /**
-     * Tell (u)xterm that we want to receive mouse events based on "Any event
-     * tracking", UTF-8 coordinates, and then SGR coordinates.  Ideally we
-     * will end up with SGR coordinates with UTF-8 coordinates as a fallback.
-     * See
-     * http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
-     *
-     * Note that this also sets the alternate/primary screen buffer and
-     * requests focus in/out sequences.
-     *
-     * Finally, also emit a Privacy Message sequence that Casciian recognizes to
-     * mean "hide the mouse pointer."  We have to use our own sequence to do
-     * this because there is no standard in xterm for unilaterally hiding the
-     * pointer all the time (regardless of typing).
-     *
-     * @param on If true, enable mouse report and use the alternate screen
-     * buffer.  If false disable mouse reporting and use the primary screen
-     * buffer.
-     * @return the string to emit to xterm
-     */
-    private String mouse(final boolean on) {
-        if (on) {
-            return "\033[?1004h\033[?1002;1003;1005;1006h\033[?1049h\033^hideMousePointer\033\\";
-        }
-        return "\033[?1004l\033[?1002;1003;1006;1005l\033[?1049l\033^showMousePointer\033\\";
     }
 
     /**
