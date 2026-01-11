@@ -121,12 +121,11 @@ class TerminalJlineImplTest {
     }
 
     @Test
-    @DisplayName("hasInput returns boolean value")
+    @DisplayName("hasInput returns boolean value without throwing")
     void testHasInputReturnsBoolean() throws IOException {
-        // hasInput should return false when no input is available
+        // hasInput should return a boolean without throwing
         // (we can't easily simulate input in a test environment)
-        boolean hasInput = terminal.hasInput();
-        // Just verify it returns a boolean (either true or false is acceptable)
-        assert (hasInput == true || hasInput == false);
+        // Just calling the method is sufficient to verify it works
+        terminal.hasInput();
     }
 }
