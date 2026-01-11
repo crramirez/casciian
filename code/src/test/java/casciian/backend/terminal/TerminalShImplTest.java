@@ -162,4 +162,16 @@ class TerminalShImplTest {
         assertTrue(terminalWithInput.hasInput());
         terminalWithInput.close();
     }
+
+    @Test
+    @DisplayName("readWithTimeout does not throw exception")
+    void testReadWithTimeoutDoesNotThrow() throws IOException {
+        ByteArrayInputStream inputWithData = new ByteArrayInputStream("a".getBytes());
+        TerminalShImpl terminalWithInput = new TerminalShImpl(inputWithData, null, false);
+        
+        // Should read 'a' successfully
+        int ch = terminalWithInput.readWithTimeout(100);
+        assertEquals('a', ch);
+        terminalWithInput.close();
+    }
 }

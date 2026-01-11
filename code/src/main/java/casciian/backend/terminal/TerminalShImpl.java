@@ -221,4 +221,11 @@ public class TerminalShImpl implements Terminal {
         // On Unix, inputStream.available() works reliably for terminal input
         return inputStream.available() > 0;
     }
+
+    @Override
+    public int readWithTimeout(long timeout) throws IOException {
+        // On Unix, we don't have non-blocking reader support, so just do a regular read.
+        // The hasInput() check before this should ensure we don't block.
+        return reader.read();
+    }
 }

@@ -218,10 +218,32 @@ public class TerminalJlineImpl implements Terminal {
 
     @Override
     public boolean hasInput() throws IOException {
-        // On Windows, inputStream.available() may not work correctly for
-        // JLine's console input. Use reader.ready() which properly detects
-        // console input including arrow keys on Windows.
-        // On Unix, we also use reader.ready() for consistency.
+        // On Windows, neither inputStream.available() nor reader.ready() work
+        // correctly for JLine's console input because JLine uses a NonBlockingReader
+        // that needs special handling.
+        // 
+        // JLine's NonBlockingReader is a subclass of Reader, and we need to cast
+        // to access its peek() method which properly checks for available input
+        // on Windows.
+        if (reader instanceof org.jline.utils.NonBlockingReader nbReader) {
+            // peek(timeout) returns the next character or -2 if timeout expires
+            // Use a short timeout (10ms) to check for input without consuming it.
+            // The timeout needs to be long enough for Windows to report key events.
+            int ch = nbReader.peek(10);
+            return ch != org.jline.utils.NonBlockingReader.READ_EXPIRED;
+        }
+        // Fallback for other reader types
         return reader.ready();
+    }
+
+    @Override
+    public int readWithTimeout(long timeout) throws IOException {
+        // Use JLine's NonBlockingReader's read(timeout) method which properly
+        // handles input on Windows including arrow keys.
+        if (reader instanceof org.jline.utils.NonBlockingReader nbReader) {
+            return nbReader.read(timeout);
+        }
+        // Fallback for other reader types - do a regular read
+        return reader.read();
     }
 }

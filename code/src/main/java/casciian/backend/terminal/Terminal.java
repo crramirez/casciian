@@ -82,4 +82,18 @@ public interface Terminal {
      * @throws IOException if an I/O error occurs
      */
     boolean hasInput() throws IOException;
+
+    /**
+     * Read a single character with a timeout.
+     * 
+     * <p>This method provides a way to read input that doesn't rely on checking
+     * availability first. On platforms where availability checking doesn't work
+     * correctly (like Windows with JLine), this uses a timed read to wait for
+     * input without blocking indefinitely.
+     *
+     * @param timeout the timeout in milliseconds; 0 means wait forever
+     * @return the character read, -1 for EOF, or -2 if the timeout expired
+     * @throws IOException if an I/O error occurs
+     */
+    int readWithTimeout(long timeout) throws IOException;
 }

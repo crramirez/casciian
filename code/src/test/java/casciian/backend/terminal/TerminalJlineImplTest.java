@@ -128,4 +128,11 @@ class TerminalJlineImplTest {
         // Just calling the method is sufficient to verify it works
         terminal.hasInput();
     }
+
+    @Test
+    @DisplayName("readWithTimeout does not throw exception")
+    void testReadWithTimeoutDoesNotThrow() {
+        // readWithTimeout should not throw even with short timeout
+        assertDoesNotThrow(() -> terminal.readWithTimeout(1));
+    }
 }

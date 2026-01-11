@@ -996,93 +996,19 @@ public class ECMA48Terminal extends LogicalScreen
 
         while (!done && !stopReaderThread) {
             try {
-                // Use terminal.hasInput() for platform-agnostic input checking.
-                // On Windows with JLine, inputStream.available() may not work
-                // correctly for console input (arrow keys wouldn't be detected).
+                // Try to read with a timeout. On Windows with JLine, using
+                // hasInput() + read() doesn't work correctly for arrow keys.
+                // Using readWithTimeout() directly bypasses this issue.
                 if (debugToStderr) {
                     System.err.printf("Looking for input...");
                 }
 
-                boolean hasInput = terminal.hasInput();
+                int ch = terminal.readWithTimeout(20);
 
-                if (debugToStderr) {
-                    if (!hasInput) {
-                        System.err.println("none.");
-                    }
-                }
-
-                if (hasInput) {
+                if (ch == -2) {
+                    // Timeout expired, no input available
                     if (debugToStderr) {
-                        System.err.println("input available.");
-                    }
-
-                    if (debugToStderr) {
-                        System.err.printf("B4 read(): readBuffer.length = %d\n",
-                            readBuffer.length);
-                    }
-
-                    int rc = input.read(readBuffer, 0, readBuffer.length);
-
-                    /*
-                    System.err.printf("AFTER read() %d\n", rc);
-                    System.err.flush();
-                    */
-
-                    if (rc == -1) {
-                        if (debugToStderr) {
-                            System.err.println(" ---- EOF ----");
-                        }
-
-                        // This is EOF
-                        done = true;
-                    } else {
-                        if (debugToStderr) {
-                            StringBuilder sb = new StringBuilder();
-                            for (int i = 0; i < rc; i++) {
-                                sb.append(readBuffer[i]);
-                            }
-                            System.err.printf("%d rc = %d INPUT: ",
-                                System.currentTimeMillis(), rc);
-                            System.err.println(sb.toString());
-                        }
-                        for (int i = 0; i < rc; i++) {
-                            int ch = readBuffer[i];
-                            processChar(events, (char)ch);
-                        }
-                        getIdleEvents(events);
-                        if (events.size() > 0) {
-                            // Add to the queue for the backend thread to
-                            // be able to obtain.
-                            if (debugToStderr) {
-                                System.err.printf("Checking eventQueue...");
-                            }
-
-                            synchronized (eventQueue) {
-                                eventQueue.addAll(events);
-                            }
-                            if (debugToStderr) {
-                                System.err.printf("done.\n");
-                            }
-
-                            if (listener != null) {
-                                if (debugToStderr) {
-                                    System.err.printf("Waking up listener...");
-                                }
-
-                                synchronized (listener) {
-                                    listener.notifyAll();
-                                }
-                                if (debugToStderr) {
-                                    System.err.printf("done.\n");
-                                }
-
-                            }
-                            events.clear();
-                        }
-                    }
-                } else {
-                    if (debugToStderr) {
-                        System.err.println("Looking for idle events");
+                        System.err.println("timeout, no input.");
                     }
                     getIdleEvents(events);
                     if (events.size() > 0) {
@@ -1119,13 +1045,63 @@ public class ECMA48Terminal extends LogicalScreen
                             done = true;
                         }
                     }
+                } else if (ch == -1) {
+                    // EOF
+                    if (debugToStderr) {
+                        System.err.println(" ---- EOF ----");
+                    }
+                    done = true;
+                } else {
+                    // Got a character, process it
+                    if (debugToStderr) {
+                        System.err.printf("got char: %c (%d)\n", (char)ch, ch);
+                    }
+                    processChar(events, (char)ch);
+                    
+                    // Try to read more characters if available (non-blocking)
+                    while (terminal.hasInput()) {
+                        int nextCh = terminal.readWithTimeout(1);
+                        if (nextCh == -2 || nextCh == -1) {
+                            break;
+                        }
+                        if (debugToStderr) {
+                            System.err.printf("got char: %c (%d)\n", (char)nextCh, nextCh);
+                        }
+                        processChar(events, (char)nextCh);
+                    }
+                    
+                    getIdleEvents(events);
+                    if (events.size() > 0) {
+                        // Add to the queue for the backend thread to
+                        // be able to obtain.
+                        if (debugToStderr) {
+                            System.err.printf("Checking eventQueue...");
+                        }
 
-                    // Wait 20 millis for more data
-                    Thread.sleep(20);
+                        synchronized (eventQueue) {
+                            eventQueue.addAll(events);
+                        }
+                        if (debugToStderr) {
+                            System.err.printf("done.\n");
+                        }
+
+                        if (listener != null) {
+                            if (debugToStderr) {
+                                System.err.printf("Waking up listener...");
+                            }
+
+                            synchronized (listener) {
+                                listener.notifyAll();
+                            }
+                            if (debugToStderr) {
+                                System.err.printf("done.\n");
+                            }
+
+                        }
+                        events.clear();
+                    }
                 }
                 // System.err.println("end while loop"); System.err.flush();
-            } catch (InterruptedException e) {
-                // SQUASH
             } catch (IOException e) {
                 e.printStackTrace();
                 done = true;
