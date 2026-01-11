@@ -336,7 +336,7 @@ public class ECMA48Terminal extends LogicalScreen
      * This is used by run() to see if bytes are available() before calling
      * (Reader)input.read().
      */
-    private InputStream inputStream;
+    private final InputStream inputStream;
 
     /**
      * The terminal's output.  If an OutputStream is not specified in the

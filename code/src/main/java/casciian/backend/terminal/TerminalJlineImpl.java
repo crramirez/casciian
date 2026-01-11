@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp;
 
 /**
  * JLine-based terminal implementation for raw/cooked mode handling.
@@ -157,6 +158,7 @@ public class TerminalJlineImpl implements Terminal {
     public void close() {
         if (jlineTerminal != null) {
             try {
+                jlineTerminal.puts(InfoCmp.Capability.clear_screen);
                 jlineTerminal.close();
             } catch (IOException e) {
                 if (debugToStderr) {
@@ -205,8 +207,10 @@ public class TerminalJlineImpl implements Terminal {
             return;
         }
         if (on) {
+            jlineTerminal.trackFocus(true);
             jlineTerminal.trackMouse(org.jline.terminal.Terminal.MouseTracking.Any);
         } else {
+            jlineTerminal.trackFocus(false);
             jlineTerminal.trackMouse(org.jline.terminal.Terminal.MouseTracking.Off);
         }
         jlineTerminal.writer().printf("%s", mouse(on));
