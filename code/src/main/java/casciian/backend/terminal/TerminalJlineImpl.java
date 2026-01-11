@@ -15,14 +15,9 @@
  */
 package casciian.backend.terminal;
 
-import java.io.BufferedReader;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -82,7 +77,9 @@ public class TerminalJlineImpl implements Terminal {
                 this.inputStream = jlineTerminal.input();
                 this.reader = jlineTerminal.reader();
             } else {
-                this.inputStream = new FileInputStream(FileDescriptor.in);
+                // On non-Windows systems, reuse the existing System.in stream to avoid
+                // creating an extra FileInputStream that would need explicit closing.
+                this.inputStream = System.in;
                 this.reader = new InputStreamReader(this.inputStream, StandardCharsets.UTF_8);
             }
 
@@ -139,16 +136,20 @@ public class TerminalJlineImpl implements Terminal {
 
     @Override
     public void setCookedMode() {
-        jlineTerminal.setAttributes(originalAttributes);
+        if (jlineTerminal != null && originalAttributes != null) {
+            jlineTerminal.setAttributes(originalAttributes);
+        }
     }
 
     @Override
     public void close() {
-        try {
-            jlineTerminal.close();
-        } catch (IOException e) {
-            if (debugToStderr) {
-                e.printStackTrace();
+        if (jlineTerminal != null) {
+            try {
+                jlineTerminal.close();
+            } catch (IOException e) {
+                if (debugToStderr) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -188,6 +189,9 @@ public class TerminalJlineImpl implements Terminal {
 
     @Override
     public void enableMouseReporting(boolean on) {
+        if (jlineTerminal == null) {
+            return;
+        }
         if (on) {
             jlineTerminal.trackMouse(org.jline.terminal.Terminal.MouseTracking.Any);
         } else {

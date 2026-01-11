@@ -1232,8 +1232,9 @@ public class ECMA48Terminal extends LogicalScreen
      * <p>Configures the terminal for character-by-character input without echo.
      */
     private void sttyRaw() {
-        // Terminal is always created in the constructor
-        terminal.setRawMode();
+        if (terminal != null) {
+            terminal.setRawMode();
+        }
     }
 
     /**
@@ -1249,7 +1250,9 @@ public class ECMA48Terminal extends LogicalScreen
      * Close the terminal if it was opened.
      */
     private void closeTerminalImpl() {
-        terminal.close();
+        if (terminal != null) {
+            terminal.close();
+        }
     }
 
     /**

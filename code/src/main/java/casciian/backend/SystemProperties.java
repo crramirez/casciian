@@ -129,9 +129,17 @@ public class SystemProperties {
 
     /**
      * System property key for using JLine for terminal handling.
-     * When true, use JLine library for raw/cooked mode instead of stty commands.
+     * On non-Windows platforms, when this property is {@code true}, use the JLine
+     * library for raw/cooked mode instead of relying on {@code stty} commands.
+     * <p>
+     * On Windows, JLine is always used for proper Unicode support (for example,
+     * when the terminal streams are managed by JLine), regardless of the value
+     * of this property. In other words, this property only has an effect on
+     * non-Windows systems.
+     * <p>
      * Valid values: "true" or "false"
-     * Default: false (use stty commands on Unix, always JLine on Windows)
+     * Default: false (use {@code stty} commands on Unix-like systems when false;
+     * always use JLine on Windows)
      */
     public static final String CASCIIAN_USE_JLINE = "casciian.useJline";
 
