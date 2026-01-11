@@ -36,6 +36,8 @@ import casciian.event.TInputEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
+import org.jline.utils.NonBlockingReader;
+
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
 
@@ -331,14 +333,6 @@ public class ECMA48Terminal extends LogicalScreen
     private Reader input;
 
     /**
-     * The terminal's raw InputStream.  If an InputStream is not specified in
-     * the constructor, then this InputReader will be bound to System.in.
-     * This is used by run() to see if bytes are available() before calling
-     * (Reader)input.read().
-     */
-    private final InputStream inputStream;
-
-    /**
      * The terminal's output.  If an OutputStream is not specified in the
      * constructor, then this PrintWriter will be bound to System.out with
      * UTF-8 encoding.
@@ -460,8 +454,6 @@ public class ECMA48Terminal extends LogicalScreen
         // Always create a terminal instance - it manages streams and features
         terminal = TerminalFactory.create(input, output, debugToStderr);
 
-        // Get input stream from terminal
-        inputStream = terminal.getInputStream();
         this.input = terminal.getReader();
 
         // Set raw mode if using system input
@@ -588,7 +580,6 @@ public class ECMA48Terminal extends LogicalScreen
         // This allows future delegation of terminal features
         terminal = TerminalFactory.create(input, reader, writer, debugToStderr);
 
-        inputStream = input;
         this.input = reader;
 
         if (setRawMode == true) {
@@ -992,7 +983,7 @@ public class ECMA48Terminal extends LogicalScreen
         char [] readBuffer = new char[128];
         List<TInputEvent> events = new ArrayList<TInputEvent>();
 
-        // boolean debugToStderr = true;
+        //boolean debugToStderr = true;
 
         while (!done && !stopReaderThread) {
             try {
@@ -1002,7 +993,7 @@ public class ECMA48Terminal extends LogicalScreen
                     System.err.printf("Looking for input...");
                 }
 
-                int n = inputStream.available();
+                int n = terminal.available();
 
                 if (debugToStderr) {
                     if (n == 0) {

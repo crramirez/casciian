@@ -15,6 +15,7 @@
  */
 package casciian.backend.terminal;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -49,13 +50,6 @@ public interface Terminal {
     PrintWriter getWriter();
 
     /**
-     * Get the input stream to use for terminal input.
-     *
-     * @return the InputStream for terminal input, never null
-     */
-    InputStream getInputStream();
-
-    /**
      * Get the reader to use for terminal input.
      *
      * @return the Reader for terminal input, never null
@@ -68,4 +62,6 @@ public interface Terminal {
      * @param on If true, enable mouse reporting; if false, disable mouse reporting.
      */
     void enableMouseReporting(boolean on);
+
+    int available() throws IOException;
 }

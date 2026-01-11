@@ -122,11 +122,6 @@ public class TerminalShImpl implements Terminal {
     }
 
     @Override
-    public InputStream getInputStream() {
-        return inputStream;
-    }
-
-    @Override
     public Reader getReader() {
         return reader;
     }
@@ -163,6 +158,11 @@ public class TerminalShImpl implements Terminal {
         if (writer != null) {
             writer.printf("%s", mouse(on));
         }
+    }
+
+    @Override
+    public int available() throws IOException {
+        return inputStream.available();
     }
 
     /**

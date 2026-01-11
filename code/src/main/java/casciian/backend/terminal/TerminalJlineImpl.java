@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
+import org.jline.utils.NonBlockingReader;
 
 /**
  * JLine-based terminal implementation for raw/cooked mode handling.
@@ -33,6 +34,7 @@ import org.jline.utils.InfoCmp;
  * attributes in a platform-agnostic way. On Windows, JLine uses native
  * Windows Console APIs (WriteConsoleW) for proper Unicode support.
  */
+@SuppressWarnings("CallToPrintStackTrace")
 public class TerminalJlineImpl implements Terminal {
 
     /**
@@ -51,16 +53,6 @@ public class TerminalJlineImpl implements Terminal {
     private final boolean debugToStderr;
 
     /**
-     * The input stream for this terminal.
-     */
-    private final InputStream inputStream;
-
-    /**
-     * The reader for this terminal.
-     */
-    private final Reader reader;
-
-    /**
      * Create a new JLine terminal implementation.
      * The JLine terminal is created immediately in the constructor.
      *
@@ -74,16 +66,6 @@ public class TerminalJlineImpl implements Terminal {
                 .system(true)
                 .encoding(StandardCharsets.UTF_8)
                 .build();
-
-            if (OsUtils.isWindows()) {
-                this.inputStream = tempTerminal.input();
-                this.reader = tempTerminal.reader();
-            } else {
-                // On non-Windows systems, reuse the existing System.in stream to avoid
-                // creating an extra FileInputStream that would need explicit closing.
-                this.inputStream = System.in;
-                this.reader = new InputStreamReader(this.inputStream, StandardCharsets.UTF_8);
-            }
 
             // Save original attributes for later restoration
             originalAttributes = new Attributes(tempTerminal.getAttributes());
@@ -110,7 +92,7 @@ public class TerminalJlineImpl implements Terminal {
     @Override
     public void setRawMode() {
         if (jlineTerminal == null || originalAttributes == null) {
-            return;
+            throw new IllegalStateException("Terminal not initialized");
         }
 
         // Create raw mode attributes based on the saved original attributes
@@ -149,9 +131,11 @@ public class TerminalJlineImpl implements Terminal {
 
     @Override
     public void setCookedMode() {
-        if (jlineTerminal != null && originalAttributes != null) {
-            jlineTerminal.setAttributes(originalAttributes);
+        if (jlineTerminal == null || originalAttributes == null) {
+            throw new IllegalStateException("Terminal not initialized");
         }
+
+        jlineTerminal.setAttributes(originalAttributes);
     }
 
     @Override
@@ -170,17 +154,20 @@ public class TerminalJlineImpl implements Terminal {
 
     @Override
     public PrintWriter getWriter() {
+        if (jlineTerminal == null) {
+            throw new IllegalStateException("Terminal not initialized");
+        }
+
         return jlineTerminal.writer();
     }
 
     @Override
-    public InputStream getInputStream() {
-        return inputStream;
-    }
-
-    @Override
     public Reader getReader() {
-        return reader;
+        if (jlineTerminal == null) {
+            throw new IllegalStateException("Terminal not initialized");
+        }
+
+        return jlineTerminal.reader();
     }
 
     /**
@@ -204,8 +191,9 @@ public class TerminalJlineImpl implements Terminal {
     @Override
     public void enableMouseReporting(boolean on) {
         if (jlineTerminal == null) {
-            return;
+            throw new IllegalStateException("Terminal not initialized");
         }
+
         if (on) {
             jlineTerminal.trackFocus(true);
             jlineTerminal.trackMouse(org.jline.terminal.Terminal.MouseTracking.Any);
@@ -214,5 +202,25 @@ public class TerminalJlineImpl implements Terminal {
             jlineTerminal.trackMouse(org.jline.terminal.Terminal.MouseTracking.Off);
         }
         jlineTerminal.writer().printf("%s", mouse(on));
+    }
+
+    @Override
+    public int available() throws IOException {
+        if (jlineTerminal == null) {
+            throw new IllegalStateException("Terminal not initialized");
+        }
+
+        var reader = jlineTerminal.reader();
+        int amount = reader.available();
+        if (amount > 0) {
+            return amount;
+        }
+
+        int ch = reader.peek(20L);
+        if (ch < 0) {
+            return 0;
+        }
+
+        return 1;
     }
 }
