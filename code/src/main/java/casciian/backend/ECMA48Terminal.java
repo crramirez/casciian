@@ -461,14 +461,16 @@ public class ECMA48Terminal extends LogicalScreen
         stopReaderThread = false;
         this.listener    = listener;
 
+        // Always create a terminal instance - it may provide custom streams or features
+        terminal = TerminalFactory.create(input, output, debugToStderr);
+
         if (input == null) {
             // inputStream = System.in;
             inputStream = new FileInputStream(FileDescriptor.in);
             sttyRaw();
             setRawMode = true;
 
-            // On Windows, use terminal's input stream for proper handling
-            if (terminal != null && terminal.hasCustomInputStream()) {
+            if (terminal.hasCustomInputStream()) {
                 inputStream = terminal.getInputStream();
             }
         } else {
@@ -877,6 +879,8 @@ public class ECMA48Terminal extends LogicalScreen
             setRawMode = false;
             // We don't close System.in/out
         } else {
+            // Close the terminal (for proper cleanup even with custom streams)
+            closeTerminalImpl();
             // Shut down the streams, this should wake up the reader thread
             // and make it exit.
             if (input != null) {
@@ -1235,9 +1239,7 @@ public class ECMA48Terminal extends LogicalScreen
      * <p>Configures the terminal for character-by-character input without echo.
      */
     private void sttyRaw() {
-        if (terminal == null) {
-            terminal = TerminalFactory.create(debugToStderr);
-        }
+        // Terminal is always created in the constructor
         terminal.setRawMode();
     }
 

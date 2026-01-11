@@ -22,6 +22,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -49,62 +54,62 @@ class TerminalFactoryTest {
     }
 
     @Test
-    @DisplayName("create returns TerminalJlineImpl on Windows")
-    void testCreateReturnsJlineOnWindows() {
+    @DisplayName("create returns TerminalJlineImpl on Windows with null streams")
+    void testCreateReturnsJlineOnWindowsWithNullStreams() {
         System.setProperty("os.name", "Windows 10");
         SystemProperties.reset();
         
-        Terminal terminal = TerminalFactory.create(false);
+        Terminal terminal = TerminalFactory.create(null, null, false);
         assertNotNull(terminal);
         assertInstanceOf(TerminalJlineImpl.class, terminal);
         terminal.close();
     }
 
     @Test
-    @DisplayName("create returns TerminalShImpl on Linux by default")
-    void testCreateReturnsShImplOnLinuxByDefault() {
+    @DisplayName("create returns TerminalShImpl on Linux by default with null streams")
+    void testCreateReturnsShImplOnLinuxByDefaultWithNullStreams() {
         System.setProperty("os.name", "Linux");
         SystemProperties.reset();
         
-        Terminal terminal = TerminalFactory.create(false);
+        Terminal terminal = TerminalFactory.create(null, null, false);
         assertNotNull(terminal);
         assertInstanceOf(TerminalShImpl.class, terminal);
         terminal.close();
     }
 
     @Test
-    @DisplayName("create returns TerminalShImpl on Mac OS X by default")
-    void testCreateReturnsShImplOnMacByDefault() {
+    @DisplayName("create returns TerminalShImpl on Mac OS X by default with null streams")
+    void testCreateReturnsShImplOnMacByDefaultWithNullStreams() {
         System.setProperty("os.name", "Mac OS X");
         SystemProperties.reset();
         
-        Terminal terminal = TerminalFactory.create(false);
+        Terminal terminal = TerminalFactory.create(null, null, false);
         assertNotNull(terminal);
         assertInstanceOf(TerminalShImpl.class, terminal);
         terminal.close();
     }
 
     @Test
-    @DisplayName("create returns TerminalJlineImpl when casciian.useJline is true")
-    void testCreateReturnsJlineWhenPropertySet() {
+    @DisplayName("create returns TerminalJlineImpl when casciian.useJline is true and streams are null")
+    void testCreateReturnsJlineWhenPropertySetAndNullStreams() {
         System.setProperty("os.name", "Linux");
         System.setProperty(SystemProperties.CASCIIAN_USE_JLINE, "true");
         SystemProperties.reset();
         
-        Terminal terminal = TerminalFactory.create(false);
+        Terminal terminal = TerminalFactory.create(null, null, false);
         assertNotNull(terminal);
         assertInstanceOf(TerminalJlineImpl.class, terminal);
         terminal.close();
     }
 
     @Test
-    @DisplayName("create returns TerminalShImpl when casciian.useJline is false on Linux")
-    void testCreateReturnsShImplWhenPropertyFalse() {
+    @DisplayName("create returns TerminalShImpl when casciian.useJline is false on Linux with null streams")
+    void testCreateReturnsShImplWhenPropertyFalseWithNullStreams() {
         System.setProperty("os.name", "Linux");
         System.setProperty(SystemProperties.CASCIIAN_USE_JLINE, "false");
         SystemProperties.reset();
         
-        Terminal terminal = TerminalFactory.create(false);
+        Terminal terminal = TerminalFactory.create(null, null, false);
         assertNotNull(terminal);
         assertInstanceOf(TerminalShImpl.class, terminal);
         terminal.close();
@@ -116,8 +121,64 @@ class TerminalFactoryTest {
         System.setProperty("os.name", "Linux");
         SystemProperties.reset();
         
-        Terminal terminal = TerminalFactory.create(true);
+        Terminal terminal = TerminalFactory.create(null, null, true);
         assertNotNull(terminal);
+        terminal.close();
+    }
+
+    @Test
+    @DisplayName("create returns TerminalShImpl when input stream is not null")
+    void testCreateReturnsShImplWhenInputNotNull() {
+        System.setProperty("os.name", "Windows 10");
+        SystemProperties.reset();
+        
+        InputStream input = new ByteArrayInputStream(new byte[0]);
+        Terminal terminal = TerminalFactory.create(input, null, false);
+        assertNotNull(terminal);
+        // Even on Windows, non-null input should use shell implementation
+        assertInstanceOf(TerminalShImpl.class, terminal);
+        terminal.close();
+    }
+
+    @Test
+    @DisplayName("create returns TerminalShImpl when output stream is not null")
+    void testCreateReturnsShImplWhenOutputNotNull() {
+        System.setProperty("os.name", "Windows 10");
+        SystemProperties.reset();
+        
+        OutputStream output = new ByteArrayOutputStream();
+        Terminal terminal = TerminalFactory.create(null, output, false);
+        assertNotNull(terminal);
+        // Even on Windows, non-null output should use shell implementation
+        assertInstanceOf(TerminalShImpl.class, terminal);
+        terminal.close();
+    }
+
+    @Test
+    @DisplayName("create returns TerminalShImpl when both streams are not null")
+    void testCreateReturnsShImplWhenBothStreamsNotNull() {
+        System.setProperty("os.name", "Windows 10");
+        System.setProperty(SystemProperties.CASCIIAN_USE_JLINE, "true");
+        SystemProperties.reset();
+        
+        InputStream input = new ByteArrayInputStream(new byte[0]);
+        OutputStream output = new ByteArrayOutputStream();
+        Terminal terminal = TerminalFactory.create(input, output, false);
+        assertNotNull(terminal);
+        // Even with useJline=true, non-null streams should use shell implementation
+        assertInstanceOf(TerminalShImpl.class, terminal);
+        terminal.close();
+    }
+
+    @Test
+    @DisplayName("convenience method create(debugToStderr) works correctly")
+    void testConvenienceMethodWorks() {
+        System.setProperty("os.name", "Linux");
+        SystemProperties.reset();
+        
+        Terminal terminal = TerminalFactory.create(false);
+        assertNotNull(terminal);
+        assertInstanceOf(TerminalShImpl.class, terminal);
         terminal.close();
     }
 }

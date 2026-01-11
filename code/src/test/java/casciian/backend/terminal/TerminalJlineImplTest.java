@@ -24,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for TerminalJlineImpl class.
@@ -103,31 +104,30 @@ class TerminalJlineImplTest {
     }
 
     @Test
-    @DisplayName("hasCustomWriter returns false on non-Windows after setRawMode")
-    void testHasCustomWriterReturnsFalseOnNonWindows() {
+    @DisplayName("hasCustomWriter returns true after setRawMode when jlineTerminal is created")
+    void testHasCustomWriterReturnsTrueAfterSetRawMode() {
         System.setProperty("os.name", "Linux");
         TerminalJlineImpl linuxTerminal = new TerminalJlineImpl(false);
         try {
             // This will try to initialize jline terminal
-            // On a headless environment, it may not fully work, but it shouldn't throw
             linuxTerminal.setRawMode();
-            // Even if jlineTerminal is created, hasCustomWriter should be false on Linux
-            // because it only returns true for Windows
-            assertFalse(linuxTerminal.hasCustomWriter());
+            // After setRawMode, jlineTerminal is created, so hasCustomWriter should be true
+            // (regardless of OS - the OS check was removed per code review)
+            assertTrue(linuxTerminal.hasCustomWriter());
         } finally {
             linuxTerminal.close();
         }
     }
 
     @Test
-    @DisplayName("hasCustomInputStream returns false on non-Windows after setRawMode")
-    void testHasCustomInputStreamReturnsFalseOnNonWindows() {
+    @DisplayName("hasCustomInputStream returns true after setRawMode when jlineTerminal is created")
+    void testHasCustomInputStreamReturnsTrueAfterSetRawMode() {
         System.setProperty("os.name", "Linux");
         TerminalJlineImpl linuxTerminal = new TerminalJlineImpl(false);
         try {
             linuxTerminal.setRawMode();
-            // Even if jlineTerminal is created, hasCustomInputStream should be false on Linux
-            assertFalse(linuxTerminal.hasCustomInputStream());
+            // After setRawMode, jlineTerminal is created, so hasCustomInputStream should be true
+            assertTrue(linuxTerminal.hasCustomInputStream());
         } finally {
             linuxTerminal.close();
         }
