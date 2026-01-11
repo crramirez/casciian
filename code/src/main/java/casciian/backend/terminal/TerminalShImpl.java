@@ -215,4 +215,10 @@ public class TerminalShImpl implements Terminal {
             }
         }
     }
+
+    @Override
+    public boolean hasInput() throws IOException {
+        // On Unix, inputStream.available() works reliably for terminal input
+        return inputStream.available() > 0;
+    }
 }

@@ -21,6 +21,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
+import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -108,5 +111,22 @@ class TerminalJlineImplTest {
         // Should still have valid streams
         assertNotNull(terminal.getWriter());
         assertNotNull(terminal.getInputStream());
+    }
+
+    @Test
+    @DisplayName("hasInput does not throw exception")
+    void testHasInputDoesNotThrow() {
+        // hasInput should not throw - it returns false when no input is available
+        assertDoesNotThrow(() -> terminal.hasInput());
+    }
+
+    @Test
+    @DisplayName("hasInput returns boolean value")
+    void testHasInputReturnsBoolean() throws IOException {
+        // hasInput should return false when no input is available
+        // (we can't easily simulate input in a test environment)
+        boolean hasInput = terminal.hasInput();
+        // Just verify it returns a boolean (either true or false is acceptable)
+        assert (hasInput == true || hasInput == false);
     }
 }

@@ -215,4 +215,13 @@ public class TerminalJlineImpl implements Terminal {
         }
         jlineTerminal.writer().printf("%s", mouse(on));
     }
+
+    @Override
+    public boolean hasInput() throws IOException {
+        // On Windows, inputStream.available() may not work correctly for
+        // JLine's console input. Use reader.ready() which properly detects
+        // console input including arrow keys on Windows.
+        // On Unix, we also use reader.ready() for consistency.
+        return reader.ready();
+    }
 }

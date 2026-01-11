@@ -23,9 +23,13 @@ import org.junit.jupiter.api.DisplayName;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for TerminalShImpl class.
@@ -130,5 +134,32 @@ class TerminalShImplTest {
         assertEquals(reader, customTerminal.getReader());
         assertEquals(writer, customTerminal.getWriter());
         customTerminal.close();
+    }
+
+    @Test
+    @DisplayName("hasInput does not throw exception")
+    void testHasInputDoesNotThrow() {
+        // hasInput should not throw on any system
+        assertDoesNotThrow(() -> terminal.hasInput());
+    }
+
+    @Test
+    @DisplayName("hasInput returns false for empty input stream")
+    void testHasInputReturnsFalseForEmptyStream() throws IOException {
+        ByteArrayInputStream emptyInput = new ByteArrayInputStream(new byte[0]);
+        TerminalShImpl emptyTerminal = new TerminalShImpl(emptyInput, null, false);
+        
+        assertFalse(emptyTerminal.hasInput());
+        emptyTerminal.close();
+    }
+
+    @Test
+    @DisplayName("hasInput returns true when input is available")
+    void testHasInputReturnsTrueWhenInputAvailable() throws IOException {
+        ByteArrayInputStream inputWithData = new ByteArrayInputStream("test".getBytes());
+        TerminalShImpl terminalWithInput = new TerminalShImpl(inputWithData, null, false);
+        
+        assertTrue(terminalWithInput.hasInput());
+        terminalWithInput.close();
     }
 }

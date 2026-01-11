@@ -996,31 +996,24 @@ public class ECMA48Terminal extends LogicalScreen
 
         while (!done && !stopReaderThread) {
             try {
-                // We assume that if inputStream has bytes available, then
-                // input won't block on read().
+                // Use terminal.hasInput() for platform-agnostic input checking.
+                // On Windows with JLine, inputStream.available() may not work
+                // correctly for console input (arrow keys wouldn't be detected).
                 if (debugToStderr) {
                     System.err.printf("Looking for input...");
                 }
 
-                int n = inputStream.available();
+                boolean hasInput = terminal.hasInput();
 
                 if (debugToStderr) {
-                    if (n == 0) {
+                    if (!hasInput) {
                         System.err.println("none.");
-                    }
-                    if (n < 0) {
-                        System.err.printf("WHAT?!  n = %d\n", n);
                     }
                 }
 
-                if (n > 0) {
+                if (hasInput) {
                     if (debugToStderr) {
-                        System.err.printf("%d bytes to read.\n", n);
-                    }
-
-                    if (readBuffer.length < n) {
-                        // The buffer wasn't big enough, make it huger
-                        readBuffer = new char[readBuffer.length * 2];
+                        System.err.println("input available.");
                     }
 
                     if (debugToStderr) {
