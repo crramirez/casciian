@@ -62,5 +62,10 @@ public interface Terminal {
      */
     Reader getReader();
 
+    /**
+     * Enable or disable mouse reporting in the terminal.
+     *
+     * @param on If true, enable mouse reporting; if false, disable mouse reporting.
+     */
     void enableMouseReporting(boolean on);
 }
