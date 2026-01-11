@@ -160,7 +160,9 @@ public class TerminalShImpl implements Terminal {
 
     @Override
     public void enableMouseReporting(boolean on) {
-        writer.printf("%s", mouse(on));
+        if (writer != null) {
+            writer.printf("%s", mouse(on));
+        }
     }
 
     /**
@@ -182,8 +184,8 @@ public class TerminalShImpl implements Terminal {
             } else {
                 process = Runtime.getRuntime().exec(cmdCooked);
             }
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream(), "UTF-8"));
-                 BufferedReader err = new BufferedReader(new InputStreamReader(process.getErrorStream(), "UTF-8"))) {
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
+                 BufferedReader err = new BufferedReader(new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
                 String line = in.readLine();
                 if ((line != null) && (line.length() > 0)) {
                     System.err.println("WEIRD?! Normal output from stty: " + line);

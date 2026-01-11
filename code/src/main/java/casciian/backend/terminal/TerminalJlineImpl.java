@@ -67,15 +67,16 @@ public class TerminalJlineImpl implements Terminal {
      */
     public TerminalJlineImpl(boolean debugToStderr) {
         this.debugToStderr = debugToStderr;
+        org.jline.terminal.Terminal tempTerminal = null;
         try {
-            jlineTerminal = TerminalBuilder.builder()
+            tempTerminal = TerminalBuilder.builder()
                 .system(true)
                 .encoding(StandardCharsets.UTF_8)
                 .build();
 
             if (OsUtils.isWindows()) {
-                this.inputStream = jlineTerminal.input();
-                this.reader = jlineTerminal.reader();
+                this.inputStream = tempTerminal.input();
+                this.reader = tempTerminal.reader();
             } else {
                 // On non-Windows systems, reuse the existing System.in stream to avoid
                 // creating an extra FileInputStream that would need explicit closing.
@@ -84,8 +85,19 @@ public class TerminalJlineImpl implements Terminal {
             }
 
             // Save original attributes for later restoration
-            originalAttributes = new Attributes(jlineTerminal.getAttributes());
-        } catch (IOException e) {
+            originalAttributes = new Attributes(tempTerminal.getAttributes());
+            
+            // Only assign to field after all initialization succeeds
+            jlineTerminal = tempTerminal;
+        } catch (IOException | RuntimeException e) {
+            // Clean up partially initialized terminal on failure
+            if (tempTerminal != null) {
+                try {
+                    tempTerminal.close();
+                } catch (IOException closeEx) {
+                    // Ignore close exception
+                }
+            }
             if (debugToStderr) {
                 e.printStackTrace();
             }
