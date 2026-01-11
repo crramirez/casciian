@@ -17,6 +17,7 @@ package casciian.backend.terminal;
 
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.io.Reader;
 
 /**
  * Interface for terminal implementations that handle raw/cooked mode switching.
@@ -42,33 +43,22 @@ public interface Terminal {
 
     /**
      * Get the writer to use for terminal output.
-     * Some implementations (like JLine on Windows) provide their own writer
-     * for proper Unicode support.
      *
-     * @return the PrintWriter for terminal output, or null if the default should be used
+     * @return the PrintWriter for terminal output, never null
      */
     PrintWriter getWriter();
 
     /**
-     * Check if this terminal provides a custom writer.
-     *
-     * @return true if getWriter() returns a non-null writer
-     */
-    boolean hasCustomWriter();
-
-    /**
      * Get the input stream to use for terminal input.
-     * Some implementations (like JLine on Windows) provide their own input stream
-     * for proper handling.
      *
-     * @return the InputStream for terminal input, or null if the default should be used
+     * @return the InputStream for terminal input, never null
      */
     InputStream getInputStream();
 
     /**
-     * Check if this terminal provides a custom input stream.
+     * Get the reader to use for terminal input.
      *
-     * @return true if getInputStream() returns a non-null stream
+     * @return the Reader for terminal input, never null
      */
-    boolean hasCustomInputStream();
+    Reader getReader();
 }

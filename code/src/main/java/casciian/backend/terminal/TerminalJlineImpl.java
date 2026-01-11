@@ -18,6 +18,7 @@ package casciian.backend.terminal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 
 import org.jline.terminal.Attributes;
@@ -49,62 +50,64 @@ public class TerminalJlineImpl implements Terminal {
 
     /**
      * Create a new JLine terminal implementation.
+     * The JLine terminal is created immediately in the constructor.
      *
      * @param debugToStderr if true, print debug output to stderr
      */
     public TerminalJlineImpl(boolean debugToStderr) {
         this.debugToStderr = debugToStderr;
-    }
-
-    @Override
-    public void setRawMode() {
         try {
-            if (jlineTerminal == null) {
-                jlineTerminal = TerminalBuilder.builder()
-                    .system(true)
-                    .encoding(StandardCharsets.UTF_8)
-                    .build();
-                // Save original attributes for later restoration
-                originalAttributes = new Attributes(jlineTerminal.getAttributes());
-            }
-
-            // Create raw mode attributes based on the saved original attributes
-            Attributes rawAttrs = new Attributes(originalAttributes);
-
-            // Disable input flags: -ignbrk -brkint -parmrk -istrip -inlcr -igncr -icrnl -ixon
-            rawAttrs.setInputFlag(Attributes.InputFlag.IGNBRK, false);
-            rawAttrs.setInputFlag(Attributes.InputFlag.BRKINT, false);
-            rawAttrs.setInputFlag(Attributes.InputFlag.PARMRK, false);
-            rawAttrs.setInputFlag(Attributes.InputFlag.ISTRIP, false);
-            rawAttrs.setInputFlag(Attributes.InputFlag.INLCR, false);
-            rawAttrs.setInputFlag(Attributes.InputFlag.IGNCR, false);
-            rawAttrs.setInputFlag(Attributes.InputFlag.ICRNL, false);
-            rawAttrs.setInputFlag(Attributes.InputFlag.IXON, false);
-
-            // Disable output flags: -opost
-            rawAttrs.setOutputFlag(Attributes.OutputFlag.OPOST, false);
-
-            // Disable local flags: -echo -echonl -icanon -isig -iexten
-            rawAttrs.setLocalFlag(Attributes.LocalFlag.ECHO, false);
-            rawAttrs.setLocalFlag(Attributes.LocalFlag.ECHONL, false);
-            rawAttrs.setLocalFlag(Attributes.LocalFlag.ICANON, false);
-            rawAttrs.setLocalFlag(Attributes.LocalFlag.ISIG, false);
-            rawAttrs.setLocalFlag(Attributes.LocalFlag.IEXTEN, false);
-
-            // Control flags: -parenb cs8
-            rawAttrs.setControlFlag(Attributes.ControlFlag.PARENB, false);
-            rawAttrs.setControlFlag(Attributes.ControlFlag.CS8, true);
-
-            // Set VMIN=1 and VTIME=0 for immediate character-by-character input
-            rawAttrs.setControlChar(Attributes.ControlChar.VMIN, 1);
-            rawAttrs.setControlChar(Attributes.ControlChar.VTIME, 0);
-
-            jlineTerminal.setAttributes(rawAttrs);
+            jlineTerminal = TerminalBuilder.builder()
+                .system(true)
+                .encoding(StandardCharsets.UTF_8)
+                .build();
+            // Save original attributes for later restoration
+            originalAttributes = new Attributes(jlineTerminal.getAttributes());
         } catch (IOException e) {
             if (debugToStderr) {
                 e.printStackTrace();
             }
         }
+    }
+
+    @Override
+    public void setRawMode() {
+        if (jlineTerminal == null || originalAttributes == null) {
+            return;
+        }
+
+        // Create raw mode attributes based on the saved original attributes
+        Attributes rawAttrs = new Attributes(originalAttributes);
+
+        // Disable input flags: -ignbrk -brkint -parmrk -istrip -inlcr -igncr -icrnl -ixon
+        rawAttrs.setInputFlag(Attributes.InputFlag.IGNBRK, false);
+        rawAttrs.setInputFlag(Attributes.InputFlag.BRKINT, false);
+        rawAttrs.setInputFlag(Attributes.InputFlag.PARMRK, false);
+        rawAttrs.setInputFlag(Attributes.InputFlag.ISTRIP, false);
+        rawAttrs.setInputFlag(Attributes.InputFlag.INLCR, false);
+        rawAttrs.setInputFlag(Attributes.InputFlag.IGNCR, false);
+        rawAttrs.setInputFlag(Attributes.InputFlag.ICRNL, false);
+        rawAttrs.setInputFlag(Attributes.InputFlag.IXON, false);
+
+        // Disable output flags: -opost
+        rawAttrs.setOutputFlag(Attributes.OutputFlag.OPOST, false);
+
+        // Disable local flags: -echo -echonl -icanon -isig -iexten
+        rawAttrs.setLocalFlag(Attributes.LocalFlag.ECHO, false);
+        rawAttrs.setLocalFlag(Attributes.LocalFlag.ECHONL, false);
+        rawAttrs.setLocalFlag(Attributes.LocalFlag.ICANON, false);
+        rawAttrs.setLocalFlag(Attributes.LocalFlag.ISIG, false);
+        rawAttrs.setLocalFlag(Attributes.LocalFlag.IEXTEN, false);
+
+        // Control flags: -parenb cs8
+        rawAttrs.setControlFlag(Attributes.ControlFlag.PARENB, false);
+        rawAttrs.setControlFlag(Attributes.ControlFlag.CS8, true);
+
+        // Set VMIN=1 and VTIME=0 for immediate character-by-character input
+        rawAttrs.setControlChar(Attributes.ControlChar.VMIN, 1);
+        rawAttrs.setControlChar(Attributes.ControlChar.VTIME, 0);
+
+        jlineTerminal.setAttributes(rawAttrs);
     }
 
     @Override
@@ -138,11 +141,6 @@ public class TerminalJlineImpl implements Terminal {
     }
 
     @Override
-    public boolean hasCustomWriter() {
-        return jlineTerminal != null;
-    }
-
-    @Override
     public InputStream getInputStream() {
         if (jlineTerminal != null) {
             return jlineTerminal.input();
@@ -151,7 +149,10 @@ public class TerminalJlineImpl implements Terminal {
     }
 
     @Override
-    public boolean hasCustomInputStream() {
-        return jlineTerminal != null;
+    public Reader getReader() {
+        if (jlineTerminal != null) {
+            return jlineTerminal.reader();
+        }
+        return null;
     }
 }

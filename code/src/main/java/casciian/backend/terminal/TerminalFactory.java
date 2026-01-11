@@ -54,7 +54,7 @@ public final class TerminalFactory {
             return new TerminalJlineImpl(debugToStderr);
         }
         // Default to stty-based implementation
-        return new TerminalShImpl(debugToStderr);
+        return new TerminalShImpl(input, output, debugToStderr);
     }
 
     /**

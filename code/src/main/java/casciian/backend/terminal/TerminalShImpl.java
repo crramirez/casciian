@@ -16,10 +16,16 @@
 package casciian.backend.terminal;
 
 import java.io.BufferedReader;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Shell-based terminal implementation using stty commands.
@@ -36,12 +42,44 @@ public class TerminalShImpl implements Terminal {
     private final boolean debugToStderr;
 
     /**
+     * The input stream for this terminal.
+     */
+    private final InputStream inputStream;
+
+    /**
+     * The reader for this terminal.
+     */
+    private final Reader reader;
+
+    /**
+     * The writer for this terminal.
+     */
+    private final PrintWriter writer;
+
+    /**
      * Create a new shell-based terminal implementation.
      *
+     * @param input the input stream, or null for system input (FileDescriptor.in)
+     * @param output the output stream, or null for system output (System.out)
      * @param debugToStderr if true, print debug output to stderr
      */
-    public TerminalShImpl(boolean debugToStderr) {
+    public TerminalShImpl(InputStream input, OutputStream output, boolean debugToStderr) {
         this.debugToStderr = debugToStderr;
+
+        // Set up input stream
+        if (input == null) {
+            this.inputStream = new FileInputStream(FileDescriptor.in);
+        } else {
+            this.inputStream = input;
+        }
+        this.reader = new InputStreamReader(this.inputStream, StandardCharsets.UTF_8);
+
+        // Set up output writer
+        if (output == null) {
+            this.writer = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
+        } else {
+            this.writer = new PrintWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8));
+        }
     }
 
     @Override
@@ -56,29 +94,23 @@ public class TerminalShImpl implements Terminal {
 
     @Override
     public void close() {
-        // No resources to release for the shell implementation
+        // We don't close System.in/out if we created them from null
+        // The caller is responsible for managing the lifecycle
     }
 
     @Override
     public PrintWriter getWriter() {
-        // Shell implementation doesn't provide a custom writer
-        return null;
-    }
-
-    @Override
-    public boolean hasCustomWriter() {
-        return false;
+        return writer;
     }
 
     @Override
     public InputStream getInputStream() {
-        // Shell implementation doesn't provide a custom input stream
-        return null;
+        return inputStream;
     }
 
     @Override
-    public boolean hasCustomInputStream() {
-        return false;
+    public Reader getReader() {
+        return reader;
     }
 
     /**

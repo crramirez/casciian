@@ -21,10 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for TerminalJlineImpl class.
@@ -52,84 +49,64 @@ class TerminalJlineImplTest {
     }
 
     @Test
-    @DisplayName("hasCustomWriter returns false before setRawMode is called")
-    void testHasCustomWriterReturnsFalseBeforeRawMode() {
-        // Before setRawMode is called, jlineTerminal is null
-        assertFalse(terminal.hasCustomWriter());
+    @DisplayName("getWriter returns non-null after construction")
+    void testGetWriterReturnsNotNull() {
+        // JLine terminal is created in constructor now
+        assertNotNull(terminal.getWriter());
     }
 
     @Test
-    @DisplayName("getWriter returns null before setRawMode is called")
-    void testGetWriterReturnsNullBeforeRawMode() {
-        // Before setRawMode is called, jlineTerminal is null
-        assertNull(terminal.getWriter());
+    @DisplayName("getInputStream returns non-null after construction")
+    void testGetInputStreamReturnsNotNull() {
+        // JLine terminal is created in constructor now
+        assertNotNull(terminal.getInputStream());
     }
 
     @Test
-    @DisplayName("hasCustomInputStream returns false before setRawMode is called")
-    void testHasCustomInputStreamReturnsFalseBeforeRawMode() {
-        // Before setRawMode is called, jlineTerminal is null
-        assertFalse(terminal.hasCustomInputStream());
+    @DisplayName("getReader returns non-null after construction")
+    void testGetReaderReturnsNotNull() {
+        // JLine terminal is created in constructor now
+        assertNotNull(terminal.getReader());
     }
 
     @Test
-    @DisplayName("getInputStream returns null before setRawMode is called")
-    void testGetInputStreamReturnsNullBeforeRawMode() {
-        // Before setRawMode is called, jlineTerminal is null
-        assertNull(terminal.getInputStream());
-    }
-
-    @Test
-    @DisplayName("close does not throw exception when jlineTerminal is null")
-    void testCloseDoesNotThrowWhenNotInitialized() {
-        // close() should not throw when jlineTerminal is null
+    @DisplayName("close does not throw exception")
+    void testCloseDoesNotThrow() {
+        // close() should not throw
         terminal.close();
         // Can call close multiple times
         terminal.close();
     }
 
     @Test
-    @DisplayName("setCookedMode does not throw when not in raw mode")
-    void testSetCookedModeDoesNotThrowWhenNotInRawMode() {
-        // setCookedMode should not throw when not in raw mode
+    @DisplayName("setCookedMode does not throw")
+    void testSetCookedModeDoesNotThrow() {
+        // setCookedMode should not throw
         terminal.setCookedMode();
+    }
+
+    @Test
+    @DisplayName("setRawMode does not throw")
+    void testSetRawModeDoesNotThrow() {
+        // setRawMode should not throw
+        terminal.setRawMode();
     }
 
     @Test
     @DisplayName("constructor with debugToStderr true creates valid terminal")
     void testConstructorWithDebugTrue() {
         TerminalJlineImpl debugTerminal = new TerminalJlineImpl(true);
-        assertFalse(debugTerminal.hasCustomWriter());
+        assertNotNull(debugTerminal.getWriter());
         debugTerminal.close();
     }
 
     @Test
-    @DisplayName("hasCustomWriter returns true after setRawMode when jlineTerminal is created")
-    void testHasCustomWriterReturnsTrueAfterSetRawMode() {
-        System.setProperty("os.name", "Linux");
-        TerminalJlineImpl linuxTerminal = new TerminalJlineImpl(false);
-        try {
-            // This will try to initialize jline terminal
-            linuxTerminal.setRawMode();
-            // After setRawMode, jlineTerminal is created, so hasCustomWriter should be true
-            // (regardless of OS - the OS check was removed per code review)
-            assertTrue(linuxTerminal.hasCustomWriter());
-        } finally {
-            linuxTerminal.close();
-        }
-    }
-
-    @Test
-    @DisplayName("hasCustomInputStream returns true after setRawMode when jlineTerminal is created")
-    void testHasCustomInputStreamReturnsTrueAfterSetRawMode() {
-        System.setProperty("os.name", "Linux");
-        TerminalJlineImpl linuxTerminal = new TerminalJlineImpl(false);
-        try {
-            linuxTerminal.setRawMode();
-            // After setRawMode, jlineTerminal is created, so hasCustomInputStream should be true
-            assertTrue(linuxTerminal.hasCustomInputStream());
-        } finally {
-            linuxTerminal.close();
-        }
+    @DisplayName("setRawMode followed by setCookedMode works correctly")
+    void testRawModeThenCookedMode() {
+        terminal.setRawMode();
+        terminal.setCookedMode();
+        // Should still have valid streams
+        assertNotNull(terminal.getWriter());
+        assertNotNull(terminal.getInputStream());
     }
 }

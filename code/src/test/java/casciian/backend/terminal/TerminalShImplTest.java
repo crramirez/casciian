@@ -21,8 +21,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Tests for TerminalShImpl class.
@@ -34,7 +36,7 @@ class TerminalShImplTest {
 
     @BeforeEach
     void setUp() {
-        terminal = new TerminalShImpl(false);
+        terminal = new TerminalShImpl(null, null, false);
     }
 
     @AfterEach
@@ -45,27 +47,21 @@ class TerminalShImplTest {
     }
 
     @Test
-    @DisplayName("hasCustomWriter returns false")
-    void testHasCustomWriterReturnsFalse() {
-        assertFalse(terminal.hasCustomWriter());
+    @DisplayName("getWriter returns non-null for system output")
+    void testGetWriterReturnsNotNull() {
+        assertNotNull(terminal.getWriter());
     }
 
     @Test
-    @DisplayName("getWriter returns null")
-    void testGetWriterReturnsNull() {
-        assertNull(terminal.getWriter());
+    @DisplayName("getInputStream returns non-null for system input")
+    void testGetInputStreamReturnsNotNull() {
+        assertNotNull(terminal.getInputStream());
     }
 
     @Test
-    @DisplayName("hasCustomInputStream returns false")
-    void testHasCustomInputStreamReturnsFalse() {
-        assertFalse(terminal.hasCustomInputStream());
-    }
-
-    @Test
-    @DisplayName("getInputStream returns null")
-    void testGetInputStreamReturnsNull() {
-        assertNull(terminal.getInputStream());
+    @DisplayName("getReader returns non-null for system input")
+    void testGetReaderReturnsNotNull() {
+        assertNotNull(terminal.getReader());
     }
 
     @Test
@@ -95,8 +91,27 @@ class TerminalShImplTest {
     @Test
     @DisplayName("constructor with debugToStderr true creates valid terminal")
     void testConstructorWithDebugTrue() {
-        TerminalShImpl debugTerminal = new TerminalShImpl(true);
-        assertFalse(debugTerminal.hasCustomWriter());
+        TerminalShImpl debugTerminal = new TerminalShImpl(null, null, true);
+        assertNotNull(debugTerminal.getWriter());
         debugTerminal.close();
+    }
+
+    @Test
+    @DisplayName("constructor with non-null input creates terminal with that input")
+    void testConstructorWithNonNullInput() {
+        ByteArrayInputStream input = new ByteArrayInputStream("test".getBytes());
+        TerminalShImpl customTerminal = new TerminalShImpl(input, null, false);
+        assertNotNull(customTerminal.getInputStream());
+        assertNotNull(customTerminal.getReader());
+        customTerminal.close();
+    }
+
+    @Test
+    @DisplayName("constructor with non-null output creates terminal with that output")
+    void testConstructorWithNonNullOutput() {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        TerminalShImpl customTerminal = new TerminalShImpl(null, output, false);
+        assertNotNull(customTerminal.getWriter());
+        customTerminal.close();
     }
 }

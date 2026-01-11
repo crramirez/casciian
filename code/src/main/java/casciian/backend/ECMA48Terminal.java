@@ -14,13 +14,9 @@
  */
 package casciian.backend;
 
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
@@ -461,22 +457,18 @@ public class ECMA48Terminal extends LogicalScreen
         stopReaderThread = false;
         this.listener    = listener;
 
-        // Always create a terminal instance - it may provide custom streams or features
+        // Always create a terminal instance - it manages streams and features
         terminal = TerminalFactory.create(input, output, debugToStderr);
 
+        // Get input stream from terminal
+        inputStream = terminal.getInputStream();
+        this.input = terminal.getReader();
+
+        // Set raw mode if using system input
         if (input == null) {
-            // inputStream = System.in;
-            inputStream = new FileInputStream(FileDescriptor.in);
             sttyRaw();
             setRawMode = true;
-
-            if (terminal.hasCustomInputStream()) {
-                inputStream = terminal.getInputStream();
-            }
-        } else {
-            inputStream = input;
         }
-        this.input = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
 
         if (input instanceof SessionInfo) {
             // This is a TelnetInputStream that exposes window size and
@@ -492,17 +484,8 @@ public class ECMA48Terminal extends LogicalScreen
             }
         }
 
-        if (output == null) {
-            if (terminal != null && terminal.hasCustomWriter()) {
-                this.output = terminal.getWriter();
-            } else {
-                this.output = new PrintWriter(new OutputStreamWriter(System.out,
-                        StandardCharsets.UTF_8));
-            }
-        } else {
-            this.output = new PrintWriter(new OutputStreamWriter(output,
-                    "UTF-8"));
-        }
+        // Get output writer from terminal
+        this.output = terminal.getWriter();
 
         // Request xterm version.  Due to the ambiguity between the response
         // and Alt-P, this must be the first thing to request.
@@ -596,6 +579,10 @@ public class ECMA48Terminal extends LogicalScreen
         mouse3           = false;
         stopReaderThread = false;
         this.listener    = listener;
+
+        // Create a terminal instance - use TerminalShImpl since streams are provided
+        // This allows future delegation of terminal features
+        terminal = TerminalFactory.create(input, null, debugToStderr);
 
         inputStream = input;
         this.input = reader;
