@@ -1737,6 +1737,8 @@ public class ECMA48Terminal extends LogicalScreen
         boolean eventMouse3 = false;
         boolean eventMouseWheelUp = false;
         boolean eventMouseWheelDown = false;
+        boolean eventMouseWheelLeft = false;
+        boolean eventMouseWheelRight = false;
         boolean eventAlt = false;
         boolean eventCtrl = false;
         boolean eventShift = false;
@@ -1746,9 +1748,9 @@ public class ECMA48Terminal extends LogicalScreen
         switch (buttons & 0xE3) {
         case 0:
             eventMouse1 = true;
-            // JLine on Windows doesn't send the motion bit (32) during drag operations.
+            // X10 mouse protocol doesn't send the motion bit (32) during drag operations.
             // If mouse1 is already tracked as pressed, treat this as motion instead of
-            // a new press event.
+            // a new press event. This also fixes JLine on Windows.
             if (mouse1) {
                 eventType = TMouseEvent.Type.MOUSE_MOTION;
             } else {
@@ -1837,6 +1839,16 @@ public class ECMA48Terminal extends LogicalScreen
             eventMouseWheelDown = true;
             break;
 
+        case 66:
+            // Horizontal wheel right (button 6) - tilt wheel right
+            eventMouseWheelRight = true;
+            break;
+
+        case 67:
+            // Horizontal wheel left (button 7) - tilt wheel left
+            eventMouseWheelLeft = true;
+            break;
+
         default:
             // Unknown, just make it motion
             eventType = TMouseEvent.Type.MOUSE_MOTION;
@@ -1853,9 +1865,10 @@ public class ECMA48Terminal extends LogicalScreen
             eventCtrl = true;
         }
 
-        return new TMouseEvent(backend, eventType, x, y, x, y,
+        return new TMouseEvent(backend, eventType, x, y, x, y, 0, 0,
             eventMouse1, eventMouse2, eventMouse3,
             eventMouseWheelUp, eventMouseWheelDown,
+            eventMouseWheelLeft, eventMouseWheelRight,
             eventAlt, eventCtrl, eventShift);
     }
 
@@ -1893,6 +1906,8 @@ public class ECMA48Terminal extends LogicalScreen
         boolean eventMouse3 = false;
         boolean eventMouseWheelUp = false;
         boolean eventMouseWheelDown = false;
+        boolean eventMouseWheelLeft = false;
+        boolean eventMouseWheelRight = false;
         boolean eventAlt = false;
         boolean eventCtrl = false;
         boolean eventShift = false;
@@ -1954,6 +1969,16 @@ public class ECMA48Terminal extends LogicalScreen
             eventMouseWheelDown = true;
             break;
 
+        case 66:
+            // Horizontal wheel right (button 6) - tilt wheel right
+            eventMouseWheelRight = true;
+            break;
+
+        case 67:
+            // Horizontal wheel left (button 7) - tilt wheel left
+            eventMouseWheelLeft = true;
+            break;
+
         default:
             // Unknown, bail out
             return null;
@@ -1973,6 +1998,7 @@ public class ECMA48Terminal extends LogicalScreen
             x, y, offsetX, offsetY,
             eventMouse1, eventMouse2, eventMouse3,
             eventMouseWheelUp, eventMouseWheelDown,
+            eventMouseWheelLeft, eventMouseWheelRight,
             eventAlt, eventCtrl, eventShift);
     }
 

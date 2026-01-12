@@ -117,6 +117,16 @@ public class TMouseEvent extends TInputEvent {
     private boolean mouseWheelDown;
 
     /**
+     * Mouse wheel LEFT (button 7) - horizontal scroll left.
+     */
+    private boolean mouseWheelLeft;
+
+    /**
+     * Mouse wheel RIGHT (button 6) - horizontal scroll right.
+     */
+    private boolean mouseWheelRight;
+
+    /**
      * Keyboard modifier ALT.
      */
     private boolean alt;
@@ -161,7 +171,7 @@ public class TMouseEvent extends TInputEvent {
 
         this(backend, type, x, y, absoluteX, absoluteY, 0, 0,
             mouse1, mouse2, mouse3, mouseWheelUp, mouseWheelDown,
-            alt, ctrl, shift);
+            false, false, alt, ctrl, shift);
     }
 
     /**
@@ -191,6 +201,41 @@ public class TMouseEvent extends TInputEvent {
         final boolean mouseWheelUp, final boolean mouseWheelDown,
         final boolean alt, final boolean ctrl, final boolean shift) {
 
+        this(backend, type, x, y, absoluteX, absoluteY, pixelOffsetX, pixelOffsetY,
+            mouse1, mouse2, mouse3, mouseWheelUp, mouseWheelDown,
+            false, false, alt, ctrl, shift);
+    }
+
+    /**
+     * Public contructor with horizontal wheel support.
+     *
+     * @param backend the backend that generated this event
+     * @param type the type of event, MOUSE_MOTION, MOUSE_DOWN, or MOUSE_UP
+     * @param x relative column
+     * @param y relative row
+     * @param absoluteX absolute column
+     * @param absoluteY absolute row
+     * @param pixelOffsetX X pixel offset relative to text cell
+     * @param pixelOffsetY Y pixel offset relative to text cell
+     * @param mouse1 if true, left button is down
+     * @param mouse2 if true, right button is down
+     * @param mouse3 if true, middle button is down
+     * @param mouseWheelUp if true, mouse wheel (button 4) is down
+     * @param mouseWheelDown if true, mouse wheel (button 5) is down
+     * @param mouseWheelLeft if true, mouse wheel left (button 7) is down
+     * @param mouseWheelRight if true, mouse wheel right (button 6) is down
+     * @param alt if true, ALT was pressed with this mouse event
+     * @param ctrl if true, CTRL was pressed with this mouse event
+     * @param shift if true, SHIFT was pressed with this mouse event
+     */
+    public TMouseEvent(final Backend backend, final Type type,
+        final int x, final int y, final int absoluteX, final int absoluteY,
+        final int pixelOffsetX, final int pixelOffsetY,
+        final boolean mouse1, final boolean mouse2, final boolean mouse3,
+        final boolean mouseWheelUp, final boolean mouseWheelDown,
+        final boolean mouseWheelLeft, final boolean mouseWheelRight,
+        final boolean alt, final boolean ctrl, final boolean shift) {
+
         super(backend);
 
         this.type               = type;
@@ -205,6 +250,8 @@ public class TMouseEvent extends TInputEvent {
         this.mouse3             = mouse3;
         this.mouseWheelUp       = mouseWheelUp;
         this.mouseWheelDown     = mouseWheelDown;
+        this.mouseWheelLeft     = mouseWheelLeft;
+        this.mouseWheelRight    = mouseWheelRight;
         this.alt                = alt;
         this.ctrl               = ctrl;
         this.shift              = shift;
@@ -383,6 +430,24 @@ public class TMouseEvent extends TInputEvent {
     }
 
     /**
+     * Get mouseWheelLeft.
+     *
+     * @return mouseWheelLeft
+     */
+    public boolean isMouseWheelLeft() {
+        return mouseWheelLeft;
+    }
+
+    /**
+     * Get mouseWheelRight.
+     *
+     * @return mouseWheelRight
+     */
+    public boolean isMouseWheelRight() {
+        return mouseWheelRight;
+    }
+
+    /**
      * Getter for ALT.
      *
      * @return alt value
@@ -418,7 +483,9 @@ public class TMouseEvent extends TInputEvent {
         TMouseEvent mouse = new TMouseEvent(getBackend(), type, x, y,
             absoluteX, absoluteY, pixelOffsetX, pixelOffsetY,
             mouse1, mouse2, mouse3,
-            mouseWheelUp, mouseWheelDown, alt, ctrl, shift);
+            mouseWheelUp, mouseWheelDown,
+            mouseWheelLeft, mouseWheelRight,
+            alt, ctrl, shift);
 
         return mouse;
     }
@@ -430,7 +497,7 @@ public class TMouseEvent extends TInputEvent {
      */
     @Override
     public String toString() {
-        return String.format("Mouse: %s x %d y %d absoluteX %d absoluteY %d pixelX %d pixelY %d 1 %s 2 %s 3 %s DOWN %s UP %s ALT %s CTRL %s SHIFT %s",
+        return String.format("Mouse: %s x %d y %d absoluteX %d absoluteY %d pixelX %d pixelY %d 1 %s 2 %s 3 %s DOWN %s UP %s LEFT %s RIGHT %s ALT %s CTRL %s SHIFT %s",
             type,
             x, y,
             absoluteX, absoluteY,
@@ -440,6 +507,8 @@ public class TMouseEvent extends TInputEvent {
             mouse3,
             mouseWheelUp,
             mouseWheelDown,
+            mouseWheelLeft,
+            mouseWheelRight,
             alt, ctrl, shift);
     }
 
