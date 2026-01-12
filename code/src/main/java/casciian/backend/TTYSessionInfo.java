@@ -165,10 +165,6 @@ public class TTYSessionInfo implements SessionInfo {
      * @return the window width
      */
     public int getWindowWidth() {
-        if (System.getProperty("os.name").startsWith("Windows")) {
-            // Always use 80x25 for Windows (same as DOS)
-            return 80;
-        }
         return windowWidth;
     }
 
@@ -178,10 +174,6 @@ public class TTYSessionInfo implements SessionInfo {
      * @return the window height
      */
     public int getWindowHeight() {
-        if (System.getProperty("os.name").startsWith("Windows")) {
-            // Always use 80x25 for Windows (same as DOS)
-            return 25;
-        }
         return windowHeight;
     }
 

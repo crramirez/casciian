@@ -213,21 +213,6 @@ public class TerminalJlineImpl implements Terminal {
     }
 
     /**
-     * Get the input stream for reading from the terminal input.
-     *
-     * @return an InputStream for terminal input
-     * @throws IllegalStateException if the terminal is not initialized
-     */
-    @Override
-    public InputStream getInputStream() {
-        if (jlineTerminal == null) {
-            throw new IllegalStateException("Terminal not initialized");
-        }
-
-        return jlineTerminal.input();
-    }
-
-    /**
      * Emit a Privacy Message sequence that Casciian recognizes to
      * mean "hide the mouse pointer."  We have to use our own sequence to do
      * this because there is no standard in xterm for unilaterally hiding the

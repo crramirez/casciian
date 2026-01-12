@@ -56,13 +56,6 @@ class TerminalJlineImplTest {
     }
 
     @Test
-    @DisplayName("getInputStream returns non-null after construction")
-    void testGetInputStreamReturnsNotNull() {
-        // JLine terminal is created in constructor now
-        assertNotNull(terminal.getInputStream());
-    }
-
-    @Test
     @DisplayName("getReader returns non-null after construction")
     void testGetReaderReturnsNotNull() {
         // JLine terminal is created in constructor now
@@ -107,6 +100,5 @@ class TerminalJlineImplTest {
         terminal.setCookedMode();
         // Should still have valid streams
         assertNotNull(terminal.getWriter());
-        assertNotNull(terminal.getInputStream());
     }
 }

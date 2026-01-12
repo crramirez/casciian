@@ -211,7 +211,6 @@ class TerminalFactoryTest {
         Terminal terminal = TerminalFactory.create(input, reader, writer, false);
         assertNotNull(terminal);
         // Verify the terminal returns the exact same streams
-        assertEquals(input, terminal.getInputStream());
         assertEquals(reader, terminal.getReader());
         assertEquals(writer, terminal.getWriter());
         terminal.close();
