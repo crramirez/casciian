@@ -77,6 +77,13 @@ public class TerminalJlineImpl implements Terminal {
             
             // Only assign to field after all initialization succeeds
             jlineTerminal = tempTerminal;
+
+            // On Windows, JLine's terminal starts paused and needs resume() to start
+            // the input pump thread that processes keyboard events (including arrow keys).
+            // Without this, arrow keys won't be detected on Windows.
+            if (jlineTerminal.canPauseResume() && jlineTerminal.paused()) {
+                jlineTerminal.resume();
+            }
         } catch (IOException | RuntimeException e) {
             // Clean up partially initialized terminal on failure
             if (tempTerminal != null) {
@@ -203,6 +210,21 @@ public class TerminalJlineImpl implements Terminal {
         }
 
         return jlineTerminal.reader();
+    }
+
+    /**
+     * Get the input stream for reading from the terminal input.
+     *
+     * @return an InputStream for terminal input
+     * @throws IllegalStateException if the terminal is not initialized
+     */
+    @Override
+    public InputStream getInputStream() {
+        if (jlineTerminal == null) {
+            throw new IllegalStateException("Terminal not initialized");
+        }
+
+        return jlineTerminal.input();
     }
 
     /**

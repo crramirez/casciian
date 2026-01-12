@@ -152,6 +152,16 @@ public class TerminalShImpl implements Terminal {
     }
 
     /**
+     * Get the input stream for reading from the terminal input.
+     *
+     * @return an InputStream for terminal input
+     */
+    @Override
+    public InputStream getInputStream() {
+        return inputStream;
+    }
+
+    /**
      * Tell (u)xterm that we want to receive mouse events based on "Any event
      * tracking", UTF-8 coordinates, and then SGR coordinates.  Ideally we
      * will end up with SGR coordinates with UTF-8 coordinates as a fallback.

@@ -57,6 +57,13 @@ public interface Terminal {
     Reader getReader();
 
     /**
+     * Get the input stream for terminal input.
+     *
+     * @return the InputStream for terminal input, never null
+     */
+    InputStream getInputStream();
+
+    /**
      * Enable or disable mouse reporting in the terminal.
      *
      * @param on If true, enable mouse reporting; if false, disable mouse reporting.
