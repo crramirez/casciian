@@ -2361,6 +2361,33 @@ public class ECMA48Terminal extends LogicalScreen
                 return;
             }
 
+            // Arrow keys in SS3 (ESC O) format - used by JLine on Windows
+            // JLine's Windows terminal sends ESC O A/B/C/D instead of ESC [ A/B/C/D
+            switch (ch) {
+            case 'A':
+                // Up
+                events.add(new TKeypressEvent(backend, kbUp, alt, ctrl, shift));
+                resetParser();
+                return;
+            case 'B':
+                // Down
+                events.add(new TKeypressEvent(backend, kbDown, alt, ctrl, shift));
+                resetParser();
+                return;
+            case 'C':
+                // Right
+                events.add(new TKeypressEvent(backend, kbRight, alt, ctrl, shift));
+                resetParser();
+                return;
+            case 'D':
+                // Left
+                events.add(new TKeypressEvent(backend, kbLeft, alt, ctrl, shift));
+                resetParser();
+                return;
+            default:
+                break;
+            }
+
             // Unknown keystroke, ignore
             resetParser();
             return;
