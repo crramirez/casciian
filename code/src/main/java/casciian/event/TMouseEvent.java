@@ -207,7 +207,7 @@ public class TMouseEvent extends TInputEvent {
     }
 
     /**
-     * Public contructor with horizontal wheel support.
+     * Public constructor with horizontal wheel support.
      *
      * @param backend the backend that generated this event
      * @param type the type of event, MOUSE_MOTION, MOUSE_DOWN, or MOUSE_UP
