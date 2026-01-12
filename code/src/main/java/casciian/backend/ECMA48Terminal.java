@@ -1589,6 +1589,42 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Handle arrow key events. This is a common helper to avoid code duplication
+     * between CSI (ESC [) and SS3 (ESC O) arrow key sequences.
+     *
+     * @param events the list to add events to
+     * @param ch the character identifying the arrow key ('A'=Up, 'B'=Down, 'C'=Right, 'D'=Left)
+     * @param alt true if Alt was pressed
+     * @param ctrl true if Ctrl was pressed
+     * @param shift true if Shift was pressed
+     * @return true if the character was an arrow key, false otherwise
+     */
+    private boolean handleArrowKey(final List<TInputEvent> events, final int ch,
+        final boolean alt, final boolean ctrl, final boolean shift) {
+
+        switch (ch) {
+        case 'A':
+            // Up
+            events.add(new TKeypressEvent(backend, kbUp, alt, ctrl, shift));
+            return true;
+        case 'B':
+            // Down
+            events.add(new TKeypressEvent(backend, kbDown, alt, ctrl, shift));
+            return true;
+        case 'C':
+            // Right
+            events.add(new TKeypressEvent(backend, kbRight, alt, ctrl, shift));
+            return true;
+        case 'D':
+            // Left
+            events.add(new TKeypressEvent(backend, kbLeft, alt, ctrl, shift));
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    /**
      * Produce special key from CSI Pn ; Pm ; ... ~
      *
      * @return one KEYPRESS event representing a special key
@@ -1710,15 +1746,32 @@ public class ECMA48Terminal extends LogicalScreen
         switch (buttons & 0xE3) {
         case 0:
             eventMouse1 = true;
-            mouse1 = true;
+            // JLine on Windows doesn't send the motion bit (32) during drag operations.
+            // If mouse1 is already tracked as pressed, treat this as motion instead of
+            // a new press event.
+            if (mouse1) {
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+            } else {
+                mouse1 = true;
+            }
             break;
         case 1:
             eventMouse2 = true;
-            mouse2 = true;
+            // Same fix for mouse2 dragging
+            if (mouse2) {
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+            } else {
+                mouse2 = true;
+            }
             break;
         case 2:
             eventMouse3 = true;
-            mouse3 = true;
+            // Same fix for mouse3 dragging
+            if (mouse3) {
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+            } else {
+                mouse3 = true;
+            }
             break;
         case 3:
             // Release or Move
@@ -2363,29 +2416,9 @@ public class ECMA48Terminal extends LogicalScreen
 
             // Arrow keys in SS3 (ESC O) format - used by JLine on Windows
             // JLine's Windows terminal sends ESC O A/B/C/D instead of ESC [ A/B/C/D
-            switch (ch) {
-            case 'A':
-                // Up
-                events.add(new TKeypressEvent(backend, kbUp, alt, ctrl, shift));
+            if (handleArrowKey(events, ch, alt, ctrl, shift)) {
                 resetParser();
                 return;
-            case 'B':
-                // Down
-                events.add(new TKeypressEvent(backend, kbDown, alt, ctrl, shift));
-                resetParser();
-                return;
-            case 'C':
-                // Right
-                events.add(new TKeypressEvent(backend, kbRight, alt, ctrl, shift));
-                resetParser();
-                return;
-            case 'D':
-                // Left
-                events.add(new TKeypressEvent(backend, kbLeft, alt, ctrl, shift));
-                resetParser();
-                return;
-            default:
-                break;
             }
 
             // Unknown keystroke, ignore
@@ -2407,27 +2440,13 @@ public class ECMA48Terminal extends LogicalScreen
             }
 
             if ((ch >= 0x30) && (ch <= 0x7E)) {
+                // Try arrow keys first using the unified handler
+                if (handleArrowKey(events, ch, alt, ctrl, shift)) {
+                    resetParser();
+                    return;
+                }
+
                 switch (ch) {
-                case 'A':
-                    // Up
-                    events.add(new TKeypressEvent(backend, kbUp, alt, ctrl, shift));
-                    resetParser();
-                    return;
-                case 'B':
-                    // Down
-                    events.add(new TKeypressEvent(backend, kbDown, alt, ctrl, shift));
-                    resetParser();
-                    return;
-                case 'C':
-                    // Right
-                    events.add(new TKeypressEvent(backend, kbRight, alt, ctrl, shift));
-                    resetParser();
-                    return;
-                case 'D':
-                    // Left
-                    events.add(new TKeypressEvent(backend, kbLeft, alt, ctrl, shift));
-                    resetParser();
-                    return;
                 case 'H':
                     // Home
                     events.add(new TKeypressEvent(backend, kbHome));
