@@ -154,35 +154,6 @@ public class TMouseEvent extends TInputEvent {
      * @param y relative row
      * @param absoluteX absolute column
      * @param absoluteY absolute row
-     * @param mouse1 if true, left button is down
-     * @param mouse2 if true, right button is down
-     * @param mouse3 if true, middle button is down
-     * @param mouseWheelUp if true, mouse wheel (button 4) is down
-     * @param mouseWheelDown if true, mouse wheel (button 5) is down
-     * @param alt if true, ALT was pressed with this mouse event
-     * @param ctrl if true, CTRL was pressed with this mouse event
-     * @param shift if true, SHIFT was pressed with this mouse event
-     */
-    public TMouseEvent(final Backend backend, final Type type,
-        final int x, final int y, final int absoluteX, final int absoluteY,
-        final boolean mouse1, final boolean mouse2, final boolean mouse3,
-        final boolean mouseWheelUp, final boolean mouseWheelDown,
-        final boolean alt, final boolean ctrl, final boolean shift) {
-
-        this(backend, type, x, y, absoluteX, absoluteY, 0, 0,
-            mouse1, mouse2, mouse3, mouseWheelUp, mouseWheelDown,
-            false, false, alt, ctrl, shift);
-    }
-
-    /**
-     * Public contructor.
-     *
-     * @param backend the backend that generated this event
-     * @param type the type of event, MOUSE_MOTION, MOUSE_DOWN, or MOUSE_UP
-     * @param x relative column
-     * @param y relative row
-     * @param absoluteX absolute column
-     * @param absoluteY absolute row
      * @param pixelOffsetX X pixel offset relative to text cell
      * @param pixelOffsetY Y pixel offset relative to text cell
      * @param mouse1 if true, left button is down
