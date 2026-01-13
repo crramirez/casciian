@@ -78,7 +78,7 @@ sourceSets {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.compilerArgs += ['-Xlint', '-Xdiags:verbose', '-Xlint:deprecation']
+    options.compilerArgs += ['-Xlint', '-Xdiags:verbose', '-Xlint:-requires-automatic']
 }
 
 // Main library JAR: exclude demo/** content (matches compiled paths like demo/**)
