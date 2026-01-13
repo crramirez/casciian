@@ -1566,6 +1566,8 @@ public class TApplication implements Runnable {
                 if ((mouse.getType() == TMouseEvent.Type.MOUSE_DOWN)
                     && (!mouse.isMouseWheelUp())
                     && (!mouse.isMouseWheelDown())
+                    && (!mouse.isMouseWheelLeft())
+                    && (!mouse.isMouseWheelRight())
                 ) {
                     if ((mouse.getTime().getTime() - lastMouseUpTime) <
                         doubleClickTime) {
@@ -1610,6 +1612,8 @@ public class TApplication implements Runnable {
                         && (!mouse.isMouse3())
                         && (!mouse.isMouseWheelUp())
                         && (!mouse.isMouseWheelDown())
+                        && (!mouse.isMouseWheelLeft())
+                        && (!mouse.isMouseWheelRight())
                     ) {
                         break;
                     }
@@ -1780,6 +1784,8 @@ public class TApplication implements Runnable {
                 if ((mouse.getType() == TMouseEvent.Type.MOUSE_DOWN)
                     && (!mouse.isMouseWheelUp())
                     && (!mouse.isMouseWheelDown())
+                    && (!mouse.isMouseWheelLeft())
+                    && (!mouse.isMouseWheelRight())
                 ) {
                     if ((mouse.getTime().getTime() - lastMouseUpTime) <
                         doubleClickTime) {

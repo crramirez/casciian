@@ -197,6 +197,20 @@ public class TEditor extends TWidget implements EditMenuUser {
             }
             return;
         }
+        if (mouse.isMouseWheelLeft()) {
+            for (int i = 0; i < wheelScrollSize; i++) {
+                if (leftColumn > 0) {
+                    leftColumn--;
+                }
+            }
+            return;
+        }
+        if (mouse.isMouseWheelRight()) {
+            for (int i = 0; i < wheelScrollSize; i++) {
+                leftColumn++;
+            }
+            return;
+        }
 
         if (mouse.isMouse1()) {
             // Selection.

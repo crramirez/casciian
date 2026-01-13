@@ -2091,6 +2091,8 @@ public class ECMA48 implements Runnable {
                     && !mouse.isMouse3()
                     && !mouse.isMouseWheelUp()
                     && !mouse.isMouseWheelDown()
+                    && !mouse.isMouseWheelLeft()
+                    && !mouse.isMouseWheelRight()
                 ) {
                     return;
                 }
@@ -2131,6 +2133,10 @@ public class ECMA48 implements Runnable {
                 buttons = 64;
             } else if (mouse.isMouseWheelDown()) {
                 buttons = 65;
+            } else if (mouse.isMouseWheelRight()) {
+                buttons = 66;
+            } else if (mouse.isMouseWheelLeft()) {
+                buttons = 67;
             } else {
                 // This is motion with no buttons down.
                 buttons = 35;
@@ -2185,6 +2191,10 @@ public class ECMA48 implements Runnable {
                 buttons = 0x04 + 64;
             } else if (mouse.isMouseWheelDown()) {
                 buttons = 0x05 + 64;
+            } else if (mouse.isMouseWheelRight()) {
+                buttons = 0x06 + 64;
+            } else if (mouse.isMouseWheelLeft()) {
+                buttons = 0x07 + 64;
             } else {
                 // This is motion with no buttons down.
                 buttons = 0x03 + 32;
