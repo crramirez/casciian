@@ -175,6 +175,14 @@ public class TList extends TScrollable {
             verticalIncrement();
             return;
         }
+        if (mouse.isMouseWheelLeft()) {
+            horizontalDecrement();
+            return;
+        }
+        if (mouse.isMouseWheelRight()) {
+            horizontalIncrement();
+            return;
+        }
 
         if ((mouse.getX() < getWidth() - 1)
             && (mouse.getY() < getHeight() - 1)

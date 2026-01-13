@@ -245,6 +245,14 @@ public class TText extends TScrollable {
             vScroller.increment();
             return;
         }
+        if (mouse.isMouseWheelLeft()) {
+            hScroller.decrement();
+            return;
+        }
+        if (mouse.isMouseWheelRight()) {
+            hScroller.increment();
+            return;
+        }
 
         // Pass to children
         super.onMouseDown(mouse);

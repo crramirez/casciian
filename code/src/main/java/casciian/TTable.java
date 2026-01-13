@@ -664,6 +664,19 @@ public class TTable extends TWidget {
             }
             return;
         }
+        if (mouse.isMouseWheelLeft() || mouse.isMouseWheelRight()) {
+            // Treat wheel left/right as 3 left/right
+            TKeypressEvent keyEvent;
+            if (mouse.isMouseWheelLeft()) {
+                keyEvent = new TKeypressEvent(mouse.getBackend(), kbLeft);
+            } else {
+                keyEvent = new TKeypressEvent(mouse.getBackend(), kbRight);
+            }
+            for (int i = 0; i < 3; i++) {
+                onKeypress(keyEvent);
+            }
+            return;
+        }
 
         // Use TWidget's code to pass the event to the children.
         super.onMouseDown(mouse);

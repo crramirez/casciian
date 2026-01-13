@@ -139,6 +139,20 @@ public class THelpText extends TScrollable {
             reflowData();
             return;
         }
+        if (mouse.isMouseWheelLeft()) {
+            for (int i = 0; i < wheelScrollSize; i++) {
+                hScroller.decrement();
+            }
+            reflowData();
+            return;
+        }
+        if (mouse.isMouseWheelRight()) {
+            for (int i = 0; i < wheelScrollSize; i++) {
+                hScroller.increment();
+            }
+            reflowData();
+            return;
+        }
 
         // User clicked on a paragraph, update the scrollbar accordingly.
         for (int i = 0; i < paragraphs.size(); i++) {

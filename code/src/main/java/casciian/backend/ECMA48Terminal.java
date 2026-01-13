@@ -1589,6 +1589,42 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Handle arrow key events. This is a common helper to avoid code duplication
+     * between CSI (ESC [) and SS3 (ESC O) arrow key sequences.
+     *
+     * @param events the list to add events to
+     * @param ch the character identifying the arrow key ('A'=Up, 'B'=Down, 'C'=Right, 'D'=Left)
+     * @param alt true if Alt was pressed
+     * @param ctrl true if Ctrl was pressed
+     * @param shift true if Shift was pressed
+     * @return true if the character was an arrow key, false otherwise
+     */
+    private boolean handleArrowKey(final List<TInputEvent> events, final int ch,
+        final boolean alt, final boolean ctrl, final boolean shift) {
+
+        switch (ch) {
+        case 'A':
+            // Up
+            events.add(new TKeypressEvent(backend, kbUp, alt, ctrl, shift));
+            return true;
+        case 'B':
+            // Down
+            events.add(new TKeypressEvent(backend, kbDown, alt, ctrl, shift));
+            return true;
+        case 'C':
+            // Right
+            events.add(new TKeypressEvent(backend, kbRight, alt, ctrl, shift));
+            return true;
+        case 'D':
+            // Left
+            events.add(new TKeypressEvent(backend, kbLeft, alt, ctrl, shift));
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    /**
      * Produce special key from CSI Pn ; Pm ; ... ~
      *
      * @return one KEYPRESS event representing a special key
@@ -1683,9 +1719,10 @@ public class ECMA48Terminal extends LogicalScreen
      * @return a MOUSE_MOTION, MOUSE_UP, or MOUSE_DOWN event
      */
     private TInputEvent parseMouse() {
-        int buttons = params.get(0).charAt(0) - 32;
-        int x = params.get(0).charAt(1) - 32 - 1;
-        int y = params.get(0).charAt(2) - 32 - 1;
+        String firstParam = params.getFirst();
+        int buttons = firstParam.charAt(0) - 32;
+        int x = firstParam.charAt(1) - 32 - 1;
+        int y = firstParam.charAt(2) - 32 - 1;
 
         // Clamp X and Y to the physical screen coordinates.
         if (x >= windowResize.getWidth()) {
@@ -1701,6 +1738,8 @@ public class ECMA48Terminal extends LogicalScreen
         boolean eventMouse3 = false;
         boolean eventMouseWheelUp = false;
         boolean eventMouseWheelDown = false;
+        boolean eventMouseWheelLeft = false;
+        boolean eventMouseWheelRight = false;
         boolean eventAlt = false;
         boolean eventCtrl = false;
         boolean eventShift = false;
@@ -1710,15 +1749,32 @@ public class ECMA48Terminal extends LogicalScreen
         switch (buttons & 0xE3) {
         case 0:
             eventMouse1 = true;
-            mouse1 = true;
+            // X10 mouse protocol doesn't send the motion bit (32) during drag operations.
+            // If mouse1 is already tracked as pressed, treat this as motion instead of
+            // a new press event. This also fixes JLine on Windows.
+            if (mouse1) {
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+            } else {
+                mouse1 = true;
+            }
             break;
         case 1:
             eventMouse2 = true;
-            mouse2 = true;
+            // Same fix for mouse2 dragging
+            if (mouse2) {
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+            } else {
+                mouse2 = true;
+            }
             break;
         case 2:
             eventMouse3 = true;
-            mouse3 = true;
+            // Same fix for mouse3 dragging
+            if (mouse3) {
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+            } else {
+                mouse3 = true;
+            }
             break;
         case 3:
             // Release or Move
@@ -1748,8 +1804,9 @@ public class ECMA48Terminal extends LogicalScreen
             eventType = TMouseEvent.Type.MOUSE_MOTION;
             break;
 
-        case 33:
-            // Dragging with mouse2 down
+        case 33, // Dragging with mouse2 down
+             96, // Dragging with mouse2 down after wheelUp
+             97: // Dragging with mouse2 down after wheelDown
             eventMouse2 = true;
             mouse2 = true;
             eventType = TMouseEvent.Type.MOUSE_MOTION;
@@ -1762,26 +1819,20 @@ public class ECMA48Terminal extends LogicalScreen
             eventType = TMouseEvent.Type.MOUSE_MOTION;
             break;
 
-        case 96:
-            // Dragging with mouse2 down after wheelUp
-            eventMouse2 = true;
-            mouse2 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
-
-        case 97:
-            // Dragging with mouse2 down after wheelDown
-            eventMouse2 = true;
-            mouse2 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
-
         case 64:
             eventMouseWheelUp = true;
             break;
 
         case 65:
             eventMouseWheelDown = true;
+            break;
+
+        case 66:
+            eventMouseWheelRight = true;
+            break;
+
+        case 67:
+            eventMouseWheelLeft = true;
             break;
 
         default:
@@ -1800,9 +1851,10 @@ public class ECMA48Terminal extends LogicalScreen
             eventCtrl = true;
         }
 
-        return new TMouseEvent(backend, eventType, x, y, x, y,
+        return new TMouseEvent(backend, eventType, x, y, x, y, 0, 0,
             eventMouse1, eventMouse2, eventMouse3,
             eventMouseWheelUp, eventMouseWheelDown,
+            eventMouseWheelLeft, eventMouseWheelRight,
             eventAlt, eventCtrl, eventShift);
     }
 
@@ -1840,12 +1892,22 @@ public class ECMA48Terminal extends LogicalScreen
         boolean eventMouse3 = false;
         boolean eventMouseWheelUp = false;
         boolean eventMouseWheelDown = false;
+        boolean eventMouseWheelLeft = false;
+        boolean eventMouseWheelRight = false;
         boolean eventAlt = false;
         boolean eventCtrl = false;
         boolean eventShift = false;
 
         if (release) {
             eventType = TMouseEvent.Type.MOUSE_UP;
+        }
+
+        // Check if this is a wheel event - wheel events don't have releases
+        int buttonCode = buttons & 0xE3;
+        if (release && (buttonCode >= 64 && buttonCode <= 67)) {
+            // Ignore release events for wheel buttons (vertical and horizontal)
+            // Wheel events are instant actions, not press/release pairs
+            return null;
         }
 
         switch (buttons & 0xE3) {
@@ -1869,8 +1931,9 @@ public class ECMA48Terminal extends LogicalScreen
             eventType = TMouseEvent.Type.MOUSE_MOTION;
             break;
 
-        case 33:
-            // Dragging with mouse2 down
+        case 33, // Dragging with mouse2 down
+             96, // Dragging with mouse2 down after wheelUp
+             97: // Dragging with mouse2 down after wheelDown
             eventMouse2 = true;
             eventType = TMouseEvent.Type.MOUSE_MOTION;
             break;
@@ -1881,24 +1944,20 @@ public class ECMA48Terminal extends LogicalScreen
             eventType = TMouseEvent.Type.MOUSE_MOTION;
             break;
 
-        case 96:
-            // Dragging with mouse2 down after wheelUp
-            eventMouse2 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
-
-        case 97:
-            // Dragging with mouse2 down after wheelDown
-            eventMouse2 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
-
         case 64:
             eventMouseWheelUp = true;
             break;
 
         case 65:
             eventMouseWheelDown = true;
+            break;
+
+        case 66:
+            eventMouseWheelRight = true;
+            break;
+
+        case 67:
+            eventMouseWheelLeft = true;
             break;
 
         default:
@@ -1920,6 +1979,7 @@ public class ECMA48Terminal extends LogicalScreen
             x, y, offsetX, offsetY,
             eventMouse1, eventMouse2, eventMouse3,
             eventMouseWheelUp, eventMouseWheelDown,
+            eventMouseWheelLeft, eventMouseWheelRight,
             eventAlt, eventCtrl, eventShift);
     }
 
@@ -1934,17 +1994,15 @@ public class ECMA48Terminal extends LogicalScreen
         // Check for new window size
         long windowSizeDelay = nowTime - windowSizeTime;
         if (windowSizeDelay > 1000) {
-            int oldTextWidth = getTextWidth();
-            int oldTextHeight = getTextHeight();
             boolean useStty = true;
 
-            if (sessionInfo instanceof TTYSessionInfo) {
-                if (((TTYSessionInfo) sessionInfo).output != null) {
-                    // If we are using CSI 18 t, the new dimensions will come
-                    // later.
-                    useStty = false;
-                }
+            //noinspection RedundantIfStatement
+            if (sessionInfo instanceof TTYSessionInfo ttySessionInfo && ttySessionInfo.output != null) {
+                // If we are using CSI 18 t, the new dimensions will come
+                // later.
+                useStty = false;
             }
+
             sessionInfo.queryWindowSize();
 
             if (useStty) {
@@ -2361,6 +2419,13 @@ public class ECMA48Terminal extends LogicalScreen
                 return;
             }
 
+            // Arrow keys in SS3 (ESC O) format - used by JLine on Windows
+            // JLine's Windows terminal sends ESC O A/B/C/D instead of ESC [ A/B/C/D
+            if (handleArrowKey(events, ch, alt, ctrl, shift)) {
+                resetParser();
+                return;
+            }
+
             // Unknown keystroke, ignore
             resetParser();
             return;
@@ -2380,27 +2445,13 @@ public class ECMA48Terminal extends LogicalScreen
             }
 
             if ((ch >= 0x30) && (ch <= 0x7E)) {
+                // Try arrow keys first using the unified handler
+                if (handleArrowKey(events, ch, alt, ctrl, shift)) {
+                    resetParser();
+                    return;
+                }
+
                 switch (ch) {
-                case 'A':
-                    // Up
-                    events.add(new TKeypressEvent(backend, kbUp, alt, ctrl, shift));
-                    resetParser();
-                    return;
-                case 'B':
-                    // Down
-                    events.add(new TKeypressEvent(backend, kbDown, alt, ctrl, shift));
-                    resetParser();
-                    return;
-                case 'C':
-                    // Right
-                    events.add(new TKeypressEvent(backend, kbRight, alt, ctrl, shift));
-                    resetParser();
-                    return;
-                case 'D':
-                    // Left
-                    events.add(new TKeypressEvent(backend, kbLeft, alt, ctrl, shift));
-                    resetParser();
-                    return;
                 case 'H':
                     // Home
                     events.add(new TKeypressEvent(backend, kbHome));

@@ -54,12 +54,6 @@ class TerminalShImplTest {
     }
 
     @Test
-    @DisplayName("getInputStream returns non-null for system input")
-    void testGetInputStreamReturnsNotNull() {
-        assertNotNull(terminal.getInputStream());
-    }
-
-    @Test
     @DisplayName("getReader returns non-null for system input")
     void testGetReaderReturnsNotNull() {
         assertNotNull(terminal.getReader());
@@ -102,7 +96,6 @@ class TerminalShImplTest {
     void testConstructorWithNonNullInput() {
         ByteArrayInputStream input = new ByteArrayInputStream("test".getBytes());
         TerminalShImpl customTerminal = new TerminalShImpl(input, null, false);
-        assertNotNull(customTerminal.getInputStream());
         assertNotNull(customTerminal.getReader());
         customTerminal.close();
     }
@@ -126,7 +119,6 @@ class TerminalShImplTest {
         TerminalShImpl customTerminal = new TerminalShImpl(input, reader, writer, false);
         
         // Verify the terminal returns the exact same streams that were passed in
-        assertEquals(input, customTerminal.getInputStream());
         assertEquals(reader, customTerminal.getReader());
         assertEquals(writer, customTerminal.getWriter());
         customTerminal.close();

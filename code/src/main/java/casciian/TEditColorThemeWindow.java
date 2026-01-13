@@ -381,6 +381,24 @@ public class TEditColorThemeWindow extends TWindow {
                 color = getColorFromPosition(dotX, dotY);
                 bold = getBoldFromPosition(dotY);
                 rgb.setText("");
+            } else if (mouse.isMouseWheelLeft()) {
+                // Do this like kbLeft
+                int dotX = getXColorPosition(color);
+                int dotY = getYColorPosition(color, bold);
+                if (dotX > 3) {
+                    dotX -= 3;
+                }
+                color = getColorFromPosition(dotX, dotY);
+                rgb.setText("");
+            } else if (mouse.isMouseWheelRight()) {
+                // Do this like kbRight
+                int dotX = getXColorPosition(color);
+                int dotY = getYColorPosition(color, bold);
+                if (dotX < 10) {
+                    dotX += 3;
+                }
+                color = getColorFromPosition(dotX, dotY);
+                rgb.setText("");
             } else if ((mouse.getX() > 0)
                 && (mouse.getX() < getWidth() - 1)
                 && (mouse.getY() > 0)
@@ -652,6 +670,24 @@ public class TEditColorThemeWindow extends TWindow {
                 int dotY = getYColorPosition(color);
                 if (dotY == 1) {
                     dotY++;
+                }
+                color = getColorFromPosition(dotX, dotY);
+                rgb.setText("");
+            } else if (mouse.isMouseWheelLeft()) {
+                // Do this like kbLeft
+                int dotX = getXColorPosition(color);
+                int dotY = getYColorPosition(color);
+                if (dotX > 3) {
+                    dotX -= 3;
+                }
+                color = getColorFromPosition(dotX, dotY);
+                rgb.setText("");
+            } else if (mouse.isMouseWheelRight()) {
+                // Do this like kbRight
+                int dotX = getXColorPosition(color);
+                int dotY = getYColorPosition(color);
+                if (dotX < 10) {
+                    dotX += 3;
                 }
                 color = getColorFromPosition(dotX, dotY);
                 rgb.setText("");

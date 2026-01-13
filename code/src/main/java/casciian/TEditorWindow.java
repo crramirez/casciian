@@ -201,6 +201,10 @@ public class TEditorWindow extends TScrollableWindow {
                 // Vertical scrollbar actions
                 editField.setVisibleRowNumber(getVerticalValue());
             }
+            if (mouse.isMouseWheelLeft() || mouse.isMouseWheelRight()) {
+                // Horizontal scrollbar actions
+                editField.setVisibleColumnNumber(getHorizontalValue());
+            }
         }
     }
 
