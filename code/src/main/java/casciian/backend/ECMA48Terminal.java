@@ -1719,9 +1719,10 @@ public class ECMA48Terminal extends LogicalScreen
      * @return a MOUSE_MOTION, MOUSE_UP, or MOUSE_DOWN event
      */
     private TInputEvent parseMouse() {
-        int buttons = params.get(0).charAt(0) - 32;
-        int x = params.get(0).charAt(1) - 32 - 1;
-        int y = params.get(0).charAt(2) - 32 - 1;
+        String firstParam = params.getFirst();
+        int buttons = firstParam.charAt(0) - 32;
+        int x = firstParam.charAt(1) - 32 - 1;
+        int y = firstParam.charAt(2) - 32 - 1;
 
         // Clamp X and Y to the physical screen coordinates.
         if (x >= windowResize.getWidth()) {
@@ -1803,8 +1804,9 @@ public class ECMA48Terminal extends LogicalScreen
             eventType = TMouseEvent.Type.MOUSE_MOTION;
             break;
 
-        case 33:
-            // Dragging with mouse2 down
+        case 33, // Dragging with mouse2 down
+             96, // Dragging with mouse2 down after wheelUp
+             97: // Dragging with mouse2 down after wheelDown
             eventMouse2 = true;
             mouse2 = true;
             eventType = TMouseEvent.Type.MOUSE_MOTION;
@@ -1817,20 +1819,6 @@ public class ECMA48Terminal extends LogicalScreen
             eventType = TMouseEvent.Type.MOUSE_MOTION;
             break;
 
-        case 96:
-            // Dragging with mouse2 down after wheelUp
-            eventMouse2 = true;
-            mouse2 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
-
-        case 97:
-            // Dragging with mouse2 down after wheelDown
-            eventMouse2 = true;
-            mouse2 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
-
         case 64:
             eventMouseWheelUp = true;
             break;
@@ -1840,12 +1828,10 @@ public class ECMA48Terminal extends LogicalScreen
             break;
 
         case 66:
-            // Horizontal wheel right (button 6) - tilt wheel right
             eventMouseWheelRight = true;
             break;
 
         case 67:
-            // Horizontal wheel left (button 7) - tilt wheel left
             eventMouseWheelLeft = true;
             break;
 
@@ -1945,8 +1931,9 @@ public class ECMA48Terminal extends LogicalScreen
             eventType = TMouseEvent.Type.MOUSE_MOTION;
             break;
 
-        case 33:
-            // Dragging with mouse2 down
+        case 33, // Dragging with mouse2 down
+             96, // Dragging with mouse2 down after wheelUp
+             97: // Dragging with mouse2 down after wheelDown
             eventMouse2 = true;
             eventType = TMouseEvent.Type.MOUSE_MOTION;
             break;
@@ -1954,18 +1941,6 @@ public class ECMA48Terminal extends LogicalScreen
         case 34:
             // Dragging with mouse3 down
             eventMouse3 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
-
-        case 96:
-            // Dragging with mouse2 down after wheelUp
-            eventMouse2 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
-
-        case 97:
-            // Dragging with mouse2 down after wheelDown
-            eventMouse2 = true;
             eventType = TMouseEvent.Type.MOUSE_MOTION;
             break;
 
@@ -1978,12 +1953,10 @@ public class ECMA48Terminal extends LogicalScreen
             break;
 
         case 66:
-            // Horizontal wheel right (button 6) - tilt wheel right
             eventMouseWheelRight = true;
             break;
 
         case 67:
-            // Horizontal wheel left (button 7) - tilt wheel left
             eventMouseWheelLeft = true;
             break;
 
@@ -2021,17 +1994,15 @@ public class ECMA48Terminal extends LogicalScreen
         // Check for new window size
         long windowSizeDelay = nowTime - windowSizeTime;
         if (windowSizeDelay > 1000) {
-            int oldTextWidth = getTextWidth();
-            int oldTextHeight = getTextHeight();
             boolean useStty = true;
 
-            if (sessionInfo instanceof TTYSessionInfo) {
-                if (((TTYSessionInfo) sessionInfo).output != null) {
-                    // If we are using CSI 18 t, the new dimensions will come
-                    // later.
-                    useStty = false;
-                }
+            //noinspection RedundantIfStatement
+            if (sessionInfo instanceof TTYSessionInfo ttySessionInfo && ttySessionInfo.output != null) {
+                // If we are using CSI 18 t, the new dimensions will come
+                // later.
+                useStty = false;
             }
+
             sessionInfo.queryWindowSize();
 
             if (useStty) {
