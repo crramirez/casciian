@@ -206,8 +206,11 @@ public class TEditor extends TWidget implements EditMenuUser {
             return;
         }
         if (mouse.isMouseWheelRight()) {
+            int maxColumn = document.getLineLengthMax();
             for (int i = 0; i < wheelScrollSize; i++) {
-                leftColumn++;
+                if (leftColumn < maxColumn) {
+                    leftColumn++;
+                }
             }
             return;
         }
