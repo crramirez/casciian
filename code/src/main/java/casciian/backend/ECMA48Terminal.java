@@ -1916,6 +1916,14 @@ public class ECMA48Terminal extends LogicalScreen
             eventType = TMouseEvent.Type.MOUSE_UP;
         }
 
+        // Check if this is a wheel event - wheel events don't have releases
+        int buttonCode = buttons & 0xE3;
+        if (release && (buttonCode >= 64 && buttonCode <= 67)) {
+            // Ignore release events for wheel buttons (vertical and horizontal)
+            // Wheel events are instant actions, not press/release pairs
+            return null;
+        }
+
         switch (buttons & 0xE3) {
         case 0:
             eventMouse1 = true;
