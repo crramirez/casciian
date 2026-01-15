@@ -16,8 +16,6 @@
 package casciian.backend.terminal;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +23,6 @@ import java.nio.charset.StandardCharsets;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
-import org.jline.utils.NonBlockingReader;
 
 /**
  * JLine-based terminal implementation for raw/cooked mode handling.

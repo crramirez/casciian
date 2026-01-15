@@ -79,6 +79,7 @@ import static casciian.TKeypress.*;
  * application.  It manages windows, provides a menu bar and status bar, and
  * processes events received from the user.
  */
+@SuppressWarnings("java:S106")
 public class TApplication implements Runnable {
 
     // ------------------------------------------------------------------------
@@ -328,7 +329,7 @@ public class TApplication implements Runnable {
     /**
      * The list of commands to run before the next I/O check.
      */
-    private List<Runnable> invokeLaters = new LinkedList<Runnable>();
+    private final List<Runnable> invokeLaters = new LinkedList<>();
 
     /**
      * The last time the screen was resized.
