@@ -160,6 +160,7 @@ public class TEditorWindow extends TScrollableWindow {
      * Called by application.switchWindow() when this window gets the
      * focus, and also by application.addWindow().
      */
+    @Override
     public void onFocus() {
         super.onFocus();
         getApplication().enableMenuItem(TMenu.MID_UNDO);
@@ -170,6 +171,7 @@ public class TEditorWindow extends TScrollableWindow {
      * Called by application.switchWindow() when another window gets the
      * focus.
      */
+    @Override
     public void onUnfocus() {
         super.onUnfocus();
         getApplication().disableMenuItem(TMenu.MID_UNDO);
@@ -465,9 +467,7 @@ public class TEditorWindow extends TScrollableWindow {
             i18n.getString("statusBarHelp"));
         statusBar.addShortcutKeypress(kbF2, cmSave,
             i18n.getString("statusBarSave"));
-        statusBar.addShortcutKeypress(kbF3, cmSaveAs,
-            i18n.getString("statusBarSaveAs"));
-        statusBar.addShortcutKeypress(kbF4, cmOpen,
+        statusBar.addShortcutKeypress(kbF3, cmOpen,
             i18n.getString("statusBarOpen"));
         statusBar.addShortcutKeypress(kbShiftF10, cmMenu,
             i18n.getString("statusBarMenu"));

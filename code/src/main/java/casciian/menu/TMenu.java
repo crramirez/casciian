@@ -929,6 +929,7 @@ public class TMenu extends TWindow {
 
         case MID_SAVE_FILE:
             label = i18n.getString("menuSave");
+            key = kbF2;
             icon = 0x1F4BE;
             break;
 
