@@ -203,7 +203,8 @@ public class TerminalJlineImpl implements Terminal {
     }
 
     /**
-     * Emit a Privacy Message sequence that Casciian recognizes to
+     * Tell (u)xterm to set the alternate/primary screen buffer and
+     * emit a Privacy Message sequence that Casciian recognizes to
      * mean "hide the mouse pointer."  We have to use our own sequence to do
      * this because there is no standard in xterm for unilaterally hiding the
      * pointer all the time (regardless of typing).
@@ -215,9 +216,9 @@ public class TerminalJlineImpl implements Terminal {
      */
     private String mouse(final boolean on) {
         if (on) {
-            return "\033^hideMousePointer\033\\";
+            return "\033[?1049h\033^hideMousePointer\033\\";
         }
-        return "\033^showMousePointer\033\\";
+        return "\033[?1049l\033^showMousePointer\033\\";
     }
 
     /**

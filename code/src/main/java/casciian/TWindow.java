@@ -441,18 +441,13 @@ public class TWindow extends TWidget {
     }
 
     /**
-     * Subclasses should override this method to cleanup resources.  This is
+     * Subclasses should override this method to clean up resources.  This is
      * called by application.closeWindow().
      */
     protected void onClose() {
         // Default: perform widget-specific cleanup.
-        while (getChildren().size() > 0) {
-            TWidget w = getChildren().get(0);
-            w.close();
-            if (getChildren().contains(w)) {
-                getChildren().remove(w);
-            }
-        }
+        children.forEach(TWidget::close);
+        children.clear();
     }
 
     /**
