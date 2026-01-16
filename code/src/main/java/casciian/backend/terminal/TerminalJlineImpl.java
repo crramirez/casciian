@@ -203,16 +203,8 @@ public class TerminalJlineImpl implements Terminal {
     }
 
     /**
-     * Tell (u)xterm that we want to receive mouse events based on "Any event
-     * tracking", UTF-8 coordinates, and then SGR coordinates.  Ideally we
-     * will end up with SGR coordinates with UTF-8 coordinates as a fallback.
-     * See
-     * <a href="http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking">...</a>
-     * <br>
-     * Note that this also sets the alternate/primary screen buffer and
-     * requests focus in/out sequences.
-     * <br>
-     * Finally, also emit a Privacy Message sequence that Casciian recognizes to
+     * Tell (u)xterm that sets the alternate/primary screen buffer and
+     * emit a Privacy Message sequence that Casciian recognizes to
      * mean "hide the mouse pointer."  We have to use our own sequence to do
      * this because there is no standard in xterm for unilaterally hiding the
      * pointer all the time (regardless of typing).
