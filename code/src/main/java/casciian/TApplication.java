@@ -256,7 +256,7 @@ public class TApplication implements Runnable {
     /**
      * The top-level windows (but not menus).
      */
-    private List<TWindow> windows;
+    private final List<TWindow> windows = new LinkedList<>();
 
     /**
      * Timers that are being ticked.
@@ -835,7 +835,6 @@ public class TApplication implements Runnable {
         desktopBottom   = getScreen().getHeight() - 1 + (SystemProperties.isHideStatusBar() ? 1 : 0);
         fillEventQueue  = new LinkedList<TInputEvent>();
         drainEventQueue = new LinkedList<TInputEvent>();
-        windows         = new LinkedList<TWindow>();
         menus           = new ArrayList<TMenu>();
         subMenus        = new ArrayList<TMenu>();
         timers          = new CopyOnWriteArrayList<>();
@@ -1344,46 +1343,7 @@ public class TApplication implements Runnable {
         }
 
         // See if we need to enable/disable the edit menu.
-        EditMenuUser widget = null;
-        if (activeMenu == null) {
-            TWindow activeWindow = getActiveWindow();
-            if (activeWindow != null) {
-                if (activeWindow.getActiveChild() instanceof EditMenuUser) {
-                    widget = (EditMenuUser) activeWindow.getActiveChild();
-                }
-            } else if (desktop != null) {
-                if (desktop.getActiveChild() instanceof EditMenuUser) {
-                    widget = (EditMenuUser) desktop.getActiveChild();
-                }
-            }
-            if (widget == null) {
-                disableMenuItem(TMenu.MID_CUT);
-                disableMenuItem(TMenu.MID_COPY);
-                disableMenuItem(TMenu.MID_PASTE);
-                disableMenuItem(TMenu.MID_CLEAR);
-            } else {
-                if (widget.isEditMenuCut()) {
-                    enableMenuItem(TMenu.MID_CUT);
-                } else {
-                    disableMenuItem(TMenu.MID_CUT);
-                }
-                if (widget.isEditMenuCopy()) {
-                    enableMenuItem(TMenu.MID_COPY);
-                } else {
-                    disableMenuItem(TMenu.MID_COPY);
-                }
-                if (widget.isEditMenuPaste()) {
-                    enableMenuItem(TMenu.MID_PASTE);
-                } else {
-                    disableMenuItem(TMenu.MID_PASTE);
-                }
-                if (widget.isEditMenuClear()) {
-                    enableMenuItem(TMenu.MID_CLEAR);
-                } else {
-                    disableMenuItem(TMenu.MID_CLEAR);
-                }
-            }
-        }
+        processEditMenuUser();
 
         // Process timers and call doIdle()'s
         doIdle();
@@ -1423,6 +1383,51 @@ public class TApplication implements Runnable {
         if (debugThreads) {
             System.err.printf(System.currentTimeMillis() + " " +
                 Thread.currentThread() + " finishEventProcessing() END\n");
+        }
+    }
+
+    /**
+     * Processes the edit menu options for the user based on the currently active
+     * child widget or desktop context. This method evaluates whether the active
+     * child element of a window or desktop is of type {@code EditMenuUser} and
+     * enables or disables menu items accordingly. If the active child is not an
+     * {@code EditMenuUser} or no active context exists, specific edit menu items
+     * (Cut, Copy, Paste, Clear) are disabled.
+     * <br>
+     * The following steps are performed:
+     * 1. Checks if there is an active menu; if not, continues with further checks.
+     * 2. Retrieves the current active window and evaluates its active child widget.
+     * 3. If no active window exists or its child isn't an {@code EditMenuUser}, checks
+     *    the current desktop's active child.
+     * 4. If an {@code EditMenuUser} is found:
+     *    - Enables or disables specific menu items (Cut, Copy, Paste, Clear) based
+     *      on the state provided by the widget's methods.
+     * 5. If no {@code EditMenuUser} is found, disables all the edit menu items.
+     */
+    private void processEditMenuUser() {
+        EditMenuUser widget = null;
+        if (activeMenu == null) {
+            TWindow activeWindow = getActiveWindow();
+            if (activeWindow != null) {
+                if (activeWindow.getActiveChild() instanceof EditMenuUser editMenuUser) {
+                    widget = editMenuUser;
+                }
+            } else if (desktop != null) {
+                if (desktop.getActiveChild() instanceof EditMenuUser editMenuUser) {
+                    widget = editMenuUser;
+                }
+            }
+            if (widget == null) {
+                disableMenuItem(TMenu.MID_CUT);
+                disableMenuItem(TMenu.MID_COPY);
+                disableMenuItem(TMenu.MID_PASTE);
+                disableMenuItem(TMenu.MID_CLEAR);
+            } else {
+                enableOrDisableMenuItem(TMenu.MID_CUT, widget.isEditMenuCut());
+                enableOrDisableMenuItem(TMenu.MID_COPY, widget.isEditMenuCopy());
+                enableOrDisableMenuItem(TMenu.MID_PASTE, widget.isEditMenuPaste());
+                enableOrDisableMenuItem(TMenu.MID_CLEAR, widget.isEditMenuClear());
+            }
         }
     }
 
@@ -4069,6 +4074,20 @@ public class TApplication implements Runnable {
     }
 
     /**
+     * Enable or disable one menu item. Convenience method to simplify code
+     *
+     * @param id the menu item ID
+     * @param enable true to enable, false to disable
+     */
+    public final void enableOrDisableMenuItem(final int id, boolean enable) {
+        if (enable) {
+            enableMenuItem(id);
+        } else {
+            disableMenuItem(id);
+        }
+    }
+
+    /**
      * Enable the range of menu items with ID's between lower and upper,
      * inclusive.
      *
@@ -4181,6 +4200,7 @@ public class TApplication implements Runnable {
      *
      * @return the new menu
      */
+    @SuppressWarnings("UnusedReturnValue")
     public final TMenu addToolMenu() {
         TMenu toolMenu = addMenu(i18n.getString("toolMenuTitle"));
         toolMenu.addDefaultItem(TMenu.MID_REPAINT);
@@ -4197,6 +4217,7 @@ public class TApplication implements Runnable {
      *
      * @return the new menu
      */
+    @SuppressWarnings("UnusedReturnValue")
     public final TMenu addFileMenu() {
         TMenu fileMenu = addMenu(i18n.getString("fileMenuTitle"));
         fileMenu.addDefaultItem(TMenu.MID_SHELL);
@@ -4213,6 +4234,7 @@ public class TApplication implements Runnable {
      *
      * @return the new menu
      */
+    @SuppressWarnings("UnusedReturnValue")
     public final TMenu addEditMenu() {
         TMenu editMenu = addMenu(i18n.getString("editMenuTitle"));
         editMenu.addDefaultItem(TMenu.MID_UNDO, false);
@@ -4233,6 +4255,7 @@ public class TApplication implements Runnable {
      *
      * @return the new menu
      */
+    @SuppressWarnings("UnusedReturnValue")
     public final TMenu addWindowMenu() {
         TMenu windowMenu = addMenu(i18n.getString("windowMenuTitle"));
         windowMenu.addDefaultItem(TMenu.MID_TILE);
@@ -4255,6 +4278,7 @@ public class TApplication implements Runnable {
      *
      * @return the new menu
      */
+    @SuppressWarnings("UnusedReturnValue")
     public final TMenu addHelpMenu() {
         TMenu helpMenu = addMenu(i18n.getString("helpMenuTitle"));
         helpMenu.addDefaultItem(TMenu.MID_HELP_CONTENTS);
@@ -4277,6 +4301,7 @@ public class TApplication implements Runnable {
      *
      * @return the new menu
      */
+    @SuppressWarnings("UnusedReturnValue")
     public final TMenu addTableMenu() {
         TMenu tableMenu = addMenu(i18n.getString("tableMenuTitle"));
         tableMenu.addDefaultItem(TMenu.MID_TABLE_RENAME_COLUMN, false);

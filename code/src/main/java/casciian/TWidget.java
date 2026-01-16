@@ -61,7 +61,7 @@ public abstract class TWidget implements Comparable<TWidget> {
     /**
      * Child widgets that this widget contains.
      */
-    private List<TWidget> children;
+    protected final List<TWidget> children;
 
     /**
      * The currently active child widget that will receive keypress events.
@@ -161,7 +161,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      * Default constructor for subclasses.
      */
     protected TWidget() {
-        children = new ArrayList<TWidget>();
+        children = new ArrayList<>();
     }
 
     /**
@@ -198,7 +198,7 @@ public abstract class TWidget implements Comparable<TWidget> {
     protected TWidget(final TWidget parent, final boolean enabled) {
         this.enabled = enabled;
         this.parent = parent;
-        children = new ArrayList<TWidget>();
+        children = new ArrayList<>();
 
         if (parent != null) {
             this.window = parent.window;
@@ -229,7 +229,7 @@ public abstract class TWidget implements Comparable<TWidget> {
 
         this.enabled = enabled;
         this.parent = parent;
-        children = new ArrayList<TWidget>();
+        children = new ArrayList<>();
 
         this.x = x;
         this.y = y;
@@ -274,18 +274,13 @@ public abstract class TWidget implements Comparable<TWidget> {
     // ------------------------------------------------------------------------
 
     /**
-     * Subclasses should override this method to cleanup resources.  This is
+     * Subclasses should override this method to clean up resources.  This is
      * called by TWindow.onClose().
      */
     public void close() {
         // Default: call close() on children.
-        while (getChildren().size() > 0) {
-            TWidget w = getChildren().get(0);
-            w.close();
-            if (getChildren().contains(w)) {
-                getChildren().remove(w);
-            }
-        }
+        children.forEach(TWidget::close);
+        children.clear();
     }
 
     /**
