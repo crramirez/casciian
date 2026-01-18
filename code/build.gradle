@@ -24,12 +24,6 @@ idea {
     }
 }
 
-// Application plugin is used by the GraalVM
-application {
-    // Run/build the demo application by default
-    mainClass = 'demo.Demo1'
-}
-
 repositories {
     mavenCentral()
 }
@@ -225,6 +219,7 @@ graalvmNative {
             }
 
             imageName = 'casciian'
+            mainClass = 'demo.Demo1'
             buildArgs.add('-march=compatibility')
             buildArgs.add('-Os')
             buildArgs.add('--enable-native-access=ALL-UNNAMED')
