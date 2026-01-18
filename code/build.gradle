@@ -228,6 +228,10 @@ release {
     tagCommitMessage = '[release] '
     newVersionCommitMessage = '[release] prepare next '
     tagTemplate = 'v${version}'
+    // Accept releases from both main and your service branch
+    git {
+        requireBranch.set(/main|srv\/1\.1/)
+    }
 }
 
 tasks.named('afterReleaseBuild') {
