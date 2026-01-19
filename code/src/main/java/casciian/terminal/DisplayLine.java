@@ -252,4 +252,29 @@ public class DisplayLine {
         chars.remove(idx);
     }
 
+    /**
+     * Determine if line contains image data.
+     *
+     * @return true if the line has image data
+     */
+    public boolean isImage() {
+        for (ComplexCell cell: chars) {
+            if (cell.isImage()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Clear image data from line.
+     */
+    public void clearImages() {
+        for (ComplexCell cell: chars) {
+            if (cell.isImage()) {
+                cell.reset();
+            }
+        }
+    }
+
 }

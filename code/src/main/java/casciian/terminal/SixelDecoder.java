@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * SixelDecoder parses a buffer of sixel image data into a BufferedImage.
+ * SixelDecoder parses a buffer of sixel image data into a ImageRGB.
  */
 public class SixelDecoder {
 
@@ -227,7 +227,7 @@ public class SixelDecoder {
      *
      * @param palette palette to initialize
      */
-    public static void initializePaletteCGA(final HashMap<Integer, Integer> palette) {
+    public static void initializePaletteCGA(final Map<Integer, Integer> palette) {
         palette.clear();
 
         /*

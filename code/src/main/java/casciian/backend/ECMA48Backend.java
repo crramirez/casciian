@@ -185,6 +185,17 @@ public class ECMA48Backend extends GenericBackend {
     }
 
     /**
+     * Set the mouse pointer (cursor) style.
+     *
+     * @param mouseStyle the pointer style string, one of: "default", "none",
+     * "hand", "text", "move", or "crosshair"
+     */
+    @Override
+    public void setMouseStyle(final String mouseStyle) {
+        ((ECMA48Terminal) terminal).setMouseStyle(mouseStyle);
+    }
+
+    /**
      * Convert a CellAttributes foreground color to an RGB color.
      *
      * @param attr the text attributes

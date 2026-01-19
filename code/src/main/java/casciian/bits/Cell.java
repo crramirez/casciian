@@ -707,7 +707,7 @@ public class Cell extends CellAttributes {
 
     /**
      * Make a hashcode based on the data in image.  This is needed because
-     * two visibly identical BufferedImage's can return different hash codes,
+     * two visibly identical ImageRGB's can return different hash codes,
      * which breaks caching.  And we really really need caching here.
      */
     private int makeImageHashCode() {

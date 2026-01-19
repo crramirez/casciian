@@ -167,6 +167,17 @@ public class HeadlessBackend extends LogicalScreen implements Backend {
     }
 
     /**
+     * Set the mouse pointer (cursor) style.
+     *
+     * @param mouseStyle the pointer style string, one of: "default", "none",
+     * "hand", "text", "move", or "crosshair"
+     */
+    @Override
+    public void setMouseStyle(final String mouseStyle) {
+        // NOP
+    }
+
+    /**
      * Convert a CellAttributes foreground color to an RGB color.
      *
      * @param attr the text attributes

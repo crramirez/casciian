@@ -54,7 +54,7 @@ public class ImageRGB {
     /**
      * Public constructor.
      *
-     * @param image another BufferedImage that the RGB data will be
+     * @param image another ImageRGB that the RGB data will be
      *              copied from
      */
     public ImageRGB(final ImageRGB image) {
@@ -187,7 +187,7 @@ public class ImageRGB {
      * @param y the y-coordinate of the upper-left corner of the subimage
      * @param w the width of the subimage in pixels
      * @param h the height of the subimage in pixels
-     * @return a new BufferedImage containing the specified subimage
+     * @return a new ImageRGB containing the specified subimage
      * @throws IllegalArgumentException if the specified dimensions are invalid or extend beyond the bounds of the image
      */
     public ImageRGB getSubimage(int x, int y, int w, int h) {
@@ -221,5 +221,25 @@ public class ImageRGB {
      */
     public int getHeight() {
         return height;
+    }
+
+    /**
+     * Fills a rectangular area of the image with a specified color.
+     *
+     * @param startX the starting x-coordinate of the fill area
+     * @param startY the starting y-coordinate of the fill area
+     * @param width the width of the fill area
+     * @param height the height of the fill area
+     * @param color the color to fill the area with
+     */
+    public void fillRect(int startX, int startY, int width, int height, int color) {
+        if (startX < 0 || startY < 0 || startX + width > this.width || startY + height > this.height) {
+            throw new IllegalArgumentException("Invalid fill rectangle dimensions");
+        }
+        for (int row = startY; row < startY + height; row++) {
+            for (int col = startX; col < startX + width; col++) {
+                this.rgb[col][row] = color;
+            }
+        }
     }
 }
