@@ -22,6 +22,7 @@ package casciian.backend;
 
 import casciian.TWidget;
 import casciian.bits.BorderStyle;
+import casciian.bits.ImageRGB;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.CellTransform;
@@ -35,111 +36,6 @@ import casciian.bits.StringUtils;
  * A logical screen composed of a 2D array of Cells.
  */
 public class LogicalScreen implements Screen {
-
-    // ------------------------------------------------------------------------
-    // Constants --------------------------------------------------------------
-    // ------------------------------------------------------------------------
-
-    /**
-     * A simple 2D RGB array.
-     */
-    private class BufferedImage {
-
-        /**
-         * The 24-bit RGB data.
-         */
-        private int [][] rgb;
-
-        /**
-         * The width of this image.
-         */
-        private int width;
-
-        /**
-         * The height of this image.
-         */
-        private int height;
-
-        /**
-         * Public constructor.
-         *
-         * @param width the number of pixels in width
-         * @param height the number of pixels in height
-         */
-        public BufferedImage(final int width, final int height) {
-            this.width = width;
-            this.height = height;
-            rgb = new int[width][height];
-        }
-
-        /**
-         * Public constructor.
-         *
-         * @param image another BufferedImage that the RGB data will be
-         * copied from
-         */
-        public BufferedImage(final BufferedImage image) {
-            width = image.width;
-            height = image.height;
-            rgb = new int[width][height];
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    this.rgb[x][y] = image.rgb[x][y];
-                }
-            }
-        }
-
-        /**
-         * Get an RGB value.
-         *
-         * @param x the column location
-         * @param y the row location
-         * @return the RGB value
-         */
-        public int getRGB(final int x, final int y) {
-            return rgb[x][y];
-        }
-
-        /**
-         * Set an RGB value.
-         *
-         * @param x the column location
-         * @param y the row location
-         * @param rgb the new RGB value
-         */
-        public void setRGB(final int x, final int y, final int rgb) {
-            this.rgb[x][y] = rgb;
-        }
-
-        /**
-         * Alpha-blend another image over this one.
-         *
-         * @param image the other image
-         * @param alpha a number between 0 and 1
-         */
-        public void alphaBlendOver(final BufferedImage image,
-            final double alpha) {
-
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int underRGB = rgb[x][y];
-                    int overRGB = image.rgb[x][y];
-                    int underRed   = (underRGB >>> 16) & 0xFF;
-                    int underGreen = (underRGB >>>  8) & 0xFF;
-                    int underBlue  =  underRGB         & 0xFF;
-                    int overRed    = (overRGB >>> 16) & 0xFF;
-                    int overGreen  = (overRGB >>>  8) & 0xFF;
-                    int overBlue   =  overRGB         & 0xFF;
-                    int red   = (int) ((  underRed * (1.0 - alpha)) + (  overRed * alpha));
-                    int green = (int) ((underGreen * (1.0 - alpha)) + (overGreen * alpha));
-                    int blue  = (int) (( underBlue * (1.0 - alpha)) + ( overBlue * alpha));
-                    int newRgb = (red << 16) | (green << 8) | blue;
-                    this.rgb[x][y] = newRgb;
-                }
-            }
-        }
-
-    }
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -1872,11 +1768,11 @@ public class LogicalScreen implements Screen {
          */
         synchronized (this) {
 
-            BufferedImage thisForeground = new BufferedImage(width, height);
-            BufferedImage thisBackground = new BufferedImage(width, height);
-            BufferedImage overForeground = new BufferedImage(width, height);
-            BufferedImage overBackground = new BufferedImage(width, height);
-            BufferedImage thisOldBackground = new BufferedImage(width, height);
+            ImageRGB thisForeground = new ImageRGB(width, height);
+            ImageRGB thisBackground = new ImageRGB(width, height);
+            ImageRGB overForeground = new ImageRGB(width, height);
+            ImageRGB overBackground = new ImageRGB(width, height);
+            ImageRGB thisOldBackground = new ImageRGB(width, height);
 
             final int OPAQUE = 0xFF000000;
 
@@ -1949,7 +1845,7 @@ public class LogicalScreen implements Screen {
             float fAlpha = (float) (alpha / 255.0);
             thisForeground.alphaBlendOver(overBackground, fAlpha);
             thisBackground.alphaBlendOver(overBackground, fAlpha);
-            BufferedImage glyphForeground = new BufferedImage(thisBackground);
+            ImageRGB glyphForeground = new ImageRGB(thisBackground);
             glyphForeground.alphaBlendOver(overForeground, fAlpha);
 
             for (int row = y; (row < y + height) && (row < this.height); row++) {
