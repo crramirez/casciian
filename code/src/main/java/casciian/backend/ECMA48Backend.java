@@ -241,4 +241,19 @@ public class ECMA48Backend extends GenericBackend {
         return ECMA48Terminal.getDefaultBackColorRGB();
     }
 
+    /**
+     * Write a DCS (Device Control String) passthrough sequence to the
+     * terminal. This is used for sequences like SIXEL graphics that should
+     * be passed directly to the underlying terminal without interpretation.
+     *
+     * @param dcsSequence the complete DCS sequence to pass through
+     */
+    public void writeDCSPassthrough(final String dcsSequence) {
+        java.io.PrintWriter output = ((ECMA48Terminal) terminal).getOutput();
+        if (output != null) {
+            output.write(dcsSequence);
+            output.flush();
+        }
+    }
+
 }

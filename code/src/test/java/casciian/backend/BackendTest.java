@@ -152,6 +152,8 @@ class BackendTest {
             public int getDefaultForeColorRGB() { return 0xFFFFFF; }
             @Override
             public int getDefaultBackColorRGB() { return 0x000000; }
+            @Override
+            public void writeDCSPassthrough(String dcsSequence) { }
         };
         testBackend.terminal = mockTerminal;
         testBackend.screen = mockScreen;

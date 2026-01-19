@@ -21,9 +21,11 @@ import org.junit.jupiter.api.DisplayName;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.concurrent.atomic.AtomicReference;
 
 import casciian.backend.Backend;
 import casciian.backend.HeadlessBackend;
+import casciian.bits.CellAttributes;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -139,5 +141,87 @@ class ECMA48Test {
             emulator.waitForOutput(1000);
             emulator.close();
         }, "OSC 4 sequence with 12-bit colors should be processed without exceptions");
+    }
+
+    /**
+     * Test that DCS sequences are passed through to the backend.
+     * This tests SIXEL passthrough support.
+     */
+    @Test
+    @DisplayName("DCS sequences should be passed through to backend (SIXEL support)")
+    void shouldPassthroughDCSSequences() {
+        assertDoesNotThrow(() -> {
+            // Create a test backend that captures DCS passthrough calls
+            AtomicReference<String> capturedDcs = new AtomicReference<>(null);
+            Backend backend = new HeadlessBackend() {
+                @Override
+                public void writeDCSPassthrough(String dcsSequence) {
+                    capturedDcs.set(dcsSequence);
+                }
+            };
+            
+            // Create a simple DCS sequence (simulating SIXEL format)
+            // DCS q ... ST (where 'q' is the SIXEL command)
+            // Using ESC P to start and ESC \ to end (7-bit format)
+            String dcsSequence = "\033Pq#0;2;0;0;0~-\033\\";
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(
+                dcsSequence.getBytes("UTF-8"));
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            
+            ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
+                outputStream, null, backend);
+            
+            // Wait for the emulator to process the input
+            emulator.waitForOutput(1000);
+            
+            // Close the emulator
+            emulator.close();
+            
+            // Verify DCS was passed through
+            assertNotNull(capturedDcs.get(), "DCS sequence should be passed to backend");
+            assertTrue(capturedDcs.get().contains("q"), 
+                "Passed sequence should contain the SIXEL command 'q'");
+        }, "DCS sequence should be processed and passed through without exceptions");
+    }
+
+    /**
+     * Test that DCS sequences with parameters are also passed through.
+     */
+    @Test
+    @DisplayName("DCS sequences with parameters should be passed through to backend")
+    void shouldPassthroughDCSWithParameters() {
+        assertDoesNotThrow(() -> {
+            // Create a test backend that captures DCS passthrough calls
+            AtomicReference<String> capturedDcs = new AtomicReference<>(null);
+            Backend backend = new HeadlessBackend() {
+                @Override
+                public void writeDCSPassthrough(String dcsSequence) {
+                    capturedDcs.set(dcsSequence);
+                }
+            };
+            
+            // Create a DCS sequence with parameters (simulating SIXEL with params)
+            // ESC P 0;0;0 q ... ESC \  (SIXEL with aspect ratio parameters)
+            String dcsSequence = "\033P0;0;0q#0;2;0;0;0~-\033\\";
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(
+                dcsSequence.getBytes("UTF-8"));
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            
+            ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
+                outputStream, null, backend);
+            
+            // Wait for the emulator to process the input
+            emulator.waitForOutput(1000);
+            
+            // Close the emulator
+            emulator.close();
+            
+            // Verify DCS was passed through and contains parameters
+            assertNotNull(capturedDcs.get(), "DCS sequence with params should be passed to backend");
+            assertTrue(capturedDcs.get().contains("0;0;0"), 
+                "Passed sequence should contain the parameters");
+            assertTrue(capturedDcs.get().contains("q"), 
+                "Passed sequence should contain the SIXEL command 'q'");
+        }, "DCS sequence with parameters should be processed and passed through");
     }
 }

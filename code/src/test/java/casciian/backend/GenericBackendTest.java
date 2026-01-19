@@ -72,6 +72,11 @@ class GenericBackendTest {
         public int getDefaultBackColorRGB() {
             return 0x000000;
         }
+
+        @Override
+        public void writeDCSPassthrough(String dcsSequence) {
+            // No-op for testing
+        }
     }
 
     @BeforeEach

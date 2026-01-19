@@ -388,5 +388,16 @@ public class MultiBackend implements Backend {
         return false;
     }
 
+    /**
+     * Write a DCS (Device Control String) passthrough sequence to all
+     * backends.
+     *
+     * @param dcsSequence the complete DCS sequence to pass through
+     */
+    public void writeDCSPassthrough(final String dcsSequence) {
+        for (Backend backend: backends) {
+            backend.writeDCSPassthrough(dcsSequence);
+        }
+    }
 
 }

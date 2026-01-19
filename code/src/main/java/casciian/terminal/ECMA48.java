@@ -549,6 +549,12 @@ public class ECMA48 implements Runnable {
     private StringBuilder xtgettcapBuffer = new StringBuilder();
 
     /**
+     * DCS passthrough collection buffer.  Used to accumulate DCS sequences
+     * that should be passed through to the backend (e.g., SIXEL graphics).
+     */
+    private StringBuilder dcsPassthroughBuffer = new StringBuilder();
+
+    /**
      * Input queue for keystrokes and mouse events to send to the remote
      * side.
      */
@@ -1357,6 +1363,18 @@ public class ECMA48 implements Runnable {
         csiParams.clear();
         collectBuffer.setLength(0);
         scanState = ScanState.GROUND;
+    }
+
+    /**
+     * Flush the DCS passthrough buffer to the backend.  This is used to
+     * pass through DCS sequences like SIXEL graphics to the underlying
+     * terminal.
+     */
+    private void flushDcsPassthrough() {
+        if ((backend != null) && (dcsPassthroughBuffer.length() > 0)) {
+            backend.writeDCSPassthrough(dcsPassthroughBuffer.toString());
+        }
+        dcsPassthroughBuffer.setLength(0);
     }
 
     /**
@@ -5891,6 +5909,8 @@ public class ECMA48 implements Runnable {
 
         // 0x90 goes to DCS_ENTRY
         if (ch == 0x90) {
+            dcsPassthroughBuffer.setLength(0);
+            dcsPassthroughBuffer.append((char) 0x90);
             scanState = ScanState.DCS_ENTRY;
             return;
         }
@@ -6315,6 +6335,8 @@ public class ECMA48 implements Runnable {
 
             // 0x50 goes to DCS_ENTRY
             if (ch == 0x50) {
+                dcsPassthroughBuffer.setLength(0);
+                dcsPassthroughBuffer.append("\033P");
                 scanState = ScanState.DCS_ENTRY;
             }
 
@@ -7642,41 +7664,57 @@ public class ECMA48 implements Runnable {
 
             // 0x9C goes to GROUND
             if (ch == 0x9C) {
+                dcsPassthroughBuffer.append((char) 0x9C);
+                flushDcsPassthrough();
                 toGround();
+                return;
             }
 
             // 0x1B 0x5C goes to GROUND
             if (ch == 0x1B) {
                 collect((char) ch);
+                dcsPassthroughBuffer.append((char) ch);
+                return;
             }
             if (ch == 0x5C) {
                 if ((collectBuffer.length() > 0)
                     && (collectBuffer.charAt(collectBuffer.length() - 1) == 0x1B)
                 ) {
+                    dcsPassthroughBuffer.append((char) ch);
+                    flushDcsPassthrough();
                     toGround();
+                    return;
                 }
             }
 
             // 20-2F               --> collect, then switch to DCS_INTERMEDIATE
             if ((ch >= 0x20) && (ch <= 0x2F)) {
                 collect((char) ch);
+                dcsPassthroughBuffer.append((char) ch);
                 scanState = ScanState.DCS_INTERMEDIATE;
+                return;
             }
 
             // 30-39, 3B           --> param, then switch to DCS_PARAM
             if ((ch >= '0') && (ch <= '9')) {
                 param((byte) ch);
+                dcsPassthroughBuffer.append((char) ch);
                 scanState = ScanState.DCS_PARAM;
+                return;
             }
             if (ch == ';') {
                 param((byte) ch);
+                dcsPassthroughBuffer.append((char) ch);
                 scanState = ScanState.DCS_PARAM;
+                return;
             }
 
             // 3C-3F               --> collect, then switch to DCS_PARAM
             if ((ch >= 0x3C) && (ch <= 0x3F)) {
                 collect((char) ch);
+                dcsPassthroughBuffer.append((char) ch);
                 scanState = ScanState.DCS_PARAM;
+                return;
             }
 
             // 00-17, 19, 1C-1F, 7F    --> ignore
@@ -7684,10 +7722,12 @@ public class ECMA48 implements Runnable {
             // 0x3A goes to DCS_IGNORE
             if (ch == 0x3F) {
                 scanState = ScanState.DCS_IGNORE;
+                return;
             }
 
             if ((ch >= 0x40) && (ch <= 0x7E)) {
                 // 0x40-7E goes to DCS_PASSTHROUGH
+                dcsPassthroughBuffer.append((char) ch);
                 scanState = ScanState.DCS_PASSTHROUGH;
             }
             return;
@@ -7696,24 +7736,33 @@ public class ECMA48 implements Runnable {
 
             // 0x9C goes to GROUND
             if (ch == 0x9C) {
+                dcsPassthroughBuffer.append((char) 0x9C);
+                flushDcsPassthrough();
                 toGround();
+                return;
             }
 
             // 0x1B 0x5C goes to GROUND
             if (ch == 0x1B) {
                 collect((char) ch);
+                dcsPassthroughBuffer.append((char) ch);
+                return;
             }
             if (ch == 0x5C) {
                 if ((collectBuffer.length() > 0)
                     && (collectBuffer.charAt(collectBuffer.length() - 1) == 0x1B)
                 ) {
+                    dcsPassthroughBuffer.append((char) ch);
+                    flushDcsPassthrough();
                     toGround();
+                    return;
                 }
             }
 
             // 0x30-3F goes to DCS_IGNORE
             if ((ch >= 0x30) && (ch <= 0x3F)) {
                 scanState = ScanState.DCS_IGNORE;
+                return;
             }
 
             if (ch == 0x71) {
@@ -7723,9 +7772,13 @@ public class ECMA48 implements Runnable {
                     // DCS + q --> XTGETTCAP
                     xtgettcapBuffer.setLength(0);
                     scanState = ScanState.DCS_XTGETTCAP;
+                    return;
                 }
-            } else if ((ch >= 0x40) && (ch <= 0x7E)) {
+            }
+            
+            if ((ch >= 0x40) && (ch <= 0x7E)) {
                 // 0x40-7E goes to DCS_PASSTHROUGH
+                dcsPassthroughBuffer.append((char) ch);
                 scanState = ScanState.DCS_PASSTHROUGH;
             }
 
@@ -7736,33 +7789,47 @@ public class ECMA48 implements Runnable {
 
             // 0x9C goes to GROUND
             if (ch == 0x9C) {
+                dcsPassthroughBuffer.append((char) 0x9C);
+                flushDcsPassthrough();
                 toGround();
+                return;
             }
 
             // 0x1B 0x5C goes to GROUND
             if (ch == 0x1B) {
                 collect((char) ch);
+                dcsPassthroughBuffer.append((char) ch);
+                return;
             }
             if (ch == 0x5C) {
                 if ((collectBuffer.length() > 0)
                     && (collectBuffer.charAt(collectBuffer.length() - 1) == 0x1B)
                 ) {
+                    dcsPassthroughBuffer.append((char) ch);
+                    flushDcsPassthrough();
                     toGround();
+                    return;
                 }
             }
 
             // 20-2F          --> collect, then switch to DCS_INTERMEDIATE
             if ((ch >= 0x20) && (ch <= 0x2F)) {
                 collect((char) ch);
+                dcsPassthroughBuffer.append((char) ch);
                 scanState = ScanState.DCS_INTERMEDIATE;
+                return;
             }
 
             // 30-39, 3B      --> param
             if ((ch >= '0') && (ch <= '9')) {
                 param((byte) ch);
+                dcsPassthroughBuffer.append((char) ch);
+                return;
             }
             if (ch == ';') {
                 param((byte) ch);
+                dcsPassthroughBuffer.append((char) ch);
+                return;
             }
 
             // 00-17, 19, 1C-1F, 7F    --> ignore
@@ -7770,13 +7837,16 @@ public class ECMA48 implements Runnable {
             // 0x3A, 3C-3F goes to DCS_IGNORE
             if (ch == 0x3F) {
                 scanState = ScanState.DCS_IGNORE;
+                return;
             }
             if ((ch >= 0x3C) && (ch <= 0x3F)) {
                 scanState = ScanState.DCS_IGNORE;
+                return;
             }
 
             if ((ch >= 0x40) && (ch <= 0x7E)) {
                 // 0x40-7E goes to DCS_PASSTHROUGH
+                dcsPassthroughBuffer.append((char) ch);
                 scanState = ScanState.DCS_PASSTHROUGH;
             }
             return;
@@ -7784,36 +7854,44 @@ public class ECMA48 implements Runnable {
         case DCS_PASSTHROUGH:
             // 0x9C goes to GROUND
             if (ch == 0x9C) {
+                dcsPassthroughBuffer.append((char) 0x9C);
+                flushDcsPassthrough();
                 toGround();
+                return;
             }
 
             // 0x1B 0x5C goes to GROUND
             if (ch == 0x1B) {
                 collect((char) ch);
+                dcsPassthroughBuffer.append((char) ch);
+                return;
             }
             if (ch == 0x5C) {
                 if ((collectBuffer.length() > 0)
                     && (collectBuffer.charAt(collectBuffer.length() - 1) == 0x1B)
                 ) {
+                    dcsPassthroughBuffer.append((char) ch);
+                    flushDcsPassthrough();
                     toGround();
+                    return;
                 }
             }
 
-            // 00-17, 19, 1C-1F, 20-7E   --> put
+            // 00-17, 19, 1C-1F, 20-7E   --> put (accumulate for passthrough)
             if (ch <= 0x17) {
-                // We ignore all DCS.
+                dcsPassthroughBuffer.append((char) ch);
                 return;
             }
             if (ch == 0x19) {
-                // We ignore all DCS.
+                dcsPassthroughBuffer.append((char) ch);
                 return;
             }
             if ((ch >= 0x1C) && (ch <= 0x1F)) {
-                // We ignore all DCS.
+                dcsPassthroughBuffer.append((char) ch);
                 return;
             }
             if ((ch >= 0x20) && (ch <= 0x7E)) {
-                // We ignore all DCS.
+                dcsPassthroughBuffer.append((char) ch);
                 return;
             }
 

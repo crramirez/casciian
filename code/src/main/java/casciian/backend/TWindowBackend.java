@@ -636,4 +636,14 @@ public class TWindowBackend extends TWindow implements Backend {
         this.otherApplication = application;
     }
 
+    /**
+     * Write a DCS (Device Control String) passthrough sequence to the
+     * parent application's backend.
+     *
+     * @param dcsSequence the complete DCS sequence to pass through
+     */
+    public void writeDCSPassthrough(final String dcsSequence) {
+        getApplication().getBackend().writeDCSPassthrough(dcsSequence);
+    }
+
 }
