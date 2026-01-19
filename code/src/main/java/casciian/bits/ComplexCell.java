@@ -118,8 +118,8 @@ public class ComplexCell extends Cell {
         codePoints = new int[1];
         codePoints[0] = cell.getChar();
 
-        if (cell instanceof ComplexCell) {
-            int [] otherCodePoints = ((ComplexCell) cell).codePoints;
+        if (cell instanceof ComplexCell complexCell) {
+            int [] otherCodePoints = complexCell.codePoints;
             codePoints = new int[otherCodePoints.length];
             System.arraycopy(otherCodePoints, 0, codePoints, 0,
                 otherCodePoints.length);
@@ -164,8 +164,8 @@ public class ComplexCell extends Cell {
         codePoints = new int[1];
         codePoints[0] = other.getChar();
 
-        if (other instanceof ComplexCell) {
-            int [] otherCodePoints = ((ComplexCell) other).codePoints;
+        if (other instanceof ComplexCell complexCell) {
+            int [] otherCodePoints = complexCell.codePoints;
             codePoints = new int[otherCodePoints.length];
             System.arraycopy(otherCodePoints, 0, codePoints, 0,
                 otherCodePoints.length);
@@ -201,11 +201,10 @@ public class ComplexCell extends Cell {
      */
     @Override
     public boolean equals(final Object rhs) {
-        if (!(rhs instanceof ComplexCell)) {
+        if (!(rhs instanceof ComplexCell that)) {
             return false;
         }
 
-        ComplexCell that = (ComplexCell) rhs;
         if (this.codePoints.length != that.codePoints.length) {
             return false;
         }
@@ -225,12 +224,12 @@ public class ComplexCell extends Cell {
      */
     @Override
     public int hashCode() {
-        int A = 13;
-        int B = 23;
-        int hash = A;
-        hash = (B * hash) + super.hashCode();
-        for (int i = 0; i < codePoints.length; i++) {
-            hash = (B * hash) + codePoints[i];
+        int a = 13;
+        int b = 23;
+        int hash = a;
+        hash = (b * hash) + super.hashCode();
+        for (int codePoint : codePoints) {
+            hash = (b * hash) + codePoint;
         }
         return hash;
     }
@@ -244,16 +243,16 @@ public class ComplexCell extends Cell {
     public void setTo(final Object rhs) {
         super.setTo(rhs);
 
-        if (rhs instanceof ComplexCell that) {
-            this.codePoints = new int[that.codePoints.length];
-            System.arraycopy(that.codePoints, 0, this.codePoints, 0,
+        if (rhs instanceof ComplexCell complexCell) {
+            this.codePoints = new int[complexCell.codePoints.length];
+            System.arraycopy(complexCell.codePoints, 0, this.codePoints, 0,
                 codePoints.length);
             return;
         }
 
-        if (rhs instanceof Cell that) {
+        if (rhs instanceof Cell cell) {
             codePoints = new int[1];
-            codePoints[0] = that.getChar();
+            codePoints[0] = cell.getChar();
         }
     }
 
@@ -268,8 +267,8 @@ public class ComplexCell extends Cell {
             return new String(Character.toChars(codePoints[0]));
         }
         StringBuilder sb = new StringBuilder(codePoints.length);
-        for (int i = 0; i < codePoints.length; i++) {
-            sb.append(Character.toChars(codePoints[i]));
+        for (int codePoint : codePoints) {
+            sb.append(Character.toChars(codePoint));
         }
         return sb.toString();
     }
@@ -394,8 +393,8 @@ public class ComplexCell extends Cell {
         }
         char [] result = new char[n];
         int idx = 0;
-        for (int i = 0; i < codePoints.length; i++) {
-            idx += Character.toChars(codePoints[i], result, idx);
+        for (int codePoint : codePoints) {
+            idx += Character.toChars(codePoint, result, idx);
         }
         return result;
     }

@@ -1456,12 +1456,14 @@ public class ECMA48Terminal extends LogicalScreen
                     && ((lCell.getBackColorRGB() != lastAttr.getBackColorRGB())
                         || (lastAttr.getBackColorRGB() < 0))
                 ) {
+                    //noinspection ConstantValue
                     if (debugToStderr && reallyDebug) {
                         System.err.println("5 set backColorRGB");
                     }
                     sb.append(colorRGB(lCell.getBackColorRGB(), false));
                 } else if (lCell.isDefaultColor(false)) {
                     if (!lastAttr.isDefaultColor(false)) {
+                        //noinspection ConstantValue
                         if (debugToStderr && reallyDebug) {
                             System.err.println("5b set DEFAULT backColor");
                         }
