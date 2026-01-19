@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import casciian.backend.Backend;
 import casciian.backend.HeadlessBackend;
-import casciian.bits.CellAttributes;
 
 import static org.junit.jupiter.api.Assertions.*;
 
