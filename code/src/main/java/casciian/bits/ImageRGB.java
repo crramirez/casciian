@@ -198,13 +198,15 @@ public class ImageRGB {
      * @throws IllegalArgumentException if the specified dimensions are invalid or extend beyond the bounds of the image
      */
     public ImageRGB getSubimage(int x, int y, int w, int h) {
-        if (x < 0 || y < 0 || w <= 0 || h <= 0 || x + w > width || y + h > height) {
+        if (x < 0 || y < 0 || w <= 0 || h <= 0) {
             throw new IllegalArgumentException("Invalid subimage dimensions");
         }
         ImageRGB subimage = new ImageRGB(w, h);
         for (int row = 0; row < h; row++) {
             for (int col = 0; col < w; col++) {
-                subimage.rgb[col][row] = this.rgb[x + col][y + row];
+                if (x + col < width && y + row < height) {
+                    subimage.rgb[col][row] = this.rgb[x + col][y + row];
+                }
             }
         }
         return subimage;

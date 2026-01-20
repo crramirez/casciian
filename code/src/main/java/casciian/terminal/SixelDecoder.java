@@ -313,24 +313,7 @@ public class SixelDecoder {
         }
 
         if (image != null) {
-            final int oldWidth = image.getWidth();
-            final int oldHeight = image.getHeight();
-
-            // If shrinking (or keeping within bounds), we can safely use getSubimage.
-            if (newWidth <= oldWidth && newHeight <= oldHeight) {
-                newImage = image.getSubimage(0, 0, newWidth, newHeight);
-            } else {
-                // When growing beyond the current size, allocate a new image and
-                // copy the overlapping region to avoid out-of-bounds in getSubimage.
-                newImage = new ImageRGB(newWidth, newHeight);
-                final int copyWidth = Math.min(newWidth, oldWidth);
-                final int copyHeight = Math.min(newHeight, oldHeight);
-                for (int yy = 0; yy < copyHeight; yy++) {
-                    for (int xx = 0; xx < copyWidth; xx++) {
-                        newImage.setRGB(xx, yy, image.getRGB(xx, yy));
-                    }
-                }
-            }
+            newImage = image.getSubimage(0, 0, newWidth, newHeight);
         } else {
             newImage = new ImageRGB(newWidth, newHeight);
         }
