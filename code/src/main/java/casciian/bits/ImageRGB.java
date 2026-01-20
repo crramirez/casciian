@@ -195,7 +195,7 @@ public class ImageRGB {
      * @param w the width of the subimage in pixels
      * @param h the height of the subimage in pixels
      * @return a new ImageRGB containing the specified subimage
-     * @throws IllegalArgumentException if the specified dimensions are invalid or extend beyond the bounds of the image
+     * @throws IllegalArgumentException if the specified dimensions are invalid
      */
     public ImageRGB getSubimage(int x, int y, int w, int h) {
         if (x < 0 || y < 0 || w <= 0 || h <= 0) {

@@ -190,24 +190,6 @@ public class HQSixelEncoder implements SixelEncoder {
             }
 
             /**
-             * Compare only on color.
-             *
-             * @param obj the other object
-             * @return true if equal
-             */
-            @Override
-            public boolean equals(final Object obj) {
-                if (this == obj) {
-                    return true;
-                }
-                if (obj == null || getClass() != obj.getClass()) {
-                    return false;
-                }
-                ColorIdx other = (ColorIdx) obj;
-                return this.color == other.color;
-            }
-
-            /**
              * Generate a human-readable string for this entry.
              *
              * @return a human-readable string
