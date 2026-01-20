@@ -229,32 +229,32 @@ public class TImageWindow extends TScrollableWindow {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        if (keypress.equals(kbUp)) {
+        if (kbUp.equals(keypress.getKey())) {
             verticalDecrement();
             imageField.setTop(getVerticalValue());
             return;
         }
-        if (keypress.equals(kbDown)) {
+        if (kbDown.equals(keypress.getKey())) {
             verticalIncrement();
             imageField.setTop(getVerticalValue());
             return;
         }
-        if (keypress.equals(kbPgUp)) {
+        if (kbPgUp.equals(keypress.getKey())) {
             bigVerticalDecrement();
             imageField.setTop(getVerticalValue());
             return;
         }
-        if (keypress.equals(kbPgDn)) {
+        if (kbPgDn.equals(keypress.getKey())) {
             bigVerticalIncrement();
             imageField.setTop(getVerticalValue());
             return;
         }
-        if (keypress.equals(kbRight)) {
+        if (kbRight.equals(keypress.getKey())) {
             horizontalIncrement();
             imageField.setLeft(getHorizontalValue());
             return;
         }
-        if (keypress.equals(kbLeft)) {
+        if (kbLeft.equals(keypress.getKey())) {
             horizontalDecrement();
             imageField.setLeft(getHorizontalValue());
             return;

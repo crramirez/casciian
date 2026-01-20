@@ -2991,17 +2991,13 @@ public class ECMA48Terminal extends LogicalScreen
                     events.add(controlChar(ch, false));
                     resetParser();
                     return;
-                }
-
-                if (ch >= 0x20) {
+                } else {
                     // Normal character
                     events.add(new TKeypressEvent(backend, false, 0, ch,
                         false, false, false));
                     resetParser();
                     return;
                 }
-
-                break;
 
             case ESCAPE:
                 // 'P', during the XTVERSION query only, goes to XTVERSION.

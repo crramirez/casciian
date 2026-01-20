@@ -407,9 +407,9 @@ public class HQSixelEncoder implements SixelEncoder {
                     int red   = (rgb >>> 16) & 0xFF;
                     int green = (rgb >>>  8) & 0xFF;
                     int blue  =  rgb         & 0xFF;
-                    totalRed   += color.count * red;
-                    totalGreen += color.count * green;
-                    totalBlue  += color.count * blue;
+                    totalRed   += (long) color.count * red;
+                    totalGreen += (long) color.count * green;
+                    totalBlue  += (long) color.count * blue;
                     count += color.count;
                 }
                 if (count == 0) {

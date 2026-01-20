@@ -8442,18 +8442,9 @@ public class ECMA48 implements Runnable {
 
         for (int x = 0; x < imageWidth; x++) {
             for (int y = 0; y < imageHeight; y++) {
-                int red   = bytes[(y * imageWidth * 3) + (x * 3)    ];
-                if (red < 0) {
-                    red += 256;
-                }
-                int green = bytes[(y * imageWidth * 3) + (x * 3) + 1];
-                if (green < 0) {
-                    green += 256;
-                }
-                int blue  = bytes[(y * imageWidth * 3) + (x * 3) + 2];
-                if (blue < 0) {
-                    blue += 256;
-                }
+                int red   = bytes[(y * imageWidth * 3) + (x * 3)    ] & 0xFF;
+                int green = bytes[(y * imageWidth * 3) + (x * 3) + 1] & 0xFF;
+                int blue  = bytes[(y * imageWidth * 3) + (x * 3) + 2] & 0xFF;
                 int rgb = 0xFF000000 | (red << 16) | (green << 8) | blue;
                 image.setRGB(x, y, rgb);
             }

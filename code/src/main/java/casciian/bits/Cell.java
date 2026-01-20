@@ -200,7 +200,6 @@ public class Cell extends CellAttributes {
         }
 
         if (invertedImage != null) {
-            assert (image != null);
             return new ImageRGB(invertedImage);
         } else {
             return new ImageRGB(image);
@@ -619,8 +618,9 @@ public class Cell extends CellAttributes {
     private boolean compareCellImages(final Cell first,
         final Cell second) {
 
-        assert (first.image != null);
-        assert (second.image != null);
+        if (first.image == null || second.image == null) {
+            return false;
+        }
 
         int width = first.image.getWidth();
         int height = first.image.getHeight();
@@ -631,14 +631,8 @@ public class Cell extends CellAttributes {
             return false;
         }
 
-        assert (first != null);
-        assert (first.image != null);
-        assert (first.image.getWidth() == second.image.getWidth());
-        assert (first.image.getHeight() == second.image.getHeight());
         int [] firstRgbArray = first.image.getRGB(0, 0, width, height,
             null, 0, width);
-        assert (second != null);
-        assert (second.image != null);
         int [] secondRgbArray = second.image.getRGB(0, 0, width, height,
             null, 0, width);
 

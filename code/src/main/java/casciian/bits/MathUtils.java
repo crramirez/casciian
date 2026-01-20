@@ -15,7 +15,7 @@
 package casciian.bits;
 
 /**
- * MathUtils contains miscellaneous mathemathical computations.
+ * MathUtils contains miscellaneous mathematical computations.
  *
  * <p> The eigenvector functions are ultimately based on the public-domain
  * JAMA code.  These specific ones were made available by Connelly Barnes at:
@@ -51,9 +51,9 @@ public class MathUtils {
     /**
      * Symmetric Householder reduction to tridiagonal form.
      *
-     * @param V TODO: document this
-     * @param d TODO: document this
-     * @param e TODO: document this
+     * @param V input/output: eigenvectors matrix (modified in-place)
+     * @param d input/output: diagonal elements of the tridiagonal matrix (modified in-place)
+     * @param e output: off-diagonal elements of the tridiagonal matrix
      */
     private static void tred2(double V[][], double d[], double e[]) {
 
@@ -172,9 +172,9 @@ public class MathUtils {
     /**
      * Symmetric tridiagonal QL algorithm.
      *
-     * @param V TODO: document this
-     * @param d TODO: document this
-     * @param e TODO: document this
+     * @param V input/output: eigenvectors matrix (modified in-place)
+     * @param d input/output: diagonal elements of the tridiagonal matrix (modified in-place, becomes eigenvalues)
+     * @param e input: off-diagonal elements of the tridiagonal matrix
      */
     private static void tql2(double V[][], double d[], double e[]) {
 
