@@ -190,6 +190,24 @@ public class HQSixelEncoder implements SixelEncoder {
             }
 
             /**
+             * Compare only on color.
+             *
+             * @param obj the other object
+             * @return true if equal
+             */
+            @Override
+            public boolean equals(final Object obj) {
+                if (this == obj) {
+                    return true;
+                }
+                if (obj == null || getClass() != obj.getClass()) {
+                    return false;
+                }
+                ColorIdx other = (ColorIdx) obj;
+                return this.color == other.color;
+            }
+
+            /**
              * Generate a human-readable string for this entry.
              *
              * @return a human-readable string
@@ -407,9 +425,9 @@ public class HQSixelEncoder implements SixelEncoder {
                     int red   = (rgb >>> 16) & 0xFF;
                     int green = (rgb >>>  8) & 0xFF;
                     int blue  =  rgb         & 0xFF;
-                    totalRed   += color.count * red;
-                    totalGreen += color.count * green;
-                    totalBlue  += color.count * blue;
+                    totalRed   += (long) color.count * red;
+                    totalGreen += (long) color.count * green;
+                    totalBlue  += (long) color.count * blue;
                     count += color.count;
                 }
                 if (count == 0) {

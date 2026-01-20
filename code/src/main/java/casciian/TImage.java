@@ -199,7 +199,7 @@ public class TImage extends TWidget implements EditMenuUser {
      */
     @Override
     public void onCommand(final TCommandEvent command) {
-        if (command.equals(cmCopy)) {
+        if (command.getCmd() == cmCopy) {
             // Copy image to clipboard.
             //getClipboard().copyImage(image);
             return;

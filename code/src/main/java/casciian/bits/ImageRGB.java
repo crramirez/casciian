@@ -161,6 +161,13 @@ public class ImageRGB {
     public void alphaBlendOver(final ImageRGB image,
                                final double alpha) {
 
+        if (image == null) {
+            throw new IllegalArgumentException("Image to alpha-blend over cannot be null");
+        }
+        if (image.getWidth() != this.width || image.getHeight() != this.height) {
+            throw new IllegalArgumentException("Image dimensions must match for alpha blending");
+        }
+
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int underRGB = rgb[x][y];
@@ -191,15 +198,13 @@ public class ImageRGB {
      * @throws IllegalArgumentException if the specified dimensions are invalid or extend beyond the bounds of the image
      */
     public ImageRGB getSubimage(int x, int y, int w, int h) {
-        if (x < 0 || y < 0 || w <= 0 || h <= 0) {
+        if (x < 0 || y < 0 || w <= 0 || h <= 0 || x + w > width || y + h > height) {
             throw new IllegalArgumentException("Invalid subimage dimensions");
         }
         ImageRGB subimage = new ImageRGB(w, h);
         for (int row = 0; row < h; row++) {
             for (int col = 0; col < w; col++) {
-                if (x + col < width && y + row < height) {
-                    subimage.rgb[col][row] = this.rgb[x + col][y + row];
-                }
+                subimage.rgb[col][row] = this.rgb[x + col][y + row];
             }
         }
         return subimage;
