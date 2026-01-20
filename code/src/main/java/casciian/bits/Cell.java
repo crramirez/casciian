@@ -82,15 +82,6 @@ public class Cell extends CellAttributes {
     private int imageHashCode = 0;
 
     /**
-     * If this cell has image data, whether or not it also has transparent
-     * pixels.  -1 = no image data; 0 = unknown if transparent pixels are
-     * present; 1 = transparent pixels are present; 2 = transparent pixels
-     * are not present; 3 = the entire image is transparent; 4 = transparent
-     * pixels are present, but not all of the image.
-     */
-    private int hasTransparentPixels = -1;
-
-    /**
      * The image ID, a positive integer.  This is NOT like a the hashcode.
      * Instead is an ID assigned by the logical layer that created the image,
      * so that as this image cell is passed down to the user-facing screen it
@@ -166,7 +157,6 @@ public class Cell extends CellAttributes {
     public void setImage(final ImageRGB image) {
         this.image = image;
         imageHashCode = 0;
-        hasTransparentPixels = 0;
         width = Width.SINGLE;
         this.imageId = 0;
     }
@@ -270,86 +260,13 @@ public class Cell extends CellAttributes {
     }
 
     /**
-     * Flatten the image on this cell by rendering it either onto the
-     * background color, or generating the glyph and rendering over that.
-     *
-     * @param overGlyph if true, render over the glyph
-     * @param backend the backend that can obtain the correct background
-     * color
-     */
-    public void flattenImage(final boolean overGlyph, final Backend backend) {
-        if (!isImage()) {
-            return;
-        }
-
-        if (hasTransparentPixels == 2) {
-            // The image already covers the entire cell.
-            return;
-        }
-
-        // We will be opaque when done.
-        hasTransparentPixels = 2;
-    }
-
-    /**
-     * Flatten the image on this cell by rendering it onto a
-     * background color.
-     *
-     * @param background the background color to draw on
-     */
-    private void flattenImage(final int background) {
-        assert (isImage());
-
-        if (hasTransparentPixels == 2) {
-            // The image already covers the entire cell.
-            return;
-        }
-
-        // We know we are opaque now.
-        hasTransparentPixels = 2;
-    }
-
-    /**
      * If true, this cell has image data.
      *
      * @return true if this cell is an image rather than a character with
      * attributes
      */
     public boolean isImage() {
-        if (image != null) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * If true, this cell has image data and some of the pixels are
-     * transparent.
-     *
-     * @return true if this cell has image data with transparent pixels
-     */
-    public boolean isTransparentImage() {
-        return false;
-    }
-
-    /**
-     * If true, this cell has image data and all of its pixels are fully
-     * transparent (alpha of 0).
-     *
-     * @return true if this cell has image data with only transparent pixels
-     */
-    public boolean isFullyTransparentImage() {
-        return false;
-    }
-
-    /**
-     * Force calls to isTransparentImage() to always return false.
-     */
-    public void setOpaqueImage() {
-        if (image == null) {
-            hasTransparentPixels = -1;
-        }
-        hasTransparentPixels = 2;
+        return image != null;
     }
 
     /**
@@ -366,10 +283,7 @@ public class Cell extends CellAttributes {
      * attributes, and the data is inverted
      */
     public boolean isInvertedImage() {
-        if ((image != null) && (invertedImage != null)) {
-            return true;
-        }
-        return false;
+        return (image != null) && (invertedImage != null);
     }
 
     /**
@@ -416,13 +330,6 @@ public class Cell extends CellAttributes {
             return true;
         }
 
-        if ((hasTransparentPixels == 1)
-            || (hasTransparentPixels == 3)
-            || (hasTransparentPixels == 4)
-        ) {
-            return false;
-        }
-
         // Either all of the pixels are opaque (hasTransparentPixels == 2),
         // or the scan has never occurred (hasTransparentPixels == 0).  Scan
         // now.
@@ -430,27 +337,12 @@ public class Cell extends CellAttributes {
             image.getWidth(), image.getHeight(), null, 0, image.getWidth());
 
         if (rgbArray.length == 0) {
-            // No image data, fully transparent.
-            hasTransparentPixels = 3;
             return false;
         }
 
-        boolean allOpaque = true;
-        boolean allTransparent = true;
         int rgb = rgbArray[0];
-        for (int i = 0; i < rgbArray.length; i++) {
-            int alpha = (rgbArray[i] >>> 24) & 0xFF;
-            if ((alpha != 0xFF) && (alpha != 0x00)) {
-                // Some transparent pixels, but not fully transparent.
-                hasTransparentPixels = 4;
-                return false;
-            }
-            // This pixel is either fully opaque or fully transparent.
-            if (alpha == 0x00) {
-                return false;
-            }
-            assert (alpha == 0xFF);
-            if ((rgb & 0xFFFFFF) != (rgbArray[i] & 0xFFFFFF)) {
+        for (int j : rgbArray) {
+            if ((rgb & 0xFFFFFF) != (j & 0xFFFFFF)) {
                 return false;
             }
         }
@@ -562,7 +454,6 @@ public class Cell extends CellAttributes {
         imageHashCode = 0;
         invertedImage = null;
         imageId = 0;
-        hasTransparentPixels = -1;
     }
 
     /**
@@ -577,7 +468,6 @@ public class Cell extends CellAttributes {
         imageHashCode = 0;
         invertedImage = null;
         imageId = 0;
-        hasTransparentPixels = -1;
     }
 
     /**
@@ -815,12 +705,10 @@ public class Cell extends CellAttributes {
             this.invertedImage = that.invertedImage;
             this.imageHashCode = that.imageHashCode;
             this.imageId = that.imageId;
-            this.hasTransparentPixels = that.hasTransparentPixels;
         } else {
             this.image = null;
             this.imageHashCode = 0;
             this.imageId = 0;
-            this.hasTransparentPixels = -1;
             this.width = Width.SINGLE;
         }
     }
@@ -834,7 +722,6 @@ public class Cell extends CellAttributes {
         image = null;
         imageHashCode = 0;
         imageId = 0;
-        hasTransparentPixels = -1;
         super.setTo(that);
     }
 
@@ -849,7 +736,6 @@ public class Cell extends CellAttributes {
             image = null;
             imageHashCode = 0;
             imageId = 0;
-            hasTransparentPixels = -1;
         }
         super.setTo(that);
     }

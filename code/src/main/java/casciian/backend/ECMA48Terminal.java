@@ -14,7 +14,6 @@
  */
 package casciian.backend;
 
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -39,14 +38,12 @@ import casciian.bits.CellAttributes;
 import casciian.bits.Color;
 import casciian.bits.ComplexCell;
 import casciian.bits.ImageRGB;
-import casciian.bits.ImageUtils;
 import casciian.bits.StringUtils;
 import casciian.event.TCommandEvent;
 import casciian.event.TInputEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
-import org.jline.utils.NonBlockingReader;
 
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
@@ -56,7 +53,7 @@ import static casciian.TKeypress.*;
  * X3.64 / ECMA-48 type terminals e.g. xterm, linux, vt100, ansi.sys, etc.
  */
 public class ECMA48Terminal extends LogicalScreen
-                            implements TerminalReader, Runnable {
+    implements TerminalReader, Runnable {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
@@ -515,7 +512,7 @@ public class ECMA48Terminal extends LogicalScreen
             /**
              * Public constructor.
              *
-             * @param key the cache entry key
+             * @param key  the cache entry key
              * @param data the cache entry data
              */
             public CacheEntry(final String key, final String data) {
@@ -543,7 +540,7 @@ public class ECMA48Terminal extends LogicalScreen
          */
         private String makeKey(final ArrayList<Cell> cells) {
             StringBuilder sb = new StringBuilder();
-            for (Cell cell: cells) {
+            for (Cell cell : cells) {
                 sb.append(cell.hashCode());
             }
             // System.err.println("key: " + sb.toString());
@@ -570,7 +567,7 @@ public class ECMA48Terminal extends LogicalScreen
          * Put an entry into the cache.
          *
          * @param cells the list of cells that are the cache key
-         * @param data the image string representing these cells
+         * @param data  the image string representing these cells
          */
         public synchronized void put(final ArrayList<Cell> cells,
                                      final String data) {
@@ -586,7 +583,7 @@ public class ECMA48Terminal extends LogicalScreen
                 // Cache is at limit, evict oldest entry.
                 long oldestTime = Long.MAX_VALUE;
                 String keyToRemove = null;
-                for (CacheEntry entry: cache.values()) {
+                for (CacheEntry entry : cache.values()) {
                     if ((entry.millis < oldestTime) || (keyToRemove == null)) {
                         keyToRemove = entry.key;
                         oldestTime = entry.millis;
@@ -638,27 +635,27 @@ public class ECMA48Terminal extends LogicalScreen
      * Constructor sets up state for getEvent().  If either windowWidth or
      * windowHeight are less than 1, the terminal is not resized.
      *
-     * @param backend the backend that will read from this terminal
-     * @param listener the object this backend needs to wake up when new
-     * input comes in
-     * @param input an InputStream connected to the remote user, or null for
-     * System.in.  If System.in is used, then on non-Windows systems it will
-     * be put in raw mode; closeTerminal() will (blindly!) put System.in in
-     * cooked mode.  input is always converted to a Reader with UTF-8
-     * encoding.
-     * @param output an OutputStream connected to the remote user, or null
-     * for System.out.  output is always converted to a Writer with UTF-8
-     * encoding.
-     * @param windowWidth the number of text columns to start with
+     * @param backend      the backend that will read from this terminal
+     * @param listener     the object this backend needs to wake up when new
+     *                     input comes in
+     * @param input        an InputStream connected to the remote user, or null for
+     *                     System.in.  If System.in is used, then on non-Windows systems it will
+     *                     be put in raw mode; closeTerminal() will (blindly!) put System.in in
+     *                     cooked mode.  input is always converted to a Reader with UTF-8
+     *                     encoding.
+     * @param output       an OutputStream connected to the remote user, or null
+     *                     for System.out.  output is always converted to a Writer with UTF-8
+     *                     encoding.
+     * @param windowWidth  the number of text columns to start with
      * @param windowHeight the number of text rows to start with
      * @throws UnsupportedEncodingException if an exception is thrown when
-     * creating the InputStreamReader
+     *                                      creating the InputStreamReader
      */
     @SuppressWarnings("this-escape")
     public ECMA48Terminal(final Backend backend, final Object listener,
-        final InputStream input, final OutputStream output,
-        final int windowWidth,
-        final int windowHeight) throws UnsupportedEncodingException {
+                          final InputStream input, final OutputStream output,
+                          final int windowWidth,
+                          final int windowHeight) throws UnsupportedEncodingException {
 
         this(backend, listener, input, output);
 
@@ -680,33 +677,33 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Constructor sets up state for getEvent().
      *
-     * @param backend the backend that will read from this terminal
+     * @param backend  the backend that will read from this terminal
      * @param listener the object this backend needs to wake up when new
-     * input comes in
-     * @param input an InputStream connected to the remote user, or null for
-     * System.in.  If System.in is used, then on non-Windows systems it will
-     * be put in raw mode; closeTerminal() will (blindly!) put System.in in
-     * cooked mode.  input is always converted to a Reader with UTF-8
-     * encoding.
-     * @param output an OutputStream connected to the remote user, or null
-     * for System.out.  output is always converted to a Writer with UTF-8
-     * encoding.
+     *                 input comes in
+     * @param input    an InputStream connected to the remote user, or null for
+     *                 System.in.  If System.in is used, then on non-Windows systems it will
+     *                 be put in raw mode; closeTerminal() will (blindly!) put System.in in
+     *                 cooked mode.  input is always converted to a Reader with UTF-8
+     *                 encoding.
+     * @param output   an OutputStream connected to the remote user, or null
+     *                 for System.out.  output is always converted to a Writer with UTF-8
+     *                 encoding.
      * @throws UnsupportedEncodingException if an exception is thrown when
-     * creating the InputStreamReader
+     *                                      creating the InputStreamReader
      */
     @SuppressWarnings("this-escape")
     public ECMA48Terminal(final Backend backend, final Object listener,
-        final InputStream input,
-        final OutputStream output) throws UnsupportedEncodingException {
+                          final InputStream input,
+                          final OutputStream output) throws UnsupportedEncodingException {
 
-        this.backend     = backend;
+        this.backend = backend;
 
         resetParser();
-        mouse1           = false;
-        mouse2           = false;
-        mouse3           = false;
+        mouse1 = false;
+        mouse2 = false;
+        mouse3 = false;
         stopReaderThread = false;
-        this.listener    = listener;
+        this.listener = listener;
 
         // Always create a terminal instance - it manages streams and features
         terminal = TerminalFactory.create(input, output, debugToStderr);
@@ -802,22 +799,22 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Constructor sets up state for getEvent().
      *
-     * @param backend the backend that will read from this terminal
-     * @param listener the object this backend needs to wake up when new
-     * input comes in
-     * @param input the InputStream underlying 'reader'.  Its available()
-     * method is used to determine if reader.read() will block or not.
-     * @param reader a Reader connected to the remote user.
-     * @param writer a PrintWriter connected to the remote user.
+     * @param backend    the backend that will read from this terminal
+     * @param listener   the object this backend needs to wake up when new
+     *                   input comes in
+     * @param input      the InputStream underlying 'reader'.  Its available()
+     *                   method is used to determine if reader.read() will block or not.
+     * @param reader     a Reader connected to the remote user.
+     * @param writer     a PrintWriter connected to the remote user.
      * @param setRawMode if true, set System.in into raw mode with stty.
-     * This should in general not be used.  It is here solely for Demo3,
-     * which uses System.in.
+     *                   This should in general not be used.  It is here solely for Demo3,
+     *                   which uses System.in.
      * @throws IllegalArgumentException if input, reader, or writer are null.
      */
     @SuppressWarnings("this-escape")
     public ECMA48Terminal(final Backend backend, final Object listener,
-        final InputStream input, final Reader reader, final PrintWriter writer,
-        final boolean setRawMode) {
+                          final InputStream input, final Reader reader, final PrintWriter writer,
+                          final boolean setRawMode) {
 
         if (input == null) {
             throw new IllegalArgumentException("InputStream must be specified");
@@ -829,15 +826,15 @@ public class ECMA48Terminal extends LogicalScreen
             throw new IllegalArgumentException("Writer must be specified");
         }
 
-        this.backend     = backend;
+        this.backend = backend;
 
         resetParser();
 
-        mouse1           = false;
-        mouse2           = false;
-        mouse3           = false;
+        mouse1 = false;
+        mouse2 = false;
+        mouse3 = false;
         stopReaderThread = false;
-        this.listener    = listener;
+        this.listener = listener;
 
         // Create a terminal instance with the pre-wired streams
         // This allows future delegation of terminal features
@@ -927,18 +924,18 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Constructor sets up state for getEvent().
      *
-     * @param backend the backend that will read from this terminal
+     * @param backend  the backend that will read from this terminal
      * @param listener the object this backend needs to wake up when new
-     * input comes in
-     * @param input the InputStream underlying 'reader'.  Its available()
-     * method is used to determine if reader.read() will block or not.
-     * @param reader a Reader connected to the remote user.
-     * @param writer a PrintWriter connected to the remote user.
+     *                 input comes in
+     * @param input    the InputStream underlying 'reader'.  Its available()
+     *                 method is used to determine if reader.read() will block or not.
+     * @param reader   a Reader connected to the remote user.
+     * @param writer   a PrintWriter connected to the remote user.
      * @throws IllegalArgumentException if input, reader, or writer are null.
      */
     public ECMA48Terminal(final Backend backend, final Object listener,
-        final InputStream input, final Reader reader,
-        final PrintWriter writer) {
+                          final InputStream input, final Reader reader,
+                          final PrintWriter writer) {
 
         this(backend, listener, input, reader, writer, false);
     }
@@ -1168,7 +1165,7 @@ public class ECMA48Terminal extends LogicalScreen
      * Set listener to a different Object.
      *
      * @param listener the new listening object that run() wakes up on new
-     * input
+     *                 input
      */
     public void setListener(final Object listener) {
         this.listener = listener;
@@ -1184,7 +1181,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Permit RGB colors only if externally requested.
         if (System.getProperty("casciian.ECMA48.modifyOtherKeys",
-                "false").equals("true")) {
+            "false").equals("true")) {
 
             modifyOtherKeys = true;
         } else {
@@ -1193,7 +1190,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Permit RGB colors only if externally requested.
         if (System.getProperty("casciian.ECMA48.rgbColor",
-                "false").equals("true")
+            "false").equals("true")
         ) {
             doRgbColor = true;
         } else {
@@ -1208,9 +1205,9 @@ public class ECMA48Terminal extends LogicalScreen
         }
         // Default to HQ quantizer.
         sixelEncoder = new HQSixelEncoder();
-        
+
         if (System.getProperty("casciian.ECMA48.sixelFastAndDirty",
-                "false").equals("true")
+            "false").equals("true")
         ) {
             sixelFastAndDirty = true;
         } else {
@@ -1309,7 +1306,7 @@ public class ECMA48Terminal extends LogicalScreen
         boolean done = false;
         // available() will often return > 1, so we need to read in chunks to
         // stay caught up.
-        char [] readBuffer = new char[128];
+        char[] readBuffer = new char[128];
         List<TInputEvent> events = new ArrayList<TInputEvent>();
 
         //boolean debugToStderr = true;
@@ -1374,7 +1371,7 @@ public class ECMA48Terminal extends LogicalScreen
                         }
                         for (int i = 0; i < rc; i++) {
                             int ch = readBuffer[i];
-                            processChar(events, (char)ch);
+                            processChar(events, (char) ch);
                         }
                         getIdleEvents(events);
                         if (events.size() > 0) {
@@ -1501,7 +1498,7 @@ public class ECMA48Terminal extends LogicalScreen
      * visible to invisible.
      *
      * @param millis the number of milliseconds to wait before switching the
-     * blink from visible to invisible
+     *               blink from visible to invisible
      */
     public void setBlinkMillis(final long millis) {
         blinkMillis = millis;
@@ -1617,12 +1614,12 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Perform a somewhat-optimal rendering of a line.
      *
-     * @param y row coordinate.  0 is the top-most row.
-     * @param sb StringBuilder to write escape sequences to
+     * @param y        row coordinate.  0 is the top-most row.
+     * @param sb       StringBuilder to write escape sequences to
      * @param lastAttr cell attributes from the last call to flushLine
      */
     private void flushLine(final int y, final StringBuilder sb,
-        CellAttributes lastAttr) {
+                           CellAttributes lastAttr) {
 
         int lastX = -1;
         int textEnd = 0;
@@ -1653,23 +1650,23 @@ public class ECMA48Terminal extends LogicalScreen
 
             if (lCell.isBlink()) {
                 switch (textBlinkOption) {
-                case OFF:
-                    lCell = new ComplexCell(logical[x][y]);
-                    lCell.setBlink(false);
-                    break;
+                    case OFF:
+                        lCell = new ComplexCell(logical[x][y]);
+                        lCell.setBlink(false);
+                        break;
 
-                case SOFT:
-                    lCell = new ComplexCell(logical[x][y]);
-                    lCell.setBlink(false);
-                    if (!textBlinkVisible) {
-                        lCell.setDimmedForeColor(backend, blinkDimPercent);
-                    }
-                    break;
+                    case SOFT:
+                        lCell = new ComplexCell(logical[x][y]);
+                        lCell.setBlink(false);
+                        if (!textBlinkVisible) {
+                            lCell.setDimmedForeColor(backend, blinkDimPercent);
+                        }
+                        break;
 
-                case AUTO:
-                    // Fall through...
-                case HARD:
-                    break;
+                    case AUTO:
+                        // Fall through...
+                    case HARD:
+                        break;
                 }
             }
 
@@ -1799,9 +1796,9 @@ public class ECMA48Terminal extends LogicalScreen
                 }
                 if (doForeColorRGB
                     || ((lCell.getForeColorRGB() >= 0)
-                        && !lCell.isDefaultColor(true)
-                        && ((lCell.getForeColorRGB() != lastAttr.getForeColorRGB())
-                            || (lastAttr.getForeColorRGB() < 0)))
+                    && !lCell.isDefaultColor(true)
+                    && ((lCell.getForeColorRGB() != lastAttr.getForeColorRGB())
+                    || (lastAttr.getForeColorRGB() < 0)))
                 ) {
                     if (debugToStderr && reallyDebug) {
                         System.err.println("3a set foreColorRGB");
@@ -1817,9 +1814,9 @@ public class ECMA48Terminal extends LogicalScreen
                 } else {
                     if ((lCell.getForeColorRGB() < 0)
                         && ((lastAttr.getForeColorRGB() >= 0)
-                            || !lCell.getForeColor().equals(lastAttr.getForeColor())
-                            || lastAttr.isDefaultColor(true)
-                            || lCell.isBold() != lastAttr.isBold())
+                        || !lCell.getForeColor().equals(lastAttr.getForeColor())
+                        || lastAttr.isDefaultColor(true)
+                        || lCell.isBold() != lastAttr.isBold())
                     ) {
                         if (debugToStderr && reallyDebug) {
                             System.err.println("4 set foreColor");
@@ -1832,7 +1829,7 @@ public class ECMA48Terminal extends LogicalScreen
                 if ((lCell.getBackColorRGB() >= 0)
                     && !lCell.isDefaultColor(false)
                     && ((lCell.getBackColorRGB() != lastAttr.getBackColorRGB())
-                        || (lastAttr.getBackColorRGB() < 0))
+                    || (lastAttr.getBackColorRGB() < 0))
                 ) {
                     //noinspection ConstantValue
                     if (debugToStderr && reallyDebug) {
@@ -1850,8 +1847,8 @@ public class ECMA48Terminal extends LogicalScreen
                 } else {
                     if ((lCell.getBackColorRGB() < 0)
                         && ((lastAttr.getBackColorRGB() >= 0)
-                            || !lCell.getBackColor().equals(lastAttr.getBackColor())
-                            || lastAttr.isDefaultColor(false))
+                        || !lCell.getBackColor().equals(lastAttr.getBackColor())
+                        || lastAttr.isDefaultColor(false))
                     ) {
                         if (debugToStderr && reallyDebug) {
                             System.err.println("6 set backColor");
@@ -1949,8 +1946,6 @@ public class ECMA48Terminal extends LogicalScreen
                 }
                 if (jexerImageOption != JexerImageOption.DISABLED) {
                     sb.append(toJexerImage(0, y, blankImageRow));
-                } else if (iterm2Images) {
-                    sb.append(toIterm2Image(0, y, blankImageRow));
                 } else {
                     sb.append(toSixel(0, y, blankImageRow));
                 }
@@ -1988,24 +1983,19 @@ public class ECMA48Terminal extends LogicalScreen
                 while ((right < width)
                     && (logical[right][y].isImage())
                     && (!logical[right][y].equals(physical[right][y])
-                        || reallyCleared)
+                    || reallyCleared)
                 ) {
                     right++;
                 }
 
                 ArrayList<Cell> cellsToDraw = new ArrayList<Cell>();
                 for (int i = 0; i < (right - x); i++) {
-                    assert (logical[x + i][y].isImage());
-                    ImageRGB newImage;
-                    ImageRGB textImage;
-
-                    assert (!logical[x + i][y].isTransparentImage());
                     cellsToDraw.add(logical[x + i][y]);
 
                     // Physical is always updated.
                     physical[x + i][y].setTo(logical[x + i][y]);
                 }
-                if (cellsToDraw.size() > 0) {
+                if (!cellsToDraw.isEmpty()) {
                     if (debugToStderr && reallyDebug) {
                         System.err.println("images to render: iTerm2: " +
                             iterm2Images + " Jexer: " + jexerImageOption);
@@ -2019,7 +2009,7 @@ public class ECMA48Terminal extends LogicalScreen
                         if (jexerCache == null) {
                             jexerCache = new ImageCache(height * width * 10);
                         }
-                    } else if (sixel == true) {
+                    } else if (sixel) {
                         if (sixelCache == null) {
                             sixelCache = new ImageCache(height * width * 10);
                         }
@@ -2031,11 +2021,9 @@ public class ECMA48Terminal extends LogicalScreen
 
                     if (imageThreadCount == 1) {
                         // Single-threaded
-                        if (iterm2Images) {
-                            sb.append(toIterm2Image(x, y, cellsToDraw));
-                        } else if (jexerImageOption != JexerImageOption.DISABLED) {
+                        if (jexerImageOption != JexerImageOption.DISABLED) {
                             sb.append(toJexerImage(x, y, cellsToDraw));
-                        } else if (sixel == true) {
+                        } else if (sixel) {
                             sb.append(toSixel(x, y, cellsToDraw));
                         }
                     } else {
@@ -2049,9 +2037,7 @@ public class ECMA48Terminal extends LogicalScreen
                         imageResults.add(imageExecutor.submit(new Callable<String>() {
                             @Override
                             public String call() {
-                                if (iterm2Images) {
-                                    return toIterm2Image(callX, callY, callCells);
-                                } else if (jexerImageOption != JexerImageOption.DISABLED) {
+                                if (jexerImageOption != JexerImageOption.DISABLED) {
                                     return toJexerImage(callX, callY, callCells);
                                 } else {
                                     return toSixel(callX, callY, callCells);
@@ -2084,7 +2070,7 @@ public class ECMA48Terminal extends LogicalScreen
             imageExecutor.shutdown();
 
             Collections.sort(threadedImages);
-            for (String imageString: threadedImages) {
+            for (String imageString : threadedImages) {
                 sb.append(imageString);
             }
         }
@@ -2116,7 +2102,7 @@ public class ECMA48Terminal extends LogicalScreen
      * Set the mouse pointer (cursor) style.
      *
      * @param mouseStyle the pointer style string, one of: "default", "none",
-     * "hand", "text", "move", or "crosshair"
+     *                   "hand", "text", "move", or "crosshair"
      */
     public void setMouseStyle(final String mouseStyle) {
         // TODO: For now disregard this.  OSC 22 came out with XTerm 367
@@ -2143,7 +2129,7 @@ public class ECMA48Terminal extends LogicalScreen
      * Produce a control character or one of the special ones (ENTER, TAB,
      * etc.).
      *
-     * @param ch Unicode code point
+     * @param ch  Unicode code point
      * @param alt if true, set alt on the TKeypress
      * @return one TKeypress event, either a control character (e.g. isKey ==
      * false, ch == 'A', ctrl == true), or a special key (e.g. isKey == true,
@@ -2153,24 +2139,24 @@ public class ECMA48Terminal extends LogicalScreen
         // System.err.printf("controlChar: %02x\n", ch);
 
         switch (ch) {
-        case 0x0D:
-            // Carriage return --> ENTER
-            return new TKeypressEvent(backend, kbEnter, alt, false, false);
-        case 0x0A:
-            // Linefeed --> ENTER
-            return new TKeypressEvent(backend, kbEnter, alt, false, false);
-        case 0x1B:
-            // ESC
-            return new TKeypressEvent(backend, kbEsc, alt, false, false);
-        case '\t':
-            // TAB
-            return new TKeypressEvent(backend, kbTab, alt, false, false);
-        default:
-            // Make all other control characters come back as the alphabetic
-            // character with the ctrl field set.  So SOH would be 'A' +
-            // ctrl.
-            return new TKeypressEvent(backend, false, 0, (char)(ch + 0x40),
-                alt, true, false);
+            case 0x0D:
+                // Carriage return --> ENTER
+                return new TKeypressEvent(backend, kbEnter, alt, false, false);
+            case 0x0A:
+                // Linefeed --> ENTER
+                return new TKeypressEvent(backend, kbEnter, alt, false, false);
+            case 0x1B:
+                // ESC
+                return new TKeypressEvent(backend, kbEsc, alt, false, false);
+            case '\t':
+                // TAB
+                return new TKeypressEvent(backend, kbTab, alt, false, false);
+            default:
+                // Make all other control characters come back as the alphabetic
+                // character with the ctrl field set.  So SOH would be 'A' +
+                // ctrl.
+                return new TKeypressEvent(backend, false, 0, (char) (ch + 0x40),
+                    alt, true, false);
         }
     }
 
@@ -2179,34 +2165,34 @@ public class ECMA48Terminal extends LogicalScreen
      * between CSI (ESC [) and SS3 (ESC O) arrow key sequences.
      *
      * @param events the list to add events to
-     * @param ch the character identifying the arrow key ('A'=Up, 'B'=Down, 'C'=Right, 'D'=Left)
-     * @param alt true if Alt was pressed
-     * @param ctrl true if Ctrl was pressed
-     * @param shift true if Shift was pressed
+     * @param ch     the character identifying the arrow key ('A'=Up, 'B'=Down, 'C'=Right, 'D'=Left)
+     * @param alt    true if Alt was pressed
+     * @param ctrl   true if Ctrl was pressed
+     * @param shift  true if Shift was pressed
      * @return true if the character was an arrow key, false otherwise
      */
     private boolean handleArrowKey(final List<TInputEvent> events, final int ch,
-        final boolean alt, final boolean ctrl, final boolean shift) {
+                                   final boolean alt, final boolean ctrl, final boolean shift) {
 
         switch (ch) {
-        case 'A':
-            // Up
-            events.add(new TKeypressEvent(backend, kbUp, alt, ctrl, shift));
-            return true;
-        case 'B':
-            // Down
-            events.add(new TKeypressEvent(backend, kbDown, alt, ctrl, shift));
-            return true;
-        case 'C':
-            // Right
-            events.add(new TKeypressEvent(backend, kbRight, alt, ctrl, shift));
-            return true;
-        case 'D':
-            // Left
-            events.add(new TKeypressEvent(backend, kbLeft, alt, ctrl, shift));
-            return true;
-        default:
-            return false;
+            case 'A':
+                // Up
+                events.add(new TKeypressEvent(backend, kbUp, alt, ctrl, shift));
+                return true;
+            case 'B':
+                // Down
+                events.add(new TKeypressEvent(backend, kbDown, alt, ctrl, shift));
+                return true;
+            case 'C':
+                // Right
+                events.add(new TKeypressEvent(backend, kbRight, alt, ctrl, shift));
+                return true;
+            case 'D':
+                // Left
+                events.add(new TKeypressEvent(backend, kbLeft, alt, ctrl, shift));
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -2235,65 +2221,65 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         switch (key) {
-        case 1:
-            return new TKeypressEvent(backend, kbHome, alt, ctrl, shift);
-        case 2:
-            return new TKeypressEvent(backend, kbIns, alt, ctrl, shift);
-        case 3:
-            return new TKeypressEvent(backend, kbDel, alt, ctrl, shift);
-        case 4:
-            return new TKeypressEvent(backend, kbEnd, alt, ctrl, shift);
-        case 5:
-            return new TKeypressEvent(backend, kbPgUp, alt, ctrl, shift);
-        case 6:
-            return new TKeypressEvent(backend, kbPgDn, alt, ctrl, shift);
-        case 15:
-            return new TKeypressEvent(backend, kbF5, alt, ctrl, shift);
-        case 17:
-            return new TKeypressEvent(backend, kbF6, alt, ctrl, shift);
-        case 18:
-            return new TKeypressEvent(backend, kbF7, alt, ctrl, shift);
-        case 19:
-            return new TKeypressEvent(backend, kbF8, alt, ctrl, shift);
-        case 20:
-            return new TKeypressEvent(backend, kbF9, alt, ctrl, shift);
-        case 21:
-            return new TKeypressEvent(backend, kbF10, alt, ctrl, shift);
-        case 23:
-            return new TKeypressEvent(backend, kbF11, alt, ctrl, shift);
-        case 24:
-            return new TKeypressEvent(backend, kbF12, alt, ctrl, shift);
+            case 1:
+                return new TKeypressEvent(backend, kbHome, alt, ctrl, shift);
+            case 2:
+                return new TKeypressEvent(backend, kbIns, alt, ctrl, shift);
+            case 3:
+                return new TKeypressEvent(backend, kbDel, alt, ctrl, shift);
+            case 4:
+                return new TKeypressEvent(backend, kbEnd, alt, ctrl, shift);
+            case 5:
+                return new TKeypressEvent(backend, kbPgUp, alt, ctrl, shift);
+            case 6:
+                return new TKeypressEvent(backend, kbPgDn, alt, ctrl, shift);
+            case 15:
+                return new TKeypressEvent(backend, kbF5, alt, ctrl, shift);
+            case 17:
+                return new TKeypressEvent(backend, kbF6, alt, ctrl, shift);
+            case 18:
+                return new TKeypressEvent(backend, kbF7, alt, ctrl, shift);
+            case 19:
+                return new TKeypressEvent(backend, kbF8, alt, ctrl, shift);
+            case 20:
+                return new TKeypressEvent(backend, kbF9, alt, ctrl, shift);
+            case 21:
+                return new TKeypressEvent(backend, kbF10, alt, ctrl, shift);
+            case 23:
+                return new TKeypressEvent(backend, kbF11, alt, ctrl, shift);
+            case 24:
+                return new TKeypressEvent(backend, kbF12, alt, ctrl, shift);
 
-        case 27:
-            // modifyOtherKeys sequence
-            switch (otherKey) {
-            case 8:
-                return new TKeypressEvent(backend, kbBackspace, alt, ctrl, shift);
-            case 9:
-                return new TKeypressEvent(backend, kbTab, alt, ctrl, shift);
-            case 13:
-                return new TKeypressEvent(backend, kbEnter, alt, ctrl, shift);
             case 27:
-                return new TKeypressEvent(backend, kbEsc, alt, ctrl, shift);
+                // modifyOtherKeys sequence
+                switch (otherKey) {
+                    case 8:
+                        return new TKeypressEvent(backend, kbBackspace, alt, ctrl, shift);
+                    case 9:
+                        return new TKeypressEvent(backend, kbTab, alt, ctrl, shift);
+                    case 13:
+                        return new TKeypressEvent(backend, kbEnter, alt, ctrl, shift);
+                    case 27:
+                        return new TKeypressEvent(backend, kbEsc, alt, ctrl, shift);
+                    default:
+                        if (otherKey < 32) {
+                            break;
+                        }
+                        if ((otherKey >= 'a') && (otherKey <= 'z') && ctrl) {
+                            // Turn Ctrl-lowercase into Ctrl-uppercase
+                            return new TKeypressEvent(backend, false, 0, (otherKey - 32),
+                                alt, ctrl, shift);
+                        }
+                        return new TKeypressEvent(backend, false, 0, otherKey,
+                            alt, ctrl, shift);
+                }
+
+                // Unsupported other key
+                return null;
+
             default:
-                if (otherKey < 32) {
-                    break;
-                }
-                if ((otherKey >= 'a') && (otherKey <= 'z') && ctrl) {
-                    // Turn Ctrl-lowercase into Ctrl-uppercase
-                    return new TKeypressEvent(backend, false, 0, (otherKey - 32),
-                        alt, ctrl, shift);
-                }
-                return new TKeypressEvent(backend, false, 0, otherKey,
-                    alt, ctrl, shift);
-            }
-
-            // Unsupported other key
-            return null;
-
-        default:
-            // Unknown
-            return null;
+                // Unknown
+                return null;
         }
     }
 
@@ -2333,98 +2319,98 @@ public class ECMA48Terminal extends LogicalScreen
         // System.err.printf("buttons: %04x\r\n", buttons);
 
         switch (buttons & 0xE3) {
-        case 0:
-            eventMouse1 = true;
-            // X10 mouse protocol doesn't send the motion bit (32) during drag operations.
-            // If mouse1 is already tracked as pressed, treat this as motion instead of
-            // a new press event. This also fixes JLine on Windows.
-            if (mouse1) {
-                eventType = TMouseEvent.Type.MOUSE_MOTION;
-            } else {
-                mouse1 = true;
-            }
-            break;
-        case 1:
-            eventMouse2 = true;
-            // Same fix for mouse2 dragging
-            if (mouse2) {
-                eventType = TMouseEvent.Type.MOUSE_MOTION;
-            } else {
-                mouse2 = true;
-            }
-            break;
-        case 2:
-            eventMouse3 = true;
-            // Same fix for mouse3 dragging
-            if (mouse3) {
-                eventType = TMouseEvent.Type.MOUSE_MOTION;
-            } else {
-                mouse3 = true;
-            }
-            break;
-        case 3:
-            // Release or Move
-            if (!mouse1 && !mouse2 && !mouse3) {
-                eventType = TMouseEvent.Type.MOUSE_MOTION;
-            } else {
-                eventType = TMouseEvent.Type.MOUSE_UP;
-            }
-            if (mouse1) {
-                mouse1 = false;
+            case 0:
                 eventMouse1 = true;
-            }
-            if (mouse2) {
-                mouse2 = false;
+                // X10 mouse protocol doesn't send the motion bit (32) during drag operations.
+                // If mouse1 is already tracked as pressed, treat this as motion instead of
+                // a new press event. This also fixes JLine on Windows.
+                if (mouse1) {
+                    eventType = TMouseEvent.Type.MOUSE_MOTION;
+                } else {
+                    mouse1 = true;
+                }
+                break;
+            case 1:
                 eventMouse2 = true;
-            }
-            if (mouse3) {
-                mouse3 = false;
+                // Same fix for mouse2 dragging
+                if (mouse2) {
+                    eventType = TMouseEvent.Type.MOUSE_MOTION;
+                } else {
+                    mouse2 = true;
+                }
+                break;
+            case 2:
                 eventMouse3 = true;
-            }
-            break;
+                // Same fix for mouse3 dragging
+                if (mouse3) {
+                    eventType = TMouseEvent.Type.MOUSE_MOTION;
+                } else {
+                    mouse3 = true;
+                }
+                break;
+            case 3:
+                // Release or Move
+                if (!mouse1 && !mouse2 && !mouse3) {
+                    eventType = TMouseEvent.Type.MOUSE_MOTION;
+                } else {
+                    eventType = TMouseEvent.Type.MOUSE_UP;
+                }
+                if (mouse1) {
+                    mouse1 = false;
+                    eventMouse1 = true;
+                }
+                if (mouse2) {
+                    mouse2 = false;
+                    eventMouse2 = true;
+                }
+                if (mouse3) {
+                    mouse3 = false;
+                    eventMouse3 = true;
+                }
+                break;
 
-        case 32:
-            // Dragging with mouse1 down
-            eventMouse1 = true;
-            mouse1 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
+            case 32:
+                // Dragging with mouse1 down
+                eventMouse1 = true;
+                mouse1 = true;
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+                break;
 
-        case 33, // Dragging with mouse2 down
-             96, // Dragging with mouse2 down after wheelUp
-             97: // Dragging with mouse2 down after wheelDown
-            eventMouse2 = true;
-            mouse2 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
+            case 33, // Dragging with mouse2 down
+                 96, // Dragging with mouse2 down after wheelUp
+                 97: // Dragging with mouse2 down after wheelDown
+                eventMouse2 = true;
+                mouse2 = true;
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+                break;
 
-        case 34:
-            // Dragging with mouse3 down
-            eventMouse3 = true;
-            mouse3 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
+            case 34:
+                // Dragging with mouse3 down
+                eventMouse3 = true;
+                mouse3 = true;
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+                break;
 
-        case 64:
-            eventMouseWheelUp = true;
-            break;
+            case 64:
+                eventMouseWheelUp = true;
+                break;
 
-        case 65:
-            eventMouseWheelDown = true;
-            break;
+            case 65:
+                eventMouseWheelDown = true;
+                break;
 
-        case 66:
-            eventMouseWheelRight = true;
-            break;
+            case 66:
+                eventMouseWheelRight = true;
+                break;
 
-        case 67:
-            eventMouseWheelLeft = true;
-            break;
+            case 67:
+                eventMouseWheelLeft = true;
+                break;
 
-        default:
-            // Unknown, just make it motion
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
+            default:
+                // Unknown, just make it motion
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+                break;
         }
 
         if ((buttons & 0x04) != 0) {
@@ -2497,58 +2483,58 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         switch (buttons & 0xE3) {
-        case 0:
-            eventMouse1 = true;
-            break;
-        case 1:
-            eventMouse2 = true;
-            break;
-        case 2:
-            eventMouse3 = true;
-            break;
-        case 35:
-            // Motion only, no buttons down
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
+            case 0:
+                eventMouse1 = true;
+                break;
+            case 1:
+                eventMouse2 = true;
+                break;
+            case 2:
+                eventMouse3 = true;
+                break;
+            case 35:
+                // Motion only, no buttons down
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+                break;
 
-        case 32:
-            // Dragging with mouse1 down
-            eventMouse1 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
+            case 32:
+                // Dragging with mouse1 down
+                eventMouse1 = true;
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+                break;
 
-        case 33, // Dragging with mouse2 down
-             96, // Dragging with mouse2 down after wheelUp
-             97: // Dragging with mouse2 down after wheelDown
-            eventMouse2 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
+            case 33, // Dragging with mouse2 down
+                 96, // Dragging with mouse2 down after wheelUp
+                 97: // Dragging with mouse2 down after wheelDown
+                eventMouse2 = true;
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+                break;
 
-        case 34:
-            // Dragging with mouse3 down
-            eventMouse3 = true;
-            eventType = TMouseEvent.Type.MOUSE_MOTION;
-            break;
+            case 34:
+                // Dragging with mouse3 down
+                eventMouse3 = true;
+                eventType = TMouseEvent.Type.MOUSE_MOTION;
+                break;
 
-        case 64:
-            eventMouseWheelUp = true;
-            break;
+            case 64:
+                eventMouseWheelUp = true;
+                break;
 
-        case 65:
-            eventMouseWheelDown = true;
-            break;
+            case 65:
+                eventMouseWheelDown = true;
+                break;
 
-        case 66:
-            eventMouseWheelRight = true;
-            break;
+            case 66:
+                eventMouseWheelRight = true;
+                break;
 
-        case 67:
-            eventMouseWheelLeft = true;
-            break;
+            case 67:
+                eventMouseWheelLeft = true;
+                break;
 
-        default:
-            // Unknown, bail out
-            return null;
+            default:
+                // Unknown, bail out
+                return null;
         }
 
         if ((buttons & 0x04) != 0) {
@@ -2639,7 +2625,7 @@ public class ECMA48Terminal extends LogicalScreen
             long escDelay = nowTime - escapeTime;
             if (escDelay > 100) {
                 // After 0.1 seconds, assume a true escape character
-                queue.add(controlChar((char)0x1B, false));
+                queue.add(controlChar((char) 0x1B, false));
                 resetParser();
             }
         }
@@ -2780,7 +2766,7 @@ public class ECMA48Terminal extends LogicalScreen
             System.err.println("oscResponse(): '" + text + "'");
         }
 
-        String [] ps = text.split(";");
+        String[] ps = text.split(";");
         if (ps.length == 0) {
             return;
         }
@@ -2821,7 +2807,7 @@ public class ECMA48Terminal extends LogicalScreen
             if (debugToStderr) {
                 System.err.println("  Color " + color + " is " + rgb);
             }
-            String [] rgbs = rgb.split("/");
+            String[] rgbs = rgb.split("/");
             if (rgbs.length != 3) {
                 return;
             }
@@ -2843,116 +2829,116 @@ public class ECMA48Terminal extends LogicalScreen
             }
             int rgbColor = red << 16 | green << 8 | blue;
             switch (color) {
-            case 0:
-                MYBLACK   = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set BLACK");
-                }
-                break;
-            case 1:
-                MYRED     = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set RED");
-                }
-                break;
-            case 2:
-                MYGREEN   = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set GREEN");
-                }
-                break;
-            case 3:
-                MYYELLOW  = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set YELLOW");
-                }
-                break;
-            case 4:
-                MYBLUE    = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set BLUE");
-                }
-                break;
-            case 5:
-                MYMAGENTA = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set MAGENTA");
-                }
-                break;
-            case 6:
-                MYCYAN    = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set CYAN");
-                }
-                break;
-            case 7:
-                MYWHITE   = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set WHITE");
-                }
-                break;
-            case 8:
-                MYBOLD_BLACK   = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set BOLD BLACK");
-                }
-                break;
-            case 9:
-                MYBOLD_RED     = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set BOLD RED");
-                }
-                break;
-            case 10:
-                MYBOLD_GREEN   = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set BOLD GREEN");
-                }
-                break;
-            case 11:
-                MYBOLD_YELLOW  = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set BOLD YELLOW");
-                }
-                break;
-            case 12:
-                MYBOLD_BLUE    = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set BOLD BLUE");
-                }
-                break;
-            case 13:
-                MYBOLD_MAGENTA = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set BOLD MAGENTA");
-                }
-                break;
-            case 14:
-                MYBOLD_CYAN    = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set BOLD CYAN");
-                }
-                break;
-            case 15:
-                MYBOLD_WHITE   = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set BOLD WHITE");
-                }
-                break;
-            case 39:
-                DEFAULT_FORECOLOR = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set DEFAULT FOREGROUND");
-                }
-                break;
-            case 49:
-                DEFAULT_BACKCOLOR = rgbColor;
-                if (debugToStderr) {
-                    System.err.println("    Set DEFAULT BACKGROUND");
-                }
-                break;
-            default:
-                break;
+                case 0:
+                    MYBLACK = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set BLACK");
+                    }
+                    break;
+                case 1:
+                    MYRED = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set RED");
+                    }
+                    break;
+                case 2:
+                    MYGREEN = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set GREEN");
+                    }
+                    break;
+                case 3:
+                    MYYELLOW = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set YELLOW");
+                    }
+                    break;
+                case 4:
+                    MYBLUE = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set BLUE");
+                    }
+                    break;
+                case 5:
+                    MYMAGENTA = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set MAGENTA");
+                    }
+                    break;
+                case 6:
+                    MYCYAN = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set CYAN");
+                    }
+                    break;
+                case 7:
+                    MYWHITE = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set WHITE");
+                    }
+                    break;
+                case 8:
+                    MYBOLD_BLACK = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set BOLD BLACK");
+                    }
+                    break;
+                case 9:
+                    MYBOLD_RED = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set BOLD RED");
+                    }
+                    break;
+                case 10:
+                    MYBOLD_GREEN = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set BOLD GREEN");
+                    }
+                    break;
+                case 11:
+                    MYBOLD_YELLOW = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set BOLD YELLOW");
+                    }
+                    break;
+                case 12:
+                    MYBOLD_BLUE = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set BOLD BLUE");
+                    }
+                    break;
+                case 13:
+                    MYBOLD_MAGENTA = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set BOLD MAGENTA");
+                    }
+                    break;
+                case 14:
+                    MYBOLD_CYAN = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set BOLD CYAN");
+                    }
+                    break;
+                case 15:
+                    MYBOLD_WHITE = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set BOLD WHITE");
+                    }
+                    break;
+                case 39:
+                    DEFAULT_FORECOLOR = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set DEFAULT FOREGROUND");
+                    }
+                    break;
+                case 49:
+                    DEFAULT_BACKCOLOR = rgbColor;
+                    if (debugToStderr) {
+                        System.err.println("    Set DEFAULT BACKGROUND");
+                    }
+                    break;
+                default:
+                    break;
             }
 
             // We have changed a system color.  Redraw the entire screen.
@@ -2967,7 +2953,7 @@ public class ECMA48Terminal extends LogicalScreen
      * fully here.
      *
      * @param events list to append new events to
-     * @param ch Unicode code point
+     * @param ch     Unicode code point
      */
     private void processChar(final List<TInputEvent> events, final char ch) {
 
@@ -2977,7 +2963,7 @@ public class ECMA48Terminal extends LogicalScreen
             long escDelay = nowTime - escapeTime;
             if (escDelay > 250) {
                 // After 0.25 seconds, assume a true escape character
-                events.add(controlChar((char)0x1B, false));
+                events.add(controlChar((char) 0x1B, false));
                 resetParser();
             }
         }
@@ -2992,658 +2978,658 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         switch (state) {
-        case GROUND:
+            case GROUND:
 
-            if (ch == 0x1B) {
-                state = ParseState.ESCAPE;
-                escapeTime = nowTime;
-                return;
-            }
-
-            if (ch <= 0x1F) {
-                // Control character
-                events.add(controlChar(ch, false));
-                resetParser();
-                return;
-            }
-
-            if (ch >= 0x20) {
-                // Normal character
-                events.add(new TKeypressEvent(backend, false, 0, ch,
-                        false, false, false));
-                resetParser();
-                return;
-            }
-
-            break;
-
-        case ESCAPE:
-            // 'P', during the XTVERSION query only, goes to XTVERSION.
-            // What a fucking mess.
-            if ((ch == 'P') && (xtversionQuery == true)) {
-                state = ParseState.XTVERSION;
-                xtversionResponse.setLength(0);
-                xtversionQuery = false;
-                return;
-            }
-            xtversionQuery = false;
-
-            if (ch == ']') {
-                state = ParseState.OSC;
-                oscResponse.setLength(0);
-                return;
-            }
-
-            if (ch <= 0x1F) {
-                // ALT-Control character
-                events.add(controlChar(ch, true));
-                resetParser();
-                return;
-            }
-
-            if (ch == 'O') {
-                // This will be one of the function keys
-                state = ParseState.ESCAPE_INTERMEDIATE;
-                return;
-            }
-
-            // '[' goes to CSI_ENTRY
-            if (ch == '[') {
-                state = ParseState.CSI_ENTRY;
-                return;
-            }
-
-            // Everything else is assumed to be Alt-keystroke
-            if ((ch >= 'A') && (ch <= 'Z')) {
-                shift = true;
-            }
-            alt = true;
-            events.add(new TKeypressEvent(backend, false, 0, ch,
-                    alt, ctrl, shift));
-            resetParser();
-            return;
-
-        case ESCAPE_INTERMEDIATE:
-            if ((ch >= 'P') && (ch <= 'S')) {
-                // Function key
-                switch (ch) {
-                case 'P':
-                    events.add(new TKeypressEvent(backend, kbF1));
-                    break;
-                case 'Q':
-                    events.add(new TKeypressEvent(backend, kbF2));
-                    break;
-                case 'R':
-                    events.add(new TKeypressEvent(backend, kbF3));
-                    break;
-                case 'S':
-                    events.add(new TKeypressEvent(backend, kbF4));
-                    break;
-                default:
-                    break;
+                if (ch == 0x1B) {
+                    state = ParseState.ESCAPE;
+                    escapeTime = nowTime;
+                    return;
                 }
+
+                if (ch <= 0x1F) {
+                    // Control character
+                    events.add(controlChar(ch, false));
+                    resetParser();
+                    return;
+                }
+
+                if (ch >= 0x20) {
+                    // Normal character
+                    events.add(new TKeypressEvent(backend, false, 0, ch,
+                        false, false, false));
+                    resetParser();
+                    return;
+                }
+
+                break;
+
+            case ESCAPE:
+                // 'P', during the XTVERSION query only, goes to XTVERSION.
+                // What a fucking mess.
+                if ((ch == 'P') && (xtversionQuery == true)) {
+                    state = ParseState.XTVERSION;
+                    xtversionResponse.setLength(0);
+                    xtversionQuery = false;
+                    return;
+                }
+                xtversionQuery = false;
+
+                if (ch == ']') {
+                    state = ParseState.OSC;
+                    oscResponse.setLength(0);
+                    return;
+                }
+
+                if (ch <= 0x1F) {
+                    // ALT-Control character
+                    events.add(controlChar(ch, true));
+                    resetParser();
+                    return;
+                }
+
+                if (ch == 'O') {
+                    // This will be one of the function keys
+                    state = ParseState.ESCAPE_INTERMEDIATE;
+                    return;
+                }
+
+                // '[' goes to CSI_ENTRY
+                if (ch == '[') {
+                    state = ParseState.CSI_ENTRY;
+                    return;
+                }
+
+                // Everything else is assumed to be Alt-keystroke
+                if ((ch >= 'A') && (ch <= 'Z')) {
+                    shift = true;
+                }
+                alt = true;
+                events.add(new TKeypressEvent(backend, false, 0, ch,
+                    alt, ctrl, shift));
                 resetParser();
                 return;
-            }
 
-            // Arrow keys in SS3 (ESC O) format - used by JLine on Windows
-            // JLine's Windows terminal sends ESC O A/B/C/D instead of ESC [ A/B/C/D
-            if (handleArrowKey(events, ch, alt, ctrl, shift)) {
-                resetParser();
-                return;
-            }
+            case ESCAPE_INTERMEDIATE:
+                if ((ch >= 'P') && (ch <= 'S')) {
+                    // Function key
+                    switch (ch) {
+                        case 'P':
+                            events.add(new TKeypressEvent(backend, kbF1));
+                            break;
+                        case 'Q':
+                            events.add(new TKeypressEvent(backend, kbF2));
+                            break;
+                        case 'R':
+                            events.add(new TKeypressEvent(backend, kbF3));
+                            break;
+                        case 'S':
+                            events.add(new TKeypressEvent(backend, kbF4));
+                            break;
+                        default:
+                            break;
+                    }
+                    resetParser();
+                    return;
+                }
 
-            // Unknown keystroke, ignore
-            resetParser();
-            return;
-
-        case CSI_ENTRY:
-            // Numbers - parameter values
-            if ((ch >= '0') && (ch <= '9')) {
-                params.set(params.size() - 1,
-                    params.get(params.size() - 1) + ch);
-                state = ParseState.CSI_PARAM;
-                return;
-            }
-            // Parameter separator
-            if (ch == ';') {
-                params.add("");
-                return;
-            }
-
-            if ((ch >= 0x30) && (ch <= 0x7E)) {
-                // Try arrow keys first using the unified handler
+                // Arrow keys in SS3 (ESC O) format - used by JLine on Windows
+                // JLine's Windows terminal sends ESC O A/B/C/D instead of ESC [ A/B/C/D
                 if (handleArrowKey(events, ch, alt, ctrl, shift)) {
                     resetParser();
                     return;
                 }
 
-                switch (ch) {
-                case 'H':
-                    // Home
-                    events.add(new TKeypressEvent(backend, kbHome));
-                    resetParser();
-                    return;
-                case 'F':
-                    // End
-                    events.add(new TKeypressEvent(backend, kbEnd));
-                    resetParser();
-                    return;
-                case 'Z':
-                    // CBT - Cursor backward X tab stops (default 1)
-                    events.add(new TKeypressEvent(backend, kbBackTab));
-                    resetParser();
-                    return;
-                case 'M':
-                    // Mouse position
-                    state = ParseState.MOUSE;
-                    return;
-                case '<':
-                    // Mouse position, SGR (1006) coordinates
-                    state = ParseState.MOUSE_SGR;
-                    return;
-                case '?':
-                    // DEC private mode flag
-                    decPrivateModeFlag = true;
-                    return;
-                case 'I':
-                    // Focus in
-                    hasFocus = true;
-                    resetParser();
-                    return;
-                case 'O':
-                    // Focus out
-                    hasFocus = false;
-                    resetParser();
-                    return;
-                default:
-                    break;
-                }
-            }
-
-            // Unknown keystroke, ignore
-            resetParser();
-            return;
-
-        case MOUSE_SGR:
-            // Numbers - parameter values
-            if ((ch >= '0') && (ch <= '9')) {
-                params.set(params.size() - 1,
-                    params.get(params.size() - 1) + ch);
-                return;
-            }
-            // Parameter separator
-            if (ch == ';') {
-                params.add("");
-                return;
-            }
-
-            switch (ch) {
-            case 'M':
-                // Generate a mouse press event
-                TInputEvent event = parseMouseSGR(false);
-                if (event != null) {
-                    events.add(event);
-                }
+                // Unknown keystroke, ignore
                 resetParser();
                 return;
-            case 'm':
-                // Generate a mouse release event
-                event = parseMouseSGR(true);
-                if (event != null) {
-                    events.add(event);
-                }
-                resetParser();
-                return;
-            default:
-                break;
-            }
 
-            // Unknown keystroke, ignore
-            resetParser();
-            return;
-
-        case CSI_PARAM:
-            // Numbers - parameter values
-            if ((ch >= '0') && (ch <= '9')) {
-                params.set(params.size() - 1,
-                    params.get(params.size() - 1) + ch);
-                state = ParseState.CSI_PARAM;
-                return;
-            }
-            // Parameter separator
-            if (ch == ';') {
-                params.add("");
-                return;
-            }
-
-            if (ch == '~') {
-                events.add(csiFnKey());
-                resetParser();
-                return;
-            }
-
-            if (ch == '$') {
-                // This will be the DECRPM response to a DECRQM mode
-                // query.
-                if (decPrivateModeFlag) {
-                    decDollarModeFlag = true;
+            case CSI_ENTRY:
+                // Numbers - parameter values
+                if ((ch >= '0') && (ch <= '9')) {
+                    params.set(params.size() - 1,
+                        params.get(params.size() - 1) + ch);
+                    state = ParseState.CSI_PARAM;
                     return;
                 }
-            }
-
-            if ((ch >= 0x30) && (ch <= 0x7E)) {
-                switch (ch) {
-                case 'A':
-                    // Up
-                    if (params.size() > 1) {
-                        shift = csiIsShift(params.get(1));
-                        alt = csiIsAlt(params.get(1));
-                        ctrl = csiIsCtrl(params.get(1));
-                    }
-                    events.add(new TKeypressEvent(backend, kbUp, alt, ctrl, shift));
-                    resetParser();
+                // Parameter separator
+                if (ch == ';') {
+                    params.add("");
                     return;
-                case 'B':
-                    // Down
-                    if (params.size() > 1) {
-                        shift = csiIsShift(params.get(1));
-                        alt = csiIsAlt(params.get(1));
-                        ctrl = csiIsCtrl(params.get(1));
-                    }
-                    events.add(new TKeypressEvent(backend, kbDown, alt, ctrl, shift));
-                    resetParser();
-                    return;
-                case 'C':
-                    // Right
-                    if (params.size() > 1) {
-                        shift = csiIsShift(params.get(1));
-                        alt = csiIsAlt(params.get(1));
-                        ctrl = csiIsCtrl(params.get(1));
-                    }
-                    events.add(new TKeypressEvent(backend, kbRight, alt, ctrl, shift));
-                    resetParser();
-                    return;
-                case 'D':
-                    // Left
-                    if (params.size() > 1) {
-                        shift = csiIsShift(params.get(1));
-                        alt = csiIsAlt(params.get(1));
-                        ctrl = csiIsCtrl(params.get(1));
-                    }
-                    events.add(new TKeypressEvent(backend, kbLeft, alt, ctrl, shift));
-                    resetParser();
-                    return;
-                case 'H':
-                    // Home
-                    if (params.size() > 1) {
-                        shift = csiIsShift(params.get(1));
-                        alt = csiIsAlt(params.get(1));
-                        ctrl = csiIsCtrl(params.get(1));
-                    }
-                    events.add(new TKeypressEvent(backend, kbHome, alt, ctrl, shift));
-                    resetParser();
-                    return;
-                case 'F':
-                    // End
-                    if (params.size() > 1) {
-                        shift = csiIsShift(params.get(1));
-                        alt = csiIsAlt(params.get(1));
-                        ctrl = csiIsCtrl(params.get(1));
-                    }
-                    events.add(new TKeypressEvent(backend, kbEnd, alt, ctrl, shift));
-                    resetParser();
-                    return;
-                case 'S':
-                    // Report graphics property.
-                    if (decPrivateModeFlag == false) {
-                        break;
-                    }
+                }
 
-                    if ((params.size() > 2)
-                        && (!params.get(1).equals("0"))
-                    ) {
-                        if (debugToStderr) {
-                            System.err.printf("Graphics query error: " +
-                                params);
-                        }
-                        break;
-                    }
-
-                    if (params.size() > 2) {
-                        if (debugToStderr) {
-                            System.err.printf("Graphics result: " +
-                                "status %s Ps %s Pv %s\n", params.get(0),
-                                params.get(1), params.get(2));
-                        }
-                        if (params.get(0).equals("1")) {
-                            int registers = sixelEncoder.getPaletteSize();
-                            try {
-                                registers = Integer.parseInt(params.get(2));
-                                if (debugToStderr) {
-                                    System.err.println("Terminal reports " +
-                                        registers + " sixel colors, current " +
-                                        "size = " +
-                                        sixelEncoder.getPaletteSize());
-                                }
-                                if ((registers >= 2)
-                                    && (registers < sixelEncoder.getPaletteSize())
-                                ) {
-                                    try {
-                                        sixelEncoder.setPaletteSize(Integer.highestOneBit(registers));
-                                        if (debugToStderr) {
-                                            System.err.println("New palette size: "
-                                                + sixelEncoder.getPaletteSize());
-                                        }
-                                    } catch (IllegalArgumentException e) {
-                                        if (debugToStderr) {
-                                            System.err.println("Unsupported palette size: "
-                                                + registers);
-                                        }
-                                    }
-                                }
-                            } catch (NumberFormatException e) {
-                                if (debugToStderr) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                    }
-                    break;
-                case 'c':
-                    // Device Attributes
-                    if (decPrivateModeFlag == false) {
-                        break;
-                    }
-                    daResponseSeen = true;
-
-                    boolean reportsJexerImages = false;
-                    boolean reportsIterm2Images = false;
-                    boolean reportsSixelImages = false;
-                    for (String x: params) {
-                        if (debugToStderr) {
-                            System.err.println("Device Attributes: x = " + x);
-                        }
-                        if (x.equals("4")) {
-                            // Terminal reports sixel support
-                            if (debugToStderr) {
-                                System.err.println("Device Attributes: sixel");
-                            }
-                            reportsSixelImages = true;
-                            if (isGenuineXTerm
-                                && (textBlinkOption == TextBlinkOption.AUTO)
-                            ) {
-                                if (debugToStderr) {
-                                    System.err.println("  -- GenuineXTerm, so soft blink -- ");
-                                }
-                                textBlinkOption = TextBlinkOption.SOFT;
-                            }
-                        }
-                        if (x.equals("52")) {
-                            // Terminal reports OSC 52 support
-                            if (debugToStderr) {
-                                System.err.println("Device Attributes: OSC52");
-                            }
-
-                            /*
-                             * For now, we do not expose the underlying
-                             * terminal capability to TApplication, because
-                             * we provide a per-application clipboard buffer
-                             * already.
-                             */
-                        }
-
-                        if (x.equals("444")) {
-                            // Terminal reports Casciian images support
-                            if (debugToStderr) {
-                                System.err.println("Device Attributes: Casciian images");
-                            }
-                            reportsJexerImages = true;
-                        }
-                        if (iterm2Images) {
-                            /*
-                             * This check left in place so that I have a hook
-                             * for later.  At the moment there is no way to
-                             * reliably detect iTerm2 image support, so if
-                             * casciian.ECMA48.iTerm2Images=true, we just
-                             * blindly start using them.
-                             */
-
-                            // Terminal reports iTerm2 images support
-                            if (debugToStderr) {
-                                System.err.println("Device Attributes: ASSUMING iTerm2 image support");
-                            }
-                            reportsIterm2Images = true;
-                        }
-                    }
-                    if (reportsSixelImages == false) {
-                        // Terminal does not support Sixel images, disable
-                        // them.
-                        sixel = false;
-                        if (debugToStderr) {
-                            System.err.println("Device Attributes: Disable Sixel images");
-                        }
-                    }
-                    if (reportsJexerImages == false) {
-                        // Terminal does not support Casciian images, disable
-                        // them.
-                        jexerImageOption = JexerImageOption.DISABLED;
-                        if (debugToStderr) {
-                            System.err.println("Device Attributes: Disable Casciian images");
-                        }
-                    }
-                    if ((reportsIterm2Images == false)) {
-                        // Terminal does not support iTerm2 images, disable
-                        // them.
-                        iterm2Images = false;
-                        if (debugToStderr) {
-                            System.err.println("Device Attributes: Disable iTerm2 images");
-                        }
-                    }
-                    resetParser();
-                    return;
-                case 't':
-                    // windowOps
-                    if ((params.size() > 2) && (params.get(0).equals("4"))) {
-                        if (debugToStderr) {
-                            System.err.printf("windowOp 4t pixels: " +
-                                "height %s width %s\n",
-                                params.get(1), params.get(2));
-                        }
-                        try {
-                            widthPixels = Integer.parseInt(params.get(2));
-                            heightPixels = Integer.parseInt(params.get(1));
-                        } catch (NumberFormatException e) {
-                            if (debugToStderr) {
-                                e.printStackTrace();
-                            }
-                        }
-                        if (widthPixels <= 0) {
-                            widthPixels = 640;
-                        }
-                        if (heightPixels <= 0) {
-                            heightPixels = 400;
-                        }
-                        if (debugToStderr) {
-                            System.err.printf("   screen pixels: %d x %d",
-                                widthPixels, heightPixels);
-                            System.err.println("  new cell size: " +
-                                getTextWidth() + " x " + getTextHeight());
-                        }
-                    }
-                    if ((params.size() > 2) && (params.get(0).equals("6"))) {
-                        if (debugToStderr) {
-                            System.err.printf("windowOp 6t text cell pixels: " +
-                                "cell height %s cell width %s\n",
-                                params.get(1), params.get(2));
-                            System.err.printf("             old screen size: " +
-                                "%d x %d cells\n", width, height);
-                        }
-                        try {
-                            textWidthPixels = Integer.parseInt(params.get(2));
-                            textHeightPixels = Integer.parseInt(params.get(1));
-                        } catch (NumberFormatException e) {
-                            if (debugToStderr) {
-                                e.printStackTrace();
-                            }
-                        }
-                        if (debugToStderr) {
-                            System.err.println("  new cell size: " +
-                                textWidthPixels + " x " + textHeightPixels);
-                        }
-                    }
-                    if ((params.size() > 2) && (params.get(0).equals("8"))) {
-                        if (debugToStderr) {
-                            System.err.printf("windowOp 8t screen size: " +
-                                "height %s width %s\n",
-                                params.get(1), params.get(2));
-                            System.err.printf("             old screen size: " +
-                                "%d x %d\n", width, height);
-                        }
-
-                        // Since the terminal supports CSI 18 t, stop
-                        // spawning stty.
-                        if (sessionInfo instanceof TTYSessionInfo) {
-                            TTYSessionInfo tty = (TTYSessionInfo) sessionInfo;
-                            tty.output = output;
-
-                            int newHeight = height;
-                            int newWidth = width;
-                            try {
-                                newWidth = Integer.parseInt(params.get(2));
-                                newHeight = Integer.parseInt(params.get(1));
-                            } catch (NumberFormatException e) {
-                                if (debugToStderr) {
-                                    e.printStackTrace();
-                                }
-                            }
-                            if (debugToStderr) {
-                                System.err.println("  reported window size: " +
-                                    newWidth + " x " + newHeight);
-                            }
-                            if ((newWidth != width)
-                                || (newHeight != height)
-                            ) {
-                                tty.windowWidth = newWidth;
-                                tty.windowHeight = newHeight;
-                                TResizeEvent event = new TResizeEvent(backend,
-                                    TResizeEvent.Type.SCREEN, newWidth,
-                                    newHeight);
-                                windowResize = new TResizeEvent(backend,
-                                    TResizeEvent.Type.SCREEN,
-                                    newWidth, newHeight);
-                                setDimensions(newWidth, newHeight);
-                                synchronized (eventQueue) {
-                                    eventQueue.add(event);
-                                }
-                                if (listener != null) {
-                                    synchronized (listener) {
-                                        listener.notifyAll();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    resetParser();
-                    return;
-                case 'y':
-                    if ((decPrivateModeFlag == true)
-                        && (decDollarModeFlag == true)
-                    ) {
-                        if (debugToStderr) {
-                            System.err.println("DECRPM: " + params);
-                        }
-                        // DECRPM response
-                        if (params.size() == 2) {
-                            String Pd = params.get(0);
-                            String Ps = params.get(1);
-                            if (Ps.equals("1")          // Set
-                                || Ps.equals("2")       // Reset
-                                || Ps.equals("3")       // Permanently set
-                                || Ps.equals("4")       // Permanently reset
-                            ) {
-                                // This option was recognized, and is in some
-                                // state.
-                                if (Pd.equals("2026")) {
-                                    if (debugToStderr) {
-                                        System.err.println("DECRPM: " +
-                                            "has Synchronized Output support");
-                                    }
-                                    hasSynchronizedOutput = true;
-                                }
-                                if (Pd.equals("8452")) {
-                                    if (debugToStderr) {
-                                        System.err.println("DECRPM: " +
-                                            "has sixelCursorOnRight support");
-                                    }
-                                    sixelCursorOnRight = true;
-                                }
-                            }
-                        }
+                if ((ch >= 0x30) && (ch <= 0x7E)) {
+                    // Try arrow keys first using the unified handler
+                    if (handleArrowKey(events, ch, alt, ctrl, shift)) {
                         resetParser();
                         return;
                     }
-                    // Unknown
-                    break;
-                default:
-                    break;
+
+                    switch (ch) {
+                        case 'H':
+                            // Home
+                            events.add(new TKeypressEvent(backend, kbHome));
+                            resetParser();
+                            return;
+                        case 'F':
+                            // End
+                            events.add(new TKeypressEvent(backend, kbEnd));
+                            resetParser();
+                            return;
+                        case 'Z':
+                            // CBT - Cursor backward X tab stops (default 1)
+                            events.add(new TKeypressEvent(backend, kbBackTab));
+                            resetParser();
+                            return;
+                        case 'M':
+                            // Mouse position
+                            state = ParseState.MOUSE;
+                            return;
+                        case '<':
+                            // Mouse position, SGR (1006) coordinates
+                            state = ParseState.MOUSE_SGR;
+                            return;
+                        case '?':
+                            // DEC private mode flag
+                            decPrivateModeFlag = true;
+                            return;
+                        case 'I':
+                            // Focus in
+                            hasFocus = true;
+                            resetParser();
+                            return;
+                        case 'O':
+                            // Focus out
+                            hasFocus = false;
+                            resetParser();
+                            return;
+                        default:
+                            break;
+                    }
                 }
-            }
 
-            // Unknown keystroke, ignore
-            resetParser();
-            return;
-
-        case MOUSE:
-            params.set(0, params.get(params.size() - 1) + ch);
-            if (params.get(0).length() == 3) {
-                // We have enough to generate a mouse event
-                events.add(parseMouse());
+                // Unknown keystroke, ignore
                 resetParser();
-            }
-            return;
+                return;
 
-        case XTVERSION:
-            if ((ch == '\\') &&
-                (xtversionResponse.length() > 0) &&
-                (xtversionResponse.charAt(xtversionResponse.length() - 1)
-                    == 0x1B)
-            ) {
-                // This is ST, end of the line.
-                fingerprintTerminal(xtversionResponse.substring(1,
+            case MOUSE_SGR:
+                // Numbers - parameter values
+                if ((ch >= '0') && (ch <= '9')) {
+                    params.set(params.size() - 1,
+                        params.get(params.size() - 1) + ch);
+                    return;
+                }
+                // Parameter separator
+                if (ch == ';') {
+                    params.add("");
+                    return;
+                }
+
+                switch (ch) {
+                    case 'M':
+                        // Generate a mouse press event
+                        TInputEvent event = parseMouseSGR(false);
+                        if (event != null) {
+                            events.add(event);
+                        }
+                        resetParser();
+                        return;
+                    case 'm':
+                        // Generate a mouse release event
+                        event = parseMouseSGR(true);
+                        if (event != null) {
+                            events.add(event);
+                        }
+                        resetParser();
+                        return;
+                    default:
+                        break;
+                }
+
+                // Unknown keystroke, ignore
+                resetParser();
+                return;
+
+            case CSI_PARAM:
+                // Numbers - parameter values
+                if ((ch >= '0') && (ch <= '9')) {
+                    params.set(params.size() - 1,
+                        params.get(params.size() - 1) + ch);
+                    state = ParseState.CSI_PARAM;
+                    return;
+                }
+                // Parameter separator
+                if (ch == ';') {
+                    params.add("");
+                    return;
+                }
+
+                if (ch == '~') {
+                    events.add(csiFnKey());
+                    resetParser();
+                    return;
+                }
+
+                if (ch == '$') {
+                    // This will be the DECRPM response to a DECRQM mode
+                    // query.
+                    if (decPrivateModeFlag) {
+                        decDollarModeFlag = true;
+                        return;
+                    }
+                }
+
+                if ((ch >= 0x30) && (ch <= 0x7E)) {
+                    switch (ch) {
+                        case 'A':
+                            // Up
+                            if (params.size() > 1) {
+                                shift = csiIsShift(params.get(1));
+                                alt = csiIsAlt(params.get(1));
+                                ctrl = csiIsCtrl(params.get(1));
+                            }
+                            events.add(new TKeypressEvent(backend, kbUp, alt, ctrl, shift));
+                            resetParser();
+                            return;
+                        case 'B':
+                            // Down
+                            if (params.size() > 1) {
+                                shift = csiIsShift(params.get(1));
+                                alt = csiIsAlt(params.get(1));
+                                ctrl = csiIsCtrl(params.get(1));
+                            }
+                            events.add(new TKeypressEvent(backend, kbDown, alt, ctrl, shift));
+                            resetParser();
+                            return;
+                        case 'C':
+                            // Right
+                            if (params.size() > 1) {
+                                shift = csiIsShift(params.get(1));
+                                alt = csiIsAlt(params.get(1));
+                                ctrl = csiIsCtrl(params.get(1));
+                            }
+                            events.add(new TKeypressEvent(backend, kbRight, alt, ctrl, shift));
+                            resetParser();
+                            return;
+                        case 'D':
+                            // Left
+                            if (params.size() > 1) {
+                                shift = csiIsShift(params.get(1));
+                                alt = csiIsAlt(params.get(1));
+                                ctrl = csiIsCtrl(params.get(1));
+                            }
+                            events.add(new TKeypressEvent(backend, kbLeft, alt, ctrl, shift));
+                            resetParser();
+                            return;
+                        case 'H':
+                            // Home
+                            if (params.size() > 1) {
+                                shift = csiIsShift(params.get(1));
+                                alt = csiIsAlt(params.get(1));
+                                ctrl = csiIsCtrl(params.get(1));
+                            }
+                            events.add(new TKeypressEvent(backend, kbHome, alt, ctrl, shift));
+                            resetParser();
+                            return;
+                        case 'F':
+                            // End
+                            if (params.size() > 1) {
+                                shift = csiIsShift(params.get(1));
+                                alt = csiIsAlt(params.get(1));
+                                ctrl = csiIsCtrl(params.get(1));
+                            }
+                            events.add(new TKeypressEvent(backend, kbEnd, alt, ctrl, shift));
+                            resetParser();
+                            return;
+                        case 'S':
+                            // Report graphics property.
+                            if (decPrivateModeFlag == false) {
+                                break;
+                            }
+
+                            if ((params.size() > 2)
+                                && (!params.get(1).equals("0"))
+                            ) {
+                                if (debugToStderr) {
+                                    System.err.printf("Graphics query error: " +
+                                        params);
+                                }
+                                break;
+                            }
+
+                            if (params.size() > 2) {
+                                if (debugToStderr) {
+                                    System.err.printf("Graphics result: " +
+                                            "status %s Ps %s Pv %s\n", params.get(0),
+                                        params.get(1), params.get(2));
+                                }
+                                if (params.get(0).equals("1")) {
+                                    int registers = sixelEncoder.getPaletteSize();
+                                    try {
+                                        registers = Integer.parseInt(params.get(2));
+                                        if (debugToStderr) {
+                                            System.err.println("Terminal reports " +
+                                                registers + " sixel colors, current " +
+                                                "size = " +
+                                                sixelEncoder.getPaletteSize());
+                                        }
+                                        if ((registers >= 2)
+                                            && (registers < sixelEncoder.getPaletteSize())
+                                        ) {
+                                            try {
+                                                sixelEncoder.setPaletteSize(Integer.highestOneBit(registers));
+                                                if (debugToStderr) {
+                                                    System.err.println("New palette size: "
+                                                        + sixelEncoder.getPaletteSize());
+                                                }
+                                            } catch (IllegalArgumentException e) {
+                                                if (debugToStderr) {
+                                                    System.err.println("Unsupported palette size: "
+                                                        + registers);
+                                                }
+                                            }
+                                        }
+                                    } catch (NumberFormatException e) {
+                                        if (debugToStderr) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                        case 'c':
+                            // Device Attributes
+                            if (decPrivateModeFlag == false) {
+                                break;
+                            }
+                            daResponseSeen = true;
+
+                            boolean reportsJexerImages = false;
+                            boolean reportsIterm2Images = false;
+                            boolean reportsSixelImages = false;
+                            for (String x : params) {
+                                if (debugToStderr) {
+                                    System.err.println("Device Attributes: x = " + x);
+                                }
+                                if (x.equals("4")) {
+                                    // Terminal reports sixel support
+                                    if (debugToStderr) {
+                                        System.err.println("Device Attributes: sixel");
+                                    }
+                                    reportsSixelImages = true;
+                                    if (isGenuineXTerm
+                                        && (textBlinkOption == TextBlinkOption.AUTO)
+                                    ) {
+                                        if (debugToStderr) {
+                                            System.err.println("  -- GenuineXTerm, so soft blink -- ");
+                                        }
+                                        textBlinkOption = TextBlinkOption.SOFT;
+                                    }
+                                }
+                                if (x.equals("52")) {
+                                    // Terminal reports OSC 52 support
+                                    if (debugToStderr) {
+                                        System.err.println("Device Attributes: OSC52");
+                                    }
+
+                                    /*
+                                     * For now, we do not expose the underlying
+                                     * terminal capability to TApplication, because
+                                     * we provide a per-application clipboard buffer
+                                     * already.
+                                     */
+                                }
+
+                                if (x.equals("444")) {
+                                    // Terminal reports Casciian images support
+                                    if (debugToStderr) {
+                                        System.err.println("Device Attributes: Casciian images");
+                                    }
+                                    reportsJexerImages = true;
+                                }
+                                if (iterm2Images) {
+                                    /*
+                                     * This check left in place so that I have a hook
+                                     * for later.  At the moment there is no way to
+                                     * reliably detect iTerm2 image support, so if
+                                     * casciian.ECMA48.iTerm2Images=true, we just
+                                     * blindly start using them.
+                                     */
+
+                                    // Terminal reports iTerm2 images support
+                                    if (debugToStderr) {
+                                        System.err.println("Device Attributes: ASSUMING iTerm2 image support");
+                                    }
+                                    reportsIterm2Images = true;
+                                }
+                            }
+                            if (reportsSixelImages == false) {
+                                // Terminal does not support Sixel images, disable
+                                // them.
+                                sixel = false;
+                                if (debugToStderr) {
+                                    System.err.println("Device Attributes: Disable Sixel images");
+                                }
+                            }
+                            if (reportsJexerImages == false) {
+                                // Terminal does not support Casciian images, disable
+                                // them.
+                                jexerImageOption = JexerImageOption.DISABLED;
+                                if (debugToStderr) {
+                                    System.err.println("Device Attributes: Disable Casciian images");
+                                }
+                            }
+                            if ((reportsIterm2Images == false)) {
+                                // Terminal does not support iTerm2 images, disable
+                                // them.
+                                iterm2Images = false;
+                                if (debugToStderr) {
+                                    System.err.println("Device Attributes: Disable iTerm2 images");
+                                }
+                            }
+                            resetParser();
+                            return;
+                        case 't':
+                            // windowOps
+                            if ((params.size() > 2) && (params.get(0).equals("4"))) {
+                                if (debugToStderr) {
+                                    System.err.printf("windowOp 4t pixels: " +
+                                            "height %s width %s\n",
+                                        params.get(1), params.get(2));
+                                }
+                                try {
+                                    widthPixels = Integer.parseInt(params.get(2));
+                                    heightPixels = Integer.parseInt(params.get(1));
+                                } catch (NumberFormatException e) {
+                                    if (debugToStderr) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                if (widthPixels <= 0) {
+                                    widthPixels = 640;
+                                }
+                                if (heightPixels <= 0) {
+                                    heightPixels = 400;
+                                }
+                                if (debugToStderr) {
+                                    System.err.printf("   screen pixels: %d x %d",
+                                        widthPixels, heightPixels);
+                                    System.err.println("  new cell size: " +
+                                        getTextWidth() + " x " + getTextHeight());
+                                }
+                            }
+                            if ((params.size() > 2) && (params.get(0).equals("6"))) {
+                                if (debugToStderr) {
+                                    System.err.printf("windowOp 6t text cell pixels: " +
+                                            "cell height %s cell width %s\n",
+                                        params.get(1), params.get(2));
+                                    System.err.printf("             old screen size: " +
+                                        "%d x %d cells\n", width, height);
+                                }
+                                try {
+                                    textWidthPixels = Integer.parseInt(params.get(2));
+                                    textHeightPixels = Integer.parseInt(params.get(1));
+                                } catch (NumberFormatException e) {
+                                    if (debugToStderr) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                if (debugToStderr) {
+                                    System.err.println("  new cell size: " +
+                                        textWidthPixels + " x " + textHeightPixels);
+                                }
+                            }
+                            if ((params.size() > 2) && (params.get(0).equals("8"))) {
+                                if (debugToStderr) {
+                                    System.err.printf("windowOp 8t screen size: " +
+                                            "height %s width %s\n",
+                                        params.get(1), params.get(2));
+                                    System.err.printf("             old screen size: " +
+                                        "%d x %d\n", width, height);
+                                }
+
+                                // Since the terminal supports CSI 18 t, stop
+                                // spawning stty.
+                                if (sessionInfo instanceof TTYSessionInfo) {
+                                    TTYSessionInfo tty = (TTYSessionInfo) sessionInfo;
+                                    tty.output = output;
+
+                                    int newHeight = height;
+                                    int newWidth = width;
+                                    try {
+                                        newWidth = Integer.parseInt(params.get(2));
+                                        newHeight = Integer.parseInt(params.get(1));
+                                    } catch (NumberFormatException e) {
+                                        if (debugToStderr) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                    if (debugToStderr) {
+                                        System.err.println("  reported window size: " +
+                                            newWidth + " x " + newHeight);
+                                    }
+                                    if ((newWidth != width)
+                                        || (newHeight != height)
+                                    ) {
+                                        tty.windowWidth = newWidth;
+                                        tty.windowHeight = newHeight;
+                                        TResizeEvent event = new TResizeEvent(backend,
+                                            TResizeEvent.Type.SCREEN, newWidth,
+                                            newHeight);
+                                        windowResize = new TResizeEvent(backend,
+                                            TResizeEvent.Type.SCREEN,
+                                            newWidth, newHeight);
+                                        setDimensions(newWidth, newHeight);
+                                        synchronized (eventQueue) {
+                                            eventQueue.add(event);
+                                        }
+                                        if (listener != null) {
+                                            synchronized (listener) {
+                                                listener.notifyAll();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            resetParser();
+                            return;
+                        case 'y':
+                            if ((decPrivateModeFlag == true)
+                                && (decDollarModeFlag == true)
+                            ) {
+                                if (debugToStderr) {
+                                    System.err.println("DECRPM: " + params);
+                                }
+                                // DECRPM response
+                                if (params.size() == 2) {
+                                    String Pd = params.get(0);
+                                    String Ps = params.get(1);
+                                    if (Ps.equals("1")          // Set
+                                        || Ps.equals("2")       // Reset
+                                        || Ps.equals("3")       // Permanently set
+                                        || Ps.equals("4")       // Permanently reset
+                                    ) {
+                                        // This option was recognized, and is in some
+                                        // state.
+                                        if (Pd.equals("2026")) {
+                                            if (debugToStderr) {
+                                                System.err.println("DECRPM: " +
+                                                    "has Synchronized Output support");
+                                            }
+                                            hasSynchronizedOutput = true;
+                                        }
+                                        if (Pd.equals("8452")) {
+                                            if (debugToStderr) {
+                                                System.err.println("DECRPM: " +
+                                                    "has sixelCursorOnRight support");
+                                            }
+                                            sixelCursorOnRight = true;
+                                        }
+                                    }
+                                }
+                                resetParser();
+                                return;
+                            }
+                            // Unknown
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                // Unknown keystroke, ignore
+                resetParser();
+                return;
+
+            case MOUSE:
+                params.set(0, params.get(params.size() - 1) + ch);
+                if (params.get(0).length() == 3) {
+                    // We have enough to generate a mouse event
+                    events.add(parseMouse());
+                    resetParser();
+                }
+                return;
+
+            case XTVERSION:
+                if ((ch == '\\') &&
+                    (xtversionResponse.length() > 0) &&
+                    (xtversionResponse.charAt(xtversionResponse.length() - 1)
+                        == 0x1B)
+                ) {
+                    // This is ST, end of the line.
+                    fingerprintTerminal(xtversionResponse.substring(1,
                         xtversionResponse.length() - 1));
-                resetParser();
+                    resetParser();
+                    return;
+                }
+
+                // Continue collecting until we see ST.
+                xtversionResponse.append(ch);
                 return;
-            }
 
-            // Continue collecting until we see ST.
-            xtversionResponse.append(ch);
-            return;
+            case OSC:
+                if ((ch == '\\') &&
+                    (oscResponse.length() > 0) &&
+                    (oscResponse.charAt(oscResponse.length() - 1)
+                        == 0x1B)
+                ) {
+                    // This is ST, end of the line.
+                    oscResponse(oscResponse.substring(0, oscResponse.length() - 1));
+                    resetParser();
+                    return;
+                }
+                if (ch == 0x07) {
+                    // This is BEL, end of the line.
+                    oscResponse(oscResponse.toString());
+                    resetParser();
+                    return;
+                }
 
-        case OSC:
-            if ((ch == '\\') &&
-                (oscResponse.length() > 0) &&
-                (oscResponse.charAt(oscResponse.length() - 1)
-                    == 0x1B)
-            ) {
-                // This is ST, end of the line.
-                oscResponse(oscResponse.substring(0, oscResponse.length() - 1));
-                resetParser();
+                // Continue collecting until we see ST.
+                oscResponse.append(ch);
                 return;
-            }
-            if (ch == 0x07) {
-                // This is BEL, end of the line.
-                oscResponse(oscResponse.toString());
-                resetParser();
-                return;
-            }
 
-            // Continue collecting until we see ST.
-            oscResponse.append(ch);
-            return;
-
-        default:
-            break;
+            default:
+                break;
         }
 
         // This "should" be impossible to reach
@@ -3652,15 +3638,15 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * Request (u)xterm to use the sixel settings we desire:
-     *
-     *   - disable sixel display mode
-     *
-     *   - disable private color registers (so that we can use one common
-     *     palette) if sixelSharedPalette is set
-     *
-     *   - query number of color registers
-     *
-     *   - sixel scrolling leaves cursor on right
+     * <p>
+     * - disable sixel display mode
+     * <p>
+     * - disable private color registers (so that we can use one common
+     * palette) if sixelSharedPalette is set
+     * <p>
+     * - query number of color registers
+     * <p>
+     * - sixel scrolling leaves cursor on right
      *
      * @return the string to emit to xterm
      */
@@ -3674,10 +3660,10 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * Restore (u)xterm its default sixel settings:
-     *
-     *   - enable sixel scrolling
-     *
-     *   - enable private color registers
+     * <p>
+     * - enable sixel scrolling
+     * <p>
+     * - enable private color registers
      *
      * @return the string to emit to xterm
      */
@@ -3687,7 +3673,7 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * Request (u)xterm to report its program version (XTVERSION).
-     *
+     * <p>
      * I am not a fan of fingerprinting terminals in this fashion.  They
      * should instead be reporting their features in DA1 using one of the
      * available ~10000 unused IDs out there.  It is also bad because the
@@ -3695,9 +3681,9 @@ public class ECMA48Terminal extends LogicalScreen
      * completely valid keyboard input, hence the boolean to bypass Alt-P
      * processing IF the response comes in AND this has to be the FIRST thing
      * we send to the terminal.
-     *
+     * <p>
      * Alas, fingerprinting is now the path of least resistance.
-     *
+     * <p>
      * On the brighter side, this does allow us to report the exact terminal
      * and version for end-user troubleshooting.
      *
@@ -3774,7 +3760,7 @@ public class ECMA48Terminal extends LogicalScreen
      * Set the sixel shared palette option.
      *
      * @param sharedPalette if true, then all sixel output will use the same
-     * palette that is set in one DCS sequence and used in later sequences
+     *                      palette that is set in one DCS sequence and used in later sequences
      */
     public void setSixelSharedPalette(final boolean sharedPalette) {
         // Don't step on the screen refresh thread.
@@ -3849,8 +3835,8 @@ public class ECMA48Terminal extends LogicalScreen
      * Create a sixel string representing a row of several cells containing
      * bitmap data.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x     column coordinate.  0 is the left-most column.
+     * @param y     row coordinate.  0 is the top-most row.
      * @param cells the cells containing the bitmap data
      * @return the string to emit to an ANSI / ECMA-style terminal
      */
@@ -3901,7 +3887,7 @@ public class ECMA48Terminal extends LogicalScreen
         } else {
             // Save and get rows to/from the cache that do NOT have inverted
             // cells.
-            for (Cell cell: cells) {
+            for (Cell cell : cells) {
                 if (cell.isInvertedImage()) {
                     saveInCache = false;
                     break;
@@ -3974,10 +3960,10 @@ public class ECMA48Terminal extends LogicalScreen
      * bitmap data on the bottom.  This technique may not work on all
      * terminals, and is limited to 1000 pixels from the left edge.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x     column coordinate.  0 is the left-most column.
+     * @param y     row coordinate.  0 is the top-most row.
      * @param cells the cells containing the bitmap data
-     * @param sb the StringBuilder to write to
+     * @param sb    the StringBuilder to write to
      */
     private void emitSixelOnBottomRow(final int x, final int y,
                                       final ArrayList<Cell> cells, final StringBuilder sb) {
@@ -4000,14 +3986,10 @@ public class ECMA48Terminal extends LogicalScreen
 
         // The final image will be 1000 x 1000 or less.
         ImageRGB cellsImage = cellsToImage(cells);
-        ImageRGB fullImage = ImageUtils.createImage(cellsImage,
-            maxPixelX, maxPixelY);
-        Graphics gr = fullImage.getGraphics();
-        gr.drawImage(cellsImage, pixelX, pixelY, null);
-        gr.dispose();
+        ImageRGB fullImage = cellsImage.getSubimage(0, 0, maxPixelX, maxPixelY);
 
         // HQSixelEncoder.toSixel() can accept allowTransparent.
-        String sixel = ((HQSixelEncoder) sixelEncoder).toSixel(fullImage, true);
+        String sixel = ((HQSixelEncoder) sixelEncoder).toSixel(fullImage, false);
         sb.append("\033[?80h\033P0;1;0q");
         sb.append(sixel);
         // System.err.println("SIXEL: " + sixel);
@@ -4025,146 +4007,85 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * Convert a horizontal range of cell's image data into a single
-     * contigous image, rescaled and anti-aliased to match the current text
+     * continuous image, rescaled and anti-aliased to match the current text
      * cell size.
      *
      * @param cells the cells containing image data
      * @return the image resized to the current text cell size
      */
     private ImageRGB cellsToImage(final List<Cell> cells) {
-        int imageWidth = cells.get(0).getImage().getWidth();
-        int imageHeight = cells.get(0).getImage().getHeight();
+        ImageRGB firstImage = cells.getFirst().getImage();
+        int tileWidth = firstImage.getWidth();
+        int tileHeight = firstImage.getHeight();
 
         // Piece cells.get(x).getImage() pieces together into one larger
         // image for final rendering.
         int totalWidth = 0;
-        int fullWidth = cells.size() * imageWidth;
-        int fullHeight = imageHeight;
-        for (int i = 0; i < cells.size(); i++) {
-            totalWidth += cells.get(i).getImage().getWidth();
+        int fullWidth = cells.size() * tileWidth;
+        for (Cell cell : cells) {
+            totalWidth += cell.getImage().getWidth();
         }
 
-        ImageRGB image = ImageUtils.createImage(cells.get(0).getImage(),
-            fullWidth, fullHeight);
+        ImageRGB image = new ImageRGB(fullWidth, tileHeight);
 
-        int [] rgbArray;
+        int[] rgbArray;
         for (int i = 0; i < cells.size() - 1; i++) {
-            int tileWidth = imageWidth;
-            int tileHeight = imageHeight;
 
-            if (false && cells.get(i).isInvertedImage()) {
-                // I used to put an all-white cell over the cursor, don't do
-                // that anymore.
-                rgbArray = new int[imageWidth * imageHeight];
-                for (int j = 0; j < rgbArray.length; j++) {
-                    rgbArray[j] = 0xFFFFFF;
-                }
-            } else {
-                try {
-                    rgbArray = cells.get(i).getImage().getRGB(0, 0,
-                        tileWidth, tileHeight, null, 0, tileWidth);
-                } catch (Exception e) {
-                    throw new RuntimeException("image " + imageWidth + "x" +
-                        imageHeight +
-                        " tile " + tileWidth + "x" +
-                        tileHeight +
-                        " cells.get(i).getImage() " +
-                        cells.get(i).getImage() +
-                        " i " + i +
-                        " fullWidth " + fullWidth +
-                        " fullHeight " + fullHeight, e);
-                }
-            }
-
-            /*
-            System.err.printf("calling image.setRGB(): %d %d %d %d %d\n",
-                i * imageWidth, 0, imageWidth, imageHeight,
-                0, imageWidth);
-            System.err.printf("   fullWidth %d fullHeight %d cells.size() %d textWidth %d\n",
-                fullWidth, fullHeight, cells.size(), getTextWidth());
-             */
-
-            image.setRGB(i * imageWidth, 0, tileWidth, tileHeight,
-                rgbArray, 0, tileWidth);
-            if (tileHeight < fullHeight) {
-                int backgroundColor = 0;
-                for (int imageX = 0; imageX < image.getWidth(); imageX++) {
-                    for (int imageY = imageHeight; imageY < fullHeight;
-                         imageY++) {
-
-                        image.setRGB(imageX, imageY, backgroundColor);
-                    }
-                }
-            }
-        }
-        totalWidth -= ((cells.size() - 1) * imageWidth);
-        if (false && cells.get(cells.size() - 1).isInvertedImage()) {
-            // I used to put an all-white cell over the cursor, don't do that
-            // anymore.
-            rgbArray = new int[totalWidth * imageHeight];
-            for (int j = 0; j < rgbArray.length; j++) {
-                rgbArray[j] = 0xFFFFFF;
-            }
-        } else {
             try {
-                rgbArray = cells.get(cells.size() - 1).getImage().getRGB(0, 0,
-                    totalWidth, imageHeight, null, 0, totalWidth);
+                rgbArray = cells.get(i).getImage().getRGB(0, 0,
+                    tileWidth, tileHeight, null, 0, tileWidth);
             } catch (Exception e) {
-                // TODO: Both of these setRGB cases are failing sometimes in
-                // the multihead case.  Figure it out.
-                return image;
+                throw new RuntimeException("image " + tileWidth + "x" +
+                    tileHeight +
+                    " tile " + tileWidth + "x" +
+                    tileHeight +
+                    " cells.get(i).getImage() " +
+                    cells.get(i).getImage() +
+                    " i " + i +
+                    " fullWidth " + fullWidth +
+                    " fullHeight " + tileHeight, e);
+            }
+            image.setRGB(i * tileWidth, 0, tileWidth, tileHeight,
+                rgbArray, 0, tileWidth);
+        }
+        totalWidth -= ((cells.size() - 1) * tileWidth);
+        try {
+            rgbArray = cells.get(cells.size() - 1).getImage().getRGB(0, 0,
+                totalWidth, tileHeight, null, 0, totalWidth);
+        } catch (Exception e) {
+            // TODO: Both of these setRGB cases are failing sometimes in
+            // the multihead case.  Figure it out.
+            return image;
                 /*
-                throw new RuntimeException("image " + imageWidth + "x" +
-                    imageHeight + " cells.get(cells.size() - 1).getImage() " +
+                throw new RuntimeException("image " + tileWidth + "x" +
+                    tileHeight + " cells.get(cells.size() - 1).getImage() " +
                     cells.get(cells.size() - 1).getImage(), e);
                  */
-            }
         }
+
         try {
-            image.setRGB((cells.size() - 1) * imageWidth, 0, totalWidth,
-                imageHeight, rgbArray, 0, totalWidth);
+            image.setRGB((cells.size() - 1) * tileWidth, 0, totalWidth,
+                tileHeight, rgbArray, 0, totalWidth);
         } catch (Exception e) {
             // TODO: Both of these setRGB cases are failing sometimes in the
             // multihead case.  Figure it out.
             return image;
             /*
-            throw new RuntimeException("image " + imageWidth + "x" +
-                imageHeight + " cells.get(cells.size() - 1).getImage() " +
+            throw new RuntimeException("image " + tileWidth + "x" +
+                tileHeight + " cells.get(cells.size() - 1).getImage() " +
                 cells.get(cells.size() - 1).getImage(), e);
              */
         }
 
-
-        if (totalWidth < imageWidth) {
+        if (totalWidth < tileWidth) {
             int backgroundColor = 0;
             for (int imageX = image.getWidth() - totalWidth;
                  imageX < image.getWidth(); imageX++) {
 
-                for (int imageY = 0; imageY < fullHeight; imageY++) {
+                for (int imageY = 0; imageY < tileHeight; imageY++) {
                     image.setRGB(imageX, imageY, backgroundColor);
                 }
             }
-        }
-
-        if ((image.getWidth() != cells.size() * getTextWidth())
-            || (image.getHeight() != getTextHeight())
-        ) {
-            // Rescale the image to fit the text cells it is going into.
-            ImageRGB newImage;
-            newImage = ImageUtils.createImage(image,
-                cells.size() * getTextWidth(), getTextHeight());
-
-            Graphics gr = newImage.getGraphics();
-            if (gr instanceof Graphics2D) {
-                ((Graphics2D) gr).setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
-                ((Graphics2D) gr).setRenderingHint(RenderingHints.KEY_RENDERING,
-                    RenderingHints.VALUE_RENDER_QUALITY);
-            }
-            gr.drawImage(image, 0, 0, newImage.getWidth(),
-                newImage.getHeight(), null, null);
-            gr.dispose();
-            image = newImage;
         }
 
         return image;
@@ -4175,196 +4096,6 @@ public class ECMA48Terminal extends LogicalScreen
     // ------------------------------------------------------------------------
 
     // ------------------------------------------------------------------------
-    // iTerm2 image output support --------------------------------------------
-    // ------------------------------------------------------------------------
-
-    /**
-     * Create an iTerm2 images string representing a row of several cells
-     * containing bitmap data.
-     *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param cells the cells containing the bitmap data
-     * @return the string to emit to an ANSI / ECMA-style terminal
-     */
-    private String toIterm2Image(final int x, final int y,
-                                 final ArrayList<Cell> cells) {
-
-        StringBuilder sb = new StringBuilder();
-
-        assert (cells != null);
-        assert (cells.size() > 0);
-        assert (cells.get(0).getImage() != null);
-
-        if (iterm2Images == false) {
-            sb.append(normal());
-            sb.append(gotoXY(x, y));
-            for (int i = 0; i < cells.size(); i++) {
-                sb.append(' ');
-            }
-            return sb.toString();
-        }
-
-        if ((y == height - 1) && (iterm2BottomRow == false)) {
-            // We are on the bottom row.  If this terminal does not support
-            // doNotMoveCursor, then it will scroll the entire screen if we
-            // draw a picture here.  Do not draw the image, bail out instead.
-            sb.append(normal());
-            sb.append(gotoXY(x, y));
-            for (int j = 0; j < cells.size(); j++) {
-                sb.append(' ');
-            }
-            return sb.toString();
-        }
-
-        // Save and get rows to/from the cache that do NOT have inverted
-        // cells.
-        boolean saveInCache = true;
-        for (Cell cell: cells) {
-            if (cell.isInvertedImage()) {
-                saveInCache = false;
-                break;
-            }
-            // Compute the hashcode so that the cell image hash is available
-            // for looking up in the image cache.
-            cell.hashCode();
-        }
-        if (saveInCache) {
-            String cachedResult = iterm2Cache.get(cells);
-            if (cachedResult != null) {
-                // System.err.println("CACHE HIT");
-                sb.append(sortableGotoXY(x, y));
-                sb.append(cachedResult);
-                return sb.toString();
-            }
-            // System.err.println("CACHE MISS");
-        }
-
-        ImageRGB image = cellsToImage(cells);
-        int fullHeight = image.getHeight();
-
-        /*
-         * From https://iterm2.com/documentation-images.html:
-         *
-         * Protocol
-         *
-         * iTerm2 extends the xterm protocol with a set of proprietary escape
-         * sequences. In general, the pattern is:
-         *
-         * ESC ] 1337 ; key = value ^G
-         *
-         * Whitespace is shown here for ease of reading: in practice, no
-         * spaces should be used.
-         *
-         * For file transfer and inline images, the code is:
-         *
-         * ESC ] 1337 ; File = [optional arguments] : base-64 encoded file contents ^G
-         *
-         * The optional arguments are formatted as key=value with a semicolon
-         * between each key-value pair. They are described below:
-         *
-         * Key          Description of value
-         * name         base-64 encoded filename. Defaults to "Unnamed file".
-         * size         File size in bytes. Optional; this is only used by the
-         *              progress indicator.
-         * width        Width to render. See notes below.
-         * height       Height to render. See notes below.
-         * preserveAspectRatio If set to 0, then the image's inherent aspect
-         *                     ratio will not be respected; otherwise, it
-         *                     will fill the specified width and height as
-         *                     much as possible without stretching. Defaults
-         *                     to 1.
-         * inline If set to 1, the file will be displayed inline. Otherwise,
-         *        it will be downloaded with no visual representation in the
-         *        terminal session. Defaults to 0.
-         *
-         * The width and height are given as a number followed by a unit, or
-         * the word "auto".
-         *
-         * N: N character cells.
-         * Npx: N pixels.
-         * N%: N percent of the session's width or height.
-         * auto: The image's inherent size will be used to determine an
-         *       appropriate dimension.
-         *
-         */
-
-        /*
-        // Logic for PNG encode is below.  Leaving it in for reference.
-        ByteArrayOutputStream jpgOutputStream = new ByteArrayOutputStream(1024);
-
-        // Convert from ARGB to RGB, otherwise the JPG encode will fail.
-        ImageRGB jpgImage = new ImageRGB(image.getWidth(),
-            image.getHeight(), ImageRGB.TYPE_INT_RGB);
-        int [] pixels = new int[image.getWidth() * image.getHeight()];
-        image.getRGB(0, 0, image.getWidth(), image.getHeight(), pixels,
-            0, image.getWidth());
-        jpgImage.setRGB(0, 0, image.getWidth(), image.getHeight(), pixels,
-            0, image.getWidth());
-
-        try {
-            if (!ImageIO.write(jpgImage.getSubimage(0, 0,
-                        jpgImage.getWidth(),
-                        Math.min(jpgImage.getHeight(), fullHeight)),
-                    "JPG", jpgOutputStream)
-            ) {
-                // We failed to render image, bail out.
-                return "";
-            }
-        } catch (IOException e) {
-            // We failed to render image, bail out.
-            return "";
-        }
-         */
-
-        // File contents can be several image formats.  We will use PNG.
-        ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream(1024);
-        try {
-            if (!ImageIO.write(image.getSubimage(0, 0, image.getWidth(),
-                    Math.min(image.getHeight(), fullHeight)),
-                "PNG", pngOutputStream)
-            ) {
-                // We failed to render image, bail out.
-                return "";
-            }
-        } catch (IOException e) {
-            // We failed to render image, bail out.
-            return "";
-        }
-
-        sb.append("\033]1337;File=name=");
-        sb.append(StringUtils.toBase64("jexer".getBytes()));
-        sb.append(";inline=1;doNotMoveCursor=1;");
-        sb.append(String.format("width=%dpx;height=%dpx;preserveAspectRatio=1:",
-            image.getWidth(), Math.min(image.getHeight(),
-                getTextHeight())));
-
-        String bytes = StringUtils.toBase64(pngOutputStream.toByteArray());
-        sb.append(bytes);
-        sb.append("\007");
-
-        if (saveInCache) {
-            // This row is OK to save into the cache.
-            iterm2Cache.put(cells, sb.toString());
-        }
-
-        return (sortableGotoXY(x, y) + sb.toString());
-    }
-
-    /**
-     * Get the iTerm2 images support flag.
-     *
-     * @return true if this terminal is emitting iTerm2 images
-     */
-    public boolean hasIterm2Images() {
-        return iterm2Images;
-    }
-
-    // ------------------------------------------------------------------------
-    // End iTerm2 image output support ----------------------------------------
-    // ------------------------------------------------------------------------
-
-    // ------------------------------------------------------------------------
     // Casciian image output support ---------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -4372,8 +4103,8 @@ public class ECMA48Terminal extends LogicalScreen
      * Create a Casciian images string representing a row of several cells
      * containing bitmap data.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x     column coordinate.  0 is the left-most column.
+     * @param y     row coordinate.  0 is the top-most row.
      * @param cells the cells containing the bitmap data
      * @return the string to emit to an ANSI / ECMA-style terminal
      */
@@ -4398,7 +4129,7 @@ public class ECMA48Terminal extends LogicalScreen
         // Save and get rows to/from the cache that do NOT have inverted
         // cells.
         boolean saveInCache = true;
-        for (Cell cell: cells) {
+        for (Cell cell : cells) {
             if (cell.isInvertedImage()) {
                 saveInCache = false;
                 break;
@@ -4421,72 +4152,20 @@ public class ECMA48Terminal extends LogicalScreen
         ImageRGB image = cellsToImage(cells);
         int fullHeight = image.getHeight();
 
-        if (jexerImageOption == JexerImageOption.PNG) {
-            // Encode as PNG
-            ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream(1024);
-            try {
-                if (!ImageIO.write(image.getSubimage(0, 0, image.getWidth(),
-                        Math.min(image.getHeight(), fullHeight)),
-                    "PNG", pngOutputStream)
-                ) {
-                    // We failed to render image, bail out.
-                    return "";
-                }
-            } catch (IOException e) {
-                // We failed to render image, bail out.
-                return "";
-            }
-
-            sb.append("\033]444;1;0;");
-            sb.append(StringUtils.toBase64(pngOutputStream.toByteArray()));
-            sb.append("\007");
-
-        } else if (jexerImageOption == JexerImageOption.JPG) {
-
-            // Encode as JPG
-            ByteArrayOutputStream jpgOutputStream = new ByteArrayOutputStream(1024);
-
-            // Convert from ARGB to RGB, otherwise the JPG encode will fail.
-            ImageRGB jpgImage = new ImageRGB(image.getWidth(),
-                image.getHeight(), ImageRGB.TYPE_INT_RGB);
-            int [] pixels = new int[image.getWidth() * image.getHeight()];
-            image.getRGB(0, 0, image.getWidth(), image.getHeight(), pixels,
-                0, image.getWidth());
-            jpgImage.setRGB(0, 0, image.getWidth(), image.getHeight(), pixels,
-                0, image.getWidth());
-
-            try {
-                if (!ImageIO.write(jpgImage.getSubimage(0, 0,
-                        jpgImage.getWidth(),
-                        Math.min(jpgImage.getHeight(), fullHeight)),
-                    "JPG", jpgOutputStream)
-                ) {
-                    // We failed to render image, bail out.
-                    return "";
-                }
-            } catch (IOException e) {
-                // We failed to render image, bail out.
-                return "";
-            }
-
-            sb.append("\033]444;2;0;");
-            sb.append(StringUtils.toBase64(jpgOutputStream.toByteArray()));
-            sb.append("\007");
-
-        } else if (jexerImageOption == JexerImageOption.RGB) {
+        if (jexerImageOption == JexerImageOption.RGB) {
 
             // RGB
             sb.append(String.format("\033]444;0;%d;%d;0;", image.getWidth(),
                 Math.min(image.getHeight(), fullHeight)));
 
-            byte [] bytes = new byte[image.getWidth() * image.getHeight() * 3];
+            byte[] bytes = new byte[image.getWidth() * image.getHeight() * 3];
             int stride = image.getWidth();
             for (int px = 0; px < stride; px++) {
                 for (int py = 0; py < image.getHeight(); py++) {
                     int rgb = image.getRGB(px, py);
-                    bytes[(py * stride * 3) + (px * 3)]     = (byte) ((rgb >>> 16) & 0xFF);
-                    bytes[(py * stride * 3) + (px * 3) + 1] = (byte) ((rgb >>>  8) & 0xFF);
-                    bytes[(py * stride * 3) + (px * 3) + 2] = (byte) ( rgb         & 0xFF);
+                    bytes[(py * stride * 3) + (px * 3)] = (byte) ((rgb >>> 16) & 0xFF);
+                    bytes[(py * stride * 3) + (px * 3) + 1] = (byte) ((rgb >>> 8) & 0xFF);
+                    bytes[(py * stride * 3) + (px * 3) + 2] = (byte) (rgb & 0xFF);
                 }
             }
             sb.append(StringUtils.toBase64(bytes));
@@ -4518,24 +4197,24 @@ public class ECMA48Terminal extends LogicalScreen
      * Setup system colors to match CGA color palette.
      */
     private static void setCGAColors() {
-        MYBLACK         = 0x000000;
-        MYRED           = 0xaa0000;
-        MYGREEN         = 0x00aa00;
-        MYYELLOW        = 0xaa5500;
-        MYBLUE          = 0x0000aa;
-        MYMAGENTA       = 0xaa00aa;
-        MYCYAN          = 0x00aaaa;
-        MYWHITE         = 0xaaaaaa;
-        MYBOLD_BLACK    = 0x555555;
-        MYBOLD_RED      = 0xff5555;
-        MYBOLD_GREEN    = 0x55ff55;
-        MYBOLD_YELLOW   = 0xffff55;
-        MYBOLD_BLUE     = 0x5555ff;
-        MYBOLD_MAGENTA  = 0xff55ff;
-        MYBOLD_CYAN     = 0x55ffff;
-        MYBOLD_WHITE    = 0xffffff;
-        DEFAULT_FORECOLOR   = MYWHITE;
-        DEFAULT_BACKCOLOR   = MYBLACK;
+        MYBLACK = 0x000000;
+        MYRED = 0xaa0000;
+        MYGREEN = 0x00aa00;
+        MYYELLOW = 0xaa5500;
+        MYBLUE = 0x0000aa;
+        MYMAGENTA = 0xaa00aa;
+        MYCYAN = 0x00aaaa;
+        MYWHITE = 0xaaaaaa;
+        MYBOLD_BLACK = 0x555555;
+        MYBOLD_RED = 0xff5555;
+        MYBOLD_GREEN = 0x55ff55;
+        MYBOLD_YELLOW = 0xffff55;
+        MYBOLD_BLUE = 0x5555ff;
+        MYBOLD_MAGENTA = 0xff55ff;
+        MYBOLD_CYAN = 0x55ffff;
+        MYBOLD_WHITE = 0xffffff;
+        DEFAULT_FORECOLOR = MYWHITE;
+        DEFAULT_BACKCOLOR = MYBLACK;
     }
 
     /**
@@ -4544,22 +4223,22 @@ public class ECMA48Terminal extends LogicalScreen
     private void setCustomSystemColors() {
         String previousCommand = buildSendPaletteCommand();
 
-        MYBLACK   = getCustomColor("casciian.ECMA48.color0", MYBLACK);
-        MYRED     = getCustomColor("casciian.ECMA48.color1", MYRED);
-        MYGREEN   = getCustomColor("casciian.ECMA48.color2", MYGREEN);
-        MYYELLOW  = getCustomColor("casciian.ECMA48.color3", MYYELLOW);
-        MYBLUE    = getCustomColor("casciian.ECMA48.color4", MYBLUE);
+        MYBLACK = getCustomColor("casciian.ECMA48.color0", MYBLACK);
+        MYRED = getCustomColor("casciian.ECMA48.color1", MYRED);
+        MYGREEN = getCustomColor("casciian.ECMA48.color2", MYGREEN);
+        MYYELLOW = getCustomColor("casciian.ECMA48.color3", MYYELLOW);
+        MYBLUE = getCustomColor("casciian.ECMA48.color4", MYBLUE);
         MYMAGENTA = getCustomColor("casciian.ECMA48.color5", MYMAGENTA);
-        MYCYAN    = getCustomColor("casciian.ECMA48.color6", MYCYAN);
-        MYWHITE   = getCustomColor("casciian.ECMA48.color7", MYWHITE);
-        MYBOLD_BLACK   = getCustomColor("casciian.ECMA48.color8", MYBOLD_BLACK);
-        MYBOLD_RED     = getCustomColor("casciian.ECMA48.color9", MYBOLD_RED);
-        MYBOLD_GREEN   = getCustomColor("casciian.ECMA48.color10", MYBOLD_GREEN);
-        MYBOLD_YELLOW  = getCustomColor("casciian.ECMA48.color11", MYBOLD_YELLOW);
-        MYBOLD_BLUE    = getCustomColor("casciian.ECMA48.color12", MYBOLD_BLUE);
+        MYCYAN = getCustomColor("casciian.ECMA48.color6", MYCYAN);
+        MYWHITE = getCustomColor("casciian.ECMA48.color7", MYWHITE);
+        MYBOLD_BLACK = getCustomColor("casciian.ECMA48.color8", MYBOLD_BLACK);
+        MYBOLD_RED = getCustomColor("casciian.ECMA48.color9", MYBOLD_RED);
+        MYBOLD_GREEN = getCustomColor("casciian.ECMA48.color10", MYBOLD_GREEN);
+        MYBOLD_YELLOW = getCustomColor("casciian.ECMA48.color11", MYBOLD_YELLOW);
+        MYBOLD_BLUE = getCustomColor("casciian.ECMA48.color12", MYBOLD_BLUE);
         MYBOLD_MAGENTA = getCustomColor("casciian.ECMA48.color13", MYBOLD_MAGENTA);
-        MYBOLD_CYAN    = getCustomColor("casciian.ECMA48.color14", MYBOLD_CYAN);
-        MYBOLD_WHITE   = getCustomColor("casciian.ECMA48.color15", MYBOLD_WHITE);
+        MYBOLD_CYAN = getCustomColor("casciian.ECMA48.color14", MYBOLD_CYAN);
+        MYBOLD_WHITE = getCustomColor("casciian.ECMA48.color15", MYBOLD_WHITE);
 
         DEFAULT_FORECOLOR = getCustomColor("casciian.ECMA48.color39",
             DEFAULT_FORECOLOR);
@@ -4575,9 +4254,9 @@ public class ECMA48Terminal extends LogicalScreen
      * Setup one system color to match the RGB value provided in system
      * properties.
      *
-     * @param key the system property key
+     * @param key          the system property key
      * @param defaultColor the default color to return if key is not set, or
-     * incorrect
+     *                     incorrect
      * @return a color from the RGB string, or defaultColor
      */
     private int getCustomColor(final String key, final int defaultColor) {
@@ -4718,9 +4397,9 @@ public class ECMA48Terminal extends LogicalScreen
      * ECMA-style terminal
      */
     private String systemColorRGB(final int colorRGB) {
-        int colorRed     = (colorRGB >>> 16) & 0xFF;
-        int colorGreen   = (colorRGB >>>  8) & 0xFF;
-        int colorBlue    =  colorRGB         & 0xFF;
+        int colorRed = (colorRGB >>> 16) & 0xFF;
+        int colorGreen = (colorRGB >>> 8) & 0xFF;
+        int colorBlue = colorRGB & 0xFF;
 
         return String.format("%d;%d;%d", colorRed, colorGreen, colorBlue);
     }
@@ -4728,31 +4407,31 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Create a SGR parameter sequence for a single color change.
      *
-     * @param bold if true, set bold
-     * @param color one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param bold       if true, set bold
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
      * @param foreground if true, this is a foreground color
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[42m"
      */
     private String color(final boolean bold, final Color color,
-        final boolean foreground) {
+                         final boolean foreground) {
         return color(color, foreground, true) +
-                rgbColor(bold, color, foreground);
+            rgbColor(bold, color, foreground);
     }
 
     /**
      * Create a T.416 RGB parameter sequence for a single color change.
      *
-     * @param colorRGB a 24-bit RGB value for foreground color
+     * @param colorRGB   a 24-bit RGB value for foreground color
      * @param foreground if true, this is a foreground color
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[42m"
      */
     private String colorRGB(final int colorRGB, final boolean foreground) {
 
-        int colorRed     = (colorRGB >>> 16) & 0xFF;
-        int colorGreen   = (colorRGB >>>  8) & 0xFF;
-        int colorBlue    =  colorRGB         & 0xFF;
+        int colorRed = (colorRGB >>> 16) & 0xFF;
+        int colorGreen = (colorRGB >>> 8) & 0xFF;
+        int colorBlue = colorRGB & 0xFF;
 
         StringBuilder sb = new StringBuilder();
         if (foreground) {
@@ -4774,32 +4453,32 @@ public class ECMA48Terminal extends LogicalScreen
      * e.g. "\033[42m"
      */
     private String colorRGB(final int foreColorRGB, final int backColorRGB) {
-        int foreColorRed     = (foreColorRGB >>> 16) & 0xFF;
-        int foreColorGreen   = (foreColorRGB >>>  8) & 0xFF;
-        int foreColorBlue    =  foreColorRGB         & 0xFF;
-        int backColorRed     = (backColorRGB >>> 16) & 0xFF;
-        int backColorGreen   = (backColorRGB >>>  8) & 0xFF;
-        int backColorBlue    =  backColorRGB         & 0xFF;
+        int foreColorRed = (foreColorRGB >>> 16) & 0xFF;
+        int foreColorGreen = (foreColorRGB >>> 8) & 0xFF;
+        int foreColorBlue = foreColorRGB & 0xFF;
+        int backColorRed = (backColorRGB >>> 16) & 0xFF;
+        int backColorGreen = (backColorRGB >>> 8) & 0xFF;
+        int backColorBlue = backColorRGB & 0xFF;
 
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("\033[38;2;%d;%d;%dm",
-                foreColorRed, foreColorGreen, foreColorBlue));
+            foreColorRed, foreColorGreen, foreColorBlue));
         sb.append(String.format("\033[48;2;%d;%d;%dm",
-                backColorRed, backColorGreen, backColorBlue));
+            backColorRed, backColorGreen, backColorBlue));
         return sb.toString();
     }
 
     /**
      * Create a T.416 RGB parameter sequence for a single color change.
      *
-     * @param bold if true, set bold
-     * @param color one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param bold       if true, set bold
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
      * @param foreground if true, this is a foreground color
      * @return the string to emit to an xterm terminal with RGB support,
      * e.g. "\033[38;2;RR;GG;BBm"
      */
     private String rgbColor(final boolean bold, final Color color,
-        final boolean foreground) {
+                            final boolean foreground) {
         if (doRgbColor == false) {
             return "";
         }
@@ -4856,34 +4535,34 @@ public class ECMA48Terminal extends LogicalScreen
      * Create a T.416 RGB parameter sequence for both foreground and
      * background color change.
      *
-     * @param bold if true, set bold
+     * @param bold      if true, set bold
      * @param foreColor one of the Color.WHITE, Color.BLUE, etc. constants
      * @param backColor one of the Color.WHITE, Color.BLUE, etc. constants
      * @return the string to emit to an xterm terminal with RGB support,
      * e.g. "\033[38;2;RR;GG;BB;48;2;RR;GG;BBm"
      */
     private String rgbColor(final boolean bold, final Color foreColor,
-        final Color backColor) {
+                            final Color backColor) {
         if (doRgbColor == false) {
             return "";
         }
 
         return rgbColor(bold, foreColor, true) +
-                rgbColor(false, backColor, false);
+            rgbColor(false, backColor, false);
     }
 
     /**
      * Create a SGR parameter sequence for a single color change.
      *
-     * @param color one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
      * @param foreground if true, this is a foreground color
-     * @param header if true, make the full header, otherwise just emit the
-     * color parameter e.g. "42;"
+     * @param header     if true, make the full header, otherwise just emit the
+     *                   color parameter e.g. "42;"
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[42m"
      */
     private String color(final Color color, final boolean foreground,
-        final boolean header) {
+                         final boolean header) {
 
         return color(color, foreground, header, false);
     }
@@ -4891,19 +4570,19 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Create a SGR parameter sequence for a single color change.
      *
-     * @param color one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
      * @param foreground if true, this is a foreground color
-     * @param header if true, make the full header, otherwise just emit the
-     * color parameter e.g. "42;"
-     * @param bold if true and foreground is true, use bright colors (90-97)
-     * instead of normal colors (30-37). This is needed because some terminals
-     * (e.g., Terminator, gnome-terminal) do not interpret SGR 1 (bold) as
-     * switching to bright colors.
+     * @param header     if true, make the full header, otherwise just emit the
+     *                   color parameter e.g. "42;"
+     * @param bold       if true and foreground is true, use bright colors (90-97)
+     *                   instead of normal colors (30-37). This is needed because some terminals
+     *                   (e.g., Terminator, gnome-terminal) do not interpret SGR 1 (bold) as
+     *                   switching to bright colors.
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[42m" or "\033[92m" for bright green
      */
     private String color(final Color color, final boolean foreground,
-        final boolean header, final boolean bold) {
+                         final boolean header, final boolean bold) {
 
         int ecmaColor = color.getValue();
 
@@ -4932,16 +4611,16 @@ public class ECMA48Terminal extends LogicalScreen
      * Create a SGR parameter sequence for both foreground and background
      * color change.
      *
-     * @param bold if true, set bold
+     * @param bold      if true, set bold
      * @param foreColor one of the Color.WHITE, Color.BLUE, etc. constants
      * @param backColor one of the Color.WHITE, Color.BLUE, etc. constants
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[31;42m"
      */
     private String color(final boolean bold, final Color foreColor,
-        final Color backColor) {
+                         final Color backColor) {
         return color(foreColor, backColor, true) +
-                rgbColor(bold, foreColor, backColor);
+            rgbColor(bold, foreColor, backColor);
     }
 
     /**
@@ -4950,13 +4629,13 @@ public class ECMA48Terminal extends LogicalScreen
      *
      * @param foreColor one of the Color.WHITE, Color.BLUE, etc. constants
      * @param backColor one of the Color.WHITE, Color.BLUE, etc. constants
-     * @param header if true, make the full header, otherwise just emit the
-     * color parameter e.g. "31;42;"
+     * @param header    if true, make the full header, otherwise just emit the
+     *                  color parameter e.g. "31;42;"
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[31;42m"
      */
     private String color(final Color foreColor, final Color backColor,
-        final boolean header) {
+                         final boolean header) {
 
         int ecmaForeColor = foreColor.getValue();
         int ecmaBackColor = backColor.getValue();
@@ -4976,23 +4655,23 @@ public class ECMA48Terminal extends LogicalScreen
      * Create a SGR parameter sequence for foreground, background, and
      * several attributes.  This sequence first resets all attributes to
      * default, then sets attributes as per the parameters.
-     *
+     * <p>
      * Note: SGR 1 (bold) is NOT emitted because casciian uses bright colors
      * (90-97) to indicate bold instead. This avoids showing bold/thick text
      * on terminals that support it.
      *
      * @param foreColor one of the Color.WHITE, Color.BLUE, etc. constants
      * @param backColor one of the Color.WHITE, Color.BLUE, etc. constants
-     * @param bold if true, set bold
-     * @param reverse if true, set reverse
-     * @param blink if true, set blink
+     * @param bold      if true, set bold
+     * @param reverse   if true, set reverse
+     * @param blink     if true, set blink
      * @param underline if true, set underline
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[0;31;42m"
      */
     private String color(final Color foreColor, final Color backColor,
-        final boolean bold, final boolean reverse, final boolean blink,
-        final boolean underline) {
+                         final boolean bold, final boolean reverse, final boolean blink,
+                         final boolean underline) {
 
         int ecmaForeColor = foreColor.getValue();
         int ecmaBackColor = backColor.getValue();
@@ -5002,19 +4681,19 @@ public class ECMA48Terminal extends LogicalScreen
         ecmaForeColor += 30;
 
         StringBuilder sb = new StringBuilder();
-        if        (  reverse &&  blink && !underline ) {
+        if (reverse && blink && !underline) {
             sb.append("\033[0;7;5;");
-        } else if (  reverse && !blink && !underline ) {
+        } else if (reverse && !blink && !underline) {
             sb.append("\033[0;7;");
-        } else if ( !reverse &&  blink && !underline ) {
+        } else if (!reverse && blink && !underline) {
             sb.append("\033[0;5;");
-        } else if (  reverse &&  blink &&  underline ) {
+        } else if (reverse && blink && underline) {
             sb.append("\033[0;7;5;4;");
-        } else if (  reverse && !blink &&  underline ) {
+        } else if (reverse && !blink && underline) {
             sb.append("\033[0;7;4;");
-        } else if ( !reverse &&  blink &&  underline) {
+        } else if (!reverse && blink && underline) {
             sb.append("\033[0;5;4;");
-        } else if ( !reverse && !blink &&  underline) {
+        } else if (!reverse && !blink && underline) {
             sb.append("\033[0;4;");
         } else {
             assert (!reverse && !blink && !underline);
@@ -5029,35 +4708,35 @@ public class ECMA48Terminal extends LogicalScreen
      * Create a SGR parameter sequence for several attributes.  This sequence
      * first resets all attributes to default, then sets attributes as per
      * the parameters.
-     *
+     * <p>
      * Note: SGR 1 (bold) is NOT emitted because casciian uses bright colors
      * (90-97) to indicate bold instead. This avoids showing bold/thick text
      * on terminals that support it.
      *
-     * @param bold if true, set bold
-     * @param reverse if true, set reverse
-     * @param blink if true, set blink
+     * @param bold      if true, set bold
+     * @param reverse   if true, set reverse
+     * @param blink     if true, set blink
      * @param underline if true, set underline
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[0;5m"
      */
     private String attributes(final boolean bold, final boolean reverse,
-        final boolean blink, final boolean underline) {
+                              final boolean blink, final boolean underline) {
 
         StringBuilder sb = new StringBuilder();
-        if        (  reverse &&  blink && !underline ) {
+        if (reverse && blink && !underline) {
             sb.append("\033[0;7;5m");
-        } else if (  reverse && !blink && !underline ) {
+        } else if (reverse && !blink && !underline) {
             sb.append("\033[0;7m");
-        } else if ( !reverse &&  blink && !underline) {
+        } else if (!reverse && blink && !underline) {
             sb.append("\033[0;5m");
-        } else if (  reverse &&  blink &&  underline ) {
+        } else if (reverse && blink && underline) {
             sb.append("\033[0;7;5;4m");
-        } else if (  reverse && !blink &&  underline ) {
+        } else if (reverse && !blink && underline) {
             sb.append("\033[0;7;4m");
-        } else if ( !reverse &&  blink &&  underline) {
+        } else if (!reverse && blink && underline) {
             sb.append("\033[0;5;4m");
-        } else if ( !reverse && !blink &&  underline) {
+        } else if (!reverse && !blink && underline) {
             sb.append("\033[0;4m");
         } else {
             assert (!reverse && !blink && !underline);
@@ -5070,45 +4749,45 @@ public class ECMA48Terminal extends LogicalScreen
      * Create a SGR parameter sequence for foreground, background, and
      * several attributes.  This sequence first resets all attributes to
      * default, then sets attributes as per the parameters.
-     *
+     * <p>
      * Note: SGR 1 (bold) is NOT emitted because casciian uses bright colors
      * (90-97) to indicate bold instead. This avoids showing bold/thick text
      * on terminals that support it.
      *
      * @param foreColorRGB a 24-bit RGB value for foreground color
      * @param backColorRGB a 24-bit RGB value for foreground color
-     * @param bold if true, set bold
-     * @param reverse if true, set reverse
-     * @param blink if true, set blink
-     * @param underline if true, set underline
+     * @param bold         if true, set bold
+     * @param reverse      if true, set reverse
+     * @param blink        if true, set blink
+     * @param underline    if true, set underline
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[0;31;42m"
      */
     private String colorRGB(final int foreColorRGB, final int backColorRGB,
-        final boolean bold, final boolean reverse, final boolean blink,
-        final boolean underline) {
+                            final boolean bold, final boolean reverse, final boolean blink,
+                            final boolean underline) {
 
-        int foreColorRed     = (foreColorRGB >>> 16) & 0xFF;
-        int foreColorGreen   = (foreColorRGB >>>  8) & 0xFF;
-        int foreColorBlue    =  foreColorRGB         & 0xFF;
-        int backColorRed     = (backColorRGB >>> 16) & 0xFF;
-        int backColorGreen   = (backColorRGB >>>  8) & 0xFF;
-        int backColorBlue    =  backColorRGB         & 0xFF;
+        int foreColorRed = (foreColorRGB >>> 16) & 0xFF;
+        int foreColorGreen = (foreColorRGB >>> 8) & 0xFF;
+        int foreColorBlue = foreColorRGB & 0xFF;
+        int backColorRed = (backColorRGB >>> 16) & 0xFF;
+        int backColorGreen = (backColorRGB >>> 8) & 0xFF;
+        int backColorBlue = backColorRGB & 0xFF;
 
         StringBuilder sb = new StringBuilder();
-        if        (  reverse &&  blink && !underline ) {
+        if (reverse && blink && !underline) {
             sb.append("\033[0;7;5;");
-        } else if (  reverse && !blink && !underline ) {
+        } else if (reverse && !blink && !underline) {
             sb.append("\033[0;7;");
-        } else if ( !reverse &&  blink && !underline) {
+        } else if (!reverse && blink && !underline) {
             sb.append("\033[0;5;");
-        } else if (  reverse &&  blink &&  underline ) {
+        } else if (reverse && blink && underline) {
             sb.append("\033[0;7;5;4;");
-        } else if (  reverse && !blink &&  underline ) {
+        } else if (reverse && !blink && underline) {
             sb.append("\033[0;7;4;");
-        } else if ( !reverse &&  blink &&  underline) {
+        } else if (!reverse && blink && underline) {
             sb.append("\033[0;5;4;");
-        } else if ( !reverse && !blink &&  underline) {
+        } else if (!reverse && !blink && underline) {
             sb.append("\033[0;4;");
         } else {
             assert (!reverse && !blink && !underline);
@@ -5117,10 +4796,10 @@ public class ECMA48Terminal extends LogicalScreen
 
         sb.append("m\033[38;2;");
         sb.append(String.format("%d;%d;%d", foreColorRed, foreColorGreen,
-                foreColorBlue));
+            foreColorBlue));
         sb.append("m\033[48;2;");
         sb.append(String.format("%d;%d;%d", backColorRed, backColorGreen,
-                backColorBlue));
+            backColorBlue));
         sb.append("m");
         return sb.toString();
     }
@@ -5162,7 +4841,7 @@ public class ECMA48Terminal extends LogicalScreen
      * Create a SGR parameter sequence to reset to defaults.
      *
      * @param header if true, make the full header, otherwise just emit the
-     * bare parameter e.g. "0;"
+     *               bare parameter e.g. "0;"
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[0m"
      */
@@ -5314,7 +4993,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @param text string to copy
      */
     public void xtermSetClipboardText(final String text) {
-        byte [] textBytes = text.getBytes(StandardCharsets.UTF_8);
+        byte[] textBytes = text.getBytes(StandardCharsets.UTF_8);
         String textToCopy = StringUtils.toBase64(textBytes);
         this.output.printf("\033]52;c;%s\033\\", textToCopy);
         this.output.flush();
@@ -5333,7 +5012,7 @@ public class ECMA48Terminal extends LogicalScreen
      * Set the rgbColor flag.
      *
      * @param rgbColor if true, the standard system colors will be emitted as
-     * 24-bit RGB images
+     *                 24-bit RGB images
      */
     public void setRgbColor(final boolean rgbColor) {
         doRgbColor = rgbColor;
@@ -5387,8 +5066,8 @@ public class ECMA48Terminal extends LogicalScreen
      * {@code 0x1212}).
      *
      * @return a single {@link String} containing the concatenated OSC 4
-     *         sequences for all 16 palette entries, ready to be written to
-     *         the terminal output stream
+     * sequences for all 16 palette entries, ready to be written to
+     * the terminal output stream
      */
     private static String buildSendPaletteCommand() {
 

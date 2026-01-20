@@ -59,6 +59,11 @@ public class TMenu extends TWindow {
     public static final int MID_REPAINT         = 1;
 
     /**
+     * Open image.
+     */
+    public static final int MID_VIEW_IMAGE      = 2;
+
+    /**
      * View ASCII/ANSI file.
      */
     public static final int MID_VIEW_ANSI       = 3;
@@ -892,6 +897,11 @@ public class TMenu extends TWindow {
         case MID_REPAINT:
             label = i18n.getString("menuRepaintDesktop");
             icon = 0x1F3A8;
+            break;
+
+        case MID_VIEW_IMAGE:
+            label = i18n.getString("menuViewImage");
+            icon = 0x1F5BC;
             break;
 
         case MID_VIEW_ANSI:

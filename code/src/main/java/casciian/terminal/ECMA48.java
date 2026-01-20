@@ -48,6 +48,7 @@ import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.io.ReadTimeoutException;
 import casciian.io.TimeoutInputStream;
+
 import static casciian.TKeypress.*;
 
 /**

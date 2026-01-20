@@ -266,12 +266,6 @@ public class SixelDecoder {
      * @return the sixel data as an image.
      */
     public ImageRGB getImage() {
-
-        // DEBUG
-        if (false) {
-            return null;
-        }
-
         if (buffer != null) {
             int bufferLength = buffer.length();
             for (int i = 0; (i < bufferLength) && (abort == false); i++) {

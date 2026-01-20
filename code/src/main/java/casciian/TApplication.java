@@ -20,6 +20,7 @@
 
 package casciian;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.IOException;
@@ -1249,6 +1250,10 @@ public class TApplication implements Runnable {
             doRepaint();
             return true;
         }
+        if (menu.getId() == TMenu.MID_VIEW_IMAGE) {
+            openImage();
+            return true;
+        }
         if (menu.getId() == TMenu.MID_VIEW_ANSI) {
             openAnsiFile();
             return true;
@@ -2411,12 +2416,28 @@ public class TApplication implements Runnable {
     protected void showAboutDialog() {
         String version = getClass().getPackage().getImplementationVersion();
         if (version == null) {
-            // This is Java 9+, use a hardcoded string here.
-            version = "0.4";
+            version = "UNKNOWN";
         }
         messageBox(i18n.getString("aboutDialogTitle"),
             MessageFormat.format(i18n.getString("aboutDialogText"), version),
             TMessageBox.Type.OK);
+    }
+
+    /**
+     * Handle the Tool | Open image menu item.
+     */
+    private void openImage() {
+        try {
+            List<String> filters = new ArrayList<String>();
+            filters.add("^.*\\.[sS][iI][xX]$");
+            String filename = fileOpenBox(".", TFileOpenBox.Type.OPEN, filters);
+            if (filename != null) {
+                new TImageWindow(this, new File(filename));
+            }
+        } catch (IOException e) {
+            // Show this exception to the user.
+            new TExceptionDialog(this, e);
+        }
     }
 
     /**
@@ -2426,7 +2447,11 @@ public class TApplication implements Runnable {
         try {
             String filename = fileOpenBox(".", TFileOpenBox.Type.OPEN);
             if (filename != null) {
-                new TTextPictureWindow(this, filename);
+                if (filename.endsWith(".six")) {
+                    new TImageWindow(this, new File(filename));
+                } else {
+                    new TTextPictureWindow(this, filename);
+                }
             }
         } catch (IOException e) {
             // Show this exception to the user.
@@ -4205,6 +4230,7 @@ public class TApplication implements Runnable {
         TMenu toolMenu = addMenu(i18n.getString("toolMenuTitle"));
         toolMenu.addDefaultItem(TMenu.MID_REPAINT);
         toolMenu.addSeparator();
+        toolMenu.addDefaultItem(TMenu.MID_VIEW_IMAGE);
         toolMenu.addDefaultItem(TMenu.MID_VIEW_ANSI);
         TStatusBar toolStatusBar = toolMenu.newStatusBar(i18n.
             getString("toolMenuStatus"));

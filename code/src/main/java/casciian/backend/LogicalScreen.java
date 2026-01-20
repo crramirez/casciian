@@ -164,6 +164,7 @@ public class LogicalScreen implements Screen {
      *
      * @return the width in pixels of a character cell
      */
+    @Override
     public int getTextWidth() {
         // Default width is 16 pixels.
         return 16;
@@ -174,6 +175,7 @@ public class LogicalScreen implements Screen {
      *
      * @return the height in pixels of a character cell
      */
+    @Override
     public int getTextHeight() {
         // Default height is 20 pixels.
         return 20;
@@ -1905,9 +1907,7 @@ public class LogicalScreen implements Screen {
                         && !overCell.isUnderline()
                     ) {
                         // The overlaying cell is invisible.
-                        if (thisCell.isImage()) {
-                            thisCell.setOpaqueImage();
-                        } else {
+                        if (!thisCell.isImage()) {
                             // Our character will show through.  If the contrast
                             // between our foreground and background is small,
                             // then drop the character.
@@ -1955,114 +1955,26 @@ public class LogicalScreen implements Screen {
                         // If we had an image, destroy it.  Text ALWAYS
                         // overwrites images.
                         thisCell.setImage(null);
-                        thisCell.setWidth(overCell.getWidth());
+
+                        if (thisCell.getChar() == ' ') {
+                            thisCell.setChar(0x2588);
+                        }
                         continue;
                     }
 
-                    if (!thisCell.isImage()
-                        && overCell.isImage()
-                        && !overCell.isTransparentImage()
-                    ) {
-                        // The image from the new cell will fully cover this
-                        // cell's background or glyph.
-
-                        // We need to blit overCell's image over thisOldBg at
-                        // alpha < 255.
-                        ComplexCell overCopy = new ComplexCell(overCell);
-                        overCopy.flattenImage(false, backend);
-                        ImageRGB image = overCopy.getImage();
-                        // Retain overCell.imageId with thisOldBg and set
-                        int imageId = overCell.getImageId();
-                        if (imageId > 0) {
-                            thisCell.setImage(image, imageId);
-                            thisCell.mixImageId(thisOldBg);
-                            thisCell.mixImageId(alpha);
-                        } else {
-                            thisCell.setImage(image);
-                        }
-                        thisCell.setOpaqueImage();
-                        thisCell.setWidth(overCell.getWidth());
-                        continue;
+                    // The image from the new cell will fully cover this
+                    // cell's background or glyph.
+                    ImageRGB image = overCell.getImage();
+                    // Retain overCell.imageId with thisOldBg and set
+                    int imageId = overCell.getImageId();
+                    if (imageId > 0) {
+                        thisCell.setImage(image, imageId);
+                        thisCell.mixImageId(thisOldBg);
+                        thisCell.mixImageId(alpha);
+                    } else {
+                        thisCell.setImage(image);
                     }
-
-                    if (thisCell.isImage()
-                        && overCell.isImage()
-                        && !overCell.isTransparentImage()
-                    ) {
-                        // The image from the new cell will fully cover this
-                        // cell's image.
-
-                        // We need to blit overCell's image over this image
-                        // at alpha < 255.
-                        ComplexCell overCopy = new ComplexCell(overCell);
-                        overCopy.flattenImage(false, backend);
-                        ImageRGB image = overCopy.getImage();
-                        // Retain overCell.imageId with thisCell.imageId
-                        int imageId = thisCell.getImageId();
-                        if (imageId > 0) {
-                            thisCell.setImage(image, imageId);
-                            thisCell.mixImageId(overCell);
-                            thisCell.mixImageId(alpha);
-                        } else {
-                            thisCell.setImage(image);
-                        }
-                        thisCell.setOpaqueImage();
-                        thisCell.setWidth(overCell.getWidth());
-                        continue;
-                    }
-
-                    if (thisCell.isImage()
-                        && overCell.isImage()
-                        && overCell.isTransparentImage()
-                    ) {
-                        // We need to blit overCell's image over a rectangle
-                        // of otherBg at alpha = 255, and then blit that over
-                        // thisCell's image at alpha < 255.
-
-                        ComplexCell overCopy = new ComplexCell(overCell);
-                        overCopy.flattenImage(false, backend);
-                        ImageRGB image = overCopy.getImage();
-                        // Retain overCell.imageId with overBg, then
-                        // thisCell.imageId
-                        int imageId = thisCell.getImageId();
-                        if (imageId > 0) {
-                            thisCell.setImage(image, imageId);
-                            thisCell.mixImageId(overCell);
-                            thisCell.mixImageId(overBg);
-                            thisCell.mixImageId(alpha);
-                        } else {
-                            thisCell.setImage(image);
-                        }
-                        thisCell.setOpaqueImage();
-                        thisCell.setWidth(overCell.getWidth());
-                        continue;
-                    }
-
-                    if (!thisCell.isImage()
-                        && overCell.isImage()
-                        && overCell.isTransparentImage()
-                    ) {
-                        // We need to blit overCell's image over a rectangle
-                        // of overBg at alpha = 255, and blit that over
-                        // thisOldBg at alpha < 255.
-
-                        ComplexCell overCopy = new ComplexCell(overCell);
-                        overCopy.flattenImage(false, backend);
-                        ImageRGB image = overCopy.getImage();
-                        // Retain overCell.imageId with overBg, then
-                        // thisOldBg, then set
-                        int imageId = overCell.getImageId();
-                        if (imageId > 0) {
-                            thisCell.setImage(image, imageId);
-                            thisCell.mixImageId(overBg);
-                            thisCell.mixImageId(thisOldBg);
-                            thisCell.mixImageId(alpha);
-                        } else {
-                            thisCell.setImage(image);
-                        }
-                        thisCell.setOpaqueImage();
-                        thisCell.setWidth(overCell.getWidth());
-                    }
+                    thisCell.setWidth(overCell.getWidth());
 
                     // There should be nothing to do now.  We have set the
                     // character, or set the image, and blended backgrounds

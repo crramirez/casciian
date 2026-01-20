@@ -197,7 +197,7 @@ public class ImageRGB {
         ImageRGB subimage = new ImageRGB(w, h);
         for (int row = 0; row < h; row++) {
             for (int col = 0; col < w; col++) {
-                if (col < width && row < height) {
+                if (x + col < width && y + row < height) {
                     subimage.rgb[col][row] = this.rgb[x + col][y + row];
                 }
             }

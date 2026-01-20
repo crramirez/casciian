@@ -31,6 +31,7 @@ import casciian.bits.CellAttributes;
 import casciian.bits.CellTransform;
 import casciian.bits.Clipboard;
 import casciian.bits.ColorTheme;
+import casciian.bits.ImageRGB;
 import casciian.event.TCommandEvent;
 import casciian.event.TInputEvent;
 import casciian.event.TKeypressEvent;
@@ -3213,6 +3214,82 @@ public abstract class TWidget implements Comparable<TWidget> {
 
         return new TList(this, strings, x, y, width, height, enterAction,
             moveAction, singleClickAction);
+    }
+
+    /**
+     * Convenience function to add an image to this container/window.
+     *
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param width number of text cells for width of the image
+     * @param height number of text cells for height of the image
+     * @param image the image to display
+     * @param left left column of the image.  0 is the left-most column.
+     * @param top top row of the image.  0 is the top-most row.
+     * @return the new image
+     */
+    public final TImage addImage(final int x, final int y,
+        final int width, final int height, final ImageRGB image,
+        final int left, final int top) {
+
+        return new TImage(this, x, y, width, height, image, left, top);
+    }
+
+    /**
+     * Convenience function to add an image to this container/window.
+     *
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param width number of text cells for width of the image
+     * @param height number of text cells for height of the image
+     * @param image the image to display
+     * @param left left column of the image.  0 is the left-most column.
+     * @param top top row of the image.  0 is the top-most row.
+     * @param clickAction function to call when mouse is pressed
+     * @return the new image
+     */
+    public final TImage addImage(final int x, final int y,
+        final int width, final int height, final ImageRGB image,
+        final int left, final int top, final TAction clickAction) {
+
+        return new TImage(this, x, y, width, height, image, left, top,
+            clickAction);
+    }
+
+    /**
+     * Convenience function to add an image to this container/window.
+     *
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param width number of text cells for width of the image
+     * @param height number of text cells for height of the image
+     * @param left left column of the image.  0 is the left-most column.
+     * @param top top row of the image.  0 is the top-most row.
+     * @return the new image
+     */
+    public final TImage addImage(final int x, final int y,
+        final int width, final int height, final int left, final int top) {
+
+        return new TImage(this, x, y, width, height, left, top);
+    }
+
+    /**
+     * Convenience function to add an image to this container/window.
+     *
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param width number of text cells for width of the image
+     * @param height number of text cells for height of the image
+     * @param left left column of the image.  0 is the left-most column.
+     * @param top top row of the image.  0 is the top-most row.
+     * @param clickAction function to call when mouse is pressed
+     * @return the new image
+     */
+    public final TImage addImage(final int x, final int y,
+        final int width, final int height, final int left, final int top, final TAction clickAction) {
+
+        return new TImage(this, x, y, width, height, left, top,
+            clickAction);
     }
 
     /**
