@@ -375,7 +375,7 @@ public class SixelDecoder {
      * @param ch the character of sixel data
      */
     private void addSixel(final char ch) {
-        int n = ((int) ch - 63);
+        int n = ch - 63;
 
         int rgb = color;
         // As per jerch who has read STD 070 much more than I have, the
@@ -396,7 +396,7 @@ public class SixelDecoder {
         assert (n >= 0);
 
         if (image == null) {
-            // The raster attributes was not provided.
+            // The raster attributes were not provided.
             resizeImage(WIDTH_INCREASE, HEIGHT_INCREASE);
         }
 

@@ -301,21 +301,6 @@ public class ECMA48Terminal extends LogicalScreen
     private ImageCache sixelCache = null;
 
     /**
-     * If true, emit image data via iTerm2 image protocol.
-     */
-    private boolean iterm2Images = false;
-
-    /**
-     * If true, allow iTerm2 images on the bottom row.
-     */
-    private boolean iterm2BottomRow = false;
-
-    /**
-     * The iTerm2 post-rendered string cache.
-     */
-    private ImageCache iterm2Cache = null;
-
-    /**
      * If not DISABLED, emit image data via Casciian image protocol if the
      * terminal supports it.
      */
@@ -1219,20 +1204,9 @@ public class ECMA48Terminal extends LogicalScreen
         this.output.printf("%s", xtermSetSixelSettings());
 
         if (!daResponseSeen) {
-            String str = System.getProperty("casciian.ECMA48.iTerm2Images");
-            // Default to not supporting iTerm2 images.
-            if (str != null) {
-                if (str.equals("false")) {
-                    iterm2Images = false;
-                }
-                if (str.equals("true")) {
-                    iterm2Images = true;
-                }
-            }
-
             // Default to using JPG Casciian images if terminal supports it.
             String jexerImageStr = System.getProperty("casciian.ECMA48.jexerImages",
-                "png").toLowerCase();
+                "rgb").toLowerCase();
             if (jexerImageStr.equals("false")) {
                 jexerImageOption = JexerImageOption.DISABLED;
             } else if (jexerImageStr.equals("rgb")) {
@@ -1242,11 +1216,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         String destroyImagesStr = System.getProperty("casciian.ECMA48.explicitlyDestroyImages",
             "auto").toLowerCase();
-        if (destroyImagesStr.equals("true")) {
-            explicitlyDestroyImages = true;
-        } else {
-            explicitlyDestroyImages = false;
-        }
+        explicitlyDestroyImages = destroyImagesStr.equals("true");
 
         // Image thread count.
         imageThreadCount = 2;
@@ -1996,16 +1966,7 @@ public class ECMA48Terminal extends LogicalScreen
                     physical[x + i][y].setTo(logical[x + i][y]);
                 }
                 if (!cellsToDraw.isEmpty()) {
-                    if (debugToStderr && reallyDebug) {
-                        System.err.println("images to render: iTerm2: " +
-                            iterm2Images + " Jexer: " + jexerImageOption);
-                    }
-
-                    if (iterm2Images) {
-                        if (iterm2Cache == null) {
-                            iterm2Cache = new ImageCache(height * width * 10);
-                        }
-                    } else if (jexerImageOption != JexerImageOption.DISABLED) {
+                    if (jexerImageOption != JexerImageOption.DISABLED) {
                         if (jexerCache == null) {
                             jexerCache = new ImageCache(height * width * 10);
                         }
@@ -2702,36 +2663,6 @@ public class ECMA48Terminal extends LogicalScreen
             }
         }
 
-        // iTerm2 image support will be ASSUMED for the following terminals
-        // if iTerm2Images is not explicitly false.
-        if (text.contains("WezTerm")
-            || text.contains("mintty")
-            || text.contains("iTerm2")
-            || text.contains("Konsole")
-            || text.contains("jexer")
-        ) {
-            String str = System.getProperty("casciian.ECMA48.iTerm2Images");
-            if ((str != null) && (str.equals("false"))) {
-                if (debugToStderr) {
-                    System.err.println("  -- terminal supports iTerm2, but " +
-                        "explicitly disabled in config");
-                }
-                iterm2Images = false;
-            } else {
-                if (debugToStderr) {
-                    System.err.println("  -- enable iTerm2 images");
-                }
-                iterm2Images = true;
-            }
-            // These iTerm2-compatible terminals also support
-            // doNotMoveCursor.
-            if (text.contains("WezTerm")
-                || text.contains("jexer")
-            ) {
-                iterm2BottomRow = true;
-            }
-        }
-
         // Konsole places image data underneath text, such that
         // erasing text will re-expose the image.  We need to
         // explicitly destroy any images being overwritten by text for
@@ -2748,12 +2679,12 @@ public class ECMA48Terminal extends LogicalScreen
                 if (debugToStderr) {
                     System.err.println("  -- terminal requires explicitlyDestroyImages");
                 }
-                explicitlyDestroyImages = true;
+                //explicitlyDestroyImages = true;
             }
-            setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
 
         }
 
+        setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
     }
 
     /**
@@ -3340,7 +3271,6 @@ public class ECMA48Terminal extends LogicalScreen
                             daResponseSeen = true;
 
                             boolean reportsJexerImages = false;
-                            boolean reportsIterm2Images = false;
                             boolean reportsSixelImages = false;
                             for (String x : params) {
                                 if (debugToStderr) {
@@ -3382,21 +3312,6 @@ public class ECMA48Terminal extends LogicalScreen
                                     }
                                     reportsJexerImages = true;
                                 }
-                                if (iterm2Images) {
-                                    /*
-                                     * This check left in place so that I have a hook
-                                     * for later.  At the moment there is no way to
-                                     * reliably detect iTerm2 image support, so if
-                                     * casciian.ECMA48.iTerm2Images=true, we just
-                                     * blindly start using them.
-                                     */
-
-                                    // Terminal reports iTerm2 images support
-                                    if (debugToStderr) {
-                                        System.err.println("Device Attributes: ASSUMING iTerm2 image support");
-                                    }
-                                    reportsIterm2Images = true;
-                                }
                             }
                             if (reportsSixelImages == false) {
                                 // Terminal does not support Sixel images, disable
@@ -3412,14 +3327,6 @@ public class ECMA48Terminal extends LogicalScreen
                                 jexerImageOption = JexerImageOption.DISABLED;
                                 if (debugToStderr) {
                                     System.err.println("Device Attributes: Disable Casciian images");
-                                }
-                            }
-                            if ((reportsIterm2Images == false)) {
-                                // Terminal does not support iTerm2 images, disable
-                                // them.
-                                iterm2Images = false;
-                                if (debugToStderr) {
-                                    System.err.println("Device Attributes: Disable iTerm2 images");
                                 }
                             }
                             resetParser();

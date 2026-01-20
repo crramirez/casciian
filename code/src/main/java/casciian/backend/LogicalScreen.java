@@ -1739,9 +1739,11 @@ public class LogicalScreen implements Screen {
 
         // We just create a new blank screen and blend it.
         LogicalScreen rectangle = new LogicalScreen(width, height);
-        for (int row = 0; row < height; row++) {
-            for (int col = 0; col < width; col++) {
-                rectangle.logical[col][row].setBackColorRGB(color);
+        if (color != 0) {
+            for (int row = 0; row < height; row++) {
+                for (int col = 0; col < width; col++) {
+                    rectangle.logical[col][row].setBackColorRGB(color);
+                }
             }
         }
 
@@ -1936,8 +1938,8 @@ public class LogicalScreen implements Screen {
                                 thisCell.setChar(' ');
                                 thisCell.setWidth(Cell.Width.SINGLE);
                             }
+                            continue;
                         }
-                        continue;
                     }
 
                     // The overlaying cell has a character, use it.
@@ -1952,12 +1954,11 @@ public class LogicalScreen implements Screen {
                     thisCell.setWidth(overCell.getWidth());
 
                     if (!overCell.isImage()) {
-                        // If we had an image, destroy it.  Text ALWAYS
-                        // overwrites images.
-                        thisCell.setImage(null);
-
-                        if (thisCell.getChar() == ' ') {
-                            thisCell.setChar(0x2588);
+                        if(thisCell.isImage()) {
+                            // If we had an image, destroy it.  Text ALWAYS
+                            // overwrites images.
+                            thisCell.setImage(null);
+                            thisCell.setBackColorRGB(overBg);
                         }
                         continue;
                     }

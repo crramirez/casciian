@@ -99,7 +99,7 @@ public class TImageWindow extends TScrollableWindow {
 
         ImageRGB image = null;
         if (file.getName().toLowerCase().endsWith(".six")) {
-            image = new SixelDecoder(Files.readString(file.toPath()), null, 0xFFFFFF, true).getImage();
+            image = new SixelDecoder(Files.readString(file.toPath()), null, 0xFFFFFF, false).getImage();
             imageField = addImage(0, 0, getWidth() - 2, getHeight() - 2,
                 image, 0, 0);
         }
