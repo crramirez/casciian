@@ -14,16 +14,15 @@
  */
 package casciian.backend;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.IOException;
-import java.util.StringTokenizer;
+
+import casciian.backend.terminal.Terminal;
 
 /**
  * TTYSessionInfo queries environment variables and the tty window size for
  * the session information.  The username is taken from user.name, language
- * is taken from user.language, and text window size from 'stty size'.
+ * is taken from user.language, and text window size is delegated to the
+ * Terminal implementation.
  */
 public class TTYSessionInfo implements SessionInfo {
 
@@ -75,15 +74,24 @@ public class TTYSessionInfo implements SessionInfo {
      */
     PrintWriter output = null;
 
+    /**
+     * The terminal to use for querying window size.
+     */
+    private final Terminal terminal;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
 
     /**
-     * Public constructor.
+     * Public constructor that receives a Terminal for window size queries.
+     *
+     * @param terminal the terminal to use for querying window size; may be null,
+     *                 in which case window size queries will use default values
      */
     @SuppressWarnings("this-escape")
-    public TTYSessionInfo() {
+    public TTYSessionInfo(Terminal terminal) {
+        this.terminal = terminal;
         // Populate lang and user from the environment
         username = System.getProperty("user.name");
         language = System.getProperty("user.language");
@@ -186,8 +194,7 @@ public class TTYSessionInfo implements SessionInfo {
         } else {
             long nowTime = System.currentTimeMillis();
             if (nowTime - lastQueryWindowTime < 1000) {
-                // Don't re-spawn stty or emit to output if it hasn't been a
-                // full second since the last time.
+                // Don't re-query if it hasn't been a full second since the last time.
                 return;
             }
             lastQueryWindowTime = nowTime;
@@ -201,67 +208,16 @@ public class TTYSessionInfo implements SessionInfo {
             return;
         }
 
-        if (System.getProperty("os.name").startsWith("Linux")
-            || System.getProperty("os.name").startsWith("Mac OS X")
-            || System.getProperty("os.name").startsWith("SunOS")
-            || System.getProperty("os.name").startsWith("FreeBSD")
-        ) {
-            // System.err.println("Using stty for window size");
-
-            // Use stty to get the window size
-            sttyWindowSize();
-        }
-    }
-
-    // ------------------------------------------------------------------------
-    // TTYSessionInfo ---------------------------------------------------------
-    // ------------------------------------------------------------------------
-
-    /**
-     * Call 'stty size' to obtain the tty window size.  windowWidth and
-     * windowHeight are set automatically.
-     */
-    private void sttyWindowSize() {
-        String [] cmd = {
-            "/bin/sh", "-c", "stty size < /dev/tty"
-        };
-        try {
-            Process process = Runtime.getRuntime().exec(cmd);
-            BufferedReader in = new BufferedReader(
-                new InputStreamReader(process.getInputStream(), "UTF-8"));
-            String line = in.readLine();
-            if ((line != null) && (line.length() > 0)) {
-                StringTokenizer tokenizer = new StringTokenizer(line);
-                int rc = Integer.parseInt(tokenizer.nextToken());
-                if (rc > 0) {
-                    windowHeight = rc;
-                }
-                rc = Integer.parseInt(tokenizer.nextToken());
-                if (rc > 0) {
-                    windowWidth = rc;
-                }
+        if (terminal != null) {
+            terminal.queryWindowSize();
+            int width = terminal.getWindowWidth();
+            int height = terminal.getWindowHeight();
+            if (width > 0) {
+                windowWidth = width;
             }
-            while (true) {
-                BufferedReader err = new BufferedReader(
-                        new InputStreamReader(process.getErrorStream(),
-                            "UTF-8"));
-                line = err.readLine();
-                if ((line != null) && (line.length() > 0)) {
-                    System.err.println("Error output from stty: " + line);
-                }
-                try {
-                    process.waitFor();
-                    break;
-                } catch (InterruptedException e) {
-                    // SQUASH
-                }
+            if (height > 0) {
+                windowHeight = height;
             }
-            int rc = process.exitValue();
-            if (rc != 0) {
-                System.err.println("stty returned error code: " + rc);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 

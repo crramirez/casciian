@@ -26,6 +26,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.StringTokenizer;
 
 /**
  * Shell-based terminal implementation using stty commands.
@@ -35,6 +36,16 @@ import java.nio.charset.StandardCharsets;
  * and macOS but will fail silently on Windows (where /bin/sh doesn't exist).
  */
 public class TerminalShImpl implements Terminal {
+
+    /**
+     * Default window width.
+     */
+    private static final int DEFAULT_WIDTH = 80;
+
+    /**
+     * Default window height.
+     */
+    private static final int DEFAULT_HEIGHT = 24;
 
     /**
      * If true, print debug output to stderr.
@@ -55,6 +66,16 @@ public class TerminalShImpl implements Terminal {
      * The writer for this terminal.
      */
     private final PrintWriter writer;
+
+    /**
+     * Text window width.
+     */
+    private int windowWidth = DEFAULT_WIDTH;
+
+    /**
+     * Text window height.
+     */
+    private int windowHeight = DEFAULT_HEIGHT;
 
     /**
      * Create a new shell-based terminal implementation.
@@ -258,6 +279,106 @@ public class TerminalShImpl implements Terminal {
             }
             int rc = process.exitValue();
             if (rc != 0) {
+                System.err.println("stty returned error code: " + rc);
+            }
+        } catch (IOException e) {
+            if (debugToStderr) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Query the terminal window size using 'stty size'.
+     * This method calls the stty command to get the current terminal dimensions.
+     */
+    @Override
+    public void queryWindowSize() {
+        String osName = System.getProperty("os.name");
+        if (osName.startsWith("Linux")
+            || osName.startsWith("Mac OS X")
+            || osName.startsWith("Darwin")
+            || osName.startsWith("SunOS")
+            || osName.startsWith("FreeBSD")
+        ) {
+            sttyWindowSize();
+        }
+    }
+
+    /**
+     * Get the terminal window width in characters.
+     *
+     * @return the window width
+     */
+    @Override
+    public int getWindowWidth() {
+        return windowWidth;
+    }
+
+    /**
+     * Get the terminal window height in characters.
+     *
+     * @return the window height
+     */
+    @Override
+    public int getWindowHeight() {
+        return windowHeight;
+    }
+
+    /**
+     * Updates the windowWidth and windowHeight instance fields based on the current terminal size.
+     */
+    private void sttyWindowSize() {
+        String[] cmd = {
+            "/bin/sh", "-c", "stty size < /dev/tty"
+        };
+        try {
+            Process process = Runtime.getRuntime().exec(cmd);
+            try (BufferedReader in = new BufferedReader(
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                String line = in.readLine();
+                if ((line != null) && (line.length() > 0)) {
+                    StringTokenizer tokenizer = new StringTokenizer(line);
+                    try {
+                        if (tokenizer.hasMoreTokens()) {
+                            int rc = Integer.parseInt(tokenizer.nextToken());
+                            if (rc > 0) {
+                                windowHeight = rc;
+                            }
+                        }
+                        if (tokenizer.hasMoreTokens()) {
+                            int rc = Integer.parseInt(tokenizer.nextToken());
+                            if (rc > 0) {
+                                windowWidth = rc;
+                            }
+                        }
+                    } catch (NumberFormatException e) {
+                        if (debugToStderr) {
+                            System.err.println("Malformed stty size output (expected two integers): \"" + line + "\"");
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+            try (BufferedReader err = new BufferedReader(
+                    new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = err.readLine()) != null) {
+                    if (debugToStderr && line.length() > 0) {
+                        System.err.println("Error output from stty: " + line);
+                    }
+                }
+            }
+            while (true) {
+                try {
+                    process.waitFor();
+                    break;
+                } catch (InterruptedException e) {
+                    // SQUASH
+                }
+            }
+            int rc = process.exitValue();
+            if (debugToStderr && rc != 0) {
                 System.err.println("stty returned error code: " + rc);
             }
         } catch (IOException e) {
