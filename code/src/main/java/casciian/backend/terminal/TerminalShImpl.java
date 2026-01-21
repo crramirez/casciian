@@ -37,6 +37,16 @@ import java.nio.charset.StandardCharsets;
 public class TerminalShImpl implements Terminal {
 
     /**
+     * Default window width.
+     */
+    private static final int DEFAULT_WIDTH = 80;
+
+    /**
+     * Default window height.
+     */
+    private static final int DEFAULT_HEIGHT = 24;
+
+    /**
      * If true, print debug output to stderr.
      */
     private final boolean debugToStderr;
@@ -55,6 +65,16 @@ public class TerminalShImpl implements Terminal {
      * The writer for this terminal.
      */
     private final PrintWriter writer;
+
+    /**
+     * Text window width.
+     */
+    private int windowWidth = DEFAULT_WIDTH;
+
+    /**
+     * Text window height.
+     */
+    private int windowHeight = DEFAULT_HEIGHT;
 
     /**
      * Create a new shell-based terminal implementation.
@@ -254,6 +274,94 @@ public class TerminalShImpl implements Terminal {
                             e.printStackTrace();
                         }
                     }
+                }
+            }
+            int rc = process.exitValue();
+            if (rc != 0) {
+                System.err.println("stty returned error code: " + rc);
+            }
+        } catch (IOException e) {
+            if (debugToStderr) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Query the terminal window size using 'stty size'.
+     * This method calls the stty command to get the current terminal dimensions.
+     */
+    @Override
+    public void queryWindowSize() {
+        if (System.getProperty("os.name").startsWith("Linux")
+            || System.getProperty("os.name").startsWith("Mac OS X")
+            || System.getProperty("os.name").startsWith("SunOS")
+            || System.getProperty("os.name").startsWith("FreeBSD")
+        ) {
+            sttyWindowSize();
+        }
+    }
+
+    /**
+     * Get the terminal window width in characters.
+     *
+     * @return the window width
+     */
+    @Override
+    public int getWindowWidth() {
+        return windowWidth;
+    }
+
+    /**
+     * Get the terminal window height in characters.
+     *
+     * @return the window height
+     */
+    @Override
+    public int getWindowHeight() {
+        return windowHeight;
+    }
+
+    /**
+     * Call 'stty size' to obtain the tty window size.
+     * windowWidth and windowHeight are set automatically.
+     */
+    private void sttyWindowSize() {
+        String[] cmd = {
+            "/bin/sh", "-c", "stty size < /dev/tty"
+        };
+        try {
+            Process process = Runtime.getRuntime().exec(cmd);
+            try (BufferedReader in = new BufferedReader(
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                String line = in.readLine();
+                if ((line != null) && (line.length() > 0)) {
+                    java.util.StringTokenizer tokenizer = new java.util.StringTokenizer(line);
+                    int rc = Integer.parseInt(tokenizer.nextToken());
+                    if (rc > 0) {
+                        windowHeight = rc;
+                    }
+                    rc = Integer.parseInt(tokenizer.nextToken());
+                    if (rc > 0) {
+                        windowWidth = rc;
+                    }
+                }
+            }
+            try (BufferedReader err = new BufferedReader(
+                    new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = err.readLine()) != null) {
+                    if (line.length() > 0) {
+                        System.err.println("Error output from stty: " + line);
+                    }
+                }
+            }
+            while (true) {
+                try {
+                    process.waitFor();
+                    break;
+                } catch (InterruptedException e) {
+                    // SQUASH
                 }
             }
             int rc = process.exitValue();

@@ -80,4 +80,24 @@ public interface Terminal {
      * @throws IOException if an I/O error occurs while reading
      */
     int read(char[] buffer, int off, int len) throws IOException;
+
+    /**
+     * Query the terminal window size.
+     * This method updates the internal width and height values.
+     */
+    void queryWindowSize();
+
+    /**
+     * Get the terminal window width in characters.
+     *
+     * @return the window width, or a default value (typically 80) if unknown
+     */
+    int getWindowWidth();
+
+    /**
+     * Get the terminal window height in characters.
+     *
+     * @return the window height, or a default value (typically 24) if unknown
+     */
+    int getWindowHeight();
 }

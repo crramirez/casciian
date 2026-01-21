@@ -367,8 +367,34 @@ class BackendIntegrationTest {
     @Test
     @DisplayName("TTYSessionInfo integration with backend")
     void testTTYSessionInfoIntegration() {
-        // Create session info
-        TTYSessionInfo sessionInfo = new TTYSessionInfo();
+        // Create a mock terminal for testing
+        casciian.backend.terminal.Terminal mockTerminal = new casciian.backend.terminal.Terminal() {
+            @Override
+            public void setRawMode() {}
+            @Override
+            public void setCookedMode() {}
+            @Override
+            public void close() {}
+            @Override
+            public java.io.PrintWriter getWriter() { return null; }
+            @Override
+            public java.io.Reader getReader() { return null; }
+            @Override
+            public void enableMouseReporting(boolean on) {}
+            @Override
+            public int available() throws java.io.IOException { return 0; }
+            @Override
+            public int read(char[] buffer, int off, int len) throws java.io.IOException { return -1; }
+            @Override
+            public void queryWindowSize() {}
+            @Override
+            public int getWindowWidth() { return 100; }
+            @Override
+            public int getWindowHeight() { return 50; }
+        };
+        
+        // Create session info with mock terminal
+        TTYSessionInfo sessionInfo = new TTYSessionInfo(mockTerminal);
         
         // Verify it behaves correctly
         assertNotNull(sessionInfo.getUsername());

@@ -21,7 +21,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for TerminalJlineImpl class.
@@ -100,5 +102,37 @@ class TerminalJlineImplTest {
         terminal.setCookedMode();
         // Should still have valid streams
         assertNotNull(terminal.getWriter());
+    }
+
+    @Test
+    @DisplayName("getWindowWidth returns non-negative value")
+    void testGetWindowWidthReturnsNonNegative() {
+        // JLine may return 0 in non-interactive environments
+        assertTrue(terminal.getWindowWidth() >= 0);
+    }
+
+    @Test
+    @DisplayName("getWindowHeight returns non-negative value")
+    void testGetWindowHeightReturnsNonNegative() {
+        // JLine may return 0 in non-interactive environments
+        assertTrue(terminal.getWindowHeight() >= 0);
+    }
+
+    @Test
+    @DisplayName("queryWindowSize does not throw")
+    void testQueryWindowSizeDoesNotThrow() {
+        assertDoesNotThrow(() -> terminal.queryWindowSize());
+    }
+
+    @Test
+    @DisplayName("window dimensions are non-negative after queryWindowSize")
+    void testWindowDimensionsAfterQuery() {
+        terminal.queryWindowSize();
+        int width = terminal.getWindowWidth();
+        int height = terminal.getWindowHeight();
+        
+        // JLine may return 0 in non-interactive environments, but never negative
+        assertTrue(width >= 0 && width <= 10000, "Width should be between 0 and 10000");
+        assertTrue(height >= 0 && height <= 10000, "Height should be between 0 and 10000");
     }
 }

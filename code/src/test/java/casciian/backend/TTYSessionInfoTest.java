@@ -5,9 +5,14 @@
  */
 package casciian.backend;
 
+import casciian.backend.terminal.Terminal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Reader;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -19,10 +24,80 @@ import static org.junit.jupiter.api.Assertions.*;
 class TTYSessionInfoTest {
 
     private TTYSessionInfo sessionInfo;
+    private MockTerminal mockTerminal;
+
+    /**
+     * Mock terminal implementation for testing.
+     */
+    private static class MockTerminal implements Terminal {
+        private int windowWidth = 100;
+        private int windowHeight = 50;
+        private boolean queryWindowSizeCalled = false;
+
+        @Override
+        public void setRawMode() {}
+
+        @Override
+        public void setCookedMode() {}
+
+        @Override
+        public void close() {}
+
+        @Override
+        public PrintWriter getWriter() {
+            return null;
+        }
+
+        @Override
+        public Reader getReader() {
+            return null;
+        }
+
+        @Override
+        public void enableMouseReporting(boolean on) {}
+
+        @Override
+        public int available() throws IOException {
+            return 0;
+        }
+
+        @Override
+        public int read(char[] buffer, int off, int len) throws IOException {
+            return -1;
+        }
+
+        @Override
+        public void queryWindowSize() {
+            queryWindowSizeCalled = true;
+        }
+
+        @Override
+        public int getWindowWidth() {
+            return windowWidth;
+        }
+
+        @Override
+        public int getWindowHeight() {
+            return windowHeight;
+        }
+
+        public void setWindowWidth(int width) {
+            this.windowWidth = width;
+        }
+
+        public void setWindowHeight(int height) {
+            this.windowHeight = height;
+        }
+
+        public boolean wasQueryWindowSizeCalled() {
+            return queryWindowSizeCalled;
+        }
+    }
 
     @BeforeEach
     void setUp() {
-        sessionInfo = new TTYSessionInfo();
+        mockTerminal = new MockTerminal();
+        sessionInfo = new TTYSessionInfo(mockTerminal);
     }
 
     // Initialization tests
@@ -125,20 +200,22 @@ class TTYSessionInfoTest {
     }
 
     @Test
-    @DisplayName("Default window dimensions are at least 80x24")
-    void testDefaultWindowDimensions() {
-        // Should default to at least 80x24 if stty fails
-        assertTrue(sessionInfo.getWindowWidth() >= 80);
-        assertTrue(sessionInfo.getWindowHeight() >= 24);
+    @DisplayName("Window dimensions match terminal values")
+    void testWindowDimensionsFromTerminal() {
+        // Mock terminal returns 100x50
+        assertEquals(100, sessionInfo.getWindowWidth());
+        assertEquals(50, sessionInfo.getWindowHeight());
     }
 
     @Test
-    @DisplayName("Windows OS returns 80x25")
-    void testWindowsOSDimensions() {
-        if (System.getProperty("os.name").startsWith("Windows")) {
-            assertEquals(80, sessionInfo.getWindowWidth());
-            assertEquals(25, sessionInfo.getWindowHeight());
-        }
+    @DisplayName("Query window size delegates to terminal")
+    void testQueryWindowSizeDelegation() {
+        // Reset the flag to check if it's called during queryWindowSize
+        mockTerminal = new MockTerminal();
+        sessionInfo = new TTYSessionInfo(mockTerminal);
+        
+        // The constructor calls queryWindowSize
+        assertTrue(mockTerminal.wasQueryWindowSizeCalled());
     }
 
     @Test
@@ -248,8 +325,10 @@ class TTYSessionInfoTest {
     @Test
     @DisplayName("Multiple TTYSessionInfo instances are independent")
     void testMultipleInstancesIndependent() {
-        TTYSessionInfo session1 = new TTYSessionInfo();
-        TTYSessionInfo session2 = new TTYSessionInfo();
+        MockTerminal terminal1 = new MockTerminal();
+        MockTerminal terminal2 = new MockTerminal();
+        TTYSessionInfo session1 = new TTYSessionInfo(terminal1);
+        TTYSessionInfo session2 = new TTYSessionInfo(terminal2);
         
         session1.setUsername("user1");
         session2.setUsername("user2");
@@ -277,7 +356,8 @@ class TTYSessionInfoTest {
     @Test
     @DisplayName("Session info reflects system properties correctly")
     void testSystemPropertiesReflection() {
-        TTYSessionInfo newSession = new TTYSessionInfo();
+        MockTerminal terminal = new MockTerminal();
+        TTYSessionInfo newSession = new TTYSessionInfo(terminal);
         
         String expectedUsername = System.getProperty("user.name");
         String expectedLanguage = System.getProperty("user.language");
@@ -294,9 +374,11 @@ class TTYSessionInfoTest {
     @Test
     @DisplayName("Start time is unique for each instance")
     void testUniqueStartTimes() throws InterruptedException {
-        TTYSessionInfo session1 = new TTYSessionInfo();
+        MockTerminal terminal1 = new MockTerminal();
+        MockTerminal terminal2 = new MockTerminal();
+        TTYSessionInfo session1 = new TTYSessionInfo(terminal1);
         Thread.sleep(10); // Ensure different timestamps
-        TTYSessionInfo session2 = new TTYSessionInfo();
+        TTYSessionInfo session2 = new TTYSessionInfo(terminal2);
         
         assertTrue(session2.getStartTime() >= session1.getStartTime());
     }
