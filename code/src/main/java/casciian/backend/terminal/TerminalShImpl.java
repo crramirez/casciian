@@ -26,6 +26,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.StringTokenizer;
 
 /**
  * Shell-based terminal implementation using stty commands.
@@ -293,10 +294,12 @@ public class TerminalShImpl implements Terminal {
      */
     @Override
     public void queryWindowSize() {
-        if (System.getProperty("os.name").startsWith("Linux")
-            || System.getProperty("os.name").startsWith("Mac OS X")
-            || System.getProperty("os.name").startsWith("SunOS")
-            || System.getProperty("os.name").startsWith("FreeBSD")
+        String osName = System.getProperty("os.name");
+        if (osName.startsWith("Linux")
+            || osName.startsWith("Mac OS X")
+            || osName.startsWith("Darwin")
+            || osName.startsWith("SunOS")
+            || osName.startsWith("FreeBSD")
         ) {
             sttyWindowSize();
         }
@@ -336,7 +339,7 @@ public class TerminalShImpl implements Terminal {
                     new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
                 String line = in.readLine();
                 if ((line != null) && (line.length() > 0)) {
-                    java.util.StringTokenizer tokenizer = new java.util.StringTokenizer(line);
+                    StringTokenizer tokenizer = new StringTokenizer(line);
                     int rc = Integer.parseInt(tokenizer.nextToken());
                     if (rc > 0) {
                         windowHeight = rc;
@@ -351,7 +354,7 @@ public class TerminalShImpl implements Terminal {
                     new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = err.readLine()) != null) {
-                    if (line.length() > 0) {
+                    if (debugToStderr && line.length() > 0) {
                         System.err.println("Error output from stty: " + line);
                     }
                 }
@@ -365,7 +368,7 @@ public class TerminalShImpl implements Terminal {
                 }
             }
             int rc = process.exitValue();
-            if (rc != 0) {
+            if (debugToStderr && rc != 0) {
                 System.err.println("stty returned error code: " + rc);
             }
         } catch (IOException e) {
