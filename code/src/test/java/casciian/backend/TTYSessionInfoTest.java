@@ -5,14 +5,10 @@
  */
 package casciian.backend;
 
-import casciian.backend.terminal.Terminal;
+import casciian.backend.terminal.MockTerminal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.Reader;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,74 +21,6 @@ class TTYSessionInfoTest {
 
     private TTYSessionInfo sessionInfo;
     private MockTerminal mockTerminal;
-
-    /**
-     * Mock terminal implementation for testing.
-     */
-    private static class MockTerminal implements Terminal {
-        private int windowWidth = 100;
-        private int windowHeight = 50;
-        private boolean queryWindowSizeCalled = false;
-
-        @Override
-        public void setRawMode() {}
-
-        @Override
-        public void setCookedMode() {}
-
-        @Override
-        public void close() {}
-
-        @Override
-        public PrintWriter getWriter() {
-            return null;
-        }
-
-        @Override
-        public Reader getReader() {
-            return null;
-        }
-
-        @Override
-        public void enableMouseReporting(boolean on) {}
-
-        @Override
-        public int available() throws IOException {
-            return 0;
-        }
-
-        @Override
-        public int read(char[] buffer, int off, int len) throws IOException {
-            return -1;
-        }
-
-        @Override
-        public void queryWindowSize() {
-            queryWindowSizeCalled = true;
-        }
-
-        @Override
-        public int getWindowWidth() {
-            return windowWidth;
-        }
-
-        @Override
-        public int getWindowHeight() {
-            return windowHeight;
-        }
-
-        public void setWindowWidth(int width) {
-            this.windowWidth = width;
-        }
-
-        public void setWindowHeight(int height) {
-            this.windowHeight = height;
-        }
-
-        public boolean wasQueryWindowSizeCalled() {
-            return queryWindowSizeCalled;
-        }
-    }
 
     @BeforeEach
     void setUp() {
@@ -208,9 +136,9 @@ class TTYSessionInfoTest {
     }
 
     @Test
-    @DisplayName("Query window size delegates to terminal")
-    void testQueryWindowSizeDelegation() {
-        // Reset the flag to check if it's called during queryWindowSize
+    @DisplayName("Constructor delegates queryWindowSize to terminal")
+    void testConstructorDelegatesQueryWindowSizeToTerminal() {
+        // Reset the flag to check if it's called during construction
         mockTerminal = new MockTerminal();
         sessionInfo = new TTYSessionInfo(mockTerminal);
         

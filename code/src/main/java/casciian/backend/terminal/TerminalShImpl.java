@@ -326,8 +326,7 @@ public class TerminalShImpl implements Terminal {
     }
 
     /**
-     * Call 'stty size' to obtain the tty window size.
-     * windowWidth and windowHeight are set automatically.
+     * Updates the windowWidth and windowHeight instance fields based on the current terminal size.
      */
     private void sttyWindowSize() {
         String[] cmd = {
@@ -340,13 +339,24 @@ public class TerminalShImpl implements Terminal {
                 String line = in.readLine();
                 if ((line != null) && (line.length() > 0)) {
                     StringTokenizer tokenizer = new StringTokenizer(line);
-                    int rc = Integer.parseInt(tokenizer.nextToken());
-                    if (rc > 0) {
-                        windowHeight = rc;
-                    }
-                    rc = Integer.parseInt(tokenizer.nextToken());
-                    if (rc > 0) {
-                        windowWidth = rc;
+                    try {
+                        if (tokenizer.hasMoreTokens()) {
+                            int rc = Integer.parseInt(tokenizer.nextToken());
+                            if (rc > 0) {
+                                windowHeight = rc;
+                            }
+                        }
+                        if (tokenizer.hasMoreTokens()) {
+                            int rc = Integer.parseInt(tokenizer.nextToken());
+                            if (rc > 0) {
+                                windowWidth = rc;
+                            }
+                        }
+                    } catch (NumberFormatException e) {
+                        if (debugToStderr) {
+                            System.err.println("Malformed stty size output (expected two integers): \"" + line + "\"");
+                            e.printStackTrace();
+                        }
                     }
                 }
             }

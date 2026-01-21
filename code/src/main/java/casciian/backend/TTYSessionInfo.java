@@ -86,7 +86,8 @@ public class TTYSessionInfo implements SessionInfo {
     /**
      * Public constructor that receives a Terminal for window size queries.
      *
-     * @param terminal the terminal to use for querying window size
+     * @param terminal the terminal to use for querying window size; may be null,
+     *                 in which case window size queries will use default values
      */
     @SuppressWarnings("this-escape")
     public TTYSessionInfo(Terminal terminal) {
