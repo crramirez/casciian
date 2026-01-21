@@ -200,11 +200,11 @@ public class TTextPicture extends TScrollable implements TerminalListener {
             return;
         }
         if (mouse.isMouseWheelLeft()) {
-            horizontalDecrement();
+            horizontalIncrement();
             return;
         }
         if (mouse.isMouseWheelRight()) {
-            horizontalIncrement();
+            horizontalDecrement();
             return;
         }
         super.onMouseDown(mouse);

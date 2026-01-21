@@ -158,8 +158,13 @@ public class TImageWindow extends TScrollableWindow {
             imageField.setTop(imageField.getTop() - wheelScrollSize);
         } else if (mouse.isMouseWheelDown()) {
             imageField.setTop(imageField.getTop() + wheelScrollSize);
+        } else if (mouse.isMouseWheelLeft()) {
+            imageField.setLeft(imageField.getLeft() + wheelScrollSize);
+        } else if (mouse.isMouseWheelRight()) {
+            imageField.setLeft(imageField.getLeft() - wheelScrollSize);
         }
         setVerticalValue(imageField.getTop());
+        setHorizontalValue(imageField.getLeft());
     }
 
     /**

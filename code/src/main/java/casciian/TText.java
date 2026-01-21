@@ -246,11 +246,11 @@ public class TText extends TScrollable {
             return;
         }
         if (mouse.isMouseWheelLeft()) {
-            hScroller.decrement();
+            hScroller.increment();
             return;
         }
         if (mouse.isMouseWheelRight()) {
-            hScroller.increment();
+            hScroller.decrement();
             return;
         }
 

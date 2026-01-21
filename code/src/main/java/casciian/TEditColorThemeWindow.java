@@ -674,20 +674,20 @@ public class TEditColorThemeWindow extends TWindow {
                 color = getColorFromPosition(dotX, dotY);
                 rgb.setText("");
             } else if (mouse.isMouseWheelLeft()) {
-                // Do this like kbLeft
-                int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color);
-                if (dotX > 3) {
-                    dotX -= 3;
-                }
-                color = getColorFromPosition(dotX, dotY);
-                rgb.setText("");
-            } else if (mouse.isMouseWheelRight()) {
                 // Do this like kbRight
                 int dotX = getXColorPosition(color);
                 int dotY = getYColorPosition(color);
                 if (dotX < 10) {
                     dotX += 3;
+                }
+                color = getColorFromPosition(dotX, dotY);
+                rgb.setText("");
+            } else if (mouse.isMouseWheelRight()) {
+                // Do this like kbLeft
+                int dotX = getXColorPosition(color);
+                int dotY = getYColorPosition(color);
+                if (dotX > 3) {
+                    dotX -= 3;
                 }
                 color = getColorFromPosition(dotX, dotY);
                 rgb.setText("");
