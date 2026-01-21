@@ -2447,11 +2447,7 @@ public class TApplication implements Runnable {
         try {
             String filename = fileOpenBox(".", TFileOpenBox.Type.OPEN);
             if (filename != null) {
-                if (filename.endsWith(".six")) {
-                    new TImageWindow(this, new File(filename));
-                } else {
-                    new TTextPictureWindow(this, filename);
-                }
+                new TTextPictureWindow(this, filename);
             }
         } catch (IOException e) {
             // Show this exception to the user.

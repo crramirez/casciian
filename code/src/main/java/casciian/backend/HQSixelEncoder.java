@@ -1737,6 +1737,7 @@ public class HQSixelEncoder implements SixelEncoder {
     /**
      * Reload options from System properties.
      */
+    @Override
     public void reloadOptions() {
         // Palette size
         int paletteSize = 128;
