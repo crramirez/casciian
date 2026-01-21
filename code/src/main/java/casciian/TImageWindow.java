@@ -16,14 +16,13 @@ package casciian;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.ResourceBundle;
 
 import casciian.bits.ImageRGB;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
-import casciian.terminal.SixelDecoder;
+import casciian.image.decoders.ImageDecoderRegistry;
 
 import static casciian.TKeypress.*;
 
@@ -97,16 +96,22 @@ public class TImageWindow extends TScrollableWindow {
         super(parent, file.getName(), x, y, width, height, RESIZABLE);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME, getLocale());
 
-        ImageRGB image = null;
-        if (file.getName().toLowerCase().endsWith(".six")) {
-            image = new SixelDecoder(Files.readString(file.toPath()), null, 0xFFFFFF, false).getImage();
+        // Use the image decoder registry to decode the file
+        ImageDecoderRegistry registry = ImageDecoderRegistry.getInstance();
+        try {
+            ImageRGB image = registry.decodeImage(file.toPath());
+
             imageField = addImage(0, 0, getWidth() - 2, getHeight() - 2,
                 image, 0, 0);
+
+            setTitle(file.getName());
+
+            setupAfterImage();
+        } catch (IOException e) {
+            close();
+
+            throw e;
         }
-
-        setTitle(file.getName());
-
-        setupAfterImage();
     }
 
     /**

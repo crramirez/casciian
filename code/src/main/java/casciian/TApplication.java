@@ -69,6 +69,8 @@ import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
 import casciian.help.HelpFile;
 import casciian.help.Topic;
+import casciian.image.decoders.ImageDecoderRegistry;
+import casciian.image.decoders.SixelImageDecoder;
 import casciian.menu.TMenu;
 import casciian.menu.TMenuItem;
 import casciian.menu.TSubMenu;
@@ -375,7 +377,7 @@ public class TApplication implements Runnable {
     /**
      * The stack of help topics.
      */
-    protected ArrayList<Topic> helpTopics = new ArrayList<Topic>();
+    protected ArrayList<Topic> helpTopics = new ArrayList<>();
 
     /**
      * The last time user input (mouse or keyboard) was received.
@@ -586,7 +588,7 @@ public class TApplication implements Runnable {
         /**
          * The dirty flag.
          */
-        private ArrayList<String> dirtyQueue = new ArrayList<String>();
+        private ArrayList<String> dirtyQueue = new ArrayList<>();
 
         /**
          * The number of updates pushed out in this second.
@@ -834,14 +836,17 @@ public class TApplication implements Runnable {
         theme           = new ColorTheme();
         desktopTop      = (SystemProperties.isHideMenuBar() ? 0 : 1);
         desktopBottom   = getScreen().getHeight() - 1 + (SystemProperties.isHideStatusBar() ? 1 : 0);
-        fillEventQueue  = new LinkedList<TInputEvent>();
-        drainEventQueue = new LinkedList<TInputEvent>();
-        menus           = new ArrayList<TMenu>();
-        subMenus        = new ArrayList<TMenu>();
+        fillEventQueue  = new LinkedList<>();
+        drainEventQueue = new LinkedList<>();
+        menus           = new ArrayList<>();
+        subMenus        = new ArrayList<>();
         timers          = new CopyOnWriteArrayList<>();
-        accelerators    = new HashMap<TKeypress, TMenuItem>();
-        menuItems       = new LinkedList<TMenuItem>();
+        accelerators    = new HashMap<>();
+        menuItems       = new LinkedList<>();
         desktop         = new TDesktop(this);
+
+        // Register default image decoders
+        ImageDecoderRegistry.getInstance().registerDecoder(new SixelImageDecoder());
 
         animationsChanged();
 
@@ -1204,12 +1209,12 @@ public class TApplication implements Runnable {
 
         if (menu.getId() == TMenu.MID_HELP_ACTIVE_FILE) {
             try {
-                List<String> filters = new ArrayList<String>();
+                List<String> filters = new ArrayList<>();
                 filters.add("^.*\\.[Xx][Mm][Ll]$");
                 String filename = fileOpenBox(".", TFileOpenBox.Type.OPEN,
                     filters);
                 if (filename != null) {
-                    helpTopics = new ArrayList<Topic>();
+                    helpTopics = new ArrayList<>();
                     helpFile = new HelpFile();
                     helpFile.load(new FileInputStream(filename));
                 }
@@ -1492,7 +1497,7 @@ public class TApplication implements Runnable {
                         (desktopBottom - desktopTop));
                     desktop.onResize(resize);
                 }
-                List<TWindow> resizeWindows = new ArrayList<TWindow>(windows);
+                List<TWindow> resizeWindows = new ArrayList<>(windows);
                 for (TWindow window: resizeWindows) {
                     window.onResize(resize);
                 }
@@ -1886,8 +1891,8 @@ public class TApplication implements Runnable {
                 return;
             }
         }
-        List<Effect> effectsToRun = new ArrayList<Effect>();
-        List<Effect> effectsToRemove = new ArrayList<Effect>();
+        List<Effect> effectsToRun = new ArrayList<>();
+        List<Effect> effectsToRemove = new ArrayList<>();
         synchronized (windowEffects) {
             effectsToRun.addAll(windowEffects);
         }
@@ -1916,8 +1921,8 @@ public class TApplication implements Runnable {
                 return;
             }
         }
-        List<Effect> effectsToRun = new ArrayList<Effect>();
-        List<Effect> effectsToRemove = new ArrayList<Effect>();
+        List<Effect> effectsToRun = new ArrayList<>();
+        List<Effect> effectsToRemove = new ArrayList<>();
         synchronized (screenEffects) {
             effectsToRun.addAll(screenEffects);
         }
@@ -1955,7 +1960,7 @@ public class TApplication implements Runnable {
 
             // Run any timers that have timed out
             Date now = new Date();
-            List<TTimer> keepTimers = new LinkedList<TTimer>();
+            List<TTimer> keepTimers = new LinkedList<>();
             for (TTimer timer: timers) {
                 if (timer.getNextTick().getTime() <= now.getTime()) {
                     // Something might change, so repaint the screen.
@@ -1980,7 +1985,7 @@ public class TApplication implements Runnable {
         // Call onIdle's - take a snapshot to avoid holding the lock during callbacks
         List<TWindow> windowsSnapshot;
         synchronized (windows) {
-            windowsSnapshot = new ArrayList<TWindow>(windows);
+            windowsSnapshot = new ArrayList<>(windows);
         }
         windowsSnapshot.forEach(TWindow::onIdle);
         if (desktop != null) {
@@ -1989,7 +1994,7 @@ public class TApplication implements Runnable {
 
         // Run any invokeLaters.  We make a copy, and run that, because one
         // of these Runnables might add call TApplication.invokeLater().
-        List<Runnable> invokes = new ArrayList<Runnable>();
+        List<Runnable> invokes = new ArrayList<>();
         synchronized (invokeLaters) {
             invokes.addAll(invokeLaters);
             invokeLaters.clear();
@@ -2335,7 +2340,7 @@ public class TApplication implements Runnable {
      */
     public final List<TWindow> getAllWindows() {
         synchronized (windows) {
-            List<TWindow> result = new ArrayList<TWindow>();
+            List<TWindow> result = new ArrayList<>();
             result.addAll(windows);
             return result;
         }
@@ -2428,15 +2433,16 @@ public class TApplication implements Runnable {
      */
     private void openImage() {
         try {
-            List<String> filters = new ArrayList<String>();
-            filters.add("^.*\\.[sS][iI][xX]$");
+            // Get file extension patterns from the image decoder registry
+            ImageDecoderRegistry registry = ImageDecoderRegistry.getInstance();
+            List<String> filters = registry.getFileExtensionPatterns();
+
             String filename = fileOpenBox(".", TFileOpenBox.Type.OPEN, filters);
             if (filename != null) {
                 new TImageWindow(this, new File(filename));
             }
-        } catch (IOException e) {
-            // Show this exception to the user.
-            new TExceptionDialog(this, e);
+        } catch (IOException | IllegalArgumentException e) {
+            messageBox("Open image file", e.getMessage(), TMessageBox.Type.OK);
         }
     }
 
@@ -3474,7 +3480,7 @@ public class TApplication implements Runnable {
         // Get a snapshot of windows to close, since closeWindow modifies the list
         List<TWindow> windowsToClose;
         synchronized (windows) {
-            windowsToClose = new ArrayList<TWindow>(windows);
+            windowsToClose = new ArrayList<>(windows);
         }
         for (TWindow window : windowsToClose) {
             closeWindow(window);
@@ -3507,7 +3513,7 @@ public class TApplication implements Runnable {
             }
             int x = 0;
             int y = 1;
-            List<TWindow> sorted = new ArrayList<TWindow>(windows);
+            List<TWindow> sorted = new ArrayList<>(windows);
             Collections.sort(sorted);
             Collections.reverse(sorted);
             for (TWindow window: sorted) {
@@ -3559,7 +3565,7 @@ public class TApplication implements Runnable {
         // the expensive overlap computation
         List<TWindow> windowsSnapshot;
         synchronized (windows) {
-            windowsSnapshot = new ArrayList<TWindow>(windows);
+            windowsSnapshot = new ArrayList<>(windows);
         }
 
         for (TWindow w: windowsSnapshot) {
@@ -3678,7 +3684,7 @@ public class TApplication implements Runnable {
      */
     private boolean mouseOnMenu(final TMouseEvent mouse) {
         assert (activeMenu != null);
-        List<TMenu> menus = new ArrayList<TMenu>(subMenus);
+        List<TMenu> menus = new ArrayList<>(subMenus);
         Collections.reverse(menus);
         for (TMenu menu: menus) {
             if (menu.mouseWouldHit(mouse)) {
@@ -3875,7 +3881,7 @@ public class TApplication implements Runnable {
      * @return a copy of the menu list
      */
     public final List<TMenu> getAllMenus() {
-        return new ArrayList<TMenu>(menus);
+        return new ArrayList<>(menus);
     }
 
     /**
@@ -3970,7 +3976,7 @@ public class TApplication implements Runnable {
                 if (w instanceof TMenuItem) {
                     TMenuItem thisItem = (TMenuItem) w;
                     removeMenuAccelerator(thisItem);
-                    List<TMenuItem> newMenuItems = new ArrayList<TMenuItem>();
+                    List<TMenuItem> newMenuItems = new ArrayList<>();
                     for (TMenuItem item: menuItems) {
                         if (item.getId() != thisItem.getId()) {
                             newMenuItems.add(item);
@@ -4720,7 +4726,7 @@ public class TApplication implements Runnable {
     public final String fileOpenBox(final String path,
         final TFileOpenBox.Type type, final String filter) throws IOException {
 
-        ArrayList<String> filters = new ArrayList<String>();
+        ArrayList<String> filters = new ArrayList<>();
         filters.add(filter);
 
         TFileOpenBox box = new TFileOpenBox(this, path, type, filters);
