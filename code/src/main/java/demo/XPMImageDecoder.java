@@ -70,12 +70,20 @@ public class XPMImageDecoder implements ImageDecoder {
                     throw new IOException("Unexpected end of file while reading colors");
                 }
 
-                Matcher matcher = COLOR_PATTERN.matcher(line);
+                Matcher matcher = PIXEL_PATTERN.matcher(line);
                 if (matcher.find()) {
-                    String key = matcher.group(1);
-                    String colorValue = matcher.group(2).trim();
-                    int rgb = parseColor(colorValue);
-                    colorMap.put(key, rgb);
+                    String content = matcher.group(1);
+                    String key = content.substring(0, charsPerPixel);
+                    String colorPart = content.substring(charsPerPixel).trim();
+
+                    // Extract color value after "c " or "c\t"
+                    int colorStart = colorPart.indexOf("c ");
+                    if (colorStart == -1) colorStart = colorPart.indexOf("c\t");
+                    if (colorStart != -1) {
+                        String colorValue = colorPart.substring(colorStart + 2).trim();
+                        int rgb = parseColor(colorValue);
+                        colorMap.put(key, rgb);
+                    }
                 }
             }
 
