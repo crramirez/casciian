@@ -3889,7 +3889,10 @@ public class ECMA48Terminal extends LogicalScreen
 
         // The final image will be 1000 x 1000 or less.
         ImageRGB cellsImage = cellsToImage(cells);
-        ImageRGB fullImage = cellsImage.getSubimage(0, 0, maxPixelX, maxPixelY);
+        ImageRGB fullImage = cellsImage.resizeCanvas(
+            Math.min(maxPixelX, cellsImage.getWidth()),
+            Math.min(maxPixelY, cellsImage.getHeight()),
+            0x000000);
 
         // HQSixelEncoder.toSixel() can accept allowTransparent.
         String sixel = ((HQSixelEncoder) sixelEncoder).toSixel(fullImage, false);

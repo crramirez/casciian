@@ -14,6 +14,7 @@
  */
 package casciian;
 
+import casciian.backend.ECMA48Terminal;
 import casciian.bits.Cell;
 import casciian.bits.ImageRGB;
 import casciian.bits.ImageUtils;
@@ -21,6 +22,7 @@ import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
+
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
 
@@ -86,17 +88,17 @@ public class TImage extends TWidget implements EditMenuUser {
      * Public constructor.
      *
      * @param parent parent widget
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param width number of text cells for width of the image
+     * @param x      column relative to parent
+     * @param y      row relative to parent
+     * @param width  number of text cells for width of the image
      * @param height number of text cells for height of the image
-     * @param image the image to display
-     * @param left left column of the image.  0 is the left-most column.
-     * @param top top row of the image.  0 is the top-most row.
+     * @param image  the image to display
+     * @param left   left column of the image.  0 is the left-most column.
+     * @param top    top row of the image.  0 is the top-most row.
      */
     public TImage(final TWidget parent, final int x, final int y,
-        final int width, final int height, final ImageRGB image,
-        final int left, final int top) {
+                  final int width, final int height, final ImageRGB image,
+                  final int left, final int top) {
 
         this(parent, x, y, width, height, image, left, top, null);
     }
@@ -104,20 +106,20 @@ public class TImage extends TWidget implements EditMenuUser {
     /**
      * Public constructor.
      *
-     * @param parent parent widget
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param width number of text cells for width of the image
-     * @param height number of text cells for height of the image
-     * @param image the image to display
-     * @param left left column of the image.  0 is the left-most column.
-     * @param top top row of the image.  0 is the top-most row.
+     * @param parent      parent widget
+     * @param x           column relative to parent
+     * @param y           row relative to parent
+     * @param width       number of text cells for width of the image
+     * @param height      number of text cells for height of the image
+     * @param image       the image to display
+     * @param left        left column of the image.  0 is the left-most column.
+     * @param top         top row of the image.  0 is the top-most row.
      * @param clickAction function to call when mouse is pressed
      */
     @SuppressWarnings("this-escape")
     public TImage(final TWidget parent, final int x, final int y,
-        final int width, final int height, final ImageRGB image,
-        final int left, final int top, final TAction clickAction) {
+                  final int width, final int height, final ImageRGB image,
+                  final int left, final int top, final TAction clickAction) {
 
         // Set parent and window
         super(parent, x, y, width, height);
@@ -134,16 +136,16 @@ public class TImage extends TWidget implements EditMenuUser {
      * Public constructor.
      *
      * @param parent parent widget
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param width number of text cells for width of the image
+     * @param x      column relative to parent
+     * @param y      row relative to parent
+     * @param width  number of text cells for width of the image
      * @param height number of text cells for height of the image
-     * @param left left column of the image.  0 is the left-most column.
-     * @param top top row of the image.  0 is the top-most row.
+     * @param left   left column of the image.  0 is the left-most column.
+     * @param top    top row of the image.  0 is the top-most row.
      */
     public TImage(final TWidget parent, final int x, final int y,
-        final int width, final int height,
-        final int left, final int top) {
+                  final int width, final int height,
+                  final int left, final int top) {
 
         this(parent, x, y, width, height, left, top, null);
     }
@@ -151,19 +153,19 @@ public class TImage extends TWidget implements EditMenuUser {
     /**
      * Public constructor.
      *
-     * @param parent parent widget
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param width number of text cells for width of the image
-     * @param height number of text cells for height of the image
-     * @param left left column of the image.  0 is the left-most column.
-     * @param top top row of the image.  0 is the top-most row.
+     * @param parent      parent widget
+     * @param x           column relative to parent
+     * @param y           row relative to parent
+     * @param width       number of text cells for width of the image
+     * @param height      number of text cells for height of the image
+     * @param left        left column of the image.  0 is the left-most column.
+     * @param top         top row of the image.  0 is the top-most row.
      * @param clickAction function to call when mouse is pressed
      */
     @SuppressWarnings("this-escape")
     public TImage(final TWidget parent, final int x, final int y,
-        final int width, final int height,
-        final int left, final int top, final TAction clickAction) {
+                  final int width, final int height,
+                  final int left, final int top, final TAction clickAction) {
 
         // Set parent and window
         super(parent, x, y, width, height);
@@ -188,21 +190,6 @@ public class TImage extends TWidget implements EditMenuUser {
     public void onMouseDown(final TMouseEvent mouse) {
         if (clickAction != null) {
             clickAction.DO(this);
-            return;
-        }
-    }
-
-    /**
-     * Handle posted command events.
-     *
-     * @param command command event
-     */
-    @Override
-    public void onCommand(final TCommandEvent command) {
-        if (command.getCmd() == cmCopy) {
-            // Copy image to clipboard.
-            //getClipboard().copyImage(image);
-            return;
         }
     }
 
@@ -247,9 +234,7 @@ public class TImage extends TWidget implements EditMenuUser {
      */
     private void sizeToImage(final boolean always) {
 
-        if ((getApplication() == null)
-            || (getApplication().getBackend() == null)
-        ) {
+        if (getApplication() == null || getApplication().getBackend() == null) {
             return;
         }
 
@@ -257,32 +242,31 @@ public class TImage extends TWidget implements EditMenuUser {
         int textHeight = getScreen().getTextHeight();
 
         if (always || (textWidth > 0
-                && (textWidth != lastTextWidth)
-                && (textHeight > 0)
-                && (textHeight != lastTextHeight))
-        ) {
-            cellColumns = image.getWidth() / textWidth;
-            if (cellColumns * textWidth < image.getWidth()) {
-                cellColumns++;
-            }
-            cellRows = image.getHeight() / textHeight;
-            if (cellRows * textHeight < image.getHeight()) {
-                cellRows++;
-            }
+            && (textWidth != lastTextWidth)
+            && (textHeight > 0)
+            && (textHeight != lastTextHeight))) {
+
+            adjustImageSize(textWidth, textHeight);
+
+            int imageWidth = image.getWidth();
+            int imageHeight = image.getHeight();
+
+            cellColumns = imageWidth / textWidth;
+            cellRows = imageHeight / textHeight;
 
             // Break the image up into an array of cells.
-            cells = new Cell[cellColumns][cellRows];
+            var newCells = new Cell[cellColumns][cellRows];
 
             for (int x = 0; x < cellColumns; x++) {
                 for (int y = 0; y < cellRows; y++) {
 
                     int width = textWidth;
-                    if ((x + 1) * textWidth > image.getWidth()) {
-                        width = image.getWidth() - (x * textWidth);
+                    if ((x + 1) * textWidth > imageWidth) {
+                        width = imageWidth - (x * textWidth);
                     }
                     int height = textHeight;
-                    if ((y + 1) * textHeight > image.getHeight()) {
-                        height = image.getHeight() - (y * textHeight);
+                    if ((y + 1) * textHeight > imageHeight) {
+                        height = imageHeight - (y * textHeight);
                     }
 
                     Cell cell = new Cell();
@@ -293,9 +277,11 @@ public class TImage extends TWidget implements EditMenuUser {
                         y * textHeight, width, height);
 
                     cell.setImage(subImage);
-                        cells[x][y] = cell;
+                    newCells[x][y] = cell;
                 }
             }
+
+            cells = newCells;
 
             lastTextWidth = textWidth;
             lastTextHeight = textHeight;
@@ -312,6 +298,16 @@ public class TImage extends TWidget implements EditMenuUser {
         }
         if (top < 0) {
             top = 0;
+        }
+    }
+
+    private void adjustImageSize(int textWidth, int textHeight) {
+        int newWidth = ((image.getWidth() + textWidth - 1) / textWidth) * textWidth;
+        int newHeight = ((image.getHeight() + textHeight - 1) / textHeight) * textHeight;
+
+        if (newWidth != image.getWidth() || newHeight != image.getHeight()) {
+            int backgroundColor = getApplication().getBackend().attrToBackgroundColor(getWindow().getBackground());
+            image = image.resizeCanvas(newWidth, newHeight, backgroundColor);
         }
     }
 

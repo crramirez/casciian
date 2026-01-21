@@ -172,16 +172,7 @@ public class ImageRGB {
             for (int x = 0; x < width; x++) {
                 int underRGB = rgb[x][y];
                 int overRGB = image.rgb[x][y];
-                int underRed = (underRGB >>> 16) & 0xFF;
-                int underGreen = (underRGB >>> 8) & 0xFF;
-                int underBlue = underRGB & 0xFF;
-                int overRed = (overRGB >>> 16) & 0xFF;
-                int overGreen = (overRGB >>> 8) & 0xFF;
-                int overBlue = overRGB & 0xFF;
-                int red = (int) ((underRed * (1.0 - alpha)) + (overRed * alpha));
-                int green = (int) ((underGreen * (1.0 - alpha)) + (overGreen * alpha));
-                int blue = (int) ((underBlue * (1.0 - alpha)) + (overBlue * alpha));
-                int newRgb = (red << 16) | (green << 8) | blue;
+                int newRgb = ImageUtils.blendColors(alpha, underRGB, overRGB);
                 this.rgb[x][y] = newRgb;
             }
         }
@@ -248,5 +239,40 @@ public class ImageRGB {
                 this.rgb[col][row] = color;
             }
         }
+    }
+
+    /**
+     * Resizes the canvas to the specified dimensions. If the new dimensions are smaller
+     * than the current image, it will crop the image. If the new dimensions are larger,
+     * it will fill the extra space with the specified background color.
+     *
+     * @param newWidth the new width in pixels
+     * @param newHeight the new height in pixels
+     * @param backgroundColor the RGB color to use for filling extra space
+     * @return a new ImageRGB with the specified dimensions
+     */
+    @SuppressWarnings("UnnecessaryLocalVariable")
+    public ImageRGB resizeCanvas(int newWidth, int newHeight, int backgroundColor) {
+        if (newWidth <= 0 || newHeight <= 0) {
+            throw new IllegalArgumentException("New dimensions must be positive");
+        }
+
+        ImageRGB resized = new ImageRGB(newWidth, newHeight);
+        int oldWidth = this.width;
+        int oldHeight = this.height;
+        int[][] oldRgb = this.rgb;
+        int[][] newRgb = resized.rgb;
+
+        for (int y = 0; y < newHeight; y++) {
+            for (int x = 0; x < newWidth; x++) {
+                if (x < oldWidth && y < oldHeight) {
+                    newRgb[x][y] = oldRgb[x][y];
+                } else {
+                    newRgb[x][y] = backgroundColor;
+                }
+            }
+        }
+
+        return resized;
     }
 }
