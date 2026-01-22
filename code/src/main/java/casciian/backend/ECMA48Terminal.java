@@ -1183,11 +1183,7 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         // Default to sixel enabled.
-        if (System.getProperty("casciian.ECMA48.sixel", "true").equals("false")) {
-            sixel = false;
-        } else {
-            sixel = true;
-        }
+        sixel = !System.getProperty("casciian.ECMA48.sixel", "true").equals("false");
         // Default to HQ quantizer.
         sixelEncoder = new HQSixelEncoder();
 
@@ -1488,12 +1484,14 @@ public class ECMA48Terminal extends LogicalScreen
      *
      * @return the width in pixels of a character cell
      */
+    @Override
     public int getTextWidth() {
         if (textWidthPixels > 0) {
             return textWidthPixels;
         }
-        if (sessionInfo.getWindowWidth() > 0) {
-            return (widthPixels / sessionInfo.getWindowWidth());
+        int windowWidth = sessionInfo.getWindowWidth();
+        if (windowWidth > 0) {
+            return widthPixels / windowWidth;
         }
         return 10;
     }
@@ -1503,12 +1501,14 @@ public class ECMA48Terminal extends LogicalScreen
      *
      * @return the height in pixels of a character cell
      */
+    @Override
     public int getTextHeight() {
         if (textHeightPixels > 0) {
             return textHeightPixels;
         }
-        if (sessionInfo.getWindowHeight() > 0) {
-            return (heightPixels / sessionInfo.getWindowHeight());
+        int windowHeight = sessionInfo.getWindowHeight();
+        if (windowHeight > 0) {
+            return heightPixels / windowHeight;
         }
         return 20;
     }

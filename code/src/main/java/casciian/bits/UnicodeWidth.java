@@ -159,13 +159,14 @@ public class UnicodeWidth {
      * @return true if single-width emoji
      */
     private static boolean isSingleWidthEmoji(final int ch) {
-        return ch == 0x1F5AE  // 📮 Postbox
-            || ch == 0x1F5D9  // 🗙 Dismiss/close symbol
-            || ch == 0x2B6F   // ⭯ Three-dimensional arrow (clockwise)
-            || ch == 0x2B6E   // ⭮ Three-dimensional arrow (anticlockwise)
-            || ch == 0x1F5F6  // 🗶 Ballot X
-            || ch == 0x1F5D0  // 🗐 Page
-            || ch == 0x1F5D7; // 🗗 Window
+        return ch == 0x1F5AE
+            || ch == 0x1F5D9
+            || ch == 0x2B6F
+            || ch == 0x2B6E
+            || ch == 0x1F5F6
+            || ch == 0x1F5D0
+            || ch == 0x1F5D7
+            || ch == 0x1F5BC;
     }
 
     /**

@@ -2019,6 +2019,7 @@ public class HQSixelEncoder implements SixelEncoder {
      *
      * @param sb the StringBuilder to write the shared palette to
      */
+    @Override
     public void emitPalette(final StringBuilder sb) {
         // NOP
     }
@@ -2039,6 +2040,7 @@ public class HQSixelEncoder implements SixelEncoder {
      * @param sharedPalette if true, then all sixel output will use the same
      * palette that is set in one DCS sequence and used in later sequences
      */
+    @Override
     public void setSharedPalette(final boolean sharedPalette) {
         // NOP
     }
@@ -2048,6 +2050,7 @@ public class HQSixelEncoder implements SixelEncoder {
      *
      * @return the palette size
      */
+    @Override
     public int getPaletteSize() {
         return paletteSize;
     }
@@ -2057,6 +2060,7 @@ public class HQSixelEncoder implements SixelEncoder {
      *
      * @param paletteSize the new palette size
      */
+    @Override
     public void setPaletteSize(final int paletteSize) {
         if (this.paletteSize == paletteSize) {
             return;
@@ -2087,6 +2091,7 @@ public class HQSixelEncoder implements SixelEncoder {
      * Clear the sixel palette.  It will be regenerated on the next image
      * encode.
      */
+    @Override
     public void clearPalette() {
         // NOP
     }
