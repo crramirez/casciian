@@ -17,6 +17,7 @@ package casciian.backend;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.io.IOException;
 import java.util.StringTokenizer;
 
@@ -61,7 +62,7 @@ public class TTYSessionInfo implements SessionInfo {
     /**
      * The time this session was started.
      */
-    private long startTime = System.currentTimeMillis();
+    private final long startTime = System.currentTimeMillis();
 
     /**
      * The number of seconds since the last user input event from this
@@ -228,7 +229,7 @@ public class TTYSessionInfo implements SessionInfo {
         try {
             Process process = Runtime.getRuntime().exec(cmd);
             BufferedReader in = new BufferedReader(
-                new InputStreamReader(process.getInputStream(), "UTF-8"));
+                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
             String line = in.readLine();
             if ((line != null) && (line.length() > 0)) {
                 StringTokenizer tokenizer = new StringTokenizer(line);
@@ -244,9 +245,9 @@ public class TTYSessionInfo implements SessionInfo {
             while (true) {
                 BufferedReader err = new BufferedReader(
                         new InputStreamReader(process.getErrorStream(),
-                            "UTF-8"));
+                            StandardCharsets.UTF_8));
                 line = err.readLine();
-                if ((line != null) && (line.length() > 0)) {
+                if ((line != null) && (!line.isEmpty())) {
                     System.err.println("Error output from stty: " + line);
                 }
                 try {
