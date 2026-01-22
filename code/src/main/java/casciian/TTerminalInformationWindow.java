@@ -93,7 +93,7 @@ public class TTerminalInformationWindow extends TWindow {
         TLabel label = addLabel(i18n.getString("backendType"), labelColumn, row);
         copyText += label.getLabel() + " ";
         if (ecmaTerminal != null) {
-            label = addLabel("EMCA48/Xterm", infoColumn, row, "ttext", false);
+            label = addLabel("ECMA48/Xterm", infoColumn, row, "ttext", false);
         }
         if (multiScreen != null) {
             label = addLabel("MultiScreen", infoColumn, row, "ttext", false);
