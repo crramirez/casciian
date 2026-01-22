@@ -65,6 +65,7 @@ For example: `java --enable-native-access=ALL-UNNAMED -jar casciian-full.jar`
 
   * 'java -jar casciian-full.jar' .  This will use
     System.in/out with Xterm-like sequences.
+    On Windows: `java --enable-native-access=ALL-UNNAMED -jar casciian-full.jar`
 
   * 'java -cp casciian-full.jar demo.Demo2 PORT' (where PORT is a
     number to run the TCP daemon on).  This will use the Xterm backend
