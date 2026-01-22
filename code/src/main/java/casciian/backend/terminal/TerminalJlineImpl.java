@@ -286,4 +286,46 @@ public class TerminalJlineImpl implements Terminal {
     public int read(char[] buffer, int off, int len) throws IOException {
         return jlineTerminal.reader().readBuffered(buffer, off, len, TIMEOUT);
     }
+
+    /**
+     * Query the terminal window size.
+     * JLine automatically tracks the terminal size, so this is a no-op.
+     * The size is retrieved directly from JLine when getWindowWidth() or
+     * getWindowHeight() is called.
+     */
+    @Override
+    public void queryWindowSize() {
+        // JLine automatically tracks the terminal size
+        // No action needed - size is retrieved directly from jlineTerminal
+    }
+
+    /**
+     * Get the terminal window width in characters.
+     * Uses JLine's built-in terminal size tracking.
+     *
+     * @return the window width
+     * @throws IllegalStateException if the terminal is not initialized
+     */
+    @Override
+    public int getWindowWidth() {
+        if (jlineTerminal == null) {
+            throw new IllegalStateException("Terminal not initialized");
+        }
+        return jlineTerminal.getWidth();
+    }
+
+    /**
+     * Get the terminal window height in characters.
+     * Uses JLine's built-in terminal size tracking.
+     *
+     * @return the window height
+     * @throws IllegalStateException if the terminal is not initialized
+     */
+    @Override
+    public int getWindowHeight() {
+        if (jlineTerminal == null) {
+            throw new IllegalStateException("Terminal not initialized");
+        }
+        return jlineTerminal.getHeight();
+    }
 }

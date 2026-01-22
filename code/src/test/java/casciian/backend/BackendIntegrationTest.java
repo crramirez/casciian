@@ -5,6 +5,7 @@
  */
 package casciian.backend;
 
+import casciian.backend.terminal.MockTerminal;
 import casciian.bits.BorderStyle;
 import casciian.bits.CellAttributes;
 import casciian.event.TInputEvent;
@@ -367,8 +368,11 @@ class BackendIntegrationTest {
     @Test
     @DisplayName("TTYSessionInfo integration with backend")
     void testTTYSessionInfoIntegration() {
-        // Create session info
-        TTYSessionInfo sessionInfo = new TTYSessionInfo();
+        // Create a mock terminal for testing
+        MockTerminal mockTerminal = new MockTerminal();
+        
+        // Create session info with mock terminal
+        TTYSessionInfo sessionInfo = new TTYSessionInfo(mockTerminal);
         
         // Verify it behaves correctly
         assertNotNull(sessionInfo.getUsername());

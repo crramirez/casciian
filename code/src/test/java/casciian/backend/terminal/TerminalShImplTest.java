@@ -24,8 +24,10 @@ import org.junit.jupiter.api.DisplayName;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for TerminalShImpl class.
@@ -122,5 +124,46 @@ class TerminalShImplTest {
         assertEquals(reader, customTerminal.getReader());
         assertEquals(writer, customTerminal.getWriter());
         customTerminal.close();
+    }
+
+    @Test
+    @DisplayName("getWindowWidth returns positive value")
+    void testGetWindowWidthReturnsPositive() {
+        // Default window width should be 80
+        assertTrue(terminal.getWindowWidth() > 0);
+    }
+
+    @Test
+    @DisplayName("getWindowHeight returns positive value")
+    void testGetWindowHeightReturnsPositive() {
+        // Default window height should be 24
+        assertTrue(terminal.getWindowHeight() > 0);
+    }
+
+    @Test
+    @DisplayName("queryWindowSize does not throw")
+    void testQueryWindowSizeDoesNotThrow() {
+        // queryWindowSize should not throw even if stty command fails
+        assertDoesNotThrow(() -> terminal.queryWindowSize());
+    }
+
+    @Test
+    @DisplayName("window dimensions are reasonable after queryWindowSize")
+    void testWindowDimensionsAfterQuery() {
+        terminal.queryWindowSize();
+        int width = terminal.getWindowWidth();
+        int height = terminal.getWindowHeight();
+        
+        // Dimensions should be reasonable (at least 1, at most 10000)
+        assertTrue(width >= 1 && width <= 10000, "Width should be between 1 and 10000");
+        assertTrue(height >= 1 && height <= 10000, "Height should be between 1 and 10000");
+    }
+
+    @Test
+    @DisplayName("default window dimensions are 80x24")
+    void testDefaultWindowDimensions() {
+        // Without stty, defaults should be 80x24
+        assertEquals(80, terminal.getWindowWidth());
+        assertEquals(24, terminal.getWindowHeight());
     }
 }

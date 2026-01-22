@@ -710,7 +710,7 @@ public class ECMA48Terminal extends LogicalScreen
         if (sessionInfo == null) {
             if (input == null) {
                 // Reading right off the tty
-                sessionInfo = new TTYSessionInfo();
+                sessionInfo = new TTYSessionInfo(terminal);
             } else {
                 sessionInfo = new TSessionInfo();
             }
@@ -840,7 +840,7 @@ public class ECMA48Terminal extends LogicalScreen
         if (sessionInfo == null) {
             if (setRawMode == true) {
                 // Reading right off the tty
-                sessionInfo = new TTYSessionInfo();
+                sessionInfo = new TTYSessionInfo(terminal);
             } else {
                 sessionInfo = new TSessionInfo();
             }
