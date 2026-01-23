@@ -19,10 +19,21 @@
  */
 package casciian.bits;
 
+import java.util.Arrays;
+import java.util.stream.IntStream;
+
 /**
  * A simple 2D RGB array.
  */
 public class ImageRGB {
+
+    /**
+     * Threshold for using parallel streams. Operations on images with
+     * total pixels (width * height) greater than this will use parallel processing.
+     * This is set to balance the overhead of thread creation against the benefits
+     * of parallel execution.
+     */
+    private static final int PARALLEL_THRESHOLD = 10_000;
 
     /**
      * The 24-bit RGB data.
@@ -61,10 +72,9 @@ public class ImageRGB {
         width = image.width;
         height = image.height;
         rgb = new int[width][height];
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                this.rgb[x][y] = image.rgb[x][y];
-            }
+        // Use System.arraycopy for efficient column-by-column copying
+        for (int x = 0; x < width; x++) {
+            System.arraycopy(image.rgb[x], 0, this.rgb[x], 0, height);
         }
     }
 
@@ -168,14 +178,20 @@ public class ImageRGB {
             throw new IllegalArgumentException("Image dimensions must match for alpha blending");
         }
 
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
+        // Use parallel streams for large images to improve performance
+        IntStream xStream = IntStream.range(0, width);
+        if ((long) width * height > PARALLEL_THRESHOLD) {
+            xStream = xStream.parallel();
+        }
+        
+        xStream.forEach(x -> {
+            for (int y = 0; y < height; y++) {
                 int underRGB = rgb[x][y];
                 int overRGB = image.rgb[x][y];
                 int newRgb = ImageUtils.blendColors(alpha, underRGB, overRGB);
                 this.rgb[x][y] = newRgb;
             }
-        }
+        });
     }
 
     /**
@@ -193,12 +209,22 @@ public class ImageRGB {
             throw new IllegalArgumentException("Invalid subimage dimensions");
         }
         ImageRGB subimage = new ImageRGB(w, h);
-        for (int row = 0; row < h; row++) {
-            for (int col = 0; col < w; col++) {
-                if (x + col < width && y + row < height) {
-                    subimage.rgb[col][row] = this.rgb[x + col][y + row];
-                }
+        
+        // Calculate the actual copy bounds to avoid checking in the loop
+        int copyWidth = Math.min(w, width - x);
+        int copyHeight = Math.min(h, height - y);
+        
+        if (copyWidth > 0 && copyHeight > 0) {
+            // Use parallel streams for large subimages
+            IntStream colStream = IntStream.range(0, copyWidth);
+            if ((long) copyWidth * copyHeight > PARALLEL_THRESHOLD) {
+                colStream = colStream.parallel();
             }
+            
+            colStream.forEach(col -> {
+                // Use System.arraycopy for efficient column copying
+                System.arraycopy(this.rgb[x + col], y, subimage.rgb[col], 0, copyHeight);
+            });
         }
         return subimage;
     }
@@ -234,11 +260,17 @@ public class ImageRGB {
         if (startX < 0 || startY < 0 || startX + width > this.width || startY + height > this.height) {
             throw new IllegalArgumentException("Invalid fill rectangle dimensions");
         }
-        for (int row = startY; row < startY + height; row++) {
-            for (int col = startX; col < startX + width; col++) {
-                this.rgb[col][row] = color;
-            }
+        
+        // Use parallel streams for large fill operations
+        IntStream colStream = IntStream.range(startX, startX + width);
+        if ((long) width * height > PARALLEL_THRESHOLD) {
+            colStream = colStream.parallel();
         }
+        
+        colStream.forEach(col -> {
+            // Use Arrays.fill for efficient row filling within each column
+            Arrays.fill(this.rgb[col], startY, startY + height, color);
+        });
     }
 
     /**
@@ -262,16 +294,29 @@ public class ImageRGB {
         int oldHeight = this.height;
         int[][] oldRgb = this.rgb;
         int[][] newRgb = resized.rgb;
+        
+        int copyWidth = Math.min(oldWidth, newWidth);
+        int copyHeight = Math.min(oldHeight, newHeight);
 
-        for (int y = 0; y < newHeight; y++) {
-            for (int x = 0; x < newWidth; x++) {
-                if (x < oldWidth && y < oldHeight) {
-                    newRgb[x][y] = oldRgb[x][y];
-                } else {
-                    newRgb[x][y] = backgroundColor;
-                }
-            }
+        // Use parallel streams for large resize operations
+        IntStream xStream = IntStream.range(0, newWidth);
+        if ((long) newWidth * newHeight > PARALLEL_THRESHOLD) {
+            xStream = xStream.parallel();
         }
+
+        xStream.forEach(x -> {
+            if (x < copyWidth) {
+                // Copy existing data
+                System.arraycopy(oldRgb[x], 0, newRgb[x], 0, copyHeight);
+                // Fill remaining height with background color
+                if (copyHeight < newHeight) {
+                    Arrays.fill(newRgb[x], copyHeight, newHeight, backgroundColor);
+                }
+            } else {
+                // Fill entire column with background color
+                Arrays.fill(newRgb[x], 0, newHeight, backgroundColor);
+            }
+        });
 
         return resized;
     }
