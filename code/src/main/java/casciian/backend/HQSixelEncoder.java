@@ -27,6 +27,7 @@ import casciian.terminal.SixelDecoder;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
@@ -792,9 +793,7 @@ public class HQSixelEncoder implements SixelEncoder {
             sixelColors = new ArrayList<Integer>(numColors);
             usedColors = new BitSet(numColors);
             sixelRows = new SixelRow[(image.getHeight() / 6) + 1];
-            for (int i = 0; i < sixelRows.length; i++) {
-                sixelRows[i] = new SixelRow();
-            }
+            Arrays.setAll(sixelRows, i -> new SixelRow());
 
             sixelImageWidth = image.getWidth();
             sixelImageHeight = image.getHeight();
@@ -1084,22 +1083,22 @@ public class HQSixelEncoder implements SixelEncoder {
             for (Bucket b: buckets) {
                 int rgb = b.average();
                 b.index = idx;
-                int red   = (rgb >>> 16) & 0xFF;
-                int green = (rgb >>>  8) & 0xFF;
-                int blue  =  rgb         & 0xFF;
-                int color2 = (red * red) + (green * green) + (blue * blue);
+                int red   = Rgb.getRed(rgb);
+                int green = Rgb.getGreen(rgb);
+                int blue  = Rgb.getBlue(rgb);
+                int color2 = red * red + green * green + blue * blue;
                 if (color2 < diff) {
                     // Black is a close match.
                     if (color2 < darkest) {
                         darkest = color2;
                         darkestIdx = idx;
                     }
-                } else if ((((100 - red) * (100 - red)) +
-                        ((100 - green) * (100 - green)) +
-                        ((100 - blue) * (100 - blue))) < diff) {
-
-                    // White is a close match.
-                    if (color2 > lightest) {
+                } else {
+                    int whiteDistSq = (100 - red) * (100 - red)
+                                    + (100 - green) * (100 - green)
+                                    + (100 - blue) * (100 - blue);
+                    if (whiteDistSq < diff && color2 > lightest) {
+                        // White is a close match.
                         lightest = color2;
                         lightestIdx = idx;
                     }
@@ -1108,10 +1107,10 @@ public class HQSixelEncoder implements SixelEncoder {
                 idx++;
             }
             if (darkestIdx != -1) {
-                sixelColors.set(darkestIdx, 0xFF000000);
+                sixelColors.set(darkestIdx, Rgb.SIXEL_BLACK);
             }
             if (lightestIdx != -1) {
-                sixelColors.set(lightestIdx, 0xFF646464);
+                sixelColors.set(lightestIdx, Rgb.SIXEL_WHITE);
             }
 
             quantizationDone = true;
@@ -1226,18 +1225,20 @@ public class HQSixelEncoder implements SixelEncoder {
             // correctly, then V _is_ the change of basis matrix because we
             // know that all of its vectors are orthogonal.
             PCA = V;
-            pcaColors = new ArrayList<PcaColor>(sixelColors.size());
-            int idx = 0;
-            for (int rgbColor: sixelColors) {
-                pcaColors.add(new PcaColor(idx, firstPca(rgbColor),
-                        secondPca(rgbColor), thirdPca(rgbColor)));
-                idx++;
-            }
-            Collections.sort(pcaColors);
+
+            // Build PCA color list using IntStream for cleaner iteration
+            pcaColors = java.util.stream.IntStream.range(0, sixelColors.size())
+                .mapToObj(i -> {
+                    int rgb = sixelColors.get(i);
+                    return new PcaColor(i, firstPca(rgb), secondPca(rgb), thirdPca(rgb));
+                })
+                .sorted()
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
 
             // A first principal component difference within 8 indices will
             // be deemed in the same neighborhood.
-            pcaThreshold = ((pcaColors.get(idx - 1).firstPca - pcaColors.get(0).firstPca) / idx) * 8.0;
+            int n2 = pcaColors.size();
+            pcaThreshold = ((pcaColors.get(n2 - 1).firstPca - pcaColors.get(0).firstPca) / n2) * 8.0;
 
             // Allow up the last 8192 colors to be re-used, or 10% of the
             // image size.
@@ -1348,7 +1349,7 @@ public class HQSixelEncoder implements SixelEncoder {
 
             pcaKey.firstPca = pca1;
             int pcaIndex = Math.abs(Collections.binarySearch(pcaColors, pcaKey, nearby));
-            lastPcaSearchIndex = Math.max(0, Math.min(sixelColors.size() - 1, pcaIndex));
+            lastPcaSearchIndex = Math.clamp(pcaIndex, 0, sixelColors.size() - 1);
             return pcaColors.get(lastPcaSearchIndex);
         }
 

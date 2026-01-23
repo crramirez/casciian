@@ -129,9 +129,9 @@ public record Rgb(int r, int g, int b) {
      */
     public Rgb clampSixel() {
         return new Rgb(
-            Math.max(0, Math.min(r, 100)),
-            Math.max(0, Math.min(g, 100)),
-            Math.max(0, Math.min(b, 100))
+            Math.clamp(r, 0, 100),
+            Math.clamp(g, 0, 100),
+            Math.clamp(b, 0, 100)
         );
     }
 
@@ -146,9 +146,9 @@ public record Rgb(int r, int g, int b) {
     public Rgb addErrorAndClamp(final int redError, final int greenError,
             final int blueError) {
         return new Rgb(
-            Math.max(0, Math.min(r + redError, 100)),
-            Math.max(0, Math.min(g + greenError, 100)),
-            Math.max(0, Math.min(b + blueError, 100))
+            Math.clamp(r + redError, 0, 100),
+            Math.clamp(g + greenError, 0, 100),
+            Math.clamp(b + blueError, 0, 100)
         );
     }
 
@@ -304,7 +304,17 @@ public record Rgb(int r, int g, int b) {
      * @return the clamped value
      */
     public static int clampSixelValue(final int value) {
-        return Math.max(0, Math.min(value, 100));
+        return Math.clamp(value, 0, 100);
+    }
+
+    /**
+     * Clamp a value to the RGB range [0, 255].
+     *
+     * @param value the value to clamp
+     * @return the clamped value
+     */
+    public static int clampRgbValue(final int value) {
+        return Math.clamp(value, 0, 255);
     }
 
     /**

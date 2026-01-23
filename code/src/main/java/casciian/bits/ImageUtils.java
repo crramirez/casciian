@@ -66,13 +66,9 @@ public class ImageUtils {
         Rgb color1 = Rgb.fromPackedRgb(start);
         Rgb color2 = Rgb.fromPackedRgb(end);
 
-        int rgbRed   = color1.r() + (int) (fraction * (color2.r() - color1.r()));
-        int rgbGreen = color1.g() + (int) (fraction * (color2.g() - color1.g()));
-        int rgbBlue  = color1.b() + (int) (fraction * (color2.b() - color1.b()));
-
-        rgbRed   = Math.min(Math.max(rgbRed, 0), 255);
-        rgbGreen = Math.min(Math.max(rgbGreen, 0), 255);
-        rgbBlue  = Math.min(Math.max(rgbBlue, 0), 255);
+        int rgbRed   = Rgb.clampRgbValue(color1.r() + (int) (fraction * (color2.r() - color1.r())));
+        int rgbGreen = Rgb.clampRgbValue(color1.g() + (int) (fraction * (color2.g() - color1.g())));
+        int rgbBlue  = Rgb.clampRgbValue(color1.b() + (int) (fraction * (color2.b() - color1.b())));
 
         return Rgb.combineRgb(rgbRed, rgbGreen, rgbBlue);
     }
