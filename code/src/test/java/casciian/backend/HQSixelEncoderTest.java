@@ -10,6 +10,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1036,27 +1039,60 @@ class HQSixelEncoderTest {
 
         @Test
         @DisplayName("Configuration changes during encoding use volatile fields")
-        void testVolatileFieldsForConfiguration() {
+        void testVolatileFieldsForConfiguration() throws Exception {
             // This test verifies that volatile fields work correctly by checking
-            // that changes are visible across threads
+            // that changes made in one thread are visible to operations in other threads
             final HQSixelEncoder sharedEncoder = new HQSixelEncoder();
+            final AtomicBoolean configVisible = new AtomicBoolean(false);
+            final AtomicReference<String> result = new AtomicReference<>();
+            final CountDownLatch configChanged = new CountDownLatch(1);
+            final CountDownLatch encodingStarted = new CountDownLatch(1);
             
             // Initial value
             assertEquals(128, sharedEncoder.getPaletteSize());
             
-            // Change in main thread
+            // Thread that will check configuration and encode
+            Thread encoderThread = new Thread(() -> {
+                encodingStarted.countDown();
+                try {
+                    // Wait for main thread to change configuration
+                    configChanged.await();
+                    
+                    // Check if configuration change is visible
+                    configVisible.set(sharedEncoder.getPaletteSize() == 256);
+                    
+                    // Encode with the new configuration
+                    ImageRGB image = new ImageRGB(10, 10);
+                    fillImageWithColor(image, 0xFF0000);
+                    result.set(sharedEncoder.toSixel(image));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+            
+            encoderThread.start();
+            
+            // Wait for encoder thread to start
+            encodingStarted.await();
+            
+            // Change configuration in main thread
             sharedEncoder.setPaletteSize(256);
             
-            // Verify change is visible
-            assertEquals(256, sharedEncoder.getPaletteSize());
+            // Signal that configuration has changed
+            configChanged.countDown();
             
-            // Test that encoding still works after configuration change
-            ImageRGB image = new ImageRGB(10, 10);
-            fillImageWithColor(image, 0xFF0000);
-            String sixel = sharedEncoder.toSixel(image);
+            // Wait for encoder thread to complete
+            encoderThread.join(5000);
             
-            assertNotNull(sixel);
-            assertFalse(sixel.isEmpty());
+            // Check if thread completed within timeout
+            assertFalse(encoderThread.isAlive(), 
+                "Encoder thread should complete within 5 seconds");
+            
+            // Verify volatile visibility: change made in main thread is visible in encoder thread
+            assertTrue(configVisible.get(), 
+                "Configuration change should be visible across threads (volatile visibility)");
+            assertNotNull(result.get());
+            assertFalse(result.get().isEmpty());
         }
     }
     // ========================================================================

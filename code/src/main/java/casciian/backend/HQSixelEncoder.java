@@ -517,6 +517,15 @@ public class HQSixelEncoder implements SixelEncoder {
                 return Double.compare(this.firstPca, that.firstPca);
             }
 
+            /**
+             * Checks equality based only on firstPca.
+             * <p>
+             * Note: This intentionally only compares firstPca because PcaColor objects
+             * are used as search keys in binary search operations where only the first
+             * principal component determines the search position. The other fields
+             * (sixelIndex, secondPca, thirdPca) are metadata associated with palette
+             * entries, not part of the search key identity.
+             */
             @Override
             public boolean equals(Object o) {
                 if (!(o instanceof PcaColor pcaColor)) return false;
@@ -596,7 +605,8 @@ public class HQSixelEncoder implements SixelEncoder {
                 this.keys = new int[maxSize];
                 this.values = new int[maxSize];
                 this.order = new int[maxSize];
-                Arrays.fill(keys, -1);  // -1 indicates empty slot
+                Arrays.fill(keys, -1);   // -1 indicates empty slot
+                Arrays.fill(order, -1);  // -1 indicates uninitialized order entry
             }
 
             /**
@@ -641,9 +651,9 @@ public class HQSixelEncoder implements SixelEncoder {
                     if (keys[idx] == -1) {
                         // Check if eviction needed before adding new entry
                         if (size >= maxSize * 3 / 4) {
-                            // Evict oldest entry
+                            // Evict oldest entry (only if order entry is valid)
                             int evictIdx = order[writePos];
-                            if (evictIdx >= 0 && evictIdx < maxSize) {
+                            if (evictIdx >= 0 && evictIdx < maxSize && keys[evictIdx] != -1) {
                                 keys[evictIdx] = -1;
                                 size--;
                             }
@@ -657,6 +667,18 @@ public class HQSixelEncoder implements SixelEncoder {
                         return;
                     }
                     probe++;
+                }
+                // Cache is full and no empty slot was found. Evict the oldest entry
+                // and insert the new color at that position.
+                // Note: size is not changed because we're replacing an existing entry
+                if (size > 0) {
+                    int evictIdx = order[writePos];
+                    if (evictIdx >= 0 && evictIdx < maxSize) {
+                        keys[evictIdx] = color;
+                        values[evictIdx] = data;
+                        order[writePos] = evictIdx;
+                        writePos = (writePos + 1) % maxSize;
+                    }
                 }
             }
 
