@@ -22,6 +22,7 @@ package casciian.backend;
 
 import casciian.bits.ImageRGB;
 import casciian.bits.MathUtils;
+import casciian.bits.Rgb;
 import casciian.terminal.SixelDecoder;
 
 import java.util.ArrayDeque;
@@ -289,29 +290,25 @@ public class HQSixelEncoder implements SixelEncoder {
              */
             public void add(final ColorIdx color) {
                 colors.add(color);
+                updateMinMaxBounds(color.color);
+            }
 
-                int rgb   = color.color;
-                int red   = (rgb >>> 16) & 0xFF;
-                int green = (rgb >>>  8) & 0xFF;
-                int blue  =  rgb         & 0xFF;
-                if (red > maxRed) {
-                    maxRed = red;
-                }
-                if (red < minRed) {
-                    minRed = red;
-                }
-                if (green > maxGreen) {
-                    maxGreen = green;
-                }
-                if (green < minGreen) {
-                    minGreen = green;
-                }
-                if (blue > maxBlue) {
-                    maxBlue = blue;
-                }
-                if (blue < minBlue) {
-                    minBlue = blue;
-                }
+            /**
+             * Update min/max bounds for all color channels.
+             *
+             * @param rgb the color to update bounds with
+             */
+            private void updateMinMaxBounds(final int rgb) {
+                int red   = Rgb.getRed(rgb);
+                int green = Rgb.getGreen(rgb);
+                int blue  = Rgb.getBlue(rgb);
+
+                minRed   = Math.min(minRed,   red);
+                maxRed   = Math.max(maxRed,   red);
+                minGreen = Math.min(minGreen, green);
+                maxGreen = Math.max(maxGreen, green);
+                minBlue  = Math.min(minBlue,  blue);
+                maxBlue  = Math.max(maxBlue,  blue);
             }
 
             /**
@@ -321,70 +318,74 @@ public class HQSixelEncoder implements SixelEncoder {
              * @return the other bucket
              */
             public Bucket partition() {
-                int redDiff = Math.max(0, (maxRed - minRed));
-                int greenDiff = Math.max(0, (maxGreen - minGreen));
-                int blueDiff = Math.max(0, (maxBlue - minBlue));
+                ColorChannel splitChannel = findMaxRangeChannel();
+                sortByChannel(splitChannel);
+                return splitIntoNewBucket();
+            }
+
+            /**
+             * Find which color channel has the maximum range.
+             */
+            private ColorChannel findMaxRangeChannel() {
+                int redDiff   = Math.max(0, maxRed - minRed);
+                int greenDiff = Math.max(0, maxGreen - minGreen);
+                int blueDiff  = Math.max(0, maxBlue - minBlue);
+
                 if (verbosity >= 5) {
                     System.err.printf("partn colors %d Δr %d Δg %d Δb %d\n",
                         colors.size(), redDiff, greenDiff, blueDiff);
                 }
 
-                if ((redDiff > greenDiff) && (redDiff > blueDiff)) {
-                    // Partition on red.
-                    if (verbosity >= 5) {
-                        System.err.println("    RED");
-                    }
-                    Collections.sort(colors, new Comparator<ColorIdx>() {
-                        public int compare(ColorIdx c1, ColorIdx c2) {
-                            int red1 = (c1.color >>> 16) & 0xFF;
-                            int red2 = (c2.color >>> 16) & 0xFF;
-                            return red1 - red2;
-                        }
-                    });
-                } else if ((greenDiff > blueDiff) && (greenDiff > redDiff)) {
-                    // Partition on green.
-                    if (verbosity >= 5) {
-                        System.err.println("    GREEN");
-                    }
-                    Collections.sort(colors, new Comparator<ColorIdx>() {
-                        public int compare(ColorIdx c1, ColorIdx c2) {
-                            int green1 = (c1.color >>> 8) & 0xFF;
-                            int green2 = (c2.color >>> 8) & 0xFF;
-                            return green1 - green2;
-                        }
-                    });
+                if (redDiff > greenDiff && redDiff > blueDiff) {
+                    return ColorChannel.RED;
+                } else if (greenDiff > blueDiff) {
+                    return ColorChannel.GREEN;
                 } else {
-                    // Partition on blue.
-                    if (verbosity >= 5) {
-                        System.err.println("    BLUE");
-                    }
-                    Collections.sort(colors, new Comparator<ColorIdx>() {
-                        public int compare(ColorIdx c1, ColorIdx c2) {
-                            int blue1 = c1.color & 0xFF;
-                            int blue2 = c2.color & 0xFF;
-                            return blue1 - blue2;
-                        }
-                    });
+                    return ColorChannel.BLUE;
                 }
+            }
 
+            /**
+             * Sort colors by the specified channel.
+             */
+            private void sortByChannel(final ColorChannel channel) {
+                if (verbosity >= 5) {
+                    System.err.println("    " + channel);
+                }
+                Comparator<ColorIdx> comparator = switch (channel) {
+                    case RED   -> (c1, c2) -> Rgb.getRed(c1.color) - Rgb.getRed(c2.color);
+                    case GREEN -> (c1, c2) -> Rgb.getGreen(c1.color) - Rgb.getGreen(c2.color);
+                    case BLUE  -> (c1, c2) -> Rgb.getBlue(c1.color) - Rgb.getBlue(c2.color);
+                };
+                Collections.sort(colors, comparator);
+            }
+
+            /**
+             * Split the bucket in half and return the new bucket with upper half.
+             */
+            private Bucket splitIntoNewBucket() {
                 int oldN = colors.size();
+                int splitPoint = oldN / 2;
 
-                List<ColorIdx> newBucketColors;
-                newBucketColors = colors.subList(oldN / 2, oldN);
+                List<ColorIdx> newBucketColors = colors.subList(splitPoint, oldN);
                 Bucket newBucket = new Bucket(newBucketColors.size());
-                for (ColorIdx color: newBucketColors) {
+                for (ColorIdx color : newBucketColors) {
                     newBucket.add(color);
                 }
 
-                List<ColorIdx> newColors;
-                newColors = colors.subList(0, oldN - newBucketColors.size());
-                reset(newColors.size());
-                for (ColorIdx color: newColors) {
+                List<ColorIdx> keepColors = new ArrayList<>(colors.subList(0, splitPoint));
+                reset(keepColors.size());
+                for (ColorIdx color : keepColors) {
                     add(color);
                 }
-                assert (newBucketColors.size() + newColors.size() == oldN);
+
                 return newBucket;
             }
+
+            /**
+             * Color channel enumeration for partition decisions.
+             */
+            private enum ColorChannel { RED, GREEN, BLUE }
 
             /**
              * Average the colors in this bucket.
@@ -397,47 +398,53 @@ public class HQSixelEncoder implements SixelEncoder {
                 }
 
                 if (quantizationDone) {
-                    if (colors.size() == 0) {
-                        lastAverage = 0xFF000000;
-                        return lastAverage;
-                    }
-                    int sixelColor = sixelColors.get(index);
-                    if ((sixelColor == 0xFF000000)
-                        || (sixelColor == 0xFF646464)
-                    ) {
-                        // This bucket is mapped to black or white.
-                        lastAverage = sixelColor;
-                        return lastAverage;
-                    }
+                    lastAverage = computeQuantizedAverage();
+                } else {
+                    lastAverage = computeWeightedAverage();
+                }
+                return lastAverage;
+            }
+
+            /**
+             * Compute average for quantized palette.
+             */
+            private int computeQuantizedAverage() {
+                if (colors.isEmpty()) {
+                    return Rgb.SIXEL_BLACK;
+                }
+                int sixelColor = sixelColors.get(index);
+                if (sixelColor == Rgb.SIXEL_BLACK || sixelColor == Rgb.SIXEL_WHITE) {
+                    return sixelColor;
+                }
+                return computeWeightedAverage();
+            }
+
+            /**
+             * Compute weighted average of all colors in bucket.
+             */
+            private int computeWeightedAverage() {
+                if (colors.isEmpty()) {
+                    return Rgb.SIXEL_BLACK;
                 }
 
-                // Compute the average color.
-                long totalRed = 0;
-                long totalGreen = 0;
-                long totalBlue = 0;
-                long count = 0;
-                for (ColorIdx color: colors) {
+                long totalRed = 0, totalGreen = 0, totalBlue = 0, count = 0;
+                for (ColorIdx color : colors) {
                     int rgb = color.color;
-                    int red   = (rgb >>> 16) & 0xFF;
-                    int green = (rgb >>>  8) & 0xFF;
-                    int blue  =  rgb         & 0xFF;
-                    totalRed   += (long) color.count * red;
-                    totalGreen += (long) color.count * green;
-                    totalBlue  += (long) color.count * blue;
+                    totalRed   += (long) color.count * Rgb.getRed(rgb);
+                    totalGreen += (long) color.count * Rgb.getGreen(rgb);
+                    totalBlue  += (long) color.count * Rgb.getBlue(rgb);
                     count += color.count;
                 }
-                if (count == 0) {
-                    lastAverage = 0xFF000000;
-                    return lastAverage;
-                }
-                totalRed   = clampSixel((int) (totalRed   / count));
-                totalGreen = clampSixel((int) (totalGreen / count));
-                totalBlue  = clampSixel((int) (totalBlue  / count));
 
-                lastAverage = (int) ((0xFF << 24) | (totalRed   << 16)
-                                                  | (totalGreen <<  8)
-                                                  |  totalBlue);
-                return lastAverage;
+                if (count == 0) {
+                    return Rgb.SIXEL_BLACK;
+                }
+
+                int avgRed   = Rgb.clampSixelValue((int) (totalRed   / count));
+                int avgGreen = Rgb.clampSixelValue((int) (totalGreen / count));
+                int avgBlue  = Rgb.clampSixelValue((int) (totalBlue  / count));
+
+                return Rgb.combineRgb(avgRed, avgGreen, avgBlue);
             }
 
             /**
@@ -935,10 +942,7 @@ public class HQSixelEncoder implements SixelEncoder {
          * @return the sixel color
          */
         public int toSixelColor(final int rawColor) {
-            int red     = ((rawColor >>> 16) & 0xFF) * 100 / 255;
-            int green   = ((rawColor >>>  8) & 0xFF) * 100 / 255;
-            int blue    = ( rawColor         & 0xFF) * 100 / 255;
-            return (0xFF << 24) | (red << 16) | (green << 8) | blue;
+            return Rgb.toSixelColor(rawColor);
         }
 
         /**
@@ -950,39 +954,30 @@ public class HQSixelEncoder implements SixelEncoder {
          * @return the sixel color
          */
         public int toSixelColor(final int rawColor, boolean checkBlackWhite) {
-
-            int red     = ((rawColor >>> 16) & 0xFF) * 100 / 255;
-            int green   = ((rawColor >>>  8) & 0xFF) * 100 / 255;
-            int blue    = ( rawColor         & 0xFF) * 100 / 255;
-
             if (!checkBlackWhite) {
-                return (0xFF << 24) | (red << 16) | (green << 8) | blue;
+                return Rgb.toSixelColor(rawColor);
             }
 
-            // These values are arbitrary.  Too low and you can get "static"
-            // on images that have a very wide color range compared to
-            // palette entries.  Too high and you lose a lot of detail on
-            // otherwise great images.
-            final int blackDiff = 10;
-            final int whiteDiff = 0;
-            if (((red * red) + (green * green) + (blue * blue)) < blackDiff) {
-                if (verbosity >= 10) {
-                    System.err.printf("mapping to black: %08x\n", rawColor);
-                }
+            Rgb color = Rgb.fromPackedRgb(rawColor).toSixelSpace();
 
-                // Black is a closer match.
-                return 0xFF000000;
-            } else if ((((100 - red) * (100 - red)) +
-                    ((100 - green) * (100 - green)) +
-                    ((100 - blue) * (100 - blue))) < whiteDiff) {
-
-                if (verbosity >= 10) {
-                    System.err.printf("mapping to white: %08x\n", rawColor);
-                }
-                // White is a closer match.
-                return 0xFF646464;
+            if (color.isNearBlack(10)) {
+                logVerbose(10, "mapping to black: %08x%n", rawColor);
+                return Rgb.SIXEL_BLACK;
+            } else if (color.isNearWhite(0)) {
+                logVerbose(10, "mapping to white: %08x%n", rawColor);
+                return Rgb.SIXEL_WHITE;
             }
-            return (0xFF << 24) | (red << 16) | (green << 8) | blue;
+
+            return color.toPackedRgb();
+        }
+
+        /**
+         * Log a verbose message if verbosity level is sufficient.
+         */
+        private void logVerbose(int level, String format, Object... args) {
+            if (verbosity >= level) {
+                System.err.printf(format, args);
+            }
         }
 
         /**
@@ -1314,143 +1309,104 @@ public class HQSixelEncoder implements SixelEncoder {
         private int findNearestColor(final int red, final int green,
             final int blue) {
 
-            // Search pcaColors by first PCA.
-            double pca1 = (PCA[2][0] * red)
-                        + (PCA[2][1] * green)
-                        + (PCA[2][2] * blue);
-
-            PcaColor lastPcaColor = pcaColors.get(lastPcaSearchIndex);
-            PcaColor centerPca = null;
-            int idx = lastPcaSearchIndex;
-            if (Math.abs(lastPcaColor.firstPca - pca1) < pcaThreshold) {
-                // Skip the binary search, we are already close.
-                centerPca = lastPcaColor;
-            } else {
-
-                // This version uses standard Java binary search.  It's
-                // faster than my first attempt, so it can stay.
-                // Reuse the instance field pcaKey to avoid allocations in
-                // this hot path. Thread safety is ensured by creating a
-                // new Palette for each encoding operation.
-                pcaKey.firstPca = pca1;
-
-                // pcaIndex will almost certainly come back negative, because
-                // doubles cannot exactly be equal in practice.
-                int pcaIndex = Math.abs(Collections.binarySearch(pcaColors,
-                        pcaKey, nearby));
-
-                // idx is near the center of the neighborhood.
-                idx = Math.max(0, Math.min(sixelColors.size() - 1, pcaIndex));
-                lastPcaSearchIndex = idx;
-                centerPca = pcaColors.get(idx);
-            }
-
-            // Begin at the starting point.
+            double[] searchPca = computePcaCoordinates(red, green, blue);
+            PcaColor centerPca = findSearchCenter(searchPca[0]);
+            
             int result = centerPca.sixelIndex;
-            int bestRgbDistance = 0;
-            {
-                int sixelRgb = sixelColors.get(centerPca.sixelIndex);
-                int red2   = (sixelRgb >>> 16) & 0xFF;
-                int green2 = (sixelRgb >>>  8) & 0xFF;
-                int blue2  =  sixelRgb         & 0xFF;
-                bestRgbDistance = (red2 - red) * (red2 - red)
-                                + (green2 - green) * (green2 - green)
-                                + (blue2 - blue) * (blue2 - blue);
+            int bestRgbDistance = Rgb.distanceSquared(sixelColors.get(result), red, green, blue);
+            double pcaDistance = computePcaDistance(centerPca, searchPca);
+
+            // Search in both directions to find closer matches
+            SearchState state = new SearchState(result, bestRgbDistance, pcaDistance);
+            searchInDirection(searchPca, red, green, blue, state, true);
+            searchInDirection(searchPca, red, green, blue, state, false);
+
+            return state.result;
+        }
+
+        /**
+         * Compute PCA coordinates for a color.
+         */
+        private double[] computePcaCoordinates(final int red, final int green, final int blue) {
+            return new double[] {
+                PCA[2][0] * red + PCA[2][1] * green + PCA[2][2] * blue,  // pca1
+                PCA[1][0] * red + PCA[1][1] * green + PCA[1][2] * blue,  // pca2
+                PCA[0][0] * red + PCA[0][1] * green + PCA[0][2] * blue   // pca3
+            };
+        }
+
+        /**
+         * Find the search starting point using binary search or cache.
+         */
+        private PcaColor findSearchCenter(final double pca1) {
+            PcaColor lastPcaColor = pcaColors.get(lastPcaSearchIndex);
+            if (Math.abs(lastPcaColor.firstPca - pca1) < pcaThreshold) {
+                return lastPcaColor;
             }
 
-            // Now search up and down along pca1 finding colors that are a
-            // closer match in PCA space than the color found by binary
-            // search.
+            pcaKey.firstPca = pca1;
+            int pcaIndex = Math.abs(Collections.binarySearch(pcaColors, pcaKey, nearby));
+            lastPcaSearchIndex = Math.max(0, Math.min(sixelColors.size() - 1, pcaIndex));
+            return pcaColors.get(lastPcaSearchIndex);
+        }
 
-            double pca2 = (PCA[1][0] * red)
-                        + (PCA[1][1] * green)
-                        + (PCA[1][2] * blue);
-            double pca3 = (PCA[0][0] * red)
-                        + (PCA[0][1] * green)
-                        + (PCA[0][2] * blue);
+        /**
+         * Compute squared distance in PCA space.
+         */
+        private double computePcaDistance(final PcaColor color, final double[] searchPca) {
+            double d1 = color.firstPca - searchPca[0];
+            double d2 = color.secondPca - searchPca[1];
+            double d3 = color.thirdPca - searchPca[2];
+            return d1 * d1 + d2 * d2 + d3 * d3;
+        }
 
-            // The distance between the search color and the best-fit color
-            // in PCA space.
-            final double centerPca1 = centerPca.firstPca;
-            final double centerPca2 = centerPca.secondPca;
-            final double centerPca3 = centerPca.thirdPca;
-            double pcaDistance = (centerPca1 - pca1) * (centerPca1 - pca1)
-                               + (centerPca2 - pca2) * (centerPca2 - pca2)
-                               + (centerPca3 - pca3) * (centerPca3 - pca3);
+        /**
+         * Mutable state holder for search operation.
+         */
+        private static class SearchState {
+            int result;
+            int bestRgbDistance;
+            double pcaDistance;
 
-            // The distance between the search color and the colors being
-            // looked at above/below in PCA space.
-            double abovePcaDistance = 0;
-            double belowPcaDistance = 0;
+            SearchState(int result, int bestRgbDistance, double pcaDistance) {
+                this.result = result;
+                this.bestRgbDistance = bestRgbDistance;
+                this.pcaDistance = pcaDistance;
+            }
+        }
 
-            // The starting point.
-            int below = idx;
-            int above = idx;
+        /**
+         * Search in one direction for better color matches.
+         */
+        private void searchInDirection(final double[] searchPca, final int red,
+                final int green, final int blue, final SearchState state,
+                final boolean searchUp) {
+
+            int idx = lastPcaSearchIndex;
             int n = pcaColors.size();
 
-            // Search up
-            while (above + 1 < n) {
-                above++;
-                final PcaColor abovePca = pcaColors.get(above);
-                final double abovePca1 = abovePca.firstPca;
-                final double abovePca2 = abovePca.secondPca;
-                final double abovePca3 = abovePca.thirdPca;
-                abovePcaDistance = (abovePca1 - pca1) * (abovePca1 - pca1)
-                                 + (abovePca2 - pca2) * (abovePca2 - pca2)
-                                 + (abovePca3 - pca3) * (abovePca3 - pca3);
-                if (abovePcaDistance <= pcaDistance) {
-                    // This is a valid point to look at.
-                    int sixelRgb = sixelColors.get(abovePca.sixelIndex);
-                    int red2   = (sixelRgb >>> 16) & 0xFF;
-                    int green2 = (sixelRgb >>>  8) & 0xFF;
-                    int blue2  =  sixelRgb         & 0xFF;
-                    int rgbDistance = (red2 - red) * (red2 - red)
-                                    + (green2 - green) * (green2 - green)
-                                    + (blue2 - blue) * (blue2 - blue);
-                    if (rgbDistance < bestRgbDistance) {
-                        result = abovePca.sixelIndex;
-                        bestRgbDistance = rgbDistance;
-                    }
-                    pcaDistance = abovePcaDistance;
-                }
-                if ((abovePca.firstPca - pca1) > pcaDistance) {
-                    // There are no closer points in that direction.
-                    break;
-                }
-            }
+            while (searchUp ? (idx + 1 < n) : (idx > 0)) {
+                idx = searchUp ? idx + 1 : idx - 1;
+                PcaColor candidate = pcaColors.get(idx);
 
-            // Search down
-            while (below > 0) {
-                below--;
-                final PcaColor belowPca = pcaColors.get(below);
-                final double belowPca1 = belowPca.firstPca;
-                final double belowPca2 = belowPca.secondPca;
-                final double belowPca3 = belowPca.thirdPca;
-                belowPcaDistance = (belowPca1 - pca1) * (belowPca1 - pca1)
-                                 + (belowPca2 - pca2) * (belowPca2 - pca2)
-                                 + (belowPca3 - pca3) * (belowPca3 - pca3);
-                if (belowPcaDistance <= pcaDistance) {
-                    // This is a valid point to look at.
-                    int sixelRgb = sixelColors.get(belowPca.sixelIndex);
-                    int red2   = (sixelRgb >>> 16) & 0xFF;
-                    int green2 = (sixelRgb >>>  8) & 0xFF;
-                    int blue2  =  sixelRgb         & 0xFF;
-                    int rgbDistance = (red2 - red) * (red2 - red)
-                                    + (green2 - green) * (green2 - green)
-                                    + (blue2 - blue) * (blue2 - blue);
-                    if (rgbDistance < bestRgbDistance) {
-                        result = belowPca.sixelIndex;
-                        bestRgbDistance = rgbDistance;
+                double candidateDistance = computePcaDistance(candidate, searchPca);
+                if (candidateDistance <= state.pcaDistance) {
+                    int rgbDistance = Rgb.distanceSquared(
+                        sixelColors.get(candidate.sixelIndex), red, green, blue);
+                    if (rgbDistance < state.bestRgbDistance) {
+                        state.result = candidate.sixelIndex;
+                        state.bestRgbDistance = rgbDistance;
                     }
-                    pcaDistance = belowPcaDistance;
+                    state.pcaDistance = candidateDistance;
                 }
-                if ((pca1 - belowPca.firstPca) > pcaDistance) {
-                    // There are no closer points in that direction.
+
+                double firstPcaDiff = searchUp
+                    ? (candidate.firstPca - searchPca[0])
+                    : (searchPca[0] - candidate.firstPca);
+                if (firstPcaDiff > state.pcaDistance) {
                     break;
                 }
             }
-            // No more valid points in the neighborhood.
-            return result;
         }
 
         /**
@@ -1460,7 +1416,7 @@ public class HQSixelEncoder implements SixelEncoder {
          * @return an int between 0 and 100.
          */
         private final int clampSixel(final int x) {
-            return Math.max(0, Math.min(x, 100));
+            return Rgb.clampSixelValue(x);
         }
 
         /**
