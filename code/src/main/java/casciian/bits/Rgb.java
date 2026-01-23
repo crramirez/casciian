@@ -337,20 +337,16 @@ public record Rgb(int r, int g, int b) {
             return combineRgb(r, g, b);
         }
 
-        // Thresholds for black/white mapping
+        // Black threshold: sum of squared components must be < 10.
+        // This catches very dark colors and maps them to pure black.
         final int blackThreshold = 10;
-        final int whiteThreshold = 0;
-
         if ((r * r + g * g + b * b) < blackThreshold) {
             return SIXEL_BLACK;
         }
 
-        int dr = 100 - r;
-        int dg = 100 - g;
-        int db = 100 - b;
-        if ((dr * dr + dg * dg + db * db) < whiteThreshold) {
-            return SIXEL_WHITE;
-        }
+        // White threshold is 0, effectively disabling white mapping.
+        // This is intentional - the original code found that white mapping
+        // caused more image quality issues than it solved.
 
         return combineRgb(r, g, b);
     }

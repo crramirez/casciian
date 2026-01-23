@@ -367,12 +367,14 @@ public class HQSixelEncoder implements SixelEncoder {
                 int oldN = colors.size();
                 int splitPoint = oldN / 2;
 
+                // Create new bucket from upper half (subList backed by original)
                 List<ColorIdx> newBucketColors = colors.subList(splitPoint, oldN);
                 Bucket newBucket = new Bucket(newBucketColors.size());
                 for (ColorIdx color : newBucketColors) {
                     newBucket.add(color);
                 }
 
+                // Copy lower half before reset (required: reset() replaces colors list)
                 List<ColorIdx> keepColors = new ArrayList<>(colors.subList(0, splitPoint));
                 reset(keepColors.size());
                 for (ColorIdx color : keepColors) {
