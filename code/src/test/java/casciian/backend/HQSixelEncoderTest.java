@@ -125,8 +125,8 @@ class HQSixelEncoderTest {
             
             assertNotNull(sixel);
             assertFalse(sixel.isEmpty());
-            // Sixel should contain raster attributes at the start
-            assertTrue(sixel.startsWith("\"1;1;"));
+            // Sixel should contain complete raster attributes at the start with dimensions
+            assertTrue(sixel.startsWith("\"1;1;10;10"));
         }
 
         @Test
@@ -357,7 +357,8 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel with explicit custom palette Map")
         void testToSixelWithExplicitCustomPalette() {
-            HashMap<Integer, Integer> customPalette = new HashMap<>();
+            // Use Map interface type instead of concrete HashMap implementation
+            Map<Integer, Integer> customPalette = new HashMap<>();
             customPalette.put(0, 0xFF0000); // Red
             customPalette.put(1, 0x00FF00); // Green
             customPalette.put(2, 0x0000FF); // Blue
@@ -366,7 +367,8 @@ class HQSixelEncoderTest {
             ImageRGB image = new ImageRGB(10, 10);
             fillImageWithColor(image, 0xFF0000);
             
-            String sixel = encoder.toSixel(image, customPalette);
+            // Cast to HashMap required by this specific overload of toSixel
+            String sixel = encoder.toSixel(image, (HashMap<Integer, Integer>) customPalette);
             
             assertNotNull(sixel);
             assertFalse(sixel.isEmpty());
@@ -787,7 +789,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("HQSixelEncoder implements SixelEncoder interface")
         void testImplementsSixelEncoder() {
-            assertTrue(encoder instanceof SixelEncoder);
+            assertInstanceOf(SixelEncoder.class, encoder);
         }
 
         @Test
