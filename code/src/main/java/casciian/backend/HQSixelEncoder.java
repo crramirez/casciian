@@ -1434,155 +1434,103 @@ public class HQSixelEncoder implements SixelEncoder {
 
             int height = sixelImageHeight;
             int width = sixelImageWidth;
-            SixelRow sixelRow;
             for (int imageY = 0; imageY < height; imageY++) {
-                sixelRow = sixelRows[imageY / 6];
+                SixelRow sixelRow = sixelRows[imageY / 6];
                 for (int imageX = 0; imageX < width; imageX++) {
-                    int oldPixel = rgbArray[imageX + (width * imageY)];
-                    if ((oldPixel & 0xFF000000) != 0xFF000000) {
-                        // This is a transparent pixel.
-                        if (verbosity >= 10) {
-                            System.err.printf("transparent oldPixel(%d, %d) %08x\n",
-                                imageX, imageY, oldPixel);
-                        }
-                        rgbArray[imageX + (width * imageY)] = -1;
-                        continue;
-                    }
-                    if (verbosity >= 10) {
-                        System.err.printf("opaque oldPixel(%d, %d) %08x\n",
-                            imageX, imageY, oldPixel);
-                    }
-                    int colorIdx = 0;
-                    int color = oldPixel & 0x00FFFFFF;
-                    if (quantizationType == 0) {
-                        colorIdx = colorMap.get(color).directMapIndex;
-                    } else {
-                        // See if this entry has been seen before recently.
-                        colorIdx = recentColorMatch.get(color);
-                        if (colorIdx < 0) {
-                            // We need to search for it.
-                            int red   = (color >>> 16) & 0xFF;
-                            int green = (color >>>  8) & 0xFF;
-                            int blue  =  color         & 0xFF;
-                            colorIdx = findNearestColor(red, green, blue);
-                            recentColorMatch.put(color, colorIdx);
-                        }
-                    }
-
-                    assert (colorIdx >= 0);
-                    assert (colorIdx < sixelColors.size());
-                    int newPixel = sixelColors.get(colorIdx);
-                    rgbArray[imageX + (width * imageY)] = colorIdx;
-                    sixelRow.colors.set(colorIdx);
-                    usedColors.set(colorIdx);
-
-                    if (quantizationType == 0) {
-                        // For direct map, every possible color is already in
-                        // the color map.  There should be no color error to
-                        // dither out.
-                        continue;
-                    }
-
-                    int oldRed   = (oldPixel >>> 16) & 0xFF;
-                    int oldGreen = (oldPixel >>>  8) & 0xFF;
-                    int oldBlue  =  oldPixel         & 0xFF;
-
-                    int newRed   = (newPixel >>> 16) & 0xFF;
-                    int newGreen = (newPixel >>>  8) & 0xFF;
-                    int newBlue  =  newPixel         & 0xFF;
-
-                    /*
-                     * The dithering error values are different for sixel
-                     * color space:
-                     *
-                     *   24-bit colorspace | Sixel colorspace
-                     *   ------------------|-----------------
-                     *           16        |       6
-                     *            7        |       3
-                     *            3        |       1
-                     *            5        |       2
-                     */
-
-                    // 16 --> 6
-                    int redError   = (  oldRed - newRed)   / 6;
-                    int greenError = (oldGreen - newGreen) / 6;
-                    int blueError  = ( oldBlue - newBlue)  / 6;
-
-                    int red, green, blue;
-                    if (imageX < sixelImageWidth - 1) {
-                        int pXpY = rgbArray[imageX + 1 + (width * imageY)];
-                        if ((pXpY & 0xFF000000) == 0xFF000000) {
-                            // 7 --> 3
-                            red   = ((pXpY >>> 16) & 0xFF) + (3 * redError);
-                            green = ((pXpY >>>  8) & 0xFF) + (3 * greenError);
-                            blue  = ( pXpY         & 0xFF) + (3 * blueError);
-                            red = clampSixel(red);
-                            green = clampSixel(green);
-                            blue = clampSixel(blue);
-                            pXpY = (0xFF << 24) | ((red & 0xFF) << 16)
-                                 | ((green & 0xFF) << 8) | (blue & 0xFF);
-                            rgbArray[imageX + 1 + (width * imageY)] = pXpY;
-                        } else {
-                            assert (transparent == true);
-                            rgbArray[imageX + 1 + (width * imageY)] = 0;
-                        }
-                        if (imageY < sixelImageHeight - 1) {
-                            int pXpYp = rgbArray[imageX + 1 + (width * (imageY + 1))];
-                            if ((pXpYp & 0xFF000000) == 0xFF000000) {
-                                red   = ((pXpYp >>> 16) & 0xFF) + redError;
-                                green = ((pXpYp >>>  8) & 0xFF) + greenError;
-                                blue  = ( pXpYp         & 0xFF) + blueError;
-                                red = clampSixel(red);
-                                green = clampSixel(green);
-                                blue = clampSixel(blue);
-                                pXpYp = (0xFF << 24) | ((red & 0xFF) << 16)
-                                      | ((green & 0xFF) << 8) | (blue & 0xFF);
-                                rgbArray[imageX + 1 + (width * (imageY + 1))] = pXpYp;
-                            } else {
-                                assert (transparent == true);
-                                rgbArray[imageX + 1 + (width * (imageY + 1))] = 0;
-                            }
-                        }
-                    } else if (imageY < sixelImageHeight - 1) {
-                        int pXmYp = rgbArray[imageX - 1 + (width * (imageY + 1))];
-                        int pXYp = rgbArray[imageX + (width * (imageY + 1))];
-
-                        if ((pXmYp & 0xFF000000) == 0xFF000000) {
-                            // 3 --> 1
-                            red   = ((pXmYp >>> 16) & 0xFF) + (1 * redError);
-                            green = ((pXmYp >>>  8) & 0xFF) + (1 * greenError);
-                            blue  = ( pXmYp         & 0xFF) + (1 * blueError);
-                            red = clampSixel(red);
-                            green = clampSixel(green);
-                            blue = clampSixel(blue);
-                            pXmYp = (0xFF << 24) | ((red & 0xFF) << 16)
-                                  | ((green & 0xFF) << 8) | (blue & 0xFF);
-                            rgbArray[imageX - 1 + (width * (imageY + 1))] = pXmYp;
-                        } else {
-                            assert (transparent == true);
-                            rgbArray[imageX - 1 + (width * (imageY + 1))] = 0;
-                        }
-
-                        if ((pXYp & 0xFF000000) == 0xFF000000) {
-                            // 5 --> 2
-                            red   = ((pXYp >>> 16) & 0xFF) + (2 * redError);
-                            green = ((pXYp >>>  8) & 0xFF) + (2 * greenError);
-                            blue  = ( pXYp         & 0xFF) + (2 * blueError);
-                            red = clampSixel(red);
-                            green = clampSixel(green);
-                            blue = clampSixel(blue);
-                            pXYp = (0xFF << 24) | ((red & 0xFF) << 16)
-                                 | ((green & 0xFF) << 8) | (blue & 0xFF);
-                            rgbArray[imageX + (width * (imageY + 1))] = pXYp;
-                        } else {
-                            assert (transparent == true);
-                            rgbArray[imageX + (width * (imageY + 1))] = 0;
-                        }
-                    }
-                } // for (int imageY = 0; imageY < height; imageY++)
-            } // for (int imageX = 0; imageX < width; imageX++)
-
+                    ditherPixel(rgbArray, width, imageX, imageY, sixelRow);
+                }
+            }
             return rgbArray;
+        }
+
+        /**
+         * Dither a single pixel.
+         */
+        private void ditherPixel(int[] rgbArray, int width, int imageX, int imageY,
+                SixelRow sixelRow) {
+            int pixelIndex = imageX + width * imageY;
+            int oldPixel = rgbArray[pixelIndex];
+
+            if (!Rgb.isOpaque(oldPixel)) {
+                logVerbose(10, "transparent oldPixel(%d, %d) %08x%n", imageX, imageY, oldPixel);
+                rgbArray[pixelIndex] = -1;
+                return;
+            }
+
+            logVerbose(10, "opaque oldPixel(%d, %d) %08x%n", imageX, imageY, oldPixel);
+
+            int colorIdx = findColorIndex(oldPixel);
+            int newPixel = sixelColors.get(colorIdx);
+            rgbArray[pixelIndex] = colorIdx;
+            sixelRow.colors.set(colorIdx);
+            usedColors.set(colorIdx);
+
+            if (quantizationType != 0) {
+                propagateDitheringError(rgbArray, width, imageX, imageY, oldPixel, newPixel);
+            }
+        }
+
+        /**
+         * Find the palette index for a pixel color.
+         */
+        private int findColorIndex(int pixel) {
+            int color = pixel & 0x00FFFFFF;
+            if (quantizationType == 0) {
+                return colorMap.get(color).directMapIndex;
+            }
+
+            int colorIdx = recentColorMatch.get(color);
+            if (colorIdx < 0) {
+                colorIdx = findNearestColor(Rgb.getRed(color), Rgb.getGreen(color), Rgb.getBlue(color));
+                recentColorMatch.put(color, colorIdx);
+            }
+            return colorIdx;
+        }
+
+        /**
+         * Propagate dithering error to neighboring pixels using Floyd-Steinberg.
+         * Sixel color space error divisors: 6 (main), 3 (right), 1 (bottom-left, bottom-right), 2 (bottom)
+         */
+        private void propagateDitheringError(int[] rgbArray, int width, int imageX, int imageY,
+                int oldPixel, int newPixel) {
+
+            int redError   = (Rgb.getRed(oldPixel)   - Rgb.getRed(newPixel))   / 6;
+            int greenError = (Rgb.getGreen(oldPixel) - Rgb.getGreen(newPixel)) / 6;
+            int blueError  = (Rgb.getBlue(oldPixel)  - Rgb.getBlue(newPixel))  / 6;
+
+            // Distribute error to neighboring pixels
+            if (imageX < sixelImageWidth - 1) {
+                applyError(rgbArray, width, imageX + 1, imageY, redError * 3, greenError * 3, blueError * 3);
+                if (imageY < sixelImageHeight - 1) {
+                    applyError(rgbArray, width, imageX + 1, imageY + 1, redError, greenError, blueError);
+                }
+            }
+
+            if (imageY < sixelImageHeight - 1) {
+                if (imageX > 0) {
+                    applyError(rgbArray, width, imageX - 1, imageY + 1, redError, greenError, blueError);
+                }
+                applyError(rgbArray, width, imageX, imageY + 1, redError * 2, greenError * 2, blueError * 2);
+            }
+        }
+
+        /**
+         * Apply error to a single pixel.
+         */
+        private void applyError(int[] rgbArray, int width, int x, int y,
+                int redError, int greenError, int blueError) {
+            int idx = x + width * y;
+            int pixel = rgbArray[idx];
+
+            if (!Rgb.isOpaque(pixel)) {
+                rgbArray[idx] = 0;
+                return;
+            }
+
+            int red   = clampSixel(Rgb.getRed(pixel) + redError);
+            int green = clampSixel(Rgb.getGreen(pixel) + greenError);
+            int blue  = clampSixel(Rgb.getBlue(pixel) + blueError);
+            rgbArray[idx] = Rgb.combineRgb(red, green, blue);
         }
 
         /**
@@ -1591,38 +1539,26 @@ public class HQSixelEncoder implements SixelEncoder {
          * @param sb the StringBuilder to append to
          */
         public void emitPalette(final StringBuilder sb) {
-            // Always emit starting from 1, with 0 at the end. This is to
-            // accomodate hardware terminals.
+            // Emit colors 1 to N-1 first, then 0 at the end (for hardware terminals)
             for (int i = 1; i < sixelColors.size(); i++) {
-                if (!usedColors.get(i)) {
-                    continue;
-                }
-                int sixelColor = sixelColors.get(i);
-                int red   = ((sixelColor >>> 16) & 0xFF);
-                int green = ((sixelColor >>>  8) & 0xFF);
-                int blue  = ( sixelColor         & 0xFF);
-
-                // Emit sixel color definition: #<index>;2;<red>;<green>;<blue>
-                // where 2 indicates RGB color coordinate system.
-                // Use chained append with char literals for better performance.
-                sb.append('#').append(i).append(";2;")
-                  .append(red).append(';')
-                  .append(green).append(';')
-                  .append(blue);
+                emitColorIfUsed(sb, i);
             }
+            emitColorIfUsed(sb, 0);
+        }
 
-            if (usedColors.get(0)) {
-                int sixelColor = sixelColors.get(0);
-                int red   = ((sixelColor >>> 16) & 0xFF);
-                int green = ((sixelColor >>>  8) & 0xFF);
-                int blue  = ( sixelColor         & 0xFF);
-
-                // Color 0 is emitted last to accommodate hardware terminals
-                sb.append("#0;2;")
-                  .append(red).append(';')
-                  .append(green).append(';')
-                  .append(blue);
+        /**
+         * Emit a single color definition if it's used.
+         */
+        private void emitColorIfUsed(final StringBuilder sb, final int index) {
+            if (!usedColors.get(index)) {
+                return;
             }
+            int sixelColor = sixelColors.get(index);
+            // Format: #<index>;2;<red>;<green>;<blue>
+            sb.append('#').append(index).append(";2;")
+              .append(Rgb.getRed(sixelColor)).append(';')
+              .append(Rgb.getGreen(sixelColor)).append(';')
+              .append(Rgb.getBlue(sixelColor));
         }
     }
 
