@@ -46,6 +46,20 @@ import java.util.Map;
  * implementations of principal component analysis color mapping, and sixel
  * row encoding.
  * </p>
+ *
+ * <h2>Thread Safety</h2>
+ * <p>
+ * This class is thread-safe for concurrent encoding operations. Multiple
+ * threads can safely call {@link #toSixel(ImageRGB)} concurrently on the
+ * same encoder instance. Each encoding operation creates its own internal
+ * Palette, ensuring no shared mutable state between concurrent calls.
+ * </p>
+ * <p>
+ * Configuration methods such as {@link #setPaletteSize(int)} and
+ * {@link #reloadOptions()} use volatile fields to ensure visibility of
+ * changes across threads. However, for best results, configure the encoder
+ * before beginning concurrent encoding operations.
+ * </p>
  */
 public class HQSixelEncoder implements SixelEncoder {
 
@@ -645,12 +659,11 @@ public class HQSixelEncoder implements SixelEncoder {
         private ColorMatchCache recentColorMatch;
 
         /**
-         * The key used for binary search.
-         */
-        private PcaColor pcaKey = new PcaColor(0, 0, 0, 0);
-
-        /**
          * The index into pcaColors last found by binary search.
+         * Note: This field is used as a search optimization hint and is
+         * intentionally not thread-safe within a single Palette instance.
+         * Thread safety is ensured by creating a new Palette for each
+         * encoding operation.
          */
         private int lastPcaSearchIndex = 0;
 
@@ -1307,7 +1320,9 @@ public class HQSixelEncoder implements SixelEncoder {
 
                 // This version uses standard Java binary search.  It's
                 // faster than my first attempt, so it can stay.
-                pcaKey.firstPca = pca1;
+                // Use a local PcaColor key to avoid instance field mutation
+                // which improves thread safety within the Palette.
+                PcaColor pcaKey = new PcaColor(0, pca1, 0, 0);
 
                 // pcaIndex will almost certainly come back negative, because
                 // doubles cannot exactly be equal in practice.
@@ -1621,14 +1636,11 @@ public class HQSixelEncoder implements SixelEncoder {
                 int green = ((sixelColor >>>  8) & 0xFF);
                 int blue  = ( sixelColor         & 0xFF);
 
-                sb.append("#");
-                sb.append(Integer.toString(i));
-                sb.append(";2;");
-                sb.append(Integer.toString(red));
-                sb.append(";");
-                sb.append(Integer.toString(green));
-                sb.append(";");
-                sb.append(Integer.toString(blue));
+                // Use char append where possible for better performance
+                sb.append('#').append(i).append(";2;")
+                  .append(red).append(';')
+                  .append(green).append(';')
+                  .append(blue);
             }
 
             if (usedColors.get(0)) {
@@ -1637,13 +1649,10 @@ public class HQSixelEncoder implements SixelEncoder {
                 int green = ((sixelColor >>>  8) & 0xFF);
                 int blue  = ( sixelColor         & 0xFF);
 
-                sb.append("#0");
-                sb.append(";2;");
-                sb.append(Integer.toString(red));
-                sb.append(";");
-                sb.append(Integer.toString(green));
-                sb.append(";");
-                sb.append(Integer.toString(blue));
+                sb.append("#0;2;")
+                  .append(red).append(';')
+                  .append(green).append(';')
+                  .append(blue);
             }
         }
     }
@@ -1660,13 +1669,11 @@ public class HQSixelEncoder implements SixelEncoder {
     /**
      * Number of colors in the sixel palette.  Xterm 335 defines the max as
      * 1024.  For HQ encoder the default is 128.
+     * 
+     * Marked volatile for thread-safe reads during encoding when another
+     * thread may update the value via setPaletteSize().
      */
-    private int paletteSize = 128;
-
-    /**
-     * The palette used in the last image.
-     */
-    private Palette lastPalette;
+    private volatile int paletteSize = 128;
 
     /**
      * If true, record timings for the image.
@@ -1675,18 +1682,27 @@ public class HQSixelEncoder implements SixelEncoder {
 
     /**
      * If true, be fast and dirty.
+     * 
+     * Marked volatile for thread-safe reads during encoding when another
+     * thread may update the value via reloadOptions().
      */
-    private boolean fastAndDirty = false;
+    private volatile boolean fastAndDirty = false;
 
     /**
      * Available custom palettes.
+     * 
+     * Marked volatile for thread-safe reads during encoding when another
+     * thread may update the value via reloadOptions().
      */
-    private CustomSixelPalette customSixelPalette = CustomSixelPalette.NONE;
+    private volatile CustomSixelPalette customSixelPalette = CustomSixelPalette.NONE;
 
     /**
      * If true, don't emit palette colors.
+     * 
+     * Marked volatile for thread-safe reads during encoding when another
+     * thread may update the value via reloadOptions().
      */
-    private boolean suppressEmitPalette = false;
+    private volatile boolean suppressEmitPalette = false;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -1950,8 +1966,7 @@ public class HQSixelEncoder implements SixelEncoder {
 
                 // Set to the beginning of scan line for the next set of
                 // colored pixels, and select the color.
-                sb.append("$#");
-                sb.append(Integer.toString(i));
+                sb.append("$#").append(i);
 
                 int oldData = -1;
                 int oldDataCount = 0;
@@ -1969,10 +1984,7 @@ public class HQSixelEncoder implements SixelEncoder {
                             // assert (oldData != -1);
                             sb.append((char) oldData);
                         } else if (oldDataCount > 1) {
-                            sb.append("!");
-                            sb.append(Integer.toString(oldDataCount));
-                            // assert (oldData != -1);
-                            sb.append((char) oldData);
+                            sb.append('!').append(oldDataCount).append((char) oldData);
                         }
                         oldDataCount = 1;
                         oldData = data;
@@ -1986,15 +1998,13 @@ public class HQSixelEncoder implements SixelEncoder {
                     sb.append((char) oldData);
                 } else if (oldDataCount > 1) {
                     assert (oldData != -1);
-                    sb.append("!");
-                    sb.append(Integer.toString(oldDataCount));
-                    sb.append((char) oldData);
+                    sb.append('!').append(oldDataCount).append((char) oldData);
                 }
 
             } // for (int i = 0; i < palette.sixelColors.size(); i++)
 
             // Advance to the next scan line.
-            sb.append("-");
+            sb.append('-');
 
         } // for (int currentRow = 0; currentRow < imageHeight; currentRow += 6)
 
@@ -2002,8 +2012,11 @@ public class HQSixelEncoder implements SixelEncoder {
         sb.deleteCharAt(sb.length() - 1);
 
         // Add the raster information.
-        sb.insert(0, String.format("\"1;1;%d;%d", bitmap.getWidth(),
-                bitmap.getHeight()));
+        // Use StringBuilder for better performance than String.format
+        StringBuilder header = new StringBuilder(20);
+        header.append("\"1;1;").append(bitmap.getWidth())
+              .append(';').append(bitmap.getHeight());
+        sb.insert(0, header);
 
         if (palette.timings != null) {
             palette.timings.emitSixelTime = System.nanoTime();
