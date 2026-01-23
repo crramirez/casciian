@@ -60,7 +60,7 @@ class SixelDecoderTest {
 
     @Test
     void testSixelWithRasterAttributes() {
-        // Sixel with raster attributes: "1;1;10;20 declares 10x20 image
+        // Sixel with raster attributes: "1;1;10;20" declares 10x20 image
         String sixel = "q\"1;1;10;20#0@-";
         SixelDecoder decoder = new SixelDecoder(sixel, null, 0x000000, false);
         
@@ -209,7 +209,8 @@ class SixelDecoderTest {
 
     @Test
     void testAbortOnMaxWidth() {
-        // Create a sixel that tries to exceed MAX_WIDTH
+        // Create a sixel that tries to exceed max width
+        // SixelDecoder has MAX_WIDTH = 3840
         StringBuilder sb = new StringBuilder("q\"1;1;10;10#0");
         // Repeat a very large number that would exceed max width
         sb.append("!9999~"); // Try to draw 9999 pixels
@@ -217,9 +218,9 @@ class SixelDecoderTest {
         SixelDecoder decoder = new SixelDecoder(sb.toString(), null, 0x000000, false);
         ImageRGB image = decoder.getImage();
         
-        // Either returns null (aborted) or valid image within limits
+        // Either returns null (aborted) or valid image within max width limits
         if (image != null) {
-            assertTrue(image.getWidth() <= 3840);
+            assertTrue(image.getWidth() <= 3840); // MAX_WIDTH from SixelDecoder
         }
     }
 
