@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.ResourceBundle;
 
 import casciian.bits.Cell;
@@ -884,7 +885,7 @@ public class TTerminal extends TScrollable
                 }
             }
             String termString = System.getProperty("casciian.TTerminal.TERM",
-                "xterm-direct");
+                Objects.requireNonNullElse(System.getenv("TERM"), "xterm-256color"));
             env.put("TERM", termString);
             env.put("LANG", ECMA48.deviceTypeLang(deviceType, langString));
             env.put("COLUMNS", "80");
