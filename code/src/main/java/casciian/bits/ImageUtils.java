@@ -22,25 +22,16 @@ package casciian.bits;
  *    - Compute the distance between two colors in RGB space.
  * <p>
  *    - Compute the partial movement between two colors in RGB space.
+ *
+ * <p>Note: Most RGB manipulation methods are now available in the
+ * {@link Rgb} record class.
  */
 public class ImageUtils {
-
-    // ------------------------------------------------------------------------
-    // Constants --------------------------------------------------------------
-    // ------------------------------------------------------------------------
-
-    // ------------------------------------------------------------------------
-    // Constructors -----------------------------------------------------------
-    // ------------------------------------------------------------------------
 
     /**
      * Private constructor prevents accidental creation of this class.
      */
     private ImageUtils() {}
-
-    // ------------------------------------------------------------------------
-    // ImageUtils -------------------------------------------------------------
-    // ------------------------------------------------------------------------
 
     /**
      * Report the absolute distance in RGB space between two RGB colors.
@@ -50,12 +41,7 @@ public class ImageUtils {
      * @return the distance
      */
     public static int rgbDistance(final int first, final int second) {
-        Rgb color1 = extractComponents(first);
-        Rgb color2 = extractComponents(second);
-        double diff = Math.pow(color2.r - (double)color1.r, 2);
-        diff += Math.pow(color2.g - (double)color1.g, 2);
-        diff += Math.pow(color2.b - (double)color1.b, 2);
-        return (int) Math.sqrt(diff);
+        return (int) Math.sqrt(Rgb.distanceSquared(first, second));
     }
 
     /**
@@ -68,7 +54,7 @@ public class ImageUtils {
      * @return the final color
      */
     public static int rgbMove(final int start, final int end,
-        final double fraction) {
+            final double fraction) {
 
         if (fraction <= 0) {
             return start;
@@ -77,18 +63,14 @@ public class ImageUtils {
             return end;
         }
 
-        Rgb color1 = extractComponents(start);
-        Rgb color2 = extractComponents(end);
+        Rgb color1 = Rgb.fromPackedRgb(start);
+        Rgb color2 = Rgb.fromPackedRgb(end);
 
-        int rgbRed   =   color1.r + (int) (fraction * (color2.r - color1.r));
-        int rgbGreen = color1.g + (int) (fraction * (color2.g - color1.g));
-        int rgbBlue  =  color1.b + (int) (fraction * (color2.b - color1.b));
+        int rgbRed   = Rgb.clampRgbValue(color1.r() + (int) (fraction * (color2.r() - color1.r())));
+        int rgbGreen = Rgb.clampRgbValue(color1.g() + (int) (fraction * (color2.g() - color1.g())));
+        int rgbBlue  = Rgb.clampRgbValue(color1.b() + (int) (fraction * (color2.b() - color1.b())));
 
-        rgbRed   = Math.min(Math.max(  rgbRed, 0), 255);
-        rgbGreen = Math.min(Math.max(rgbGreen, 0), 255);
-        rgbBlue  = Math.min(Math.max( rgbBlue, 0), 255);
-
-        return (rgbRed << 16) | (rgbGreen << 8) | rgbBlue;
+        return Rgb.combineRgb(rgbRed, rgbGreen, rgbBlue);
     }
 
     /**
@@ -103,14 +85,15 @@ public class ImageUtils {
      * @param overRGB the RGB color on top (foreground)
      * @return the blended RGB color as a packed integer
      */
-    public static int blendColors(double alpha, int underRGB, int overRGB) {
-        Rgb under = extractComponents(underRGB);
-        Rgb over = extractComponents(overRGB);
-        
-        int red = (int) ((under.r * (1.0 - alpha)) + (over.r * alpha));
-        int green = (int) ((under.g * (1.0 - alpha)) + (over.g * alpha));
-        int blue = (int) ((under.b * (1.0 - alpha)) + (over.b * alpha));
-        return combineRgb(red, green, blue);
+    public static int blendColors(final double alpha, final int underRGB,
+            final int overRGB) {
+        Rgb under = Rgb.fromPackedRgb(underRGB);
+        Rgb over = Rgb.fromPackedRgb(overRGB);
+
+        int red = (int) ((under.r() * (1.0 - alpha)) + (over.r() * alpha));
+        int green = (int) ((under.g() * (1.0 - alpha)) + (over.g() * alpha));
+        int blue = (int) ((under.b() * (1.0 - alpha)) + (over.b() * alpha));
+        return Rgb.combineRgb(red, green, blue);
     }
 
     /**
@@ -120,9 +103,11 @@ public class ImageUtils {
      * @param green the green component (0-255)
      * @param blue the blue component (0-255)
      * @return the packed RGB integer
+     * @deprecated Use {@link Rgb#combineRgb(int, int, int)} instead
      */
-    public static int combineRgb(int red, int green, int blue) {
-        return (red << 16) | (green << 8) | blue;
+    @Deprecated
+    public static int combineRgb(final int red, final int green, final int blue) {
+        return Rgb.combineRgb(red, green, blue);
     }
 
     /**
@@ -130,16 +115,10 @@ public class ImageUtils {
      *
      * @param rgb the packed RGB integer
      * @return a record containing the red, green, and blue components
+     * @deprecated Use {@link Rgb#fromPackedRgb(int)} instead
      */
-    public static Rgb extractComponents(int rgb) {
-        int red = (rgb >>> 16) & 0xFF;
-        int green = (rgb >>> 8) & 0xFF;
-        int blue = rgb & 0xFF;
-        return new Rgb(red, green, blue);
+    @Deprecated
+    public static Rgb extractComponents(final int rgb) {
+        return Rgb.fromPackedRgb(rgb);
     }
-
-    /**
-     * A record to hold RGB color components.
-     */
-    public record Rgb(int r, int g, int b) {}
 }

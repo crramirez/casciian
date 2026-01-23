@@ -10,6 +10,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -917,7 +920,181 @@ class HQSixelEncoderTest {
     }
 
     // ========================================================================
-    // Helper Methods
+    // Thread Safety Tests
+    // ========================================================================
+
+    @Nested
+    @DisplayName("Thread Safety")
+    class ThreadSafetyTests {
+
+        @Test
+        @DisplayName("Concurrent encoding from multiple threads produces valid output")
+        void testConcurrentEncodingProducesValidOutput() throws InterruptedException {
+            final int threadCount = 4;
+            final int iterationsPerThread = 5;
+            final HQSixelEncoder sharedEncoder = new HQSixelEncoder();
+            
+            Thread[] threads = new Thread[threadCount];
+            final boolean[] errors = new boolean[threadCount];
+            
+            for (int t = 0; t < threadCount; t++) {
+                final int threadIndex = t;
+                threads[t] = new Thread(() -> {
+                    try {
+                        for (int i = 0; i < iterationsPerThread; i++) {
+                            // Each thread creates its own image with different colors
+                            // to ensure distinct encoding operations. The color is
+                            // computed to vary based on thread index and iteration:
+                            // - Red component varies by thread (0-200)
+                            // - Green component varies by iteration (0-150)
+                            // - Blue component varies by both (0-180)
+                            ImageRGB image = new ImageRGB(20, 12);
+                            int red = (threadIndex * 50) & 0xFF;
+                            int green = (i * 30) & 0xFF;
+                            int blue = ((threadIndex + i) * 20) & 0xFF;
+                            int color = (red << 16) | (green << 8) | blue;
+                            fillImageWithColor(image, color);
+                            
+                            String sixel = sharedEncoder.toSixel(image);
+                            
+                            // Validate the output
+                            if (sixel == null || sixel.isEmpty()) {
+                                errors[threadIndex] = true;
+                                return;
+                            }
+                            if (!sixel.startsWith("\"1;1;20;12")) {
+                                errors[threadIndex] = true;
+                                return;
+                            }
+                        }
+                    } catch (Exception e) {
+                        errors[threadIndex] = true;
+                    }
+                });
+            }
+            
+            // Start all threads
+            for (Thread thread : threads) {
+                thread.start();
+            }
+            
+            // Wait for all threads to complete
+            for (Thread thread : threads) {
+                thread.join();
+            }
+            
+            // Check for errors
+            for (int t = 0; t < threadCount; t++) {
+                assertFalse(errors[t], "Thread " + t + " encountered an error");
+            }
+        }
+
+        @Test
+        @DisplayName("Concurrent encoding with different image sizes works correctly")
+        void testConcurrentEncodingDifferentSizes() throws InterruptedException {
+            final int threadCount = 3;
+            final HQSixelEncoder sharedEncoder = new HQSixelEncoder();
+            
+            // Different image sizes for each thread
+            final int[][] sizes = {{10, 6}, {25, 18}, {50, 30}};
+            Thread[] threads = new Thread[threadCount];
+            final String[] results = new String[threadCount];
+            final boolean[] success = new boolean[threadCount];
+            
+            for (int t = 0; t < threadCount; t++) {
+                final int threadIndex = t;
+                final int width = sizes[t][0];
+                final int height = sizes[t][1];
+                
+                threads[t] = new Thread(() -> {
+                    try {
+                        ImageRGB image = new ImageRGB(width, height);
+                        fillImageWithGradient(image);
+                        
+                        results[threadIndex] = sharedEncoder.toSixel(image);
+                        
+                        // Validate dimensions in output
+                        String expected = "\"1;1;" + width + ";" + height;
+                        success[threadIndex] = results[threadIndex] != null 
+                            && results[threadIndex].startsWith(expected);
+                    } catch (Exception e) {
+                        success[threadIndex] = false;
+                    }
+                });
+            }
+            
+            for (Thread thread : threads) {
+                thread.start();
+            }
+            
+            for (Thread thread : threads) {
+                thread.join();
+            }
+            
+            for (int t = 0; t < threadCount; t++) {
+                assertTrue(success[t], "Thread " + t + " failed: expected dimensions " 
+                    + sizes[t][0] + "x" + sizes[t][1]);
+            }
+        }
+
+        @Test
+        @DisplayName("Configuration changes during encoding use volatile fields")
+        void testVolatileFieldsForConfiguration() throws Exception {
+            // This test verifies that volatile fields work correctly by checking
+            // that changes made in one thread are visible to operations in other threads
+            final HQSixelEncoder sharedEncoder = new HQSixelEncoder();
+            final AtomicBoolean configVisible = new AtomicBoolean(false);
+            final AtomicReference<String> result = new AtomicReference<>();
+            final CountDownLatch configChanged = new CountDownLatch(1);
+            final CountDownLatch encodingStarted = new CountDownLatch(1);
+            
+            // Initial value
+            assertEquals(128, sharedEncoder.getPaletteSize());
+            
+            // Thread that will check configuration and encode
+            Thread encoderThread = new Thread(() -> {
+                encodingStarted.countDown();
+                try {
+                    // Wait for main thread to change configuration
+                    configChanged.await();
+                    
+                    // Check if configuration change is visible
+                    configVisible.set(sharedEncoder.getPaletteSize() == 256);
+                    
+                    // Encode with the new configuration
+                    ImageRGB image = new ImageRGB(10, 10);
+                    fillImageWithColor(image, 0xFF0000);
+                    result.set(sharedEncoder.toSixel(image));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+            
+            encoderThread.start();
+            
+            // Wait for encoder thread to start
+            encodingStarted.await();
+            
+            // Change configuration in main thread
+            sharedEncoder.setPaletteSize(256);
+            
+            // Signal that configuration has changed
+            configChanged.countDown();
+            
+            // Wait for encoder thread to complete
+            encoderThread.join(5000);
+            
+            // Check if thread completed within timeout
+            assertFalse(encoderThread.isAlive(), 
+                "Encoder thread should complete within 5 seconds");
+            
+            // Verify volatile visibility: change made in main thread is visible in encoder thread
+            assertTrue(configVisible.get(), 
+                "Configuration change should be visible across threads (volatile visibility)");
+            assertNotNull(result.get());
+            assertFalse(result.get().isEmpty());
+        }
+    }
     // ========================================================================
 
     /**
