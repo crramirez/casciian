@@ -1829,7 +1829,7 @@ public class HQSixelEncoder implements SixelEncoder {
      * @return the string to emit to an ANSI / ECMA-style terminal
      */
     public String toSixel(final ImageRGB bitmap,
-        final HashMap<Integer, Integer> customPalette) {
+        final Map<Integer, Integer> customPalette) {
 
         return toSixel(bitmap, false, customPalette, suppressEmitPalette);
     }

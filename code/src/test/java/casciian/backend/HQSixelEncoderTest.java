@@ -2,6 +2,7 @@ package casciian.backend;
 
 import casciian.bits.ImageRGB;
 import casciian.terminal.SixelDecoder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,16 +23,45 @@ import static org.junit.jupiter.api.Assertions.*;
 class HQSixelEncoderTest {
 
     private HQSixelEncoder encoder;
+    
+    // Store original system property values for restoration
+    private String originalPaletteSize;
+    private String originalFastAndDirty;
+    private String originalCustomPalette;
+    private String originalEmitPalette;
 
     @BeforeEach
     void setUp() {
-        // Clear any system properties that might affect encoder behavior
+        // Save original system property values
+        originalPaletteSize = System.getProperty("casciian.ECMA48.sixelPaletteSize");
+        originalFastAndDirty = System.getProperty("casciian.ECMA48.sixelFastAndDirty");
+        originalCustomPalette = System.getProperty("casciian.ECMA48.sixelCustomPalette");
+        originalEmitPalette = System.getProperty("casciian.ECMA48.sixelEmitPalette");
+        
+        // Clear system properties to ensure clean test environment
         System.clearProperty("casciian.ECMA48.sixelPaletteSize");
         System.clearProperty("casciian.ECMA48.sixelFastAndDirty");
         System.clearProperty("casciian.ECMA48.sixelCustomPalette");
         System.clearProperty("casciian.ECMA48.sixelEmitPalette");
         
         encoder = new HQSixelEncoder();
+    }
+    
+    @AfterEach
+    void tearDown() {
+        // Restore original system property values
+        restoreProperty("casciian.ECMA48.sixelPaletteSize", originalPaletteSize);
+        restoreProperty("casciian.ECMA48.sixelFastAndDirty", originalFastAndDirty);
+        restoreProperty("casciian.ECMA48.sixelCustomPalette", originalCustomPalette);
+        restoreProperty("casciian.ECMA48.sixelEmitPalette", originalEmitPalette);
+    }
+    
+    private void restoreProperty(String key, String value) {
+        if (value == null) {
+            System.clearProperty(key);
+        } else {
+            System.setProperty(key, value);
+        }
     }
 
     // ========================================================================
@@ -327,37 +357,57 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel with VT340 custom palette")
         void testToSixelWithVT340Palette() {
-            System.setProperty("casciian.ECMA48.sixelCustomPalette", "vt340");
-            HQSixelEncoder encoderWithVT340 = new HQSixelEncoder();
-            
-            ImageRGB image = new ImageRGB(10, 10);
-            fillImageWithColor(image, 0x3333CC); // VT340 color 1 (blue)
-            
-            String sixel = encoderWithVT340.toSixel(image);
-            
-            assertNotNull(sixel);
-            assertFalse(sixel.isEmpty());
+            String key = "casciian.ECMA48.sixelCustomPalette";
+            String previousValue = System.getProperty(key);
+            try {
+                System.setProperty(key, "vt340");
+                HQSixelEncoder encoderWithVT340 = new HQSixelEncoder();
+                
+                ImageRGB image = new ImageRGB(10, 10);
+                fillImageWithColor(image, 0x3333CC); // VT340 color 1 (blue)
+                
+                String sixel = encoderWithVT340.toSixel(image);
+                
+                assertNotNull(sixel);
+                assertFalse(sixel.isEmpty());
+            } finally {
+                if (previousValue == null) {
+                    System.clearProperty(key);
+                } else {
+                    System.setProperty(key, previousValue);
+                }
+            }
         }
 
         @Test
         @DisplayName("toSixel with CGA custom palette")
         void testToSixelWithCGAPalette() {
-            System.setProperty("casciian.ECMA48.sixelCustomPalette", "cga");
-            HQSixelEncoder encoderWithCGA = new HQSixelEncoder();
-            
-            ImageRGB image = new ImageRGB(10, 10);
-            fillImageWithColor(image, 0xA80000); // CGA color 1 (red)
-            
-            String sixel = encoderWithCGA.toSixel(image);
-            
-            assertNotNull(sixel);
-            assertFalse(sixel.isEmpty());
+            String key = "casciian.ECMA48.sixelCustomPalette";
+            String previousValue = System.getProperty(key);
+            try {
+                System.setProperty(key, "cga");
+                HQSixelEncoder encoderWithCGA = new HQSixelEncoder();
+                
+                ImageRGB image = new ImageRGB(10, 10);
+                fillImageWithColor(image, 0xA80000); // CGA color 1 (red)
+                
+                String sixel = encoderWithCGA.toSixel(image);
+                
+                assertNotNull(sixel);
+                assertFalse(sixel.isEmpty());
+            } finally {
+                if (previousValue == null) {
+                    System.clearProperty(key);
+                } else {
+                    System.setProperty(key, previousValue);
+                }
+            }
         }
 
         @Test
         @DisplayName("toSixel with explicit custom palette Map")
         void testToSixelWithExplicitCustomPalette() {
-            // Use Map interface type instead of concrete HashMap implementation
+            // Use Map interface type - API now accepts Map instead of HashMap
             Map<Integer, Integer> customPalette = new HashMap<>();
             customPalette.put(0, 0xFF0000); // Red
             customPalette.put(1, 0x00FF00); // Green
@@ -367,8 +417,8 @@ class HQSixelEncoderTest {
             ImageRGB image = new ImageRGB(10, 10);
             fillImageWithColor(image, 0xFF0000);
             
-            // Cast to HashMap required by this specific overload of toSixel
-            String sixel = encoder.toSixel(image, (HashMap<Integer, Integer>) customPalette);
+            // API accepts Map interface directly, no cast needed
+            String sixel = encoder.toSixel(image, customPalette);
             
             assertNotNull(sixel);
             assertFalse(sixel.isEmpty());
@@ -386,50 +436,90 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("reloadOptions updates palette size from system property")
         void testReloadOptionsPaletteSize() {
-            System.setProperty("casciian.ECMA48.sixelPaletteSize", "256");
-            
-            encoder.reloadOptions();
-            
-            assertEquals(256, encoder.getPaletteSize());
+            String key = "casciian.ECMA48.sixelPaletteSize";
+            String previousValue = System.getProperty(key);
+            try {
+                System.setProperty(key, "256");
+                
+                encoder.reloadOptions();
+                
+                assertEquals(256, encoder.getPaletteSize());
+            } finally {
+                if (previousValue == null) {
+                    System.clearProperty(key);
+                } else {
+                    System.setProperty(key, previousValue);
+                }
+            }
         }
 
         @Test
         @DisplayName("reloadOptions ignores invalid palette size values")
         void testReloadOptionsInvalidPaletteSize() {
+            String key = "casciian.ECMA48.sixelPaletteSize";
+            String previousValue = System.getProperty(key);
             int originalSize = encoder.getPaletteSize();
-            System.setProperty("casciian.ECMA48.sixelPaletteSize", "100");
-            
-            encoder.reloadOptions();
-            
-            // Invalid values should be ignored, keeping the original
-            assertEquals(originalSize, encoder.getPaletteSize());
+            try {
+                System.setProperty(key, "100");
+                
+                encoder.reloadOptions();
+                
+                // Invalid values should be ignored, keeping the original
+                assertEquals(originalSize, encoder.getPaletteSize());
+            } finally {
+                if (previousValue == null) {
+                    System.clearProperty(key);
+                } else {
+                    System.setProperty(key, previousValue);
+                }
+            }
         }
 
         @Test
         @DisplayName("reloadOptions ignores non-numeric palette size")
         void testReloadOptionsNonNumericPaletteSize() {
+            String key = "casciian.ECMA48.sixelPaletteSize";
+            String previousValue = System.getProperty(key);
             int originalSize = encoder.getPaletteSize();
-            System.setProperty("casciian.ECMA48.sixelPaletteSize", "abc");
-            
-            encoder.reloadOptions();
-            
-            assertEquals(originalSize, encoder.getPaletteSize());
+            try {
+                System.setProperty(key, "abc");
+                
+                encoder.reloadOptions();
+                
+                assertEquals(originalSize, encoder.getPaletteSize());
+            } finally {
+                if (previousValue == null) {
+                    System.clearProperty(key);
+                } else {
+                    System.setProperty(key, previousValue);
+                }
+            }
         }
 
         @Test
         @DisplayName("reloadOptions recognizes fastAndDirty setting")
         void testReloadOptionsFastAndDirty() {
-            System.setProperty("casciian.ECMA48.sixelFastAndDirty", "true");
-            
-            HQSixelEncoder newEncoder = new HQSixelEncoder();
-            
-            // We can verify by encoding - a fast and dirty encoder should produce output
-            ImageRGB image = new ImageRGB(10, 10);
-            fillImageWithColor(image, 0xFF0000);
-            
-            String sixel = newEncoder.toSixel(image);
-            assertNotNull(sixel);
-            assertFalse(sixel.isEmpty());
+            String key = "casciian.ECMA48.sixelFastAndDirty";
+            String previousValue = System.getProperty(key);
+            try {
+                System.setProperty(key, "true");
+                
+                HQSixelEncoder newEncoder = new HQSixelEncoder();
+                
+                // We can verify by encoding - a fast and dirty encoder should produce output
+                ImageRGB image = new ImageRGB(10, 10);
+                fillImageWithColor(image, 0xFF0000);
+                
+                String sixel = newEncoder.toSixel(image);
+                assertNotNull(sixel);
+                assertFalse(sixel.isEmpty());
+            } finally {
+                if (previousValue == null) {
+                    System.clearProperty(key);
+                } else {
+                    System.setProperty(key, previousValue);
+                }
+            }
         }
     }
 
@@ -703,16 +793,26 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel with suppressEmitPalette set via system property")
         void testToSixelSuppressPaletteSystemProperty() {
-            System.setProperty("casciian.ECMA48.sixelEmitPalette", "false");
-            HQSixelEncoder newEncoder = new HQSixelEncoder();
-            
-            ImageRGB image = new ImageRGB(10, 10);
-            fillImageWithColor(image, 0xFF0000);
-            
-            String sixel = newEncoder.toSixel(image);
-            
-            assertNotNull(sixel);
-            assertFalse(sixel.isEmpty());
+            String key = "casciian.ECMA48.sixelEmitPalette";
+            String previousValue = System.getProperty(key);
+            try {
+                System.setProperty(key, "false");
+                HQSixelEncoder newEncoder = new HQSixelEncoder();
+                
+                ImageRGB image = new ImageRGB(10, 10);
+                fillImageWithColor(image, 0xFF0000);
+                
+                String sixel = newEncoder.toSixel(image);
+                
+                assertNotNull(sixel);
+                assertFalse(sixel.isEmpty());
+            } finally {
+                if (previousValue == null) {
+                    System.clearProperty(key);
+                } else {
+                    System.setProperty(key, previousValue);
+                }
+            }
         }
     }
 
@@ -799,14 +899,19 @@ class HQSixelEncoderTest {
             fillImageWithColor(image, 0xFF0000);
             
             assertDoesNotThrow(() -> {
-                encoder.reloadOptions();
-                encoder.toSixel(image);
-                encoder.emitPalette(new StringBuilder());
-                encoder.hasSharedPalette();
-                encoder.setSharedPalette(true);
-                encoder.getPaletteSize();
-                encoder.setPaletteSize(64);
-                encoder.clearPalette();
+                int originalPaletteSize = encoder.getPaletteSize();
+                try {
+                    encoder.reloadOptions();
+                    encoder.toSixel(image);
+                    encoder.emitPalette(new StringBuilder());
+                    encoder.hasSharedPalette();
+                    encoder.setSharedPalette(true);
+                    encoder.getPaletteSize();
+                    encoder.setPaletteSize(64);
+                    encoder.clearPalette();
+                } finally {
+                    encoder.setPaletteSize(originalPaletteSize);
+                }
             });
         }
     }
