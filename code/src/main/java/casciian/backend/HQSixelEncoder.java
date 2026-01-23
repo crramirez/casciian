@@ -659,6 +659,15 @@ public class HQSixelEncoder implements SixelEncoder {
         private ColorMatchCache recentColorMatch;
 
         /**
+         * The key used for binary search. Reused to avoid allocations in the
+         * hot path of findNearestColor().
+         * Note: This field is not thread-safe within a single Palette instance,
+         * but thread safety is ensured by creating a new Palette for each
+         * encoding operation.
+         */
+        private final PcaColor pcaKey = new PcaColor(0, 0, 0, 0);
+
+        /**
          * The index into pcaColors last found by binary search.
          * Note: This field is used as a search optimization hint and is
          * intentionally not thread-safe within a single Palette instance.
@@ -1320,9 +1329,10 @@ public class HQSixelEncoder implements SixelEncoder {
 
                 // This version uses standard Java binary search.  It's
                 // faster than my first attempt, so it can stay.
-                // Use a local PcaColor key to avoid instance field mutation
-                // which improves thread safety within the Palette.
-                PcaColor pcaKey = new PcaColor(0, pca1, 0, 0);
+                // Reuse the instance field pcaKey to avoid allocations in
+                // this hot path. Thread safety is ensured by creating a
+                // new Palette for each encoding operation.
+                pcaKey.firstPca = pca1;
 
                 // pcaIndex will almost certainly come back negative, because
                 // doubles cannot exactly be equal in practice.
@@ -1636,7 +1646,9 @@ public class HQSixelEncoder implements SixelEncoder {
                 int green = ((sixelColor >>>  8) & 0xFF);
                 int blue  = ( sixelColor         & 0xFF);
 
-                // Use char append where possible for better performance
+                // Emit sixel color definition: #<index>;2;<red>;<green>;<blue>
+                // where 2 indicates RGB color coordinate system.
+                // Use chained append with char literals for better performance.
                 sb.append('#').append(i).append(";2;")
                   .append(red).append(';')
                   .append(green).append(';')
@@ -1649,6 +1661,7 @@ public class HQSixelEncoder implements SixelEncoder {
                 int green = ((sixelColor >>>  8) & 0xFF);
                 int blue  = ( sixelColor         & 0xFF);
 
+                // Color 0 is emitted last to accommodate hardware terminals
                 sb.append("#0;2;")
                   .append(red).append(';')
                   .append(green).append(';')

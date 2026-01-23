@@ -940,10 +940,16 @@ class HQSixelEncoderTest {
                     try {
                         for (int i = 0; i < iterationsPerThread; i++) {
                             // Each thread creates its own image with different colors
+                            // to ensure distinct encoding operations. The color is
+                            // computed to vary based on thread index and iteration:
+                            // - Red component varies by thread (0-200)
+                            // - Green component varies by iteration (0-150)
+                            // - Blue component varies by both (0-180)
                             ImageRGB image = new ImageRGB(20, 12);
-                            int color = ((threadIndex * 50) << 16) 
-                                       | ((i * 30) << 8) 
-                                       | (((threadIndex + i) * 20) & 0xFF);
+                            int red = (threadIndex * 50) & 0xFF;
+                            int green = (i * 30) & 0xFF;
+                            int blue = ((threadIndex + i) * 20) & 0xFF;
+                            int color = (red << 16) | (green << 8) | blue;
                             fillImageWithColor(image, color);
                             
                             String sixel = sharedEncoder.toSixel(image);
