@@ -538,49 +538,40 @@ public class HQSixelEncoder implements SixelEncoder {
         /**
          * ColorMatchCache is a FIFO cache that hangs on to the matched
          * palette index color for a RGB color.
+         * 
+         * Uses primitive int arrays instead of wrapper classes for better performance.
          */
         private class ColorMatchCache {
 
             /**
              * Maximum size of the cache.
              */
-            private int maxSize = 1024;
+            private final int maxSize;
 
             /**
-             * The entries stored in the cache.
+             * Keys stored in the cache (RGB colors). Uses -1 as empty marker.
              */
-            private Map<Integer, CacheEntry> cache = null;
+            private final int[] keys;
 
             /**
-             * The order of entries added.
+             * Values stored in the cache (palette indices).
              */
-            private Deque<Integer> cacheEntries = null;
+            private final int[] values;
 
             /**
-             * CacheEntry is one entry in the cache.
+             * Order of entries for FIFO eviction (stores indices into keys/values).
              */
-            private class CacheEntry {
-                /**
-                 * The cache key.
-                 */
-                public int key;
+            private final int[] order;
 
-                /**
-                 * The cache data.
-                 */
-                public int data;
+            /**
+             * Current write position in the order array.
+             */
+            private int writePos = 0;
 
-                /**
-                 * Public constructor.
-                 *
-                 * @param key the cache entry key
-                 * @param data the cache entry data
-                 */
-                public CacheEntry(final int key, final int data) {
-                    this.key = key;
-                    this.data = data;
-                }
-            }
+            /**
+             * Current number of entries in cache.
+             */
+            private int size = 0;
 
             /**
              * Public constructor.
@@ -589,23 +580,32 @@ public class HQSixelEncoder implements SixelEncoder {
              */
             public ColorMatchCache(final int maxSize) {
                 this.maxSize = maxSize;
-                cache = new HashMap<Integer, CacheEntry>(maxSize);
-                cacheEntries = new ArrayDeque<Integer>(maxSize);
+                this.keys = new int[maxSize];
+                this.values = new int[maxSize];
+                this.order = new int[maxSize];
+                Arrays.fill(keys, -1);  // -1 indicates empty slot
             }
 
             /**
-             * Get an entry from the cache.
+             * Get an entry from the cache using linear probing.
              *
              * @param color the RGB color
-             * @return the palette index, or -1 if this RGB color is not in
-             * the cache
+             * @return the palette index, or -1 if not in cache
              */
             public int get(final int color) {
-                CacheEntry entry = cache.get(color);
-                if (entry == null) {
-                    return -1;
+                int hash = (color & 0x7FFFFFFF) % maxSize;
+                int probe = 0;
+                while (probe < maxSize) {
+                    int idx = (hash + probe) % maxSize;
+                    if (keys[idx] == color) {
+                        return values[idx];
+                    }
+                    if (keys[idx] == -1) {
+                        return -1;  // Empty slot, not found
+                    }
+                    probe++;
                 }
-                return entry.data;
+                return -1;
             }
 
             /**
@@ -615,19 +615,28 @@ public class HQSixelEncoder implements SixelEncoder {
              * @param data the palette index
              */
             public void put(final int color, final int data) {
-
-                assert (cache.size() <= maxSize);
-                if (cache.size() == maxSize) {
-                    // Cache is at limit, evict oldest entry.
-                    int keyToRemove = cacheEntries.removeFirst();
-                    assert (keyToRemove != -1);
-                    cache.remove(keyToRemove);
+                if (size >= maxSize * 3 / 4) {  // Evict when 75% full for better performance
+                    // Evict oldest entry
+                    int evictIdx = order[writePos];
+                    keys[evictIdx] = -1;
+                    size--;
                 }
-                assert (cache.size() <= maxSize);
-                CacheEntry entry = new CacheEntry(color, data);
-                assert (color == entry.key);
-                cache.put(color, entry);
-                cacheEntries.addLast(color);
+
+                // Find slot using linear probing
+                int hash = (color & 0x7FFFFFFF) % maxSize;
+                int probe = 0;
+                while (probe < maxSize) {
+                    int idx = (hash + probe) % maxSize;
+                    if (keys[idx] == -1 || keys[idx] == color) {
+                        keys[idx] = color;
+                        values[idx] = data;
+                        order[writePos] = idx;
+                        writePos = (writePos + 1) % maxSize;
+                        size++;
+                        return;
+                    }
+                    probe++;
+                }
             }
 
         }
@@ -1308,114 +1317,92 @@ public class HQSixelEncoder implements SixelEncoder {
         private int findNearestColor(final int red, final int green,
             final int blue) {
 
-            double[] searchPca = computePcaCoordinates(red, green, blue);
-            PcaColor centerPca = findSearchCenter(searchPca[0]);
-            
-            int result = centerPca.sixelIndex;
-            int bestRgbDistance = Rgb.distanceSquared(sixelColors.get(result), red, green, blue);
-            double pcaDistance = computePcaDistance(centerPca, searchPca);
+            // Compute PCA coordinates inline to avoid array allocation
+            final double pca1 = PCA[2][0] * red + PCA[2][1] * green + PCA[2][2] * blue;
+            final double pca2 = PCA[1][0] * red + PCA[1][1] * green + PCA[1][2] * blue;
+            final double pca3 = PCA[0][0] * red + PCA[0][1] * green + PCA[0][2] * blue;
 
-            // Search in both directions to find closer matches
-            SearchState state = new SearchState(result, bestRgbDistance, pcaDistance);
-            searchInDirection(searchPca, red, green, blue, state, true);
-            searchInDirection(searchPca, red, green, blue, state, false);
-
-            return state.result;
-        }
-
-        /**
-         * Compute PCA coordinates for a color.
-         */
-        private double[] computePcaCoordinates(final int red, final int green, final int blue) {
-            return new double[] {
-                PCA[2][0] * red + PCA[2][1] * green + PCA[2][2] * blue,  // pca1
-                PCA[1][0] * red + PCA[1][1] * green + PCA[1][2] * blue,  // pca2
-                PCA[0][0] * red + PCA[0][1] * green + PCA[0][2] * blue   // pca3
-            };
-        }
-
-        /**
-         * Find the search starting point using binary search or cache.
-         */
-        private PcaColor findSearchCenter(final double pca1) {
+            // Find search starting point
             PcaColor lastPcaColor = pcaColors.get(lastPcaSearchIndex);
+            PcaColor centerPca;
             if (Math.abs(lastPcaColor.firstPca - pca1) < pcaThreshold) {
-                return lastPcaColor;
+                centerPca = lastPcaColor;
+            } else {
+                pcaKey.firstPca = pca1;
+                int pcaIndex = Math.abs(Collections.binarySearch(pcaColors, pcaKey, nearby));
+                lastPcaSearchIndex = Math.clamp(pcaIndex, 0, sixelColors.size() - 1);
+                centerPca = pcaColors.get(lastPcaSearchIndex);
             }
 
-            pcaKey.firstPca = pca1;
-            int pcaIndex = Math.abs(Collections.binarySearch(pcaColors, pcaKey, nearby));
-            lastPcaSearchIndex = Math.clamp(pcaIndex, 0, sixelColors.size() - 1);
-            return pcaColors.get(lastPcaSearchIndex);
-        }
+            int result = centerPca.sixelIndex;
+            int sixelRgb = sixelColors.get(result);
+            int bestRgbDistance = distanceSquaredInline(sixelRgb, red, green, blue);
+            
+            // Compute initial PCA distance
+            double d1 = centerPca.firstPca - pca1;
+            double d2 = centerPca.secondPca - pca2;
+            double d3 = centerPca.thirdPca - pca3;
+            double pcaDistance = d1 * d1 + d2 * d2 + d3 * d3;
 
-        /**
-         * Compute squared distance in PCA space.
-         */
-        private double computePcaDistance(final PcaColor color, final double[] searchPca) {
-            double d1 = color.firstPca - searchPca[0];
-            double d2 = color.secondPca - searchPca[1];
-            double d3 = color.thirdPca - searchPca[2];
-            return d1 * d1 + d2 * d2 + d3 * d3;
-        }
-
-        /**
-         * Mutable state holder for search operation.
-         */
-        private static class SearchState {
-            int result;
-            int bestRgbDistance;
-            double pcaDistance;
-
-            SearchState(int result, int bestRgbDistance, double pcaDistance) {
-                this.result = result;
-                this.bestRgbDistance = bestRgbDistance;
-                this.pcaDistance = pcaDistance;
-            }
-        }
-
-        /**
-         * Search in one direction for better color matches.
-         */
-        private void searchInDirection(final double[] searchPca, final int red,
-                final int green, final int blue, final SearchState state,
-                final boolean searchUp) {
-
+            // Search up
             int idx = lastPcaSearchIndex;
             int n = pcaColors.size();
-
-            while (searchUp ? (idx + 1 < n) : (idx > 0)) {
-                idx = searchUp ? idx + 1 : idx - 1;
+            while (idx + 1 < n) {
+                idx++;
                 PcaColor candidate = pcaColors.get(idx);
-
-                double candidateDistance = computePcaDistance(candidate, searchPca);
-                if (candidateDistance <= state.pcaDistance) {
-                    int rgbDistance = Rgb.distanceSquared(
+                d1 = candidate.firstPca - pca1;
+                d2 = candidate.secondPca - pca2;
+                d3 = candidate.thirdPca - pca3;
+                double candidateDistance = d1 * d1 + d2 * d2 + d3 * d3;
+                if (candidateDistance <= pcaDistance) {
+                    int rgbDistance = distanceSquaredInline(
                         sixelColors.get(candidate.sixelIndex), red, green, blue);
-                    if (rgbDistance < state.bestRgbDistance) {
-                        state.result = candidate.sixelIndex;
-                        state.bestRgbDistance = rgbDistance;
+                    if (rgbDistance < bestRgbDistance) {
+                        result = candidate.sixelIndex;
+                        bestRgbDistance = rgbDistance;
                     }
-                    state.pcaDistance = candidateDistance;
+                    pcaDistance = candidateDistance;
                 }
-
-                double firstPcaDiff = searchUp
-                    ? (candidate.firstPca - searchPca[0])
-                    : (searchPca[0] - candidate.firstPca);
-                if (firstPcaDiff > state.pcaDistance) {
+                if ((candidate.firstPca - pca1) > pcaDistance) {
                     break;
                 }
             }
+
+            // Search down
+            idx = lastPcaSearchIndex;
+            while (idx > 0) {
+                idx--;
+                PcaColor candidate = pcaColors.get(idx);
+                d1 = candidate.firstPca - pca1;
+                d2 = candidate.secondPca - pca2;
+                d3 = candidate.thirdPca - pca3;
+                double candidateDistance = d1 * d1 + d2 * d2 + d3 * d3;
+                if (candidateDistance <= pcaDistance) {
+                    int rgbDistance = distanceSquaredInline(
+                        sixelColors.get(candidate.sixelIndex), red, green, blue);
+                    if (rgbDistance < bestRgbDistance) {
+                        result = candidate.sixelIndex;
+                        bestRgbDistance = rgbDistance;
+                    }
+                    pcaDistance = candidateDistance;
+                }
+                if ((pca1 - candidate.firstPca) > pcaDistance) {
+                    break;
+                }
+            }
+
+            return result;
         }
 
         /**
-         * Clamp an int value to [0, 100].
-         *
-         * @param x the int value
-         * @return an int between 0 and 100.
+         * Inline distance calculation to avoid method call overhead in hot path.
          */
-        private final int clampSixel(final int x) {
-            return Rgb.clampSixelValue(x);
+        private static int distanceSquaredInline(final int rgb, final int red,
+                final int green, final int blue) {
+            int dr = ((rgb >>> 16) & 0xFF) - red;
+            int dg = ((rgb >>> 8) & 0xFF) - green;
+            int db = (rgb & 0xFF) - blue;
+            return dr * dr + dg * dg + db * db;
         }
 
         /**
@@ -1471,6 +1458,7 @@ public class HQSixelEncoder implements SixelEncoder {
 
         /**
          * Find the palette index for a pixel color.
+         * Inlined bit operations for performance.
          */
         private int findColorIndex(int pixel) {
             int color = pixel & 0x00FFFFFF;
@@ -1480,7 +1468,11 @@ public class HQSixelEncoder implements SixelEncoder {
 
             int colorIdx = recentColorMatch.get(color);
             if (colorIdx < 0) {
-                colorIdx = findNearestColor(Rgb.getRed(color), Rgb.getGreen(color), Rgb.getBlue(color));
+                // Inline bit extraction for performance
+                colorIdx = findNearestColor(
+                    (color >>> 16) & 0xFF,
+                    (color >>> 8) & 0xFF,
+                    color & 0xFF);
                 recentColorMatch.put(color, colorIdx);
             }
             return colorIdx;
@@ -1489,47 +1481,53 @@ public class HQSixelEncoder implements SixelEncoder {
         /**
          * Propagate dithering error to neighboring pixels using Floyd-Steinberg.
          * Sixel color space error divisors: 6 (main), 3 (right), 1 (bottom-left, bottom-right), 2 (bottom)
+         * Inlined for performance.
          */
         private void propagateDitheringError(int[] rgbArray, int width, int imageX, int imageY,
                 int oldPixel, int newPixel) {
 
-            int redError   = (Rgb.getRed(oldPixel)   - Rgb.getRed(newPixel))   / 6;
-            int greenError = (Rgb.getGreen(oldPixel) - Rgb.getGreen(newPixel)) / 6;
-            int blueError  = (Rgb.getBlue(oldPixel)  - Rgb.getBlue(newPixel))  / 6;
+            // Inline bit extraction for performance
+            int redError   = (((oldPixel >>> 16) & 0xFF) - ((newPixel >>> 16) & 0xFF)) / 6;
+            int greenError = (((oldPixel >>> 8) & 0xFF) - ((newPixel >>> 8) & 0xFF)) / 6;
+            int blueError  = ((oldPixel & 0xFF) - (newPixel & 0xFF)) / 6;
 
-            // Distribute error to neighboring pixels
-            if (imageX < sixelImageWidth - 1) {
-                applyError(rgbArray, width, imageX + 1, imageY, redError * 3, greenError * 3, blueError * 3);
-                if (imageY < sixelImageHeight - 1) {
-                    applyError(rgbArray, width, imageX + 1, imageY + 1, redError, greenError, blueError);
+            // Distribute error to neighboring pixels (inlined)
+            int nextRow = imageY + 1;
+            boolean hasRight = imageX < sixelImageWidth - 1;
+            boolean hasBottom = nextRow < sixelImageHeight;
+
+            if (hasRight) {
+                applyErrorInline(rgbArray, imageX + 1 + width * imageY, redError * 3, greenError * 3, blueError * 3);
+                if (hasBottom) {
+                    applyErrorInline(rgbArray, imageX + 1 + width * nextRow, redError, greenError, blueError);
                 }
             }
 
-            if (imageY < sixelImageHeight - 1) {
+            if (hasBottom) {
                 if (imageX > 0) {
-                    applyError(rgbArray, width, imageX - 1, imageY + 1, redError, greenError, blueError);
+                    applyErrorInline(rgbArray, imageX - 1 + width * nextRow, redError, greenError, blueError);
                 }
-                applyError(rgbArray, width, imageX, imageY + 1, redError * 2, greenError * 2, blueError * 2);
+                applyErrorInline(rgbArray, imageX + width * nextRow, redError * 2, greenError * 2, blueError * 2);
             }
         }
 
         /**
-         * Apply error to a single pixel.
+         * Apply error to a single pixel (inlined for performance).
          */
-        private void applyError(int[] rgbArray, int width, int x, int y,
-                int redError, int greenError, int blueError) {
-            int idx = x + width * y;
+        private void applyErrorInline(int[] rgbArray, int idx, int redError, int greenError, int blueError) {
             int pixel = rgbArray[idx];
 
-            if (!Rgb.isOpaque(pixel)) {
+            // Inline opacity check
+            if ((pixel & 0xFF000000) != 0xFF000000) {
                 rgbArray[idx] = 0;
                 return;
             }
 
-            int red   = clampSixel(Rgb.getRed(pixel) + redError);
-            int green = clampSixel(Rgb.getGreen(pixel) + greenError);
-            int blue  = clampSixel(Rgb.getBlue(pixel) + blueError);
-            rgbArray[idx] = Rgb.combineRgb(red, green, blue);
+            // Inline extract, clamp, and combine
+            int red   = Math.clamp(((pixel >>> 16) & 0xFF) + redError, 0, 100);
+            int green = Math.clamp(((pixel >>> 8) & 0xFF) + greenError, 0, 100);
+            int blue  = Math.clamp((pixel & 0xFF) + blueError, 0, 100);
+            rgbArray[idx] = (0xFF << 24) | (red << 16) | (green << 8) | blue;
         }
 
         /**
@@ -1831,6 +1829,9 @@ public class HQSixelEncoder implements SixelEncoder {
         int width = bitmap.getWidth();
 
         int colorsN = palette.sixelColors.size();
+        // Reuse row array across colors to reduce allocations
+        int[] row = new int[width];
+        
         for (int currentRow = 0; currentRow < fullHeight; currentRow += 6) {
             Palette.SixelRow sixelRow = palette.sixelRows[currentRow / 6];
 
@@ -1839,29 +1840,17 @@ public class HQSixelEncoder implements SixelEncoder {
                     continue;
                 }
 
-                /*
-                 * We want to avoid tons of memory access, so for each color:
-                 *
-                 * 1. Create an array for the full width to collect the sum.
-                 *
-                 * 2. Go down the full row, adding up on the sums.  You have
-                 *    to do this up to six times.
-                 *
-                 * 3. Go one last time down the array and emit the sums.
-                 *
-                 * It doesn't look that much more complicated than the naive
-                 * sum, but should be faster as many cells are captured on
-                 * one memory access.
-                 */
-                int [] row = new int[width];
-                for (int j = 0;
-                     (j < 6) && (currentRow + j < fullHeight);
-                     j++) {
-
+                // Clear the row array for reuse
+                Arrays.fill(row, 0);
+                
+                // Calculate the number of rows to process (up to 6)
+                int rowsToProcess = Math.min(6, fullHeight - currentRow);
+                
+                // Collect sixel bits for this color
+                for (int j = 0; j < rowsToProcess; j++) {
                     int base = width * (currentRow + j);
                     int value = 1 << j;
                     for (int imageX = 0; imageX < width; imageX++) {
-                        // Is there was a way to do this without the if?
                         if (rgbArray[base + imageX] == i) {
                             row[imageX] += value;
                         }
