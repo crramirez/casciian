@@ -128,9 +128,11 @@ public class ImageRGB {
             rgbArray = new int[offset + h * scansize];
         }
 
+        @SuppressWarnings("UnnecessaryLocalVariable") // Used a local variable for performance
+        int[][] thisRgb = this.rgb;
         for (int row = 0; row < h; row++) {
             for (int col = 0; col < w; col++) {
-                rgbArray[offset + row * scansize + col] = this.rgb[startX + col][startY + row];
+                rgbArray[offset + row * scansize + col] = thisRgb[startX + col][startY + row];
             }
         }
 
@@ -156,9 +158,11 @@ public class ImageRGB {
             throw new IllegalArgumentException("Invalid region dimensions");
         }
 
+        @SuppressWarnings("UnnecessaryLocalVariable") // Used a local variable for performance
+        int[][] thisRgb = this.rgb;
         for (int row = 0; row < h; row++) {
             for (int col = 0; col < w; col++) {
-                this.rgb[startX + col][startY + row] = rgbArray[offset + row * scanSize + col];
+                thisRgb[startX + col][startY + row] = rgbArray[offset + row * scanSize + col];
             }
         }
     }
@@ -181,6 +185,7 @@ public class ImageRGB {
         // Use parallel streams for large images to improve performance
         IntStream xStream = IntStream.range(0, width);
         if ((long) width * height > PARALLEL_THRESHOLD) {
+            //noinspection DataFlowIssue
             xStream = xStream.parallel();
         }
         
@@ -218,13 +223,13 @@ public class ImageRGB {
             // Use parallel streams for large subimages
             IntStream colStream = IntStream.range(0, copyWidth);
             if ((long) copyWidth * copyHeight > PARALLEL_THRESHOLD) {
+                //noinspection DataFlowIssue
                 colStream = colStream.parallel();
             }
             
-            colStream.forEach(col -> {
-                // Use System.arraycopy for efficient column copying
-                System.arraycopy(this.rgb[x + col], y, subimage.rgb[col], 0, copyHeight);
-            });
+            colStream.forEach(col ->
+                System.arraycopy(this.rgb[x + col], y, subimage.rgb[col], 0, copyHeight)
+            );
         }
         return subimage;
     }
@@ -264,13 +269,13 @@ public class ImageRGB {
         // Use parallel streams for large fill operations
         IntStream colStream = IntStream.range(startX, startX + width);
         if ((long) width * height > PARALLEL_THRESHOLD) {
+            //noinspection DataFlowIssue
             colStream = colStream.parallel();
         }
         
-        colStream.forEach(col -> {
-            // Use Arrays.fill for efficient row filling within each column
-            Arrays.fill(this.rgb[col], startY, startY + height, color);
-        });
+        colStream.forEach(col ->
+            Arrays.fill(this.rgb[col], startY, startY + height, color)
+        );
     }
 
     /**
@@ -301,6 +306,7 @@ public class ImageRGB {
         // Use parallel streams for large resize operations
         IntStream xStream = IntStream.range(0, newWidth);
         if ((long) newWidth * newHeight > PARALLEL_THRESHOLD) {
+            //noinspection DataFlowIssue
             xStream = xStream.parallel();
         }
 
