@@ -618,6 +618,9 @@ public class Cell extends CellAttributes {
     private boolean compareCellImages(final Cell first,
         final Cell second) {
 
+        if (first == null || second == null) {
+            return false;
+        }
         if (first.image == null || second.image == null) {
             return false;
         }
