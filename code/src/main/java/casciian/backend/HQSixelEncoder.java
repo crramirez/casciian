@@ -1083,23 +1083,19 @@ public class HQSixelEncoder implements SixelEncoder {
             for (Bucket b: buckets) {
                 int rgb = b.average();
                 b.index = idx;
-                int red   = Rgb.getRed(rgb);
-                int green = Rgb.getGreen(rgb);
-                int blue  = Rgb.getBlue(rgb);
-                int color2 = red * red + green * green + blue * blue;
-                if (color2 < diff) {
+                Rgb color = Rgb.fromPackedRgb(rgb);
+                int colorMagnitudeSq = color.r() * color.r() + color.g() * color.g() + color.b() * color.b();
+                
+                if (color.isNearBlack(diff)) {
                     // Black is a close match.
-                    if (color2 < darkest) {
-                        darkest = color2;
+                    if (colorMagnitudeSq < darkest) {
+                        darkest = colorMagnitudeSq;
                         darkestIdx = idx;
                     }
-                } else {
-                    int whiteDistSq = (100 - red) * (100 - red)
-                                    + (100 - green) * (100 - green)
-                                    + (100 - blue) * (100 - blue);
-                    if (whiteDistSq < diff && color2 > lightest) {
-                        // White is a close match.
-                        lightest = color2;
+                } else if (color.isNearWhite(diff)) {
+                    // White is a close match.
+                    if (colorMagnitudeSq > lightest) {
+                        lightest = colorMagnitudeSq;
                         lightestIdx = idx;
                     }
                 }
