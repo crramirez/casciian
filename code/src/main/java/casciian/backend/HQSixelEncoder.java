@@ -615,19 +615,27 @@ public class HQSixelEncoder implements SixelEncoder {
              * @param data the palette index
              */
             public void put(final int color, final int data) {
-                if (size >= maxSize * 3 / 4) {  // Evict when 75% full for better performance
-                    // Evict oldest entry
-                    int evictIdx = order[writePos];
-                    keys[evictIdx] = -1;
-                    size--;
-                }
-
                 // Find slot using linear probing
                 int hash = (color & 0x7FFFFFFF) % maxSize;
                 int probe = 0;
                 while (probe < maxSize) {
                     int idx = (hash + probe) % maxSize;
-                    if (keys[idx] == -1 || keys[idx] == color) {
+                    if (keys[idx] == color) {
+                        // Update existing entry
+                        values[idx] = data;
+                        return;
+                    }
+                    if (keys[idx] == -1) {
+                        // Check if eviction needed before adding new entry
+                        if (size >= maxSize * 3 / 4) {
+                            // Evict oldest entry
+                            int evictIdx = order[writePos];
+                            if (evictIdx >= 0 && evictIdx < maxSize) {
+                                keys[evictIdx] = -1;
+                                size--;
+                            }
+                        }
+                        // Add new entry
                         keys[idx] = color;
                         values[idx] = data;
                         order[writePos] = idx;
@@ -1513,6 +1521,7 @@ public class HQSixelEncoder implements SixelEncoder {
 
         /**
          * Apply error to a single pixel (inlined for performance).
+         * Note: At this point, pixel values are in sixel color space (0-100), not RGB (0-255).
          */
         private void applyErrorInline(int[] rgbArray, int idx, int redError, int greenError, int blueError) {
             int pixel = rgbArray[idx];
@@ -1523,7 +1532,7 @@ public class HQSixelEncoder implements SixelEncoder {
                 return;
             }
 
-            // Inline extract, clamp, and combine
+            // Extract, clamp to sixel range [0,100], and combine
             int red   = Math.clamp(((pixel >>> 16) & 0xFF) + redError, 0, 100);
             int green = Math.clamp(((pixel >>> 8) & 0xFF) + greenError, 0, 100);
             int blue  = Math.clamp((pixel & 0xFF) + blueError, 0, 100);
