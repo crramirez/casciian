@@ -1,23 +1,23 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Portions of this encoder were inspired / influenced by Hans Petter
- * Jansson's chafa project: https://hpjansson.org/chafa/ .  Please refer to
- * chafa's high-performance sixel encoder for far more advanced
- * implementations of principal component analysis color mapping, and sixel
- * row encoding.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
+
 package casciian.backend;
 
 import casciian.bits.ImageRGB;
@@ -25,16 +25,15 @@ import casciian.bits.MathUtils;
 import casciian.bits.Rgb;
 import casciian.terminal.SixelDecoder;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * HQSixelEncoder turns a ImageRGB into String of sixel image data,
@@ -236,12 +235,12 @@ public class HQSixelEncoder implements SixelEncoder {
 
             // The minimum and maximum, and "total" component values in this
             // bucket.
-            private int minRed   = 0xFF;
-            private int maxRed   = 0;
+            private int minRed = 0xFF;
+            private int maxRed = 0;
             private int minGreen = 0xFF;
             private int maxGreen = 0;
-            private int minBlue  = 0xFF;
-            private int maxBlue  = 0;
+            private int minBlue = 0xFF;
+            private int maxBlue = 0;
 
             // The last computed average() value.
             private int lastAverage = -1;
@@ -250,7 +249,7 @@ public class HQSixelEncoder implements SixelEncoder {
              * Public constructor.
              *
              * @param n the expected number of colors that will be in this
-             * bucket
+             *          bucket
              */
             public Bucket(final int n) {
                 reset(n);
@@ -260,18 +259,18 @@ public class HQSixelEncoder implements SixelEncoder {
              * Reset the stats.
              *
              * @param n the expected number of colors that will be in this
-             * bucket
+             *          bucket
              */
             private void reset(final int n) {
-                colors      = new ArrayList<>(n);
-                minRed      = 0xFF;
-                maxRed      = 0;
-                minGreen    = 0xFF;
-                maxGreen    = 0;
-                minBlue     = 0xFF;
-                maxBlue     = 0;
+                colors = new ArrayList<>(n);
+                minRed = 0xFF;
+                maxRed = 0;
+                minGreen = 0xFF;
+                maxGreen = 0;
+                minBlue = 0xFF;
+                maxBlue = 0;
                 lastAverage = -1;
-                index       = 0;
+                index = 0;
             }
 
             /**
@@ -300,16 +299,16 @@ public class HQSixelEncoder implements SixelEncoder {
              * @param rgb the color to update bounds with
              */
             private void updateMinMaxBounds(final int rgb) {
-                int red   = Rgb.getRed(rgb);
+                int red = Rgb.getRed(rgb);
                 int green = Rgb.getGreen(rgb);
-                int blue  = Rgb.getBlue(rgb);
+                int blue = Rgb.getBlue(rgb);
 
-                minRed   = Math.min(minRed,   red);
-                maxRed   = Math.max(maxRed,   red);
+                minRed = Math.min(minRed, red);
+                maxRed = Math.max(maxRed, red);
                 minGreen = Math.min(minGreen, green);
                 maxGreen = Math.max(maxGreen, green);
-                minBlue  = Math.min(minBlue,  blue);
-                maxBlue  = Math.max(maxBlue,  blue);
+                minBlue = Math.min(minBlue, blue);
+                maxBlue = Math.max(maxBlue, blue);
             }
 
             /**
@@ -328,9 +327,9 @@ public class HQSixelEncoder implements SixelEncoder {
              * Find which color channel has the maximum range.
              */
             private ColorChannel findMaxRangeChannel() {
-                int redDiff   = Math.max(0, maxRed - minRed);
+                int redDiff = Math.max(0, maxRed - minRed);
                 int greenDiff = Math.max(0, maxGreen - minGreen);
-                int blueDiff  = Math.max(0, maxBlue - minBlue);
+                int blueDiff = Math.max(0, maxBlue - minBlue);
 
                 if (verbosity >= 5) {
                     System.err.printf("partn colors %d Δr %d Δg %d Δb %d\n",
@@ -354,11 +353,11 @@ public class HQSixelEncoder implements SixelEncoder {
                     System.err.println("    " + channel);
                 }
                 Comparator<ColorIdx> comparator = switch (channel) {
-                    case RED   -> (c1, c2) -> Rgb.getRed(c1.color) - Rgb.getRed(c2.color);
-                    case GREEN -> (c1, c2) -> Rgb.getGreen(c1.color) - Rgb.getGreen(c2.color);
-                    case BLUE  -> (c1, c2) -> Rgb.getBlue(c1.color) - Rgb.getBlue(c2.color);
+                    case RED -> Comparator.comparingInt(c -> Rgb.getRed(c.color));
+                    case GREEN -> Comparator.comparingInt(c -> Rgb.getGreen(c.color));
+                    case BLUE -> Comparator.comparingInt(c -> Rgb.getBlue(c.color));
                 };
-                Collections.sort(colors, comparator);
+                colors.sort(comparator);
             }
 
             /**
@@ -388,7 +387,7 @@ public class HQSixelEncoder implements SixelEncoder {
             /**
              * Color channel enumeration for partition decisions.
              */
-            private enum ColorChannel { RED, GREEN, BLUE }
+            private enum ColorChannel {RED, GREEN, BLUE}
 
             /**
              * Average the colors in this bucket.
@@ -430,12 +429,15 @@ public class HQSixelEncoder implements SixelEncoder {
                     return Rgb.SIXEL_BLACK;
                 }
 
-                long totalRed = 0, totalGreen = 0, totalBlue = 0, count = 0;
+                long totalRed = 0;
+                long totalGreen = 0;
+                long totalBlue = 0;
+                long count = 0;
                 for (ColorIdx color : colors) {
                     int rgb = color.color;
-                    totalRed   += (long) color.count * Rgb.getRed(rgb);
+                    totalRed += (long) color.count * Rgb.getRed(rgb);
                     totalGreen += (long) color.count * Rgb.getGreen(rgb);
-                    totalBlue  += (long) color.count * Rgb.getBlue(rgb);
+                    totalBlue += (long) color.count * Rgb.getBlue(rgb);
                     count += color.count;
                 }
 
@@ -443,9 +445,9 @@ public class HQSixelEncoder implements SixelEncoder {
                     return Rgb.SIXEL_BLACK;
                 }
 
-                int avgRed   = Rgb.clampSixelValue((int) (totalRed   / count));
+                int avgRed = Rgb.clampSixelValue((int) (totalRed / count));
                 int avgGreen = Rgb.clampSixelValue((int) (totalGreen / count));
-                int avgBlue  = Rgb.clampSixelValue((int) (totalBlue  / count));
+                int avgBlue = Rgb.clampSixelValue((int) (totalBlue / count));
 
                 return Rgb.combineRgb(avgRed, avgGreen, avgBlue);
             }
@@ -460,12 +462,12 @@ public class HQSixelEncoder implements SixelEncoder {
                 return String.format("bucket %d colors avg RGB %06x index %d",
                     colors.size(), average(), index);
             }
-        };
+        }
 
         /**
          * A mapping of sixel color index to its first principal component.
          */
-        private class PcaColor implements Comparable<PcaColor> {
+        private static class PcaColor implements Comparable<PcaColor> {
 
             /**
              * Index into sixelColors.
@@ -491,12 +493,12 @@ public class HQSixelEncoder implements SixelEncoder {
              * Public constructor.
              *
              * @param sixelIndex the the index into sixelColors
-             * @param firstPca the first principal component
-             * @param secondPca the second principal component
-             * @param thirdPca the third principal component
+             * @param firstPca   the first principal component
+             * @param secondPca  the second principal component
+             * @param thirdPca   the third principal component
              */
             public PcaColor(final int sixelIndex, final double firstPca,
-                final double secondPca, final double thirdPca) {
+                            final double secondPca, final double thirdPca) {
 
                 this.sixelIndex = sixelIndex;
                 this.firstPca = firstPca;
@@ -514,7 +516,18 @@ public class HQSixelEncoder implements SixelEncoder {
             public int compareTo(final PcaColor that) {
                 return Double.compare(this.firstPca, that.firstPca);
             }
-        };
+
+            @Override
+            public boolean equals(Object o) {
+                if (!(o instanceof PcaColor pcaColor)) return false;
+                return Double.compare(firstPca, pcaColor.firstPca) == 0;
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hashCode(firstPca);
+            }
+        }
 
         /**
          * Metadata regarding one sixel row.
@@ -524,7 +537,7 @@ public class HQSixelEncoder implements SixelEncoder {
             /**
              * A set of colors that are present in this row.
              */
-            private BitSet colors;
+            private final BitSet colors;
 
             /**
              * Public constructor.
@@ -538,10 +551,10 @@ public class HQSixelEncoder implements SixelEncoder {
         /**
          * ColorMatchCache is a FIFO cache that hangs on to the matched
          * palette index color for a RGB color.
-         * 
+         * <p>
          * Uses primitive int arrays instead of wrapper classes for better performance.
          */
-        private class ColorMatchCache {
+        private static class ColorMatchCache {
 
             /**
              * Maximum size of the cache.
@@ -612,7 +625,7 @@ public class HQSixelEncoder implements SixelEncoder {
              * Put an entry into the cache.
              *
              * @param color the RGB color
-             * @param data the palette index
+             * @param data  the palette index
              */
             public void put(final int color, final int data) {
                 // Find slot using linear probing
@@ -673,12 +686,7 @@ public class HQSixelEncoder implements SixelEncoder {
         /**
          * Comparator used for the first principal component search.
          */
-        private final Comparator<PcaColor> nearby = new Comparator<PcaColor>(){
-            @Override
-            public int compare(final PcaColor a, final PcaColor b) {
-                return Double.compare(a.firstPca, b.firstPca);
-            }
-        };
+        private final Comparator<PcaColor> nearby = Comparator.comparingDouble(c -> c.firstPca);
 
         /**
          * A map of recent matching colors.
@@ -712,7 +720,7 @@ public class HQSixelEncoder implements SixelEncoder {
         /**
          * The PCA change of basis matrix.
          */
-        private double [][] PCA;
+        private double[][] PCA;
 
         /**
          * Map of colors used in the image by RGB.
@@ -721,7 +729,7 @@ public class HQSixelEncoder implements SixelEncoder {
 
         /**
          * Type of color quantization used.
-         *
+         * <p>
          * -1 = direct map indexed; 0 = direct map; 1 = median cut.
          */
         private int quantizationType = -1;
@@ -730,17 +738,17 @@ public class HQSixelEncoder implements SixelEncoder {
          * The image from the constructor, mapped to sixel color space with
          * transparent pixels removed.
          */
-        private int [] sixelImage;
+        private final int[] sixelImage;
 
         /**
          * The width of the image.
          */
-        private int sixelImageWidth;
+        private final int sixelImageWidth;
 
         /**
          * The width of the image.
          */
-        private int sixelImageHeight;
+        private final int sixelImageHeight;
 
         /**
          * If true, some pixels of the image are transparent.
@@ -751,6 +759,7 @@ public class HQSixelEncoder implements SixelEncoder {
          * If true, sixelImage is already indexed and does not require
          * dithering.
          */
+        @SuppressWarnings("FieldCanBeLocal")
         private boolean noDither = false;
 
         /**
@@ -761,7 +770,7 @@ public class HQSixelEncoder implements SixelEncoder {
         /**
          * The sixel rows of this image.
          */
-        private SixelRow [] sixelRows;
+        private final SixelRow[] sixelRows;
 
         /**
          * If true, quantization is done.
@@ -776,16 +785,16 @@ public class HQSixelEncoder implements SixelEncoder {
         /**
          * Public constructor.
          *
-         * @param size number of colors available for this palette
-         * @param image a bitmap image
+         * @param size             number of colors available for this palette
+         * @param image            a bitmap image
          * @param allowTransparent if true, allow transparent pixels to be
-         * specified
-         * @param customPalette if set, use a specific palette instead of
-         * direct map or median cut
+         *                         specified
+         * @param customPalette    if set, use a specific palette instead of
+         *                         direct map or median cut
          */
         public Palette(final int size, final ImageRGB image,
-            final boolean allowTransparent,
-            final Map<Integer, Integer> customPalette) {
+                       final boolean allowTransparent,
+                       final Map<Integer, Integer> customPalette) {
 
             assert (size >= 2);
             assert (image.getWidth() > 0);
@@ -807,7 +816,7 @@ public class HQSixelEncoder implements SixelEncoder {
             if (customPalette != null) {
                 numColors = customPalette.size();
             }
-            sixelColors = new ArrayList<Integer>(numColors);
+            sixelColors = new ArrayList<>(numColors);
             usedColors = new BitSet(numColors);
             sixelRows = new SixelRow[(image.getHeight() / 6) + 1];
             Arrays.setAll(sixelRows, i -> new SixelRow());
@@ -828,11 +837,11 @@ public class HQSixelEncoder implements SixelEncoder {
                     SAMPLE_SIZE, stride);
             }
 
-            int [] rgbArray = image.getRGB(0, 0,
+            int[] rgbArray = image.getRGB(0, 0,
                 sixelImageWidth, sixelImageHeight, null, 0, sixelImageWidth);
             sixelImage = rgbArray;
-            colorMap = new HashMap<Integer, ColorIdx>(sixelImageWidth * sixelImageHeight);
-            int transparent_count = 0;
+            colorMap = HashMap.newHashMap(sixelImageWidth * sixelImageHeight);
+            int transparentCount = 0;
 
             int strideI = 0;
             for (int i = 0; i < rgbArray.length; i++) {
@@ -841,7 +850,7 @@ public class HQSixelEncoder implements SixelEncoder {
                     int alpha = ((colorRGB >>> 24) & 0xFF);
                     if (alpha < ALPHA_OPAQUE) {
                         // This pixel is almost transparent, omit it.
-                        transparent_count++;
+                        transparentCount++;
                         if (allowTransparent) {
                             rgbArray[i] = 0x00f7a8b8;
                             continue;
@@ -893,11 +902,11 @@ public class HQSixelEncoder implements SixelEncoder {
                 System.err.printf("# colors in image (sampled): %d palette size %d\n",
                     colorMap.size(), numColors);
                 System.err.printf("# transparent pixels: %d (%3.1f%%)\n",
-                    transparent_count,
-                    (double) transparent_count * 100.0 /
+                    transparentCount,
+                    (double) transparentCount * 100.0 /
                         (sixelImageWidth * sixelImageHeight));
             }
-            if ((transparent_count == 0) || !allowTransparent) {
+            if ((transparentCount == 0) || !allowTransparent) {
                 transparent = false;
             }
 
@@ -922,7 +931,7 @@ public class HQSixelEncoder implements SixelEncoder {
                 quantizationType = 1;
                 List<Integer> keys = new ArrayList<Integer>(customPalette.keySet());
                 Collections.sort(keys);
-                for (Integer idx: keys) {
+                for (Integer idx : keys) {
                     int colorRGB = customPalette.get(idx);
                     int sixelRGB = toSixelColor(colorRGB, true);
                     sixelColors.add(sixelRGB);
@@ -966,9 +975,9 @@ public class HQSixelEncoder implements SixelEncoder {
         /**
          * Convert a 24-bit color to a 19.97-bit sixel color.
          *
-         * @param rawColor the 24-bit color
+         * @param rawColor        the 24-bit color
          * @param checkBlackWhite if true, return pure black or pure white
-         * for colors that are close to those
+         *                        for colors that are close to those
          * @return the sixel color
          */
         public int toSixelColor(final int rawColor, boolean checkBlackWhite) {
@@ -1016,7 +1025,7 @@ public class HQSixelEncoder implements SixelEncoder {
             // the generated output and understand what's going on.
             sixelColors = new ArrayList<Integer>(colorMap.size());
             usedColors = new BitSet(colorMap.size());
-            for (ColorIdx color: colorMap.values()) {
+            for (ColorIdx color : colorMap.values()) {
                 sixelColors.add(color.color);
             }
             if (verbosity >= 5) {
@@ -1053,13 +1062,13 @@ public class HQSixelEncoder implements SixelEncoder {
 
             // Populate the "total" bucket.
             Bucket bucket = new Bucket(colorMap.size());
-            for (ColorIdx color: colorMap.values()) {
+            for (ColorIdx color : colorMap.values()) {
                 bucket.add(color);
 
                 int rgb = color.color;
-                int red   = (rgb >>> 16) & 0xFF;
-                int green = (rgb >>>  8) & 0xFF;
-                int blue  =  rgb         & 0xFF;
+                int red = (rgb >>> 16) & 0xFF;
+                int green = (rgb >>> 8) & 0xFF;
+                int blue = rgb & 0xFF;
             }
 
             int numColors = paletteSize;
@@ -1097,12 +1106,12 @@ public class HQSixelEncoder implements SixelEncoder {
             int darkestIdx = -1;
             int lightestIdx = -1;
             final int diff = 1000;
-            for (Bucket b: buckets) {
+            for (Bucket b : buckets) {
                 int rgb = b.average();
                 b.index = idx;
                 Rgb color = Rgb.fromPackedRgb(rgb);
                 int colorMagnitudeSq = color.r() * color.r() + color.g() * color.g() + color.b() * color.b();
-                
+
                 if (color.isNearBlack(diff)) {
                     // Black is a close match.
                     if (colorMagnitudeSq < darkest) {
@@ -1157,44 +1166,44 @@ public class HQSixelEncoder implements SixelEncoder {
             //
             // (The computational chemist in me is SO HAPPY that we finally
             // have an eigenvalue solver in Jexer. 💗)
-            double [][] A = new double[3][3];
+            double[][] A = new double[3][3];
 
-            double redMean   = 0;
+            double redMean = 0;
             double greenMean = 0;
-            double blueMean  = 0;
+            double blueMean = 0;
             int n = sixelColors.size();
-            for (int rgbColor: sixelColors) {
-                redMean   += (rgbColor >>> 16) & 0xFF;
-                greenMean += (rgbColor >>>  8) & 0xFF;
-                blueMean  +=  rgbColor         & 0xFF;
+            for (int rgbColor : sixelColors) {
+                redMean += (rgbColor >>> 16) & 0xFF;
+                greenMean += (rgbColor >>> 8) & 0xFF;
+                blueMean += rgbColor & 0xFF;
             }
-            redMean   /= n;
+            redMean /= n;
             greenMean /= n;
-            blueMean  /= n;
-            double covRedRed     = 0;
-            double covRedGreen   = 0;
-            double covRedBlue    = 0;
+            blueMean /= n;
+            double covRedRed = 0;
+            double covRedGreen = 0;
+            double covRedBlue = 0;
             double covGreenGreen = 0;
-            double covGreenBlue  = 0;
-            double covBlueBlue   = 0;
-            for (int rgbColor: sixelColors) {
-                int red   = (rgbColor >>> 16) & 0xFF;
-                int green = (rgbColor >>>  8) & 0xFF;
-                int blue  =  rgbColor         & 0xFF;
+            double covGreenBlue = 0;
+            double covBlueBlue = 0;
+            for (int rgbColor : sixelColors) {
+                int red = (rgbColor >>> 16) & 0xFF;
+                int green = (rgbColor >>> 8) & 0xFF;
+                int blue = rgbColor & 0xFF;
 
-                covRedRed     += (  red -   redMean) * (  red -   redMean);
-                covRedGreen   += (  red -   redMean) * (green - greenMean);
-                covRedBlue    += (  red -   redMean) * ( blue -  blueMean);
+                covRedRed += (red - redMean) * (red - redMean);
+                covRedGreen += (red - redMean) * (green - greenMean);
+                covRedBlue += (red - redMean) * (blue - blueMean);
                 covGreenGreen += (green - greenMean) * (green - greenMean);
-                covGreenBlue  += (green - greenMean) * ( blue -  blueMean);
-                covBlueBlue   += ( blue -  blueMean) * ( blue -  blueMean);
+                covGreenBlue += (green - greenMean) * (blue - blueMean);
+                covBlueBlue += (blue - blueMean) * (blue - blueMean);
             }
-            covRedRed     /= (n - 1);
-            covRedGreen   /= (n - 1);
-            covRedBlue    /= (n - 1);
+            covRedRed /= (n - 1);
+            covRedGreen /= (n - 1);
+            covRedBlue /= (n - 1);
             covGreenGreen /= (n - 1);
-            covGreenBlue  /= (n - 1);
-            covBlueBlue   /= (n - 1);
+            covGreenBlue /= (n - 1);
+            covBlueBlue /= (n - 1);
 
             A[0][0] = covRedRed;
             A[0][1] = covRedGreen;
@@ -1206,8 +1215,8 @@ public class HQSixelEncoder implements SixelEncoder {
             A[2][1] = covGreenBlue;
             A[2][2] = covBlueBlue;
 
-            double [][] V = new double[3][3];
-            double [] d = new double[3];
+            double[][] V = new double[3][3];
+            double[] d = new double[3];
 
             MathUtils.eigen3(A, V, d);
 
@@ -1266,9 +1275,9 @@ public class HQSixelEncoder implements SixelEncoder {
          * @return the color's PCA1 coordinate in PCA space
          */
         private double firstPca(final int color) {
-            int red   = (color >>> 16) & 0xFF;
-            int green = (color >>>  8) & 0xFF;
-            int blue  =  color         & 0xFF;
+            int red = (color >>> 16) & 0xFF;
+            int green = (color >>> 8) & 0xFF;
+            int blue = color & 0xFF;
 
             // Due to how MathUtils.eigen3() sorts the eigenvalues, the first
             // principal component is the last column in the PCA matrix.
@@ -1282,9 +1291,9 @@ public class HQSixelEncoder implements SixelEncoder {
          * @return the color's PCA1 coordinate in PCA space
          */
         private double secondPca(final int color) {
-            int red   = (color >>> 16) & 0xFF;
-            int green = (color >>>  8) & 0xFF;
-            int blue  =  color         & 0xFF;
+            int red = (color >>> 16) & 0xFF;
+            int green = (color >>> 8) & 0xFF;
+            int blue = color & 0xFF;
 
             // Due to how MathUtils.eigen3() sorts the eigenvalues, the second
             // principal component is the middle column in the PCA matrix.
@@ -1298,9 +1307,9 @@ public class HQSixelEncoder implements SixelEncoder {
          * @return the color's PCA1 coordinate in PCA space
          */
         private double thirdPca(final int color) {
-            int red   = (color >>> 16) & 0xFF;
-            int green = (color >>>  8) & 0xFF;
-            int blue  =  color         & 0xFF;
+            int red = (color >>> 16) & 0xFF;
+            int green = (color >>> 8) & 0xFF;
+            int blue = color & 0xFF;
 
             // Due to how MathUtils.eigen3() sorts the eigenvalues, the third
             // principal component is the first column in the PCA matrix.
@@ -1317,13 +1326,13 @@ public class HQSixelEncoder implements SixelEncoder {
          * One can then search forward and backward to find all nearby
          * colors.
          *
-         * @param red the red component, from 0-100
+         * @param red   the red component, from 0-100
          * @param green the green component, from 0-100
-         * @param blue the blue component, from 0-100
+         * @param blue  the blue component, from 0-100
          * @return the palette index of the nearest color in RGB space
          */
         private int findNearestColor(final int red, final int green,
-            final int blue) {
+                                     final int blue) {
 
             // Compute PCA coordinates inline to avoid array allocation
             final double pca1 = PCA[2][0] * red + PCA[2][1] * green + PCA[2][2] * blue;
@@ -1345,7 +1354,7 @@ public class HQSixelEncoder implements SixelEncoder {
             int result = centerPca.sixelIndex;
             int sixelRgb = sixelColors.get(result);
             int bestRgbDistance = distanceSquaredInline(sixelRgb, red, green, blue);
-            
+
             // Compute initial PCA distance
             double d1 = centerPca.firstPca - pca1;
             double d2 = centerPca.secondPca - pca2;
@@ -1406,7 +1415,7 @@ public class HQSixelEncoder implements SixelEncoder {
          * Inline distance calculation to avoid method call overhead in hot path.
          */
         private static int distanceSquaredInline(final int rgb, final int red,
-                final int green, final int blue) {
+                                                 final int green, final int blue) {
             int dr = ((rgb >>> 16) & 0xFF) - red;
             int dg = ((rgb >>> 8) & 0xFF) - green;
             int db = (rgb & 0xFF) - blue;
@@ -1420,8 +1429,8 @@ public class HQSixelEncoder implements SixelEncoder {
          * @return the dithered image rgb data.  Every pixel is an index into
          * the palette.
          */
-        public int [] ditherImage() {
-            int [] rgbArray = sixelImage;
+        public int[] ditherImage() {
+            int[] rgbArray = sixelImage;
             if (noDither) {
                 return rgbArray;
             }
@@ -1441,7 +1450,7 @@ public class HQSixelEncoder implements SixelEncoder {
          * Dither a single pixel.
          */
         private void ditherPixel(int[] rgbArray, int width, int imageX, int imageY,
-                SixelRow sixelRow) {
+                                 SixelRow sixelRow) {
             int pixelIndex = imageX + width * imageY;
             int oldPixel = rgbArray[pixelIndex];
 
@@ -1492,12 +1501,12 @@ public class HQSixelEncoder implements SixelEncoder {
          * Inlined for performance.
          */
         private void propagateDitheringError(int[] rgbArray, int width, int imageX, int imageY,
-                int oldPixel, int newPixel) {
+                                             int oldPixel, int newPixel) {
 
             // Inline bit extraction for performance
-            int redError   = (((oldPixel >>> 16) & 0xFF) - ((newPixel >>> 16) & 0xFF)) / 6;
+            int redError = (((oldPixel >>> 16) & 0xFF) - ((newPixel >>> 16) & 0xFF)) / 6;
             int greenError = (((oldPixel >>> 8) & 0xFF) - ((newPixel >>> 8) & 0xFF)) / 6;
-            int blueError  = ((oldPixel & 0xFF) - (newPixel & 0xFF)) / 6;
+            int blueError = ((oldPixel & 0xFF) - (newPixel & 0xFF)) / 6;
 
             // Distribute error to neighboring pixels (inlined)
             int nextRow = imageY + 1;
@@ -1533,9 +1542,9 @@ public class HQSixelEncoder implements SixelEncoder {
             }
 
             // Extract, clamp to sixel range [0,100], and combine
-            int red   = Math.clamp(((pixel >>> 16) & 0xFF) + redError, 0, 100);
+            int red = Math.clamp(((pixel >>> 16) & 0xFF) + redError, 0, 100);
             int green = Math.clamp(((pixel >>> 8) & 0xFF) + greenError, 0, 100);
-            int blue  = Math.clamp((pixel & 0xFF) + blueError, 0, 100);
+            int blue = Math.clamp((pixel & 0xFF) + blueError, 0, 100);
             rgbArray[idx] = (0xFF << 24) | (red << 16) | (green << 8) | blue;
         }
 
@@ -1562,9 +1571,9 @@ public class HQSixelEncoder implements SixelEncoder {
             int sixelColor = sixelColors.get(index);
             // Format: #<index>;2;<red>;<green>;<blue>
             sb.append('#').append(index).append(";2;")
-              .append(Rgb.getRed(sixelColor)).append(';')
-              .append(Rgb.getGreen(sixelColor)).append(';')
-              .append(Rgb.getBlue(sixelColor));
+                .append(Rgb.getRed(sixelColor)).append(';')
+                .append(Rgb.getGreen(sixelColor)).append(';')
+                .append(Rgb.getBlue(sixelColor));
         }
     }
 
@@ -1580,7 +1589,7 @@ public class HQSixelEncoder implements SixelEncoder {
     /**
      * Number of colors in the sixel palette.  Xterm 335 defines the max as
      * 1024.  For HQ encoder the default is 128.
-     * 
+     * <p>
      * Marked volatile for thread-safe reads during encoding when another
      * thread may update the value via setPaletteSize().
      */
@@ -1593,7 +1602,7 @@ public class HQSixelEncoder implements SixelEncoder {
 
     /**
      * If true, be fast and dirty.
-     * 
+     * <p>
      * Marked volatile for thread-safe reads during encoding when another
      * thread may update the value via reloadOptions().
      */
@@ -1601,7 +1610,7 @@ public class HQSixelEncoder implements SixelEncoder {
 
     /**
      * Available custom palettes.
-     * 
+     * <p>
      * Marked volatile for thread-safe reads during encoding when another
      * thread may update the value via reloadOptions().
      */
@@ -1609,7 +1618,7 @@ public class HQSixelEncoder implements SixelEncoder {
 
     /**
      * If true, don't emit palette colors.
-     * 
+     * <p>
      * Marked volatile for thread-safe reads during encoding when another
      * thread may update the value via reloadOptions().
      */
@@ -1642,16 +1651,16 @@ public class HQSixelEncoder implements SixelEncoder {
     public String toSixel(final ImageRGB bitmap) {
         Map<Integer, Integer> customPalette = null;
         switch (customSixelPalette) {
-        case CGA:
-            customPalette = new HashMap<>(16);
-            SixelDecoder.initializePaletteCGA(customPalette);
-            break;
-        case VT340:
-            customPalette = new HashMap<>(16);
-            SixelDecoder.initializePaletteVT340(customPalette);
-            break;
-        case NONE:
-            break;
+            case CGA:
+                customPalette = new HashMap<>(16);
+                SixelDecoder.initializePaletteCGA(customPalette);
+                break;
+            case VT340:
+                customPalette = new HashMap<>(16);
+                SixelDecoder.initializePaletteVT340(customPalette);
+                break;
+            case NONE:
+                break;
         }
 
         return toSixel(bitmap, false, customPalette, suppressEmitPalette);
@@ -1672,28 +1681,28 @@ public class HQSixelEncoder implements SixelEncoder {
             paletteSize = Integer.parseInt(System.getProperty(
                 "casciian.ECMA48.sixelPaletteSize", "128"));
             switch (paletteSize) {
-            case 2:
-            case 4:
-            case 8:
-            case 16:
-            case 32:
-            case 64:
-            case 128:
-            case 256:
-            case 512:
-            case 1024:
-            case 2048:
-                this.paletteSize = paletteSize;
-                break;
-            default:
-                // Ignore value
-                break;
+                case 2:
+                case 4:
+                case 8:
+                case 16:
+                case 32:
+                case 64:
+                case 128:
+                case 256:
+                case 512:
+                case 1024:
+                case 2048:
+                    this.paletteSize = paletteSize;
+                    break;
+                default:
+                    // Ignore value
+                    break;
             }
         } catch (NumberFormatException e) {
             // SQUASH
         }
         if (System.getProperty("casciian.ECMA48.sixelFastAndDirty",
-                "false").equals("true")
+            "false").equals("true")
         ) {
             fastAndDirty = true;
         } else {
@@ -1720,26 +1729,26 @@ public class HQSixelEncoder implements SixelEncoder {
      * Create a sixel string representing a bitmap.  The returned string does
      * NOT include the DCS start or ST end sequences.
      *
-     * @param bitmap the bitmap data
+     * @param bitmap           the bitmap data
      * @param allowTransparent if true, allow transparent pixels to be
-     * specified
+     *                         specified
      * @return the string to emit to an ANSI / ECMA-style terminal
      */
     public String toSixel(final ImageRGB bitmap,
-        final boolean allowTransparent) {
+                          final boolean allowTransparent) {
 
         Map<Integer, Integer> customPalette = null;
         switch (customSixelPalette) {
-        case CGA:
-            customPalette = new HashMap<>(16);
-            SixelDecoder.initializePaletteCGA(customPalette);
-            break;
-        case VT340:
-            customPalette = new HashMap<>(16);
-            SixelDecoder.initializePaletteVT340(customPalette);
-            break;
-        case NONE:
-            break;
+            case CGA:
+                customPalette = new HashMap<>(16);
+                SixelDecoder.initializePaletteCGA(customPalette);
+                break;
+            case VT340:
+                customPalette = new HashMap<>(16);
+                SixelDecoder.initializePaletteVT340(customPalette);
+                break;
+            case NONE:
+                break;
         }
 
         return toSixel(bitmap, allowTransparent, customPalette,
@@ -1750,13 +1759,13 @@ public class HQSixelEncoder implements SixelEncoder {
      * Create a sixel string representing a bitmap.  The returned string does
      * NOT include the DCS start or ST end sequences.
      *
-     * @param bitmap the bitmap data
+     * @param bitmap        the bitmap data
      * @param customPalette if set, use a specific palette instead of direct
-     * map or median cut
+     *                      map or median cut
      * @return the string to emit to an ANSI / ECMA-style terminal
      */
     public String toSixel(final ImageRGB bitmap,
-        final Map<Integer, Integer> customPalette) {
+                          final Map<Integer, Integer> customPalette) {
 
         return toSixel(bitmap, false, customPalette, suppressEmitPalette);
     }
@@ -1765,18 +1774,18 @@ public class HQSixelEncoder implements SixelEncoder {
      * Create a sixel string representing a bitmap.  The returned string does
      * NOT include the DCS start or ST end sequences.
      *
-     * @param bitmap the bitmap data
-     * @param allowTransparent if true, allow transparent pixels to be
-     * specified
-     * @param customPalette if set, use a specific palette instead of direct
-     * map or median cut
+     * @param bitmap              the bitmap data
+     * @param allowTransparent    if true, allow transparent pixels to be
+     *                            specified
+     * @param customPalette       if set, use a specific palette instead of direct
+     *                            map or median cut
      * @param suppressEmitPalette if set, do not emit the sixel palette
      * @return the string to emit to an ANSI / ECMA-style terminal
      */
     public String toSixel(final ImageRGB bitmap,
-        final boolean allowTransparent,
-        final Map<Integer, Integer> customPalette,
-        final boolean suppressEmitPalette) {
+                          final boolean allowTransparent,
+                          final Map<Integer, Integer> customPalette,
+                          final boolean suppressEmitPalette) {
 
         return toSixelResult(bitmap, allowTransparent,
             customPalette, suppressEmitPalette).encodedImage;
@@ -1786,18 +1795,18 @@ public class HQSixelEncoder implements SixelEncoder {
      * Create a sixel string representing a bitmap.  The returned string does
      * NOT include the DCS start or ST end sequences.
      *
-     * @param bitmap the bitmap data
-     * @param allowTransparent if true, allow transparent pixels to be
-     * specified
-     * @param customPalette if set, use a specific palette instead of direct
-     * map or median cut
+     * @param bitmap              the bitmap data
+     * @param allowTransparent    if true, allow transparent pixels to be
+     *                            specified
+     * @param customPalette       if set, use a specific palette instead of direct
+     *                            map or median cut
      * @param suppressEmitPalette if set, do not emit the sixel palette
      * @return the encoded string and transparency flag
      */
     private SixelResult toSixelResult(final ImageRGB bitmap,
-        final boolean allowTransparent,
-        final Map<Integer, Integer> customPalette,
-        final boolean suppressEmitPalette) {
+                                      final boolean allowTransparent,
+                                      final Map<Integer, Integer> customPalette,
+                                      final boolean suppressEmitPalette) {
 
         // Start with 16k potential total output.
         StringBuilder sb = new StringBuilder(16384);
@@ -1814,7 +1823,7 @@ public class HQSixelEncoder implements SixelEncoder {
         result.transparent = palette.transparent;
 
         // Dither the image.  We don't bother wrapping it in a ImageRGB.
-        int [] rgbArray = palette.ditherImage();
+        int[] rgbArray = palette.ditherImage();
 
         if (palette.timings != null) {
             palette.timings.ditherImageTime = System.nanoTime();
@@ -1840,7 +1849,7 @@ public class HQSixelEncoder implements SixelEncoder {
         int colorsN = palette.sixelColors.size();
         // Reuse row array across colors to reduce allocations
         int[] row = new int[width];
-        
+
         for (int currentRow = 0; currentRow < fullHeight; currentRow += 6) {
             Palette.SixelRow sixelRow = palette.sixelRows[currentRow / 6];
 
@@ -1851,10 +1860,10 @@ public class HQSixelEncoder implements SixelEncoder {
 
                 // Clear the row array for reuse
                 Arrays.fill(row, 0);
-                
+
                 // Calculate the number of rows to process (up to 6)
                 int rowsToProcess = Math.min(6, fullHeight - currentRow);
-                
+
                 // Collect sixel bits for this color
                 for (int j = 0; j < rowsToProcess; j++) {
                     int base = width * (currentRow + j);
@@ -1917,7 +1926,7 @@ public class HQSixelEncoder implements SixelEncoder {
         // Use StringBuilder for better performance than String.format
         StringBuilder header = new StringBuilder(20);
         header.append("\"1;1;").append(bitmap.getWidth())
-              .append(';').append(bitmap.getHeight());
+            .append(';').append(bitmap.getHeight());
         sb.insert(0, header);
 
         if (palette.timings != null) {
@@ -1953,7 +1962,7 @@ public class HQSixelEncoder implements SixelEncoder {
      * Set the sixel shared palette option.
      *
      * @param sharedPalette if true, then all sixel output will use the same
-     * palette that is set in one DCS sequence and used in later sequences
+     *                      palette that is set in one DCS sequence and used in later sequences
      */
     @Override
     public void setSharedPalette(final boolean sharedPalette) {
@@ -1982,21 +1991,11 @@ public class HQSixelEncoder implements SixelEncoder {
         }
 
         switch (paletteSize) {
-        case 2:
-        case 4:
-        case 8:
-        case 16:
-        case 32:
-        case 64:
-        case 128:
-        case 256:
-        case 512:
-        case 1024:
-        case 2048:
-            break;
-        default:
-            throw new IllegalArgumentException("Unsupported sixel palette " +
-                " size: " + paletteSize);
+            case 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048:
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported sixel palette " +
+                    " size: " + paletteSize);
         }
 
         this.paletteSize = paletteSize;
