@@ -311,4 +311,162 @@ class ImageRGBTest {
         assertEquals(123, image.getWidth());
         assertEquals(456, image.getHeight());
     }
+
+    // ========================================================================
+    // Tests for parallel execution paths (images > 10,000 pixels)
+    // These tests verify that parallel stream processing works correctly
+    // without race conditions or concurrency issues.
+    // ========================================================================
+
+    @Test
+    @DisplayName("Copy constructor with large image (parallel path)")
+    void testConstructorCopyLargeImage() {
+        // 200x100 = 20,000 pixels, exceeds PARALLEL_THRESHOLD of 10,000
+        ImageRGB original = new ImageRGB(200, 100);
+        
+        // Set pixels at various locations to verify correct copying
+        original.setRGB(0, 0, 0xFF0000);      // top-left corner
+        original.setRGB(199, 99, 0x00FF00);   // bottom-right corner
+        original.setRGB(100, 50, 0x0000FF);   // center
+        original.setRGB(50, 25, 0xFFFF00);    // quarter point
+        
+        ImageRGB copy = new ImageRGB(original);
+        
+        assertEquals(original.getWidth(), copy.getWidth());
+        assertEquals(original.getHeight(), copy.getHeight());
+        
+        // Verify all set pixels are correctly copied
+        assertEquals(0xFF0000, copy.getRGB(0, 0));
+        assertEquals(0x00FF00, copy.getRGB(199, 99));
+        assertEquals(0x0000FF, copy.getRGB(100, 50));
+        assertEquals(0xFFFF00, copy.getRGB(50, 25));
+        
+        // Verify it's a deep copy
+        copy.setRGB(100, 50, 0x123456);
+        assertEquals(0x0000FF, original.getRGB(100, 50));
+        assertEquals(0x123456, copy.getRGB(100, 50));
+    }
+
+    @Test
+    @DisplayName("alphaBlendOver with large image (parallel path)")
+    void testAlphaBlendOverLargeImage() {
+        // 150x100 = 15,000 pixels, exceeds PARALLEL_THRESHOLD
+        ImageRGB under = new ImageRGB(150, 100);
+        ImageRGB over = new ImageRGB(150, 100);
+        
+        // Fill under with red, over with blue
+        for (int y = 0; y < 100; y++) {
+            for (int x = 0; x < 150; x++) {
+                under.setRGB(x, y, 0xFF0000);
+                over.setRGB(x, y, 0x0000FF);
+            }
+        }
+        
+        // Blend 50%
+        under.alphaBlendOver(over, 0.5);
+        
+        // Verify blending at multiple positions to check for race conditions
+        int[][] checkPositions = {{0, 0}, {149, 99}, {75, 50}, {25, 25}, {100, 75}};
+        for (int[] pos : checkPositions) {
+            int blended = under.getRGB(pos[0], pos[1]);
+            int red = (blended >>> 16) & 0xFF;
+            int blue = blended & 0xFF;
+            
+            // Both red and blue should be present in the blend
+            assertTrue(red > 0, "Red component should be > 0 at (" + pos[0] + "," + pos[1] + ")");
+            assertTrue(blue > 0, "Blue component should be > 0 at (" + pos[0] + "," + pos[1] + ")");
+        }
+    }
+
+    @Test
+    @DisplayName("getSubimage with large image (parallel path)")
+    void testGetSubimageLargeImage() {
+        // 200x100 = 20,000 pixels source, extracting 150x100 = 15,000 pixels
+        ImageRGB image = new ImageRGB(200, 100);
+        
+        // Set pixels at specific positions
+        image.setRGB(10, 10, 0xFF0000);
+        image.setRGB(100, 50, 0x00FF00);
+        image.setRGB(140, 90, 0x0000FF);
+        
+        ImageRGB subimage = image.getSubimage(5, 5, 150, 100);
+        
+        assertEquals(150, subimage.getWidth());
+        assertEquals(100, subimage.getHeight());
+        
+        // Verify pixels are at correct offset positions
+        assertEquals(0xFF0000, subimage.getRGB(5, 5));   // was at (10,10), now at (5,5)
+        assertEquals(0x00FF00, subimage.getRGB(95, 45)); // was at (100,50), now at (95,45)
+        assertEquals(0x0000FF, subimage.getRGB(135, 85)); // was at (140,90), now at (135,85)
+    }
+
+    @Test
+    @DisplayName("fillRect with large area (parallel path)")
+    void testFillRectLargeImage() {
+        // 200x100 = 20,000 pixels
+        ImageRGB image = new ImageRGB(200, 100);
+        
+        // Fill a large rectangle: 150x80 = 12,000 pixels
+        image.fillRect(10, 10, 150, 80, 0xFF0000);
+        
+        // Verify corners of filled area
+        assertEquals(0xFF0000, image.getRGB(10, 10));     // top-left of fill
+        assertEquals(0xFF0000, image.getRGB(159, 89));    // bottom-right of fill
+        assertEquals(0xFF0000, image.getRGB(85, 50));     // center of fill
+        
+        // Verify unfilled areas remain at 0
+        assertEquals(0, image.getRGB(0, 0));
+        assertEquals(0, image.getRGB(199, 99));
+        assertEquals(0, image.getRGB(9, 9));
+        assertEquals(0, image.getRGB(160, 90));
+    }
+
+    @Test
+    @DisplayName("resizeCanvas larger with large image (parallel path)")
+    void testResizeCanvasLargerLargeImage() {
+        // Original: 100x100 = 10,000 pixels
+        ImageRGB image = new ImageRGB(100, 100);
+        image.setRGB(0, 0, 0xFF0000);
+        image.setRGB(99, 99, 0x00FF00);
+        image.setRGB(50, 50, 0x0000FF);
+        
+        // Resize to 200x150 = 30,000 pixels
+        ImageRGB resized = image.resizeCanvas(200, 150, 0xABCDEF);
+        
+        assertEquals(200, resized.getWidth());
+        assertEquals(150, resized.getHeight());
+        
+        // Original pixels should be preserved
+        assertEquals(0xFF0000, resized.getRGB(0, 0));
+        assertEquals(0x00FF00, resized.getRGB(99, 99));
+        assertEquals(0x0000FF, resized.getRGB(50, 50));
+        
+        // New areas should have background color
+        assertEquals(0xABCDEF, resized.getRGB(199, 149));
+        assertEquals(0xABCDEF, resized.getRGB(150, 100));
+        assertEquals(0xABCDEF, resized.getRGB(100, 0));   // beyond original width
+        assertEquals(0xABCDEF, resized.getRGB(0, 100));   // beyond original height
+    }
+
+    @Test
+    @DisplayName("resizeCanvas smaller with large image (parallel path)")
+    void testResizeCanvasSmallerLargeImage() {
+        // Original: 200x150 = 30,000 pixels
+        ImageRGB image = new ImageRGB(200, 150);
+        image.setRGB(0, 0, 0xFF0000);
+        image.setRGB(99, 99, 0x00FF00);
+        image.setRGB(50, 50, 0x0000FF);
+        image.setRGB(199, 149, 0xFFFF00);  // will be cropped
+        
+        // Resize to 150x100 = 15,000 pixels
+        ImageRGB resized = image.resizeCanvas(150, 100, 0xABCDEF);
+        
+        assertEquals(150, resized.getWidth());
+        assertEquals(100, resized.getHeight());
+        
+        // Pixels within bounds should be preserved
+        assertEquals(0xFF0000, resized.getRGB(0, 0));
+        assertEquals(0x00FF00, resized.getRGB(99, 99));
+        assertEquals(0x0000FF, resized.getRGB(50, 50));
+    }
 }
