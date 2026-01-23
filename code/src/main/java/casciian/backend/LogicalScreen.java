@@ -22,6 +22,7 @@ package casciian.backend;
 
 import casciian.TWidget;
 import casciian.bits.BorderStyle;
+import casciian.bits.ImageRGB;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.CellTransform;
@@ -35,111 +36,6 @@ import casciian.bits.StringUtils;
  * A logical screen composed of a 2D array of Cells.
  */
 public class LogicalScreen implements Screen {
-
-    // ------------------------------------------------------------------------
-    // Constants --------------------------------------------------------------
-    // ------------------------------------------------------------------------
-
-    /**
-     * A simple 2D RGB array.
-     */
-    private class BufferedImage {
-
-        /**
-         * The 24-bit RGB data.
-         */
-        private int [][] rgb;
-
-        /**
-         * The width of this image.
-         */
-        private int width;
-
-        /**
-         * The height of this image.
-         */
-        private int height;
-
-        /**
-         * Public constructor.
-         *
-         * @param width the number of pixels in width
-         * @param height the number of pixels in height
-         */
-        public BufferedImage(final int width, final int height) {
-            this.width = width;
-            this.height = height;
-            rgb = new int[width][height];
-        }
-
-        /**
-         * Public constructor.
-         *
-         * @param image another BufferedImage that the RGB data will be
-         * copied from
-         */
-        public BufferedImage(final BufferedImage image) {
-            width = image.width;
-            height = image.height;
-            rgb = new int[width][height];
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    this.rgb[x][y] = image.rgb[x][y];
-                }
-            }
-        }
-
-        /**
-         * Get an RGB value.
-         *
-         * @param x the column location
-         * @param y the row location
-         * @return the RGB value
-         */
-        public int getRGB(final int x, final int y) {
-            return rgb[x][y];
-        }
-
-        /**
-         * Set an RGB value.
-         *
-         * @param x the column location
-         * @param y the row location
-         * @param rgb the new RGB value
-         */
-        public void setRGB(final int x, final int y, final int rgb) {
-            this.rgb[x][y] = rgb;
-        }
-
-        /**
-         * Alpha-blend another image over this one.
-         *
-         * @param image the other image
-         * @param alpha a number between 0 and 1
-         */
-        public void alphaBlendOver(final BufferedImage image,
-            final double alpha) {
-
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int underRGB = rgb[x][y];
-                    int overRGB = image.rgb[x][y];
-                    int underRed   = (underRGB >>> 16) & 0xFF;
-                    int underGreen = (underRGB >>>  8) & 0xFF;
-                    int underBlue  =  underRGB         & 0xFF;
-                    int overRed    = (overRGB >>> 16) & 0xFF;
-                    int overGreen  = (overRGB >>>  8) & 0xFF;
-                    int overBlue   =  overRGB         & 0xFF;
-                    int red   = (int) ((  underRed * (1.0 - alpha)) + (  overRed * alpha));
-                    int green = (int) ((underGreen * (1.0 - alpha)) + (overGreen * alpha));
-                    int blue  = (int) (( underBlue * (1.0 - alpha)) + ( overBlue * alpha));
-                    int newRgb = (red << 16) | (green << 8) | blue;
-                    this.rgb[x][y] = newRgb;
-                }
-            }
-        }
-
-    }
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -203,12 +99,12 @@ public class LogicalScreen implements Screen {
     /**
      * The physical screen last sent out on flush().
      */
-    protected ComplexCell [][] physical;
+    protected ComplexCell[][] physical;
 
     /**
      * The logical screen being rendered to.
      */
-    protected ComplexCell [][] logical;
+    protected ComplexCell[][] logical;
 
     /**
      * Set if the user explicitly wants to redraw everything starting with a
@@ -246,16 +142,16 @@ public class LogicalScreen implements Screen {
     /**
      * Public constructor.  Sets everything to not-bold, white-on-black.
      *
-     * @param width width in cells
+     * @param width  width in cells
      * @param height height in cells
      */
     protected LogicalScreen(final int width, final int height) {
-        offsetX     = 0;
-        offsetY     = 0;
-        this.width  = 80;
+        offsetX = 0;
+        offsetY = 0;
+        this.width = 80;
         this.height = 24;
-        logical     = null;
-        physical    = null;
+        logical = null;
+        physical = null;
         reallocate(width, height);
     }
 
@@ -268,6 +164,7 @@ public class LogicalScreen implements Screen {
      *
      * @return the width in pixels of a character cell
      */
+    @Override
     public int getTextWidth() {
         // Default width is 16 pixels.
         return 16;
@@ -278,6 +175,7 @@ public class LogicalScreen implements Screen {
      *
      * @return the height in pixels of a character cell
      */
+    @Override
     public int getTextHeight() {
         // Default height is 20 pixels.
         return 20;
@@ -468,10 +366,9 @@ public class LogicalScreen implements Screen {
      * Get the cell at one location, in either absolute or clipped
      * coordinates.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
      * @param clip if true, honor clipping/offset
-     *
      * @return the character + attributes, or null if this position is
      * outside the clipping/offset region
      */
@@ -504,12 +401,12 @@ public class LogicalScreen implements Screen {
     /**
      * Set the attributes at one location.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
      * @param attr attributes to use (bold, foreColor, backColor)
      */
     public final void putAttrXY(final int x, final int y,
-        final CellAttributes attr) {
+                                final CellAttributes attr) {
 
         putAttrXY(x, y, attr, true);
     }
@@ -517,13 +414,13 @@ public class LogicalScreen implements Screen {
     /**
      * Set the attributes at one location.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
      * @param attr attributes to use (bold, foreColor, backColor)
      * @param clip if true, honor clipping/offset
      */
     public final void putAttrXY(final int x, final int y,
-        final CellAttributes attr, final boolean clip) {
+                                final CellAttributes attr, final boolean clip) {
 
         int X = x;
         int Y = y;
@@ -543,13 +440,14 @@ public class LogicalScreen implements Screen {
         }
 
         if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
-            logical[X][Y].setAttr(attr);
+            logical[X][Y].setAttr(attr, true);
 
             // If this happens to be the cursor position, make the position
             // dirty.
             if ((cursorX == X) && (cursorY == Y)) {
                 synchronized (this) {
                     physical[cursorX][cursorY].unset();
+                    unsetImageRow(cursorY);
                 }
             }
         }
@@ -558,14 +456,14 @@ public class LogicalScreen implements Screen {
     /**
      * Change the background color only of a box/region of the screen.
      *
-     * @param left left column of the box.  0 is the left-most row.
-     * @param top top row of the box.  0 is the top-most row.
-     * @param right right column of box
+     * @param left   left column of the box.  0 is the left-most row.
+     * @param top    top row of the box.  0 is the top-most row.
+     * @param right  right column of box
      * @param bottom bottom row of the box
-     * @param attr the background color to use
+     * @param attr   the background color to use
      */
     public void putBackgroundAttrBox(final int left, final int top,
-        final int right, final int bottom, final CellAttributes attr) {
+                                     final int right, final int bottom, final CellAttributes attr) {
 
         for (int y = top; y <= bottom; y++) {
             for (int x = left; x <= right; x++) {
@@ -577,12 +475,12 @@ public class LogicalScreen implements Screen {
     /**
      * Set the background color only at one location.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
      * @param attr the background color to use
      */
     public void putBackgroundAttrXY(final int x, final int y,
-        final CellAttributes attr) {
+                                    final CellAttributes attr) {
 
         putBackgroundAttrXY(x, y, attr, true);
     }
@@ -590,13 +488,13 @@ public class LogicalScreen implements Screen {
     /**
      * Set the background color only at one location.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
      * @param attr the background color to use
      * @param clip if true, honor clipping/offset
      */
     public void putBackgroundAttrXY(final int x, final int y,
-        final CellAttributes attr, final boolean clip) {
+                                    final CellAttributes attr, final boolean clip) {
 
         int X = x;
         int Y = y;
@@ -627,6 +525,7 @@ public class LogicalScreen implements Screen {
             if ((cursorX == X) && (cursorY == Y)) {
                 synchronized (this) {
                     physical[cursorX][cursorY].unset();
+                    unsetImageRow(cursorY);
                 }
             }
         }
@@ -635,7 +534,7 @@ public class LogicalScreen implements Screen {
     /**
      * Fill the entire screen with one character with attributes.
      *
-     * @param ch character to draw
+     * @param ch   character to draw
      * @param attr attributes to use (bold, foreColor, backColor)
      */
     public final void putAll(final int ch, final CellAttributes attr) {
@@ -662,8 +561,8 @@ public class LogicalScreen implements Screen {
     /**
      * Render one character with attributes.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x  column coordinate.  0 is the left-most column.
+     * @param y  row coordinate.  0 is the top-most row.
      * @param ch character + attributes to draw
      */
     public final void putCharXY(final int x, final int y, final Cell ch) {
@@ -674,15 +573,15 @@ public class LogicalScreen implements Screen {
      * Render one character, using only the foreground attributes.  The
      * background color will not be changed.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param ch character to draw
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
+     * @param ch   character to draw
      * @param attr attributes to use (bold, foreColor, backColor)
      */
     public void putForegroundCharXY(final int x, final int y, final int ch,
-        final CellAttributes attr) {
+                                    final CellAttributes attr) {
 
-       if ((x < clipLeft)
+        if ((x < clipLeft)
             || (x >= clipRight)
             || (y < clipTop)
             || (y >= clipBottom)
@@ -711,12 +610,12 @@ public class LogicalScreen implements Screen {
     /**
      * Render one character with attributes.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x  column coordinate.  0 is the left-most column.
+     * @param y  row coordinate.  0 is the top-most row.
      * @param ch character + attributes to draw
      */
     private void putCharXY(final int x, final int y, final Cell ch,
-        final boolean direct) {
+                           final boolean direct) {
 
         if ((x < clipLeft)
             || (x >= clipRight)
@@ -728,7 +627,7 @@ public class LogicalScreen implements Screen {
             return;
         }
 
-        if ((ch.getDisplayWidth() == 2) && !direct) {
+        if ((ch.getDisplayWidth() == 2) && (!ch.isImage()) && !direct) {
             if (ch instanceof ComplexCell complexCell) {
                 putFullwidthCharXY(x, y, complexCell);
             } else {
@@ -745,8 +644,10 @@ public class LogicalScreen implements Screen {
         if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
 
             // Do not put control characters on the display
-            assert (ch.getChar() >= 0x20);
-            assert (ch.getChar() != 0x7F);
+            if (!ch.isImage()) {
+                assert (ch.getChar() >= 0x20);
+                assert (ch.getChar() != 0x7F);
+            }
             logical[X][Y].setTo(ch);
 
             // If this happens to be the cursor position, make the position
@@ -754,6 +655,7 @@ public class LogicalScreen implements Screen {
             if ((cursorX == X) && (cursorY == Y)) {
                 synchronized (this) {
                     physical[cursorX][cursorY].unset();
+                    unsetImageRow(cursorY);
                 }
             }
         }
@@ -762,13 +664,13 @@ public class LogicalScreen implements Screen {
     /**
      * Render one character with attributes.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param ch character to draw
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
+     * @param ch   character to draw
      * @param attr attributes to use (bold, foreColor, backColor)
      */
     public final void putCharXY(final int x, final int y, final int ch,
-        final CellAttributes attr) {
+                                final CellAttributes attr) {
 
         if ((x < clipLeft)
             || (x >= clipRight)
@@ -804,6 +706,7 @@ public class LogicalScreen implements Screen {
             if ((cursorX == X) && (cursorY == Y)) {
                 synchronized (this) {
                     physical[cursorX][cursorY].unset();
+                    unsetImageRow(cursorY);
                 }
             }
         }
@@ -812,8 +715,8 @@ public class LogicalScreen implements Screen {
     /**
      * Render one character without changing the underlying attributes.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x  column coordinate.  0 is the left-most column.
+     * @param y  row coordinate.  0 is the top-most row.
      * @param ch character to draw
      */
     public final void putCharXY(final int x, final int y, final int ch) {
@@ -845,6 +748,7 @@ public class LogicalScreen implements Screen {
             if ((cursorX == X) && (cursorY == Y)) {
                 synchronized (this) {
                     physical[cursorX][cursorY].unset();
+                    unsetImageRow(cursorY);
                 }
             }
         }
@@ -854,16 +758,16 @@ public class LogicalScreen implements Screen {
      * Render a string with attributes.  Does not wrap if the string exceeds
      * the line.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param str string to draw
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
+     * @param str  string to draw
      * @param attr attributes to use (bold, foreColor, backColor)
      */
     public final void putStringXY(final int x, final int y, final String str,
-        final CellAttributes attr) {
+                                  final CellAttributes attr) {
 
         int i = x;
-        for (int j = 0; j < str.length();) {
+        for (int j = 0; j < str.length(); ) {
             int ch = str.codePointAt(j);
             j += Character.charCount(ch);
             putCharXY(i, y, ch, attr);
@@ -879,16 +783,16 @@ public class LogicalScreen implements Screen {
      * color will not be changed.  Does not wrap if the string exceeds the
      * line.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param str string to draw
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
+     * @param str  string to draw
      * @param attr attributes to use (bold, foreColor, backColor)
      */
     public void putForegroundStringXY(final int x, final int y,
-        final String str, final CellAttributes attr) {
+                                      final String str, final CellAttributes attr) {
 
         int i = x;
-        for (int j = 0; j < str.length();) {
+        for (int j = 0; j < str.length(); ) {
             int ch = str.codePointAt(j);
             j += Character.charCount(ch);
             putForegroundCharXY(i, y, ch, attr);
@@ -903,14 +807,14 @@ public class LogicalScreen implements Screen {
      * Render a string without changing the underlying attribute.  Does not
      * wrap if the string exceeds the line.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x   column coordinate.  0 is the left-most column.
+     * @param y   row coordinate.  0 is the top-most row.
      * @param str string to draw
      */
     public final void putStringXY(final int x, final int y, final String str) {
 
         int i = x;
-        for (int j = 0; j < str.length();) {
+        for (int j = 0; j < str.length(); ) {
             int ch = str.codePointAt(j);
             j += Character.charCount(ch);
             putCharXY(i, y, ch);
@@ -924,14 +828,14 @@ public class LogicalScreen implements Screen {
     /**
      * Draw a vertical line from (x, y) to (x, y + n).
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param n number of characters to draw
-     * @param ch character to draw
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
+     * @param n    number of characters to draw
+     * @param ch   character to draw
      * @param attr attributes to use (bold, foreColor, backColor)
      */
     public final void vLineXY(final int x, final int y, final int n,
-        final int ch, final CellAttributes attr) {
+                              final int ch, final CellAttributes attr) {
 
         for (int i = y; i < y + n; i++) {
             putCharXY(x, i, ch, attr);
@@ -942,14 +846,14 @@ public class LogicalScreen implements Screen {
      * Draw a vertical line from (x, y) to (x, y + n), using only the
      * foreground attributes.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param n number of characters to draw
-     * @param ch character to draw
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
+     * @param n    number of characters to draw
+     * @param ch   character to draw
      * @param attr attributes to use (bold, foreColor, backColor)
      */
     public void vForegroundLineXY(final int x, final int y, final int n,
-        final int ch, final CellAttributes attr) {
+                                  final int ch, final CellAttributes attr) {
 
         for (int i = y; i < y + n; i++) {
             putForegroundCharXY(x, i, ch, attr);
@@ -959,13 +863,13 @@ public class LogicalScreen implements Screen {
     /**
      * Draw a vertical line from (x, y) to (x, y + n).
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param n number of characters to draw
+     * @param x  column coordinate.  0 is the left-most column.
+     * @param y  row coordinate.  0 is the top-most row.
+     * @param n  number of characters to draw
      * @param ch character to draw
      */
     public void vLineXY(final int x, final int y, final int n,
-        final Cell ch) {
+                        final Cell ch) {
 
         for (int i = y; i < y + n; i++) {
             putCharXY(x, i, ch);
@@ -975,14 +879,14 @@ public class LogicalScreen implements Screen {
     /**
      * Draw a horizontal line from (x, y) to (x + n, y).
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param n number of characters to draw
-     * @param ch character to draw
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
+     * @param n    number of characters to draw
+     * @param ch   character to draw
      * @param attr attributes to use (bold, foreColor, backColor)
      */
     public final void hLineXY(final int x, final int y, final int n,
-        final int ch, final CellAttributes attr) {
+                              final int ch, final CellAttributes attr) {
 
         for (int i = x; i < x + n; i++) {
             putCharXY(i, y, ch, attr);
@@ -993,14 +897,14 @@ public class LogicalScreen implements Screen {
      * Draw a horizontal line from (x, y) to (x + n, y), using only the
      * foreground attributes.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param n number of characters to draw
-     * @param ch character to draw
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
+     * @param n    number of characters to draw
+     * @param ch   character to draw
      * @param attr attributes to use (bold, foreColor)
      */
     public void hForegroundLineXY(final int x, final int y, final int n,
-        final int ch, final CellAttributes attr) {
+                                  final int ch, final CellAttributes attr) {
 
         for (int i = x; i < x + n; i++) {
             putForegroundCharXY(i, y, ch, attr);
@@ -1010,13 +914,13 @@ public class LogicalScreen implements Screen {
     /**
      * Draw a horizontal line from (x, y) to (x + n, y).
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param n number of characters to draw
+     * @param x  column coordinate.  0 is the left-most column.
+     * @param y  row coordinate.  0 is the top-most row.
+     * @param n  number of characters to draw
      * @param ch character to draw
      */
     public void hLineXY(final int x, final int y, final int n,
-        final Cell ch) {
+                        final Cell ch) {
 
         for (int i = x; i < x + n; i++) {
             putCharXY(i, y, ch);
@@ -1047,7 +951,7 @@ public class LogicalScreen implements Screen {
      * Change the width and height.  Everything on-screen will be destroyed
      * and must be redrawn.
      *
-     * @param width new screen width
+     * @param width  new screen width
      * @param height new screen height
      */
     public void setDimensions(final int width, final int height) {
@@ -1100,14 +1004,14 @@ public class LogicalScreen implements Screen {
      * Flush the offset and clip variables.
      */
     public final void resetClipping() {
-        offsetX    = 0;
-        offsetY    = 0;
-        clipLeft   = 0;
-        clipTop    = 0;
-        clipRight  = width;
+        offsetX = 0;
+        offsetY = 0;
+        clipLeft = 0;
+        clipTop = 0;
+        clipRight = width;
         clipBottom = height;
         relativeClipLeft = 0;
-        relativeClipTop  = 0;
+        relativeClipTop = 0;
     }
 
     /**
@@ -1120,29 +1024,29 @@ public class LogicalScreen implements Screen {
     /**
      * Draw a box with a border and empty background.
      *
-     * @param left left column of box.  0 is the left-most column.
-     * @param top top row of the box.  0 is the top-most row.
-     * @param right right column of box
-     * @param bottom bottom row of the box
-     * @param border attributes to use for the border
-     * @param background attributes to use for the background
+     * @param left        left column of box.  0 is the left-most column.
+     * @param top         top row of the box.  0 is the top-most row.
+     * @param right       right column of box
+     * @param bottom      bottom row of the box
+     * @param border      attributes to use for the border
+     * @param background  attributes to use for the background
      * @param borderStyle style of border
-     * @param shadow if true, draw a "shadow" on the box
+     * @param shadow      if true, draw a "shadow" on the box
      */
     public void drawBox(final int left, final int top,
-        final int right, final int bottom,
-        final CellAttributes border, final CellAttributes background,
-        final BorderStyle borderStyle, final boolean shadow) {
+                        final int right, final int bottom,
+                        final CellAttributes border, final CellAttributes background,
+                        final BorderStyle borderStyle, final boolean shadow) {
 
         int boxWidth = right - left;
         int boxHeight = bottom - top;
 
-        int cTopLeft     = borderStyle.getTopLeft();
-        int cTopRight    = borderStyle.getTopRight();
-        int cBottomLeft  = borderStyle.getBottomLeft();
+        int cTopLeft = borderStyle.getTopLeft();
+        int cTopRight = borderStyle.getTopRight();
+        int cBottomLeft = borderStyle.getBottomLeft();
         int cBottomRight = borderStyle.getBottomRight();
-        int cHSide       = borderStyle.getHorizontal();
-        int cVSide       = borderStyle.getVertical();
+        int cHSide = borderStyle.getHorizontal();
+        int cVSide = borderStyle.getVertical();
 
         // Place the corner characters
         putCharXY(left, top, cTopLeft, border);
@@ -1172,29 +1076,29 @@ public class LogicalScreen implements Screen {
      * Draw a box with a border and empty background, using only the
      * foreground attributes.
      *
-     * @param left left column of box.  0 is the left-most row.
-     * @param top top row of the box.  0 is the top-most row.
-     * @param right right column of box
-     * @param bottom bottom row of the box
-     * @param border attributes to use for the border
-     * @param background attributes to use for the background
+     * @param left        left column of box.  0 is the left-most row.
+     * @param top         top row of the box.  0 is the top-most row.
+     * @param right       right column of box
+     * @param bottom      bottom row of the box
+     * @param border      attributes to use for the border
+     * @param background  attributes to use for the background
      * @param borderStyle style of border
-     * @param shadow if true, draw a "shadow" on the box
+     * @param shadow      if true, draw a "shadow" on the box
      */
     public final void drawForegroundBox(final int left, final int top,
-        final int right, final int bottom,
-        final CellAttributes border, final CellAttributes background,
-        final BorderStyle borderStyle, final boolean shadow) {
+                                        final int right, final int bottom,
+                                        final CellAttributes border, final CellAttributes background,
+                                        final BorderStyle borderStyle, final boolean shadow) {
 
         int boxWidth = right - left;
         int boxHeight = bottom - top;
 
-        int cTopLeft     = borderStyle.getTopLeft();
-        int cTopRight    = borderStyle.getTopRight();
-        int cBottomLeft  = borderStyle.getBottomLeft();
+        int cTopLeft = borderStyle.getTopLeft();
+        int cTopRight = borderStyle.getTopRight();
+        int cBottomLeft = borderStyle.getBottomLeft();
         int cBottomRight = borderStyle.getBottomRight();
-        int cHSide       = borderStyle.getHorizontal();
-        int cVSide       = borderStyle.getVertical();
+        int cHSide = borderStyle.getHorizontal();
+        int cVSide = borderStyle.getVertical();
 
         // Place the corner characters
         putForegroundCharXY(left, top, cTopLeft, border);
@@ -1225,13 +1129,13 @@ public class LogicalScreen implements Screen {
     /**
      * Draw a box shadow.
      *
-     * @param left left column of box.  0 is the left-most column.
-     * @param top top row of the box.  0 is the top-most row.
-     * @param right right column of box
+     * @param left   left column of box.  0 is the left-most column.
+     * @param top    top row of the box.  0 is the top-most row.
+     * @param right  right column of box
      * @param bottom bottom row of the box
      */
     public final void drawBoxShadow(final int left, final int top,
-        final int right, final int bottom) {
+                                    final int right, final int bottom) {
 
         final int shadowOpacity = SystemProperties.getShadowOpacity();
         if (shadowOpacity == 0) {
@@ -1261,14 +1165,14 @@ public class LogicalScreen implements Screen {
         for (int i = 0; i < boxHeight; i++) {
             Cell cell = getCharXY(offsetX + boxLeft + boxWidth,
                 offsetY + boxTop + 1 + i);
-            if (cell.getWidth() == Cell.Width.SINGLE) {
+            if ((cell.getWidth() == Cell.Width.SINGLE) && (!cell.isImage())) {
                 putAttrXY(boxLeft + boxWidth, boxTop + 1 + i, shadowAttr);
             } else {
                 putCharXY(boxLeft + boxWidth, boxTop + 1 + i, ' ', shadowAttr);
             }
             cell = getCharXY(offsetX + boxLeft + boxWidth + 1,
                 offsetY + boxTop + 1 + i);
-            if (cell.getWidth() == Cell.Width.SINGLE) {
+            if ((cell.getWidth() == Cell.Width.SINGLE) && (!cell.isImage())) {
                 putAttrXY(boxLeft + boxWidth + 1, boxTop + 1 + i, shadowAttr);
             } else {
                 putCharXY(boxLeft + boxWidth + 1, boxTop + 1 + i, ' ',
@@ -1278,7 +1182,7 @@ public class LogicalScreen implements Screen {
         for (int i = 0; i < boxWidth; i++) {
             Cell cell = getCharXY(offsetX + boxLeft + 2 + i,
                 offsetY + boxTop + boxHeight);
-            if (cell.getWidth() == Cell.Width.SINGLE) {
+            if ((cell.getWidth() == Cell.Width.SINGLE) && (!cell.isImage())) {
                 putAttrXY(boxLeft + 2 + i, boxTop + boxHeight, shadowAttr);
             } else {
                 putCharXY(boxLeft + 2 + i, boxTop + boxHeight, ' ', shadowAttr);
@@ -1291,14 +1195,15 @@ public class LogicalScreen implements Screen {
     /**
      * Default implementation does nothing.
      */
-    public void flushPhysical() {}
+    public void flushPhysical() {
+    }
 
     /**
      * Put the cursor at (x,y).
      *
      * @param visible if true, the cursor should be visible
-     * @param x column coordinate to put the cursor on
-     * @param y row coordinate to put the cursor on
+     * @param x       column coordinate to put the cursor on
+     * @param y       row coordinate to put the cursor on
      */
     public void putCursor(final boolean visible, final int x, final int y) {
         if ((cursorY >= 0)
@@ -1309,6 +1214,7 @@ public class LogicalScreen implements Screen {
             // Make the current cursor position dirty
             synchronized (this) {
                 physical[cursorX][cursorY].unset();
+                unsetImageRow(cursorY);
             }
         }
 
@@ -1356,7 +1262,8 @@ public class LogicalScreen implements Screen {
      *
      * @param title the new title
      */
-    public void setTitle(final String title) {}
+    public void setTitle(final String title) {
+    }
 
     // ------------------------------------------------------------------------
     // LogicalScreen ----------------------------------------------------------
@@ -1365,7 +1272,7 @@ public class LogicalScreen implements Screen {
     /**
      * Reallocate screen buffers.
      *
-     * @param width new width
+     * @param width  new width
      * @param height new height
      */
     private synchronized void reallocate(final int width, final int height) {
@@ -1420,14 +1327,31 @@ public class LogicalScreen implements Screen {
     }
 
     /**
+     * Unset every image cell on one row of the physical screen, forcing
+     * images on that row to be redrawn.
+     *
+     * @param y row coordinate.  0 is the top-most row.
+     */
+    public final void unsetImageRow(final int y) {
+        if ((y < 0) || (y >= height)) {
+            return;
+        }
+        for (int x = 0; x < width; x++) {
+            if (logical[x][y].isImage()) {
+                physical[x][y].unset();
+            }
+        }
+    }
+
+    /**
      * Render one fullwidth cell.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
      * @param cell the cell to draw
      */
     private void putFullwidthCharXY(final int x, final int y,
-        final ComplexCell cell) {
+                                    final ComplexCell cell) {
 
         ComplexCell left = new ComplexCell(cell);
         left.setWidth(Cell.Width.LEFT);
@@ -1442,13 +1366,13 @@ public class LogicalScreen implements Screen {
     /**
      * Render one fullwidth character with attributes.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
-     * @param ch character to draw
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
+     * @param ch   character to draw
      * @param attr attributes to use (bold, foreColor, backColor)
      */
     public final void putFullwidthCharXY(final int x, final int y,
-        final int ch, final CellAttributes attr) {
+                                         final int ch, final CellAttributes attr) {
 
         ComplexCell cell = new ComplexCell(ch, attr);
         putFullwidthCharXY(x, y, cell);
@@ -1457,12 +1381,12 @@ public class LogicalScreen implements Screen {
     /**
      * Render one fullwidth character with attributes.
      *
-     * @param x column coordinate.  0 is the left-most column.
-     * @param y row coordinate.  0 is the top-most row.
+     * @param x  column coordinate.  0 is the left-most column.
+     * @param y  row coordinate.  0 is the top-most row.
      * @param ch character to draw
      */
     public final void putFullwidthCharXY(final int x, final int y,
-        final int ch) {
+                                         final int ch) {
 
         ComplexCell cell = new ComplexCell(ch);
         cell.setAttr(getAttrXY(x, y));
@@ -1483,15 +1407,18 @@ public class LogicalScreen implements Screen {
     /**
      * Invert the cell color at a position.
      *
-     * @param x column position
-     * @param y row position
+     * @param x            column position
+     * @param y            row position
      * @param onlyThisCell if true, only invert this cell, otherwise invert
-     * both halves of a double-width cell if necessary
+     *                     both halves of a double-width cell if necessary
      */
     public void invertCell(final int x, final int y,
-        final boolean onlyThisCell) {
+                           final boolean onlyThisCell) {
 
         Cell cell = getCharXY(x, y);
+        if (cell.isImage()) {
+            cell.invertImage();
+        }
         if (cell.getForeColorRGB() < 0) {
             cell.setForeColor(cell.getForeColor().invert());
         } else {
@@ -1535,14 +1462,14 @@ public class LogicalScreen implements Screen {
     /**
      * Set a selection area on the screen.
      *
-     * @param x0 the starting X position of the selection
-     * @param y0 the starting Y position of the selection
-     * @param x1 the ending X position of the selection
-     * @param y1 the ending Y position of the selection
+     * @param x0        the starting X position of the selection
+     * @param y0        the starting Y position of the selection
+     * @param x1        the ending X position of the selection
+     * @param y1        the ending Y position of the selection
      * @param rectangle if true, this is a rectangle select
      */
     public void setSelection(final int x0, final int y0,
-        final int x1, final int y1, final boolean rectangle) {
+                             final int x1, final int y1, final boolean rectangle) {
 
         int startX = x0;
         int startY = y0;
@@ -1591,15 +1518,15 @@ public class LogicalScreen implements Screen {
      * Copy the screen selection area to the clipboard.
      *
      * @param clipboard the clipboard to use
-     * @param x0 the starting X position of the selection
-     * @param y0 the starting Y position of the selection
-     * @param x1 the ending X position of the selection
-     * @param y1 the ending Y position of the selection
+     * @param x0        the starting X position of the selection
+     * @param y0        the starting Y position of the selection
+     * @param x1        the ending X position of the selection
+     * @param y1        the ending Y position of the selection
      * @param rectangle if true, this is a rectangle select
      */
     public void copySelection(final Clipboard clipboard,
-        final int x0, final int y0, final int x1, final int y1,
-        final boolean rectangle) {
+                              final int x0, final int y0, final int x1, final int y1,
+                              final boolean rectangle) {
 
         StringBuilder sb = new StringBuilder();
 
@@ -1671,15 +1598,15 @@ public class LogicalScreen implements Screen {
     /**
      * Obtain a snapshot copy of a rectangular portion of the screen.
      *
-     * @param x left column of rectangle.  0 is the left-most column.
-     * @param y top row of the rectangle.  0 is the top-most row.
-     * @param width number of columns to copy
+     * @param x      left column of rectangle.  0 is the left-most column.
+     * @param y      top row of the rectangle.  0 is the top-most row.
+     * @param width  number of columns to copy
      * @param height number of rows to copy
      * @return a copy of the screen's data from this rectangle.  Any cells
      * outside the actual screen dimensions will be blank.
      */
     public Screen snapshot(final int x, final int y, final int width,
-        final int height) {
+                           final int height) {
 
         LogicalScreen other = null;
         synchronized (this) {
@@ -1703,15 +1630,15 @@ public class LogicalScreen implements Screen {
      * Obtain a snapshot copy of a rectangular portion of the screen of the
      * PHYSICAL screen - what was LAST emitted.
      *
-     * @param x left column of rectangle.  0 is the left-most column.
-     * @param y top row of the rectangle.  0 is the top-most row.
-     * @param width number of columns to copy
+     * @param x      left column of rectangle.  0 is the left-most column.
+     * @param y      top row of the rectangle.  0 is the top-most row.
+     * @param width  number of columns to copy
      * @param height number of rows to copy
      * @return a copy of the screen's data from this rectangle.  Any cells
      * outside the actual screen dimensions will be blank.
      */
     public Screen snapshotPhysical(final int x, final int y, final int width,
-        final int height) {
+                                   final int height) {
 
         LogicalScreen other = null;
         synchronized (this) {
@@ -1753,14 +1680,14 @@ public class LogicalScreen implements Screen {
      * Copy a rectangular portion of another screen to this one.  Any cells
      * outside this screen's dimensions will be ignored.
      *
-     * @param other the other screen
-     * @param x left column of rectangle.  0 is the left-most column.
-     * @param y top row of the rectangle.  0 is the top-most row.
-     * @param width number of columns to copy
+     * @param other  the other screen
+     * @param x      left column of rectangle.  0 is the left-most column.
+     * @param y      top row of the rectangle.  0 is the top-most row.
+     * @param width  number of columns to copy
      * @param height number of rows to copy
      */
     public void copyScreen(final Screen other, final int x, final int y,
-        final int width, final int height) {
+                           final int width, final int height) {
 
         synchronized (this) {
             for (int row = y; (row < y + height) && (row < this.height); row++) {
@@ -1799,22 +1726,24 @@ public class LogicalScreen implements Screen {
      * Alpha-blend a rectangle with a specified color and alpha onto this
      * screen.  Any cells outside this screen's dimensions will be ignored.
      *
-     * @param x left column of rectangle.  0 is the left-most column.
-     * @param y top row of the rectangle.  0 is the top-most row.
-     * @param width number of columns to copy
+     * @param x      left column of rectangle.  0 is the left-most column.
+     * @param y      top row of the rectangle.  0 is the top-most row.
+     * @param width  number of columns to copy
      * @param height number of rows to copy
-     * @param color the RGB color to blend
-     * @param alpha the alpha transparency level (0 - 255) to use for cells
-     * from the other screen
+     * @param color  the RGB color to blend
+     * @param alpha  the alpha transparency level (0 - 255) to use for cells
+     *               from the other screen
      */
     public void blendRectangle(final int x, final int y,
-        final int width, final int height, final int color, final int alpha) {
+                               final int width, final int height, final int color, final int alpha) {
 
         // We just create a new blank screen and blend it.
         LogicalScreen rectangle = new LogicalScreen(width, height);
-        for (int row = 0; row < height; row++) {
-            for (int col = 0; col < width; col++) {
-                rectangle.logical[col][row].setBackColorRGB(color);
+        if (color != 0) {
+            for (int row = 0; row < height; row++) {
+                for (int col = 0; col < width; col++) {
+                    rectangle.logical[col][row].setBackColorRGB(color);
+                }
             }
         }
 
@@ -1826,18 +1755,18 @@ public class LogicalScreen implements Screen {
      * Any cells outside this screen's dimensions will be ignored.
      *
      * @param otherScreen the other screen
-     * @param x left column of rectangle.  0 is the left-most column.
-     * @param y top row of the rectangle.  0 is the top-most row.
-     * @param width number of columns to copy
-     * @param height number of rows to copy
-     * @param alpha the alpha transparency level (0 - 255) to use for cells
-     * from the other screen
+     * @param x           left column of rectangle.  0 is the left-most column.
+     * @param y           top row of the rectangle.  0 is the top-most row.
+     * @param width       number of columns to copy
+     * @param height      number of rows to copy
+     * @param alpha       the alpha transparency level (0 - 255) to use for cells
+     *                    from the other screen
      * @param filterHatch if true, prevent hatch-like characters from
-     * showing through
+     *                    showing through
      */
     public void blendScreen(final Screen otherScreen, final int x, final int y,
-        final int width, final int height, final int alpha,
-        final boolean filterHatch) {
+                            final int width, final int height, final int alpha,
+                            final boolean filterHatch) {
 
         if (alpha == 255) {
             // This is a raw copy.
@@ -1872,11 +1801,11 @@ public class LogicalScreen implements Screen {
          */
         synchronized (this) {
 
-            BufferedImage thisForeground = new BufferedImage(width, height);
-            BufferedImage thisBackground = new BufferedImage(width, height);
-            BufferedImage overForeground = new BufferedImage(width, height);
-            BufferedImage overBackground = new BufferedImage(width, height);
-            BufferedImage thisOldBackground = new BufferedImage(width, height);
+            ImageRGB thisForeground = new ImageRGB(width, height);
+            ImageRGB thisBackground = new ImageRGB(width, height);
+            ImageRGB overForeground = new ImageRGB(width, height);
+            ImageRGB overBackground = new ImageRGB(width, height);
+            ImageRGB thisOldBackground = new ImageRGB(width, height);
 
             final int OPAQUE = 0xFF000000;
 
@@ -1949,7 +1878,7 @@ public class LogicalScreen implements Screen {
             float fAlpha = (float) (alpha / 255.0);
             thisForeground.alphaBlendOver(overBackground, fAlpha);
             thisBackground.alphaBlendOver(overBackground, fAlpha);
-            BufferedImage glyphForeground = new BufferedImage(thisBackground);
+            ImageRGB glyphForeground = new ImageRGB(thisBackground);
             glyphForeground.alphaBlendOver(overForeground, fAlpha);
 
             for (int row = y; (row < y + height) && (row < this.height); row++) {
@@ -1976,38 +1905,41 @@ public class LogicalScreen implements Screen {
                     thisCell.setDefaultColor(true, false);
                     thisCell.setDefaultColor(false, false);
 
-                    if (overCell.isSpaceChar() && !overCell.isUnderline()) {
+                    if (!overCell.isImage() && overCell.isSpaceChar()
+                        && !overCell.isUnderline()
+                    ) {
                         // The overlaying cell is invisible.
-
-                        // Our character will show through.  If the contrast
-                        // between our foreground and background is small,
-                        // then drop the character.
-                        if (ImageUtils.rgbDistance(thisFg, thisBg) < 5) {
-                            thisCell.setChar(' ');
-                            thisCell.setWidth(Cell.Width.SINGLE);
-                        }
-
-                        if (filterHatch) {
-                            // Special case: the hatch characters are not
-                            // allowed to show through.
-                            if (thisCell.isCodePoint(0x2591)
-                                || thisCell.isCodePoint(0x2592)
-                                || thisCell.isCodePoint(0x2593)
-                            ) {
+                        if (!thisCell.isImage()) {
+                            // Our character will show through.  If the contrast
+                            // between our foreground and background is small,
+                            // then drop the character.
+                            if (ImageUtils.rgbDistance(thisFg, thisBg) < 5) {
                                 thisCell.setChar(' ');
                                 thisCell.setWidth(Cell.Width.SINGLE);
                             }
+
+                            if (filterHatch) {
+                                // Special case: the hatch characters are not
+                                // allowed to show through.
+                                if (thisCell.isCodePoint(0x2591)
+                                    || thisCell.isCodePoint(0x2592)
+                                    || thisCell.isCodePoint(0x2593)
+                                ) {
+                                    thisCell.setChar(' ');
+                                    thisCell.setWidth(Cell.Width.SINGLE);
+                                }
+                            }
+                            if (cursorVisible &&
+                                (col == cursorX) &&
+                                (row == cursorY)
+                            ) {
+                                // Don't surface the character behind the cursor.
+                                thisCell.setForeColorRGB(overFg);
+                                thisCell.setChar(' ');
+                                thisCell.setWidth(Cell.Width.SINGLE);
+                            }
+                            continue;
                         }
-                        if (cursorVisible &&
-                            (col == cursorX) &&
-                            (row == cursorY)
-                        ) {
-                            // Don't surface the character behind the cursor.
-                            thisCell.setForeColorRGB(overFg);
-                            thisCell.setChar(' ');
-                            thisCell.setWidth(Cell.Width.SINGLE);
-                        }
-                        continue;
                     }
 
                     // The overlaying cell has a character, use it.
@@ -2020,6 +1952,34 @@ public class LogicalScreen implements Screen {
                     thisCell.setAnimations(overCell.getAnimations());
                     thisCell.setPulse(false, false, 0);
                     thisCell.setWidth(overCell.getWidth());
+
+                    if (!overCell.isImage()) {
+                        if(thisCell.isImage()) {
+                            // If we had an image, destroy it.  Text ALWAYS
+                            // overwrites images.
+                            thisCell.setImage(null);
+                            thisCell.setBackColorRGB(overBg);
+                        }
+                        continue;
+                    }
+
+                    // The image from the new cell will fully cover this
+                    // cell's background or glyph.
+                    ImageRGB image = overCell.getImage();
+                    // Retain overCell.imageId with thisOldBg and set
+                    int imageId = overCell.getImageId();
+                    if (imageId > 0) {
+                        thisCell.setImage(image, imageId);
+                        thisCell.mixImageId(thisOldBg);
+                        thisCell.mixImageId(alpha);
+                    } else {
+                        thisCell.setImage(image);
+                    }
+                    thisCell.setWidth(overCell.getWidth());
+
+                    // There should be nothing to do now.  We have set the
+                    // character, or set the image, and blended backgrounds
+                    // for each case.
                 }
             }
         }
@@ -2029,19 +1989,19 @@ public class LogicalScreen implements Screen {
      * Perform some kind of change to a cell, based on its location relative
      * to a widget or the entire screen.
      *
-     * @param backend the backend that can obtain the correct foreground or
-     * background color of the cell
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param width width of area to be modified
-     * @param height height of area to be modified
+     * @param backend       the backend that can obtain the correct foreground or
+     *                      background color of the cell
+     * @param x             column relative to parent
+     * @param y             row relative to parent
+     * @param width         width of area to be modified
+     * @param height        height of area to be modified
      * @param cellTransform the cell transform to apply
-     * @param widget the widget this cell is on, or null if the transform is
-     * relative to the entire screen
+     * @param widget        the widget this cell is on, or null if the transform is
+     *                      relative to the entire screen
      */
     public final void applyCellTransform(final Backend backend,
-        final int x, final int y, final int width, final int height,
-        final CellTransform cellTransform, TWidget widget) {
+                                         final int x, final int y, final int width, final int height,
+                                         final CellTransform cellTransform, TWidget widget) {
 
         assert (backend != null);
         assert (cellTransform != null);

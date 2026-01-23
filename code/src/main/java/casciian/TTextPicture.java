@@ -200,11 +200,11 @@ public class TTextPicture extends TScrollable implements TerminalListener {
             return;
         }
         if (mouse.isMouseWheelLeft()) {
-            horizontalDecrement();
+            horizontalIncrement();
             return;
         }
         if (mouse.isMouseWheelRight()) {
-            horizontalIncrement();
+            horizontalDecrement();
             return;
         }
         super.onMouseDown(mouse);
@@ -352,6 +352,11 @@ public class TTextPicture extends TScrollable implements TerminalListener {
             }
             for (int i = 0; i < widthMax; i++) {
                 Cell ch = line.charAt(i + left);
+
+                if (ch.isImage()) {
+                    putCharXY(i, row, ch);
+                    continue;
+                }
 
                 Cell newCell = new Cell(ch);
                 boolean reverse = line.isReverseColor() ^ ch.isReverse();

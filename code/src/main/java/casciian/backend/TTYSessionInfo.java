@@ -60,7 +60,7 @@ public class TTYSessionInfo implements SessionInfo {
     /**
      * The time this session was started.
      */
-    private long startTime = System.currentTimeMillis();
+    private final long startTime = System.currentTimeMillis();
 
     /**
      * The number of seconds since the last user input event from this

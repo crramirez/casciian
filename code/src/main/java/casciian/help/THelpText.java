@@ -141,14 +141,14 @@ public class THelpText extends TScrollable {
         }
         if (mouse.isMouseWheelLeft()) {
             for (int i = 0; i < wheelScrollSize; i++) {
-                hScroller.decrement();
+                hScroller.increment();
             }
             reflowData();
             return;
         }
         if (mouse.isMouseWheelRight()) {
             for (int i = 0; i < wheelScrollSize; i++) {
-                hScroller.increment();
+                hScroller.decrement();
             }
             reflowData();
             return;

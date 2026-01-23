@@ -103,6 +103,14 @@ public interface Backend {
     public void setReadOnly(final boolean readOnly);
 
     /**
+     * Set the mouse pointer (cursor) style.
+     *
+     * @param mouseStyle the pointer style string, one of: "default", "none",
+     * "hand", "text", "move", or "crosshair"
+     */
+    public void setMouseStyle(final String mouseStyle);
+
+    /**
      * Convert a CellAttributes foreground color to an RGB color.
      *
      * @param attr the text attributes

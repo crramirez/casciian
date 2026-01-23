@@ -668,9 +668,9 @@ public class TTable extends TWidget {
             // Treat wheel left/right as 3 left/right
             TKeypressEvent keyEvent;
             if (mouse.isMouseWheelLeft()) {
-                keyEvent = new TKeypressEvent(mouse.getBackend(), kbLeft);
-            } else {
                 keyEvent = new TKeypressEvent(mouse.getBackend(), kbRight);
+            } else {
+                keyEvent = new TKeypressEvent(mouse.getBackend(), kbLeft);
             }
             for (int i = 0; i < 3; i++) {
                 onKeypress(keyEvent);

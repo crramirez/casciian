@@ -123,9 +123,9 @@ public class TTreeViewWindow extends TScrollableWindow {
         } else if (mouse.isMouseWheelDown()) {
             verticalIncrement();
         } else if (mouse.isMouseWheelLeft()) {
-            horizontalDecrement();
-        } else if (mouse.isMouseWheelRight()) {
             horizontalIncrement();
+        } else if (mouse.isMouseWheelRight()) {
+            horizontalDecrement();
         } else {
             // Pass to the TreeView or scrollbars
             super.onMouseDown(mouse);

@@ -519,11 +519,11 @@ public class TTerminal extends TScrollable
                     return;
                 }
                 if (mouse.isMouseWheelLeft()) {
-                    horizontalDecrement();
+                    horizontalIncrement();
                     return;
                 }
                 if (mouse.isMouseWheelRight()) {
-                    horizontalIncrement();
+                    horizontalDecrement();
                     return;
                 }
             }

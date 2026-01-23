@@ -43,6 +43,7 @@ import casciian.menu.TMenu;
 import casciian.menu.TMenuItem;
 import casciian.menu.TSubMenu;
 import casciian.backend.Backend;
+import casciian.image.decoders.ImageDecoderRegistry;
 
 /**
  * The demo application itself.
@@ -539,6 +540,11 @@ public class DemoApplication extends TApplication {
      * Add all the widgets of the demo.
      */
     private void addAllWidgets() {
+        // Register demo image decoders
+        ImageDecoderRegistry registry = ImageDecoderRegistry.getInstance();
+        registry.registerDecoder(new BMP24ImageDecoder());
+        registry.registerDecoder(new XPMImageDecoder());
+
         // Temporarily disable animations so that this specific window does
         // not have an open effect.
         boolean oldHasAnimations = SystemProperties.isAnimations();

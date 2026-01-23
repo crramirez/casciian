@@ -27,6 +27,20 @@ import casciian.bits.Clipboard;
 public interface Screen {
 
     /**
+     * Get the width of a character cell in pixels.
+     *
+     * @return the width in pixels of a character cell
+     */
+    public int getTextWidth();
+
+    /**
+     * Get the height of a character cell in pixels.
+     *
+     * @return the height in pixels of a character cell
+     */
+    public int getTextHeight();
+
+    /**
      * Set drawing offset for x.
      *
      * @param offsetX new drawing offset

@@ -60,6 +60,13 @@
       ]
     },
     {
+      "name": "casciian.TImageWindowBundle",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
       "name": "casciian.TMessageBoxBundle",
       "locales": [
         "",
