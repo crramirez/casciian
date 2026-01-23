@@ -1,6 +1,7 @@
 package casciian.terminal;
 
 import casciian.bits.ImageRGB;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Unit tests for {@link SixelDecoder}.
  */
+@DisplayName("SixelDecoder Tests")
 class SixelDecoderTest {
 
     @Test
