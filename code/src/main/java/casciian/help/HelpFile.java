@@ -326,7 +326,7 @@ public class HelpFile {
             String topicName = node.getNodeName();
             String value = node.getTextContent();
 
-            if (topicName.equals("topicName")) {
+            if (topicName.equals("name")) {
                 this.name = value;
             }
             if (topicName.equals("version")) {
