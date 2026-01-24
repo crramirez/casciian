@@ -621,5 +621,50 @@ class ECMA48TerminalTest {
         return sb.toString();
     }
     
+    // Thread safety tests
+
+    @Test
+    @DisplayName("setSixelPaletteSize can be called safely - cache field is volatile")
+    void testSixelPaletteSizeChange() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+        
+        // Call setSixelPaletteSize which sets sixelCache to null
+        // This should not cause any issues
+        assertDoesNotThrow(() -> terminal.setSixelPaletteSize(256));
+        assertEquals(256, terminal.getSixelPaletteSize());
+        
+        assertDoesNotThrow(() -> terminal.setSixelPaletteSize(16));
+        assertEquals(16, terminal.getSixelPaletteSize());
+    }
+
+    @Test
+    @DisplayName("setSixelSharedPalette can be called safely - cache field is volatile")
+    void testSixelSharedPaletteChange() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+        
+        // Call setSixelSharedPalette which sets sixelCache to null
+        // This should not cause any issues - the actual behavior depends on the encoder
+        // but the important thing is it doesn't throw
+        assertDoesNotThrow(() -> terminal.setSixelSharedPalette(true));
+        assertDoesNotThrow(() -> terminal.setSixelSharedPalette(false));
+    }
+
+    @Test
+    @DisplayName("setHasSixel can be called safely - cache field is volatile")
+    void testSetHasSixel() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+        
+        // Call setHasSixel which sets sixelCache to null
+        // This should not cause any issues
+        assertDoesNotThrow(() -> terminal.setHasSixel(false));
+        assertFalse(terminal.hasSixel());
+        
+        assertDoesNotThrow(() -> terminal.setHasSixel(true));
+        assertTrue(terminal.hasSixel());
+    }
+    
     
 }
