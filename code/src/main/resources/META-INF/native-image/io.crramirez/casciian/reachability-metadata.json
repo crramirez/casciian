@@ -1,54 +1,1021 @@
 {
-  "reflection": [
-    {
-      "type": "com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl",
-      "methods": [
+    "reflection": [
         {
-          "name": "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "java.lang.Process",
-      "methods": [
-        {
-          "name": "pid",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "java.util.concurrent.ForkJoinTask",
-      "fields": [
-        {
-          "name": "aux"
+            "type": "com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": []
+                }
+            ]
         },
         {
-          "name": "status"
+            "type": "java.util.concurrent.ForkJoinTask",
+            "fields": [
+                {
+                    "name": "aux"
+                },
+                {
+                    "name": "status"
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Boolean",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "TYPE"
+                },
+                {
+                    "name": "value"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "boolean"
+                    ]
+                },
+                {
+                    "name": "getBoolean",
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Byte",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "TYPE"
+                },
+                {
+                    "name": "value"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "byte"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Character",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "TYPE"
+                },
+                {
+                    "name": "value"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "char"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Class",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "getComponentType",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Double",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "TYPE"
+                },
+                {
+                    "name": "value"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "double"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Float",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "TYPE"
+                },
+                {
+                    "name": "value"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "float"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Integer",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "TYPE"
+                },
+                {
+                    "name": "value"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "int"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Long",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "TYPE"
+                },
+                {
+                    "name": "value"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "long"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Object",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "toString",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Process",
+            "methods": [
+                {
+                    "name": "pid",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.lang.ProcessBuilder$RedirectPipeImpl",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "fd"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Short",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "TYPE"
+                },
+                {
+                    "name": "value"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "short"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.lang.String",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "byte[]"
+                    ]
+                },
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "byte[]",
+                        "java.lang.String"
+                    ]
+                },
+                {
+                    "name": "getBytes",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "getBytes",
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
+                },
+                {
+                    "name": "toCharArray",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.lang.String[]"
+        },
+        {
+            "type": "java.lang.System",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "getProperty",
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Throwable"
+        },
+        {
+            "type": "java.lang.UnsatisfiedLinkError",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "java.lang.Void",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "TYPE"
+                }
+            ]
+        },
+        {
+            "type": "java.lang.invoke.MethodHandle"
+        },
+        {
+            "type": "java.lang.invoke.MethodHandles"
+        },
+        {
+            "type": "java.lang.invoke.MethodHandles$Lookup"
+        },
+        {
+            "type": "java.lang.invoke.MethodType"
+        },
+        {
+            "type": "java.lang.reflect.Method",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "getParameterTypes",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "getReturnType",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "isDefault",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.nio.Buffer",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "position",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.nio.ByteBuffer",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "array",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "arrayOffset",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.nio.CharBuffer",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "array",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "arrayOffset",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.nio.DoubleBuffer",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "array",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "arrayOffset",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.nio.FloatBuffer",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "array",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "arrayOffset",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.nio.IntBuffer",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "array",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "arrayOffset",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.nio.LongBuffer",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "array",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "arrayOffset",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "java.nio.ShortBuffer",
+            "jniAccessible": true,
+            "methods": [
+                {
+                    "name": "array",
+                    "parameterTypes": []
+                },
+                {
+                    "name": "arrayOffset",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "org.jline.nativ.Kernel32",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "BACKGROUND_BLUE"
+                },
+                {
+                    "name": "BACKGROUND_GREEN"
+                },
+                {
+                    "name": "BACKGROUND_INTENSITY"
+                },
+                {
+                    "name": "BACKGROUND_RED"
+                },
+                {
+                    "name": "COMMON_LVB_GRID_HORIZONTAL"
+                },
+                {
+                    "name": "COMMON_LVB_GRID_LVERTICAL"
+                },
+                {
+                    "name": "COMMON_LVB_GRID_RVERTICAL"
+                },
+                {
+                    "name": "COMMON_LVB_LEADING_BYTE"
+                },
+                {
+                    "name": "COMMON_LVB_REVERSE_VIDEO"
+                },
+                {
+                    "name": "COMMON_LVB_TRAILING_BYTE"
+                },
+                {
+                    "name": "COMMON_LVB_UNDERSCORE"
+                },
+                {
+                    "name": "FOREGROUND_BLUE"
+                },
+                {
+                    "name": "FOREGROUND_GREEN"
+                },
+                {
+                    "name": "FOREGROUND_INTENSITY"
+                },
+                {
+                    "name": "FOREGROUND_RED"
+                },
+                {
+                    "name": "FORMAT_MESSAGE_FROM_SYSTEM"
+                },
+                {
+                    "name": "INVALID_HANDLE_VALUE"
+                },
+                {
+                    "name": "STD_ERROR_HANDLE"
+                },
+                {
+                    "name": "STD_INPUT_HANDLE"
+                },
+                {
+                    "name": "STD_OUTPUT_HANDLE"
+                }
+            ]
+        },
+        {
+            "type": "org.jline.nativ.Kernel32$CONSOLE_SCREEN_BUFFER_INFO",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "SIZEOF"
+                },
+                {
+                    "name": "attributes"
+                },
+                {
+                    "name": "cursorPosition"
+                },
+                {
+                    "name": "maximumWindowSize"
+                },
+                {
+                    "name": "size"
+                },
+                {
+                    "name": "window"
+                }
+            ]
+        },
+        {
+            "type": "org.jline.nativ.Kernel32$COORD",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "SIZEOF"
+                },
+                {
+                    "name": "x"
+                },
+                {
+                    "name": "y"
+                }
+            ]
+        },
+        {
+            "type": "org.jline.nativ.Kernel32$FOCUS_EVENT_RECORD",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "SIZEOF"
+                },
+                {
+                    "name": "setFocus"
+                }
+            ]
+        },
+        {
+            "type": "org.jline.nativ.Kernel32$INPUT_RECORD",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "FOCUS_EVENT"
+                },
+                {
+                    "name": "KEY_EVENT"
+                },
+                {
+                    "name": "MENU_EVENT"
+                },
+                {
+                    "name": "MOUSE_EVENT"
+                },
+                {
+                    "name": "SIZEOF"
+                },
+                {
+                    "name": "WINDOW_BUFFER_SIZE_EVENT"
+                },
+                {
+                    "name": "eventType"
+                },
+                {
+                    "name": "focusEvent"
+                },
+                {
+                    "name": "keyEvent"
+                },
+                {
+                    "name": "menuEvent"
+                },
+                {
+                    "name": "mouseEvent"
+                },
+                {
+                    "name": "windowBufferSizeEvent"
+                }
+            ]
+        },
+        {
+            "type": "org.jline.nativ.Kernel32$KEY_EVENT_RECORD",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "CAPSLOCK_ON"
+                },
+                {
+                    "name": "ENHANCED_KEY"
+                },
+                {
+                    "name": "LEFT_ALT_PRESSED"
+                },
+                {
+                    "name": "LEFT_CTRL_PRESSED"
+                },
+                {
+                    "name": "NUMLOCK_ON"
+                },
+                {
+                    "name": "RIGHT_ALT_PRESSED"
+                },
+                {
+                    "name": "RIGHT_CTRL_PRESSED"
+                },
+                {
+                    "name": "SCROLLLOCK_ON"
+                },
+                {
+                    "name": "SHIFT_PRESSED"
+                },
+                {
+                    "name": "SIZEOF"
+                },
+                {
+                    "name": "controlKeyState"
+                },
+                {
+                    "name": "keyCode"
+                },
+                {
+                    "name": "keyDown"
+                },
+                {
+                    "name": "repeatCount"
+                },
+                {
+                    "name": "scanCode"
+                },
+                {
+                    "name": "uchar"
+                }
+            ]
+        },
+        {
+            "type": "org.jline.nativ.Kernel32$MENU_EVENT_RECORD",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "SIZEOF"
+                },
+                {
+                    "name": "commandId"
+                }
+            ]
+        },
+        {
+            "type": "org.jline.nativ.Kernel32$MOUSE_EVENT_RECORD",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "CAPSLOCK_ON"
+                },
+                {
+                    "name": "DOUBLE_CLICK"
+                },
+                {
+                    "name": "ENHANCED_KEY"
+                },
+                {
+                    "name": "FROM_LEFT_1ST_BUTTON_PRESSED"
+                },
+                {
+                    "name": "FROM_LEFT_2ND_BUTTON_PRESSED"
+                },
+                {
+                    "name": "FROM_LEFT_3RD_BUTTON_PRESSED"
+                },
+                {
+                    "name": "FROM_LEFT_4TH_BUTTON_PRESSED"
+                },
+                {
+                    "name": "LEFT_ALT_PRESSED"
+                },
+                {
+                    "name": "LEFT_CTRL_PRESSED"
+                },
+                {
+                    "name": "MOUSE_HWHEELED"
+                },
+                {
+                    "name": "MOUSE_MOVED"
+                },
+                {
+                    "name": "MOUSE_WHEELED"
+                },
+                {
+                    "name": "NUMLOCK_ON"
+                },
+                {
+                    "name": "RIGHTMOST_BUTTON_PRESSED"
+                },
+                {
+                    "name": "RIGHT_ALT_PRESSED"
+                },
+                {
+                    "name": "RIGHT_CTRL_PRESSED"
+                },
+                {
+                    "name": "SCROLLLOCK_ON"
+                },
+                {
+                    "name": "SHIFT_PRESSED"
+                },
+                {
+                    "name": "SIZEOF"
+                },
+                {
+                    "name": "buttonState"
+                },
+                {
+                    "name": "controlKeyState"
+                },
+                {
+                    "name": "eventFlags"
+                },
+                {
+                    "name": "mousePosition"
+                }
+            ]
+        },
+        {
+            "type": "org.jline.nativ.Kernel32$SMALL_RECT",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "SIZEOF"
+                },
+                {
+                    "name": "bottom"
+                },
+                {
+                    "name": "left"
+                },
+                {
+                    "name": "right"
+                },
+                {
+                    "name": "top"
+                }
+            ]
+        },
+        {
+            "type": "org.jline.nativ.Kernel32$WINDOW_BUFFER_SIZE_RECORD",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "SIZEOF"
+                },
+                {
+                    "name": "size"
+                }
+            ]
+        },
+        {
+            "type": "org.jline.terminal.impl.exec.ExecTerminalProvider",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "org.jline.terminal.impl.ffm.FfmTerminalProvider",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "org.jline.terminal.impl.jni.JniTerminalProvider",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "sun.launcher.LauncherHelper",
+            "jniAccessible": true,
+            "fields": [
+                {
+                    "name": "isStaticMain"
+                },
+                {
+                    "name": "noArgMain"
+                }
+            ],
+            "methods": [
+                {
+                    "name": "getApplicationClass",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "sun.misc.Signal",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "java.lang.String"
+                    ]
+                },
+                {
+                    "name": "handle",
+                    "parameterTypes": [
+                        "sun.misc.Signal",
+                        "sun.misc.SignalHandler"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "sun.misc.SignalHandler",
+            "fields": [
+                {
+                    "name": "SIG_DFL"
+                }
+            ]
+        },
+        {
+            "type": "sun.security.provider.DRBG",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": [
+                        "java.security.SecureRandomParameters"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "sun.security.provider.SHA",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "sun.security.provider.SHA2$SHA256",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "sun.text.resources.cldr.FormatData"
+        },
+        {
+            "type": {
+                "proxy": [
+                    "com.pty4j.windows.winpty.WinPty$Kern32"
+                ]
+            }
+        },
+        {
+            "type": {
+                "proxy": [
+                    "com.pty4j.windows.winpty.WinPty$WinPtyLib"
+                ]
+            }
+        },
+        {
+            "type": {
+                "proxy": [
+                    "com.sun.jna.platform.win32.Kernel32"
+                ]
+            }
+        },
+        {
+            "type": {
+                "proxy": [
+                    "com.sun.jna.platform.win32.Version"
+                ]
+            }
         }
-      ]
-    }
-  ],
-
+    ],
     "resources": [
-        { "pattern": "\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E" },
-        { "pattern": "\\Qhelp.xml\\E" },
-        { "bundle": "casciian.TApplicationBundle" },
-        { "bundle": "casciian.TEditColorThemeWindowBundle" },
-        { "bundle": "casciian.TEditDesktopStyleWindowBundle" },
-        { "bundle": "casciian.TEditorWindowBundle" },
-        { "bundle": "casciian.TExceptionDialogBundle" },
-        { "bundle": "casciian.TFileOpenBoxBundle" },
-        { "bundle": "casciian.THelpWindowBundle" },
-        { "bundle": "casciian.TImageWindowBundle" },
-        { "bundle": "casciian.TMessageBoxBundle" },
-        { "bundle": "casciian.TTableWindowBundle" },
-        { "bundle": "casciian.TTerminalBundle" },
-        { "bundle": "casciian.TTerminalInformationWindowBundle" },
-        { "bundle": "casciian.TTerminalWindowBundle" },
-        { "bundle": "casciian.help.HelpFileBundle" },
-        { "bundle": "casciian.help.TopicBundle" },
-        { "bundle": "casciian.menu.TMenuBundle" }
+        {
+            "glob": "META-INF/maven/org.jline/jline-native/pom.properties"
+        },
+        {
+            "glob": "META-INF/services/java.util.spi.ResourceBundleControlProvider"
+        },
+        {
+            "glob": "META-INF/services/javax.xml.parsers.DocumentBuilderFactory"
+        },
+        {
+            "glob": "META-INF/services/org.slf4j.spi.SLF4JServiceProvider"
+        },
+        {
+            "glob": "META-INF/services/org/jline/terminal/provider/exec"
+        },
+        {
+            "glob": "META-INF/services/org/jline/terminal/provider/ffm"
+        },
+        {
+            "glob": "META-INF/services/org/jline/terminal/provider/jansi"
+        },
+        {
+            "glob": "META-INF/services/org/jline/terminal/provider/jna"
+        },
+        {
+            "glob": "META-INF/services/org/jline/terminal/provider/jni"
+        },
+        {
+            "glob": "org/jline/nativ/Windows/x86_64/jlinenative.dll"
+        },
+        {
+            "glob": "org/jline/utils/capabilities.txt"
+        },
+        {
+            "glob": "org/jline/utils/windows-vtp.caps"
+        },
+        {
+            "glob": "org/slf4j/impl/StaticLoggerBinder.class"
+        },
+        {
+            "glob": "resources/com/pty4j/native/win/x86-64/OpenConsole.exe"
+        },
+        {
+            "glob": "resources/com/pty4j/native/win/x86-64/conpty.dll"
+        },
+        {
+            "glob": "resources/com/pty4j/native/win/x86-64/cyglaunch.exe"
+        },
+        {
+            "glob": "resources/com/pty4j/native/win/x86-64/win-helper.dll"
+        },
+        {
+            "glob": "resources/com/pty4j/native/win/x86-64/winpty-agent.exe"
+        },
+        {
+            "glob": "resources/com/pty4j/native/win/x86-64/winpty.dll"
+        },
+        {
+            "pattern": "\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
+        },
+        {
+            "pattern": "\\Qhelp.xml\\E"
+        },
+        {
+            "bundle": "casciian.TApplicationBundle"
+        },
+        {
+            "bundle": "casciian.TEditColorThemeWindowBundle"
+        },
+        {
+            "bundle": "casciian.TEditDesktopStyleWindowBundle"
+        },
+        {
+            "bundle": "casciian.TEditorWindowBundle"
+        },
+        {
+            "bundle": "casciian.TExceptionDialogBundle"
+        },
+        {
+            "bundle": "casciian.TFileOpenBoxBundle"
+        },
+        {
+            "bundle": "casciian.THelpWindowBundle"
+        },
+        {
+            "bundle": "casciian.TImageWindowBundle"
+        },
+        {
+            "bundle": "casciian.TMessageBoxBundle"
+        },
+        {
+            "bundle": "casciian.TTableWindowBundle"
+        },
+        {
+            "bundle": "casciian.TTerminalBundle"
+        },
+        {
+            "bundle": "casciian.TTerminalInformationWindowBundle"
+        },
+        {
+            "bundle": "casciian.TTerminalWindowBundle"
+        },
+        {
+            "bundle": "casciian.help.HelpFileBundle"
+        },
+        {
+            "bundle": "casciian.help.TopicBundle"
+        },
+        {
+            "bundle": "casciian.menu.TMenuBundle"
+        }
     ]
 }

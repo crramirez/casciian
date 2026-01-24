@@ -14,7 +14,6 @@
  */
 package casciian;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.reflect.Field;
@@ -29,25 +28,19 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
-import casciian.bits.Cell;
 import casciian.bits.Clipboard;
 import casciian.bits.ComplexCell;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
-import casciian.event.TMenuEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
-import casciian.menu.TMenu;
 import casciian.terminal.DisplayLine;
 import casciian.terminal.ECMA48;
 import casciian.terminal.TerminalListener;
 import casciian.terminal.TerminalState;
 import com.pty4j.PtyProcess;
 import com.pty4j.PtyProcessBuilder;
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Size;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
+import com.pty4j.WinSize;
 
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
@@ -90,18 +83,6 @@ public class TTerminal extends TScrollable
      * The command line for the shell.
      */
     private String [] commandLine;
-
-    /**
-     * If true, something called 'ptypipe' is on the PATH and executable.
-     */
-    private static boolean ptypipeOnPath = false;
-
-    /**
-     * If true, we are using the ptypipe utility to support dynamic window
-     * resizing.  ptypipe is available at
-     * https://gitlab.com/AutumnMeowMeow/ptypipe .
-     */
-    private boolean ptypipe = false;
 
     /**
      * The last seen terminal state.
@@ -240,23 +221,7 @@ public class TTerminal extends TScrollable
         String [] fullCommand;
 
         // Spawn a shell and pass its I/O to the other constructor.
-        if ((System.getProperty("casciian.TTerminal.ptypipe") != null)
-            && (System.getProperty("casciian.TTerminal.ptypipe").
-                equals("true"))
-        ) {
-            ptypipe = true;
-            fullCommand = new String[command.length + 1];
-            fullCommand[0] = "ptypipe";
-            System.arraycopy(command, 0, fullCommand, 1, command.length);
-        } else if (System.getProperty("casciian.TTerminal.ptypipe",
-                "auto").equals("auto")
-            && (ptypipeOnPath == true)
-        ) {
-            ptypipe = true;
-            fullCommand = new String[command.length + 1];
-            fullCommand[0] = "ptypipe";
-            System.arraycopy(command, 0, fullCommand, 1, command.length);
-        } else if (System.getProperty("os.name").startsWith("Windows")) {
+        if (System.getProperty("os.name").startsWith("Windows")) {
             fullCommand = new String[3];
             fullCommand[0] = "cmd";
             fullCommand[1] = "/c";
@@ -341,9 +306,6 @@ public class TTerminal extends TScrollable
 
         if (System.getProperty("casciian.TTerminal.shell") != null) {
             String shell = System.getProperty("casciian.TTerminal.shell");
-            if (shell.trim().startsWith("ptypipe")) {
-                ptypipe = true;
-            }
             spawnShell(shell.split("\\s+"));
             return;
         }
@@ -358,27 +320,15 @@ public class TTerminal extends TScrollable
         // Use 'script' instead to run a shell in a pty.  And because BSD and
         // GNU differ on the '-f' vs '-F' flags, we need two different
         // commands.  Lovely.
-        String cmdShellGNU = "script -fqe /dev/null";
-        String cmdShellGNUSetsid = "setsid script -fqe /dev/null";
-        String cmdShellBSD = "script -q -F /dev/null";
+        String cmdShellGNU = "/bin/bash --login";
+        String cmdShellGNUSetsid = "setsid /bin/bash --login";
+        String cmdShellBSD = "/bin/bash --login";
 
         // ptypipe is another solution that permits dynamic window resizing.
         String cmdShellPtypipe = "ptypipe /bin/bash --login";
 
         // Spawn a shell and pass its I/O to the other constructor.
-        if ((System.getProperty("casciian.TTerminal.ptypipe") != null)
-            && (System.getProperty("casciian.TTerminal.ptypipe").
-                equals("true"))
-        ) {
-            ptypipe = true;
-            spawnShell(cmdShellPtypipe.split("\\s+"));
-        } else if (System.getProperty("casciian.TTerminal.ptypipe",
-                "auto").equals("auto")
-            && (ptypipeOnPath == true)
-        ) {
-            ptypipe = true;
-            spawnShell(cmdShellPtypipe.split("\\s+"));
-        } else if (System.getProperty("os.name").startsWith("Windows")) {
+        if (System.getProperty("os.name").startsWith("Windows")) {
             spawnShell(cmdShellWindows.split("\\s+"));
         } else if (System.getProperty("os.name").startsWith("Mac")) {
             spawnShell(cmdShellBSD.split("\\s+"));
@@ -426,13 +376,9 @@ public class TTerminal extends TScrollable
                 // Get out of scrollback
                 setVerticalValue(0);
 
-                if (ptypipe) {
-                    emulator.setWidth(getWidth());
-                    emulator.setHeight(getHeight());
-
-                    emulator.writeRemote("\033[8;" + getHeight() + ";" +
-                        getWidth() + "t");
-                }
+                emulator.setWidth(getWidth());
+                emulator.setHeight(getHeight());
+                shell.setWinSize(new WinSize(getWidth(), getHeight()));
             }
             return;
 
@@ -738,28 +684,6 @@ public class TTerminal extends TScrollable
      * Check for 'ptypipe' on the path.  If available, set ptypipeOnPath.
      */
     private static void checkForPtypipe() {
-        try {
-            // Use ProcessBuilder to check if the command exists
-            // This is more efficient as it leverages the OS's PATH resolution
-            ProcessBuilder pb;
-            if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                pb = new ProcessBuilder("where", "ptypipe");
-            } else {
-                pb = new ProcessBuilder("sh", "-c", "command -v ptypipe");
-            }
-            Process process = pb.start();
-            int exitCode = process.waitFor();
-            ptypipeOnPath = (exitCode == 0);
-        } catch (InterruptedException e) {
-            // If the check fails, assume ptypipe is not available
-            ptypipeOnPath = false;
-
-            // Restore the interrupted status so calling code can handle it.
-            Thread.currentThread().interrupt();
-        } catch (IOException e) {
-            // If the check fails, assume ptypipe is not available
-            ptypipeOnPath = false;
-        }
     }
 
     /**
@@ -1293,10 +1217,7 @@ public class TTerminal extends TScrollable
      * @return the number of columns in the display
      */
     public int getDisplayWidth() {
-        if (ptypipe) {
-            return getWidth();
-        }
-        return 80;
+        return getWidth();
     }
 
     /**
@@ -1305,10 +1226,7 @@ public class TTerminal extends TScrollable
      * @return the number of rows in the display
      */
     public int getDisplayHeight() {
-        if (ptypipe) {
-            return getHeight();
-        }
-        return 24;
+        return getHeight();
     }
 
     /**

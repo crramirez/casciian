@@ -109,27 +109,6 @@ public class TerminalState {
 
     /**
      * Package private constructor.
-     *
-     * @param attr current text attributes
-     * @param width the display width
-     * @param height the display height
-     * @param scrollBuffer the portion of the display that has scrolled out
-     * of view.
-     * @param displayBuffer the portion of the display is within view
-     * @param cursorVisible if true, the cursor is visible
-     * @param cursorX current cursor X
-     * @param cursorY current cursor Y
-     * @param hideMousePointer if true, the terminal has requested the mouse
-     * pointer be hidden
-     * @param mouseProtocol the mouse protocol, one of MouseProtocol.OFF,
-     * MouseProtocol.X10, etc.
-     * @param screenTitle the screen title as set by the xterm OSC sequence
-     * @param withinSynchronizedUpdate true if the remote side has requested
-     * a synchronized update
-     * @param lastVisibleDisplay the last display returned from
-     * getVisibleDisplay()
-     * @param lastVisibleUpdateTime the last time we returned
-     * lastVisibleDisplay
      */
     TerminalState(final CellAttributes attr, final int width, final int height,
         final List<DisplayLine> scrollbackBuffer,
@@ -272,11 +251,10 @@ public class TerminalState {
         if (buffer == null) {
             return null;
         }
-        List<DisplayLine> result = new ArrayList<DisplayLine>(buffer.size());
-        for (DisplayLine line: buffer) {
-            result.add(new DisplayLine(line));
-        }
-        return result;
+
+        return buffer.stream()
+            .map(DisplayLine::new)
+            .toList();
     }
 
     /**

@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import casciian.TKeypress;
 import casciian.backend.Backend;
@@ -299,12 +300,12 @@ public class ECMA48 implements Runnable {
     /**
      * The scrollback buffer characters + attributes.
      */
-    private ArrayList<DisplayLine> scrollback;
+    private final List<DisplayLine> scrollback;
 
     /**
      * The raw display buffer characters + attributes.
      */
-    private ArrayList<DisplayLine> display;
+    private List<DisplayLine> display;
 
     /**
      * The maximum number of lines in the scrollback buffer.
@@ -414,7 +415,7 @@ public class ECMA48 implements Runnable {
     /**
      * Last Unicode grapheme printed.
      */
-    private List<Integer> repCodePoints = new ArrayList<Integer>(5);
+    private List<Integer> repCodePoints = new ArrayList<>(5);
 
     /**
      * Last cursor X location of full-width grapheme printed.
@@ -584,7 +585,7 @@ public class ECMA48 implements Runnable {
      * Input queue for keystrokes and mouse events to send to the remote
      * side.
      */
-    private final ArrayList<TInputEvent> userQueue = new ArrayList<TInputEvent>();
+    private final ArrayList<TInputEvent> userQueue = new ArrayList<>();
 
     /**
      * Number of bytes/characters passed to consume().
@@ -735,10 +736,10 @@ public class ECMA48 implements Runnable {
         assert (outputStream != null);
         assert (backend != null);
 
-        csiParams         = new ArrayList<Integer>();
-        tabStops          = new ArrayList<Integer>();
-        scrollback        = new ArrayList<DisplayLine>();
-        display           = new ArrayList<DisplayLine>();
+        csiParams         = new ArrayList<>();
+        tabStops          = new ArrayList<>();
+        scrollback        = new CopyOnWriteArrayList<>();
+        display           = new CopyOnWriteArrayList<>();
 
         this.type         = type;
         if (inputStream instanceof TimeoutInputStream) {
@@ -1055,7 +1056,7 @@ public class ECMA48 implements Runnable {
 
         int visibleBottom = scrollback.size() + display.size() - scrollBottom;
 
-        List<DisplayLine> preceedingBlankLines = new ArrayList<DisplayLine>();
+        List<DisplayLine> preceedingBlankLines = new ArrayList<>();
         int visibleTop = visibleBottom - visibleHeight;
         if (visibleTop < 0) {
             for (int i = visibleTop; i < 0; i++) {
@@ -1065,11 +1066,11 @@ public class ECMA48 implements Runnable {
         }
         assert (visibleTop >= 0);
 
-        List<DisplayLine> displayLines = new ArrayList<DisplayLine>();
+        List<DisplayLine> displayLines = new ArrayList<>();
         displayLines.addAll(scrollback);
         displayLines.addAll(display);
 
-        List<DisplayLine> visibleLines = new ArrayList<DisplayLine>();
+        List<DisplayLine> visibleLines = new ArrayList<>();
         visibleLines.addAll(preceedingBlankLines);
         visibleLines.addAll(displayLines.subList(visibleTop,
                 Math.min(visibleBottom, displayLines.size())));
@@ -1091,7 +1092,7 @@ public class ECMA48 implements Runnable {
      * @return a deep copy of the buffer's data
      */
     private List<DisplayLine> copyBuffer(final List<DisplayLine> buffer) {
-        List<DisplayLine> result = new ArrayList<DisplayLine>(buffer.size());
+        List<DisplayLine> result = new ArrayList<>(buffer.size());
         for (DisplayLine line: buffer) {
             result.add(new DisplayLine(line));
         }
@@ -1407,7 +1408,7 @@ public class ECMA48 implements Runnable {
      * Reset the 88- or 256-colors.
      */
     private void resetColors() {
-        colors88 = new ArrayList<Integer>(256);
+        colors88 = new ArrayList<>(256);
         for (int i = 0; i < 256; i++) {
             colors88.add(0);
         }
@@ -1842,7 +1843,7 @@ public class ECMA48 implements Runnable {
         // XTERM
         mouseProtocol           = MouseProtocol.OFF;
         mouseEncoding           = MouseEncoding.X10;
-        selectBuffers           = new HashMap<Character, String>();
+        selectBuffers           = new HashMap<>();
 
         // Tab stops
         resetTabStops();
@@ -1876,12 +1877,13 @@ public class ECMA48 implements Runnable {
     private void newDisplayLine() {
         // Scroll the top line off into the scrollback buffer
         appendScrollbackLine(display.get(0));
-        while (scrollback.size() > scrollbackMax) {
-            scrollback.remove(0);
-            scrollback.trimToSize();
+
+        synchronized (scrollback) {
+            while (scrollback.size() > scrollbackMax) {
+                scrollback.remove(0);
+            }
         }
         display.remove(0);
-        display.trimToSize();
         DisplayLine line = new DisplayLine(currentState.attr);
         line.setReverseColor(reverseVideo);
         display.add(line);
@@ -3142,7 +3144,7 @@ public class ECMA48 implements Runnable {
             display.size());
         List<DisplayLine> displayMiddle = display.subList(regionBottom + 1
             - remaining, regionBottom + 1);
-        display = new ArrayList<DisplayLine>(displayTop);
+        display = new ArrayList<>(displayTop);
         display.addAll(displayMiddle);
         for (int i = 0; i < n; i++) {
             DisplayLine line = new DisplayLine(currentState.attr);
@@ -3185,7 +3187,7 @@ public class ECMA48 implements Runnable {
             display.size());
         List<DisplayLine> displayMiddle = display.subList(regionTop,
             regionTop + remaining);
-        display = new ArrayList<DisplayLine>(displayTop);
+        display = new ArrayList<>(displayTop);
         for (int i = 0; i < n; i++) {
             DisplayLine line = new DisplayLine(currentState.attr);
             line.setReverseColor(reverseVideo);
@@ -3803,7 +3805,7 @@ public class ECMA48 implements Runnable {
                         } else {
                             // Use shared color registers for each sixel
                             // graphic.
-                            sixelPalette = new HashMap<Integer, Integer>();
+                            sixelPalette = new HashMap<>();
                             SixelDecoder.initializePaletteVT340(sixelPalette);
                         }
                     }
@@ -5249,7 +5251,7 @@ public class ECMA48 implements Runnable {
     private void tbc() {
         int i = getCsiParam(0, 0);
         if (i == 0) {
-            List<Integer> newStops = new ArrayList<Integer>();
+            List<Integer> newStops = new ArrayList<>();
             for (Integer stop: tabStops) {
                 if (stop == currentState.cursorX) {
                     continue;
