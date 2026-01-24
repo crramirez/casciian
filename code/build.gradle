@@ -33,6 +33,7 @@ dependencies {
     implementation "org.jline:jline-terminal:${jlineVersion}"
     implementation "org.jline:jline-terminal-ffm:${jlineVersion}"
     implementation "org.jline:jline-terminal-jni:${jlineVersion}"
+    implementation "org.jetbrains.pty4j:pty4j:0.13.11"
 
     testImplementation platform('org.junit:junit-bom:5.10.1')
     testImplementation 'org.junit.jupiter:junit-jupiter-api'

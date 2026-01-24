@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -41,6 +42,13 @@ import casciian.terminal.DisplayLine;
 import casciian.terminal.ECMA48;
 import casciian.terminal.TerminalListener;
 import casciian.terminal.TerminalState;
+import com.pty4j.PtyProcess;
+import com.pty4j.PtyProcessBuilder;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
 
@@ -76,7 +84,7 @@ public class TTerminal extends TScrollable
     /**
      * The Process created by the shell spawning constructor.
      */
-    private Process shell;
+    private PtyProcess shell;
 
     /**
      * The command line for the shell.
@@ -484,8 +492,7 @@ public class TTerminal extends TScrollable
                     && (System.getProperty("casciian.TTerminal.cmdHack",
                             "true").equals("true"))
                 ) {
-                    emulator.addUserEvent(new TKeypressEvent(
-                        keypress.getBackend(), kbCtrlJ));
+                    //emulator.addUserEvent(new TKeypressEvent(keypress.getBackend(), kbCtrlJ));
                 }
             }
             return;
@@ -869,8 +876,7 @@ public class TTerminal extends TScrollable
         ECMA48.DeviceType deviceType = ECMA48.DeviceType.XTERM;
 
         try {
-            ProcessBuilder pb = new ProcessBuilder(command);
-            Map<String, String> env = pb.environment();
+            Map<String, String> env = new HashMap<>(System.getenv());
             String langString = System.getenv().get("LANG");
             if (langString == null) {
                 Locale locale = Locale.getDefault();
@@ -890,8 +896,13 @@ public class TTerminal extends TScrollable
             env.put("LANG", ECMA48.deviceTypeLang(deviceType, langString));
             env.put("COLUMNS", "80");
             env.put("LINES", "24");
-            pb.redirectErrorStream(true);
-            shell = pb.start();
+
+            shell = new PtyProcessBuilder()
+                .setCommand(command)
+                .setEnvironment(env)
+                .setRedirectErrorStream(true)
+                .start();
+
             emulator = new ECMA48(deviceType, shell.getInputStream(),
                 shell.getOutputStream(), this, getApplication().getBackend());
         } catch (IOException e) {
