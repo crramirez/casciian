@@ -312,14 +312,14 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * The Casciian post-rendered string cache.
-     * Volatile to ensure visibility when the cache is reset by one thread
+     * Volatile to ensure visibility when the cache is written by one thread
      * and accessed by another.
      */
     private volatile ImageCache jexerCache = null;
 
     /**
      * The Unicode glyph post-rendered string cache.
-     * Volatile to ensure visibility when the cache is reset by one thread
+     * Volatile to ensure visibility when the cache is written by one thread
      * and accessed by another.
      */
     private volatile ImageCache unicodeGlyphCache = null;
