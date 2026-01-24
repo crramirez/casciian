@@ -483,13 +483,21 @@ public class ECMA48Terminal extends LogicalScreen
         private final java.util.LinkedHashMap<String, String> cache;
 
         /**
+         * Approximate number of characters per hashCode in the cache key.
+         * Used for StringBuilder capacity estimation.
+         */
+        private static final int CHARS_PER_HASHCODE = 10;
+
+        /**
          * Public constructor.
          *
          * @param maxSize the maximum size of the cache
          */
         public ImageCache(final int maxSize) {
             this.maxSize = maxSize;
-            // Create LinkedHashMap with access-order (accessOrder=true) and automatic eviction
+            // Create LinkedHashMap with access-order (accessOrder=true) and automatic eviction.
+            // removeEldestEntry is called after insertion, so size() > maxSize means we just
+            // exceeded the limit and need to evict the eldest entry.
             this.cache = new java.util.LinkedHashMap<>(maxSize + 1, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(java.util.Map.Entry<String, String> eldest) {
@@ -505,7 +513,7 @@ public class ECMA48Terminal extends LogicalScreen
          * @return the key
          */
         private String makeKey(final ArrayList<Cell> cells) {
-            StringBuilder sb = new StringBuilder(cells.size() * 10);
+            StringBuilder sb = new StringBuilder(cells.size() * CHARS_PER_HASHCODE);
             for (Cell cell : cells) {
                 sb.append(cell.hashCode());
             }
@@ -3847,7 +3855,7 @@ public class ECMA48Terminal extends LogicalScreen
         if (totalWidth < tileWidth) {
             int startX = (cells.size() - 1) * tileWidth + totalWidth;
             int remainingWidth = tileWidth - totalWidth;
-            image.fillRect(startX, 0, remainingWidth, tileHeight, 0x000000);
+            image.fillRect(startX, 0, remainingWidth, tileHeight, MYBLACK);
         }
 
         return image;
