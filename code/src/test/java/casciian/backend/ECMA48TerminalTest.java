@@ -621,5 +621,127 @@ class ECMA48TerminalTest {
         return sb.toString();
     }
     
+    // Thread safety tests
+    
+    @Test
+    @DisplayName("setSixelPaletteSize does not throw when called concurrently with flushPhysical")
+    void testConcurrentSixelPaletteSizeChangeWithFlush() throws InterruptedException {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+        
+        // Track any exceptions from threads
+        final java.util.concurrent.atomic.AtomicReference<Throwable> threadException = 
+            new java.util.concurrent.atomic.AtomicReference<>();
+        
+        // Run flushPhysical in one thread
+        Thread flushThread = new Thread(() -> {
+            try {
+                for (int i = 0; i < 100; i++) {
+                    terminal.flushPhysical();
+                }
+            } catch (Throwable t) {
+                threadException.compareAndSet(null, t);
+            }
+        });
+        
+        // Run setSixelPaletteSize in another thread
+        Thread setterThread = new Thread(() -> {
+            try {
+                for (int i = 0; i < 100; i++) {
+                    terminal.setSixelPaletteSize((i % 2 == 0) ? 256 : 16);
+                }
+            } catch (Throwable t) {
+                threadException.compareAndSet(null, t);
+            }
+        });
+        
+        flushThread.start();
+        setterThread.start();
+        
+        flushThread.join(5000);
+        setterThread.join(5000);
+        
+        assertNull(threadException.get(), 
+            "Concurrent access should not throw: " + threadException.get());
+    }
+
+    @Test
+    @DisplayName("setSixelSharedPalette does not throw when called concurrently with flushPhysical")
+    void testConcurrentSixelSharedPaletteChangeWithFlush() throws InterruptedException {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+        
+        final java.util.concurrent.atomic.AtomicReference<Throwable> threadException = 
+            new java.util.concurrent.atomic.AtomicReference<>();
+        
+        Thread flushThread = new Thread(() -> {
+            try {
+                for (int i = 0; i < 100; i++) {
+                    terminal.flushPhysical();
+                }
+            } catch (Throwable t) {
+                threadException.compareAndSet(null, t);
+            }
+        });
+        
+        Thread setterThread = new Thread(() -> {
+            try {
+                for (int i = 0; i < 100; i++) {
+                    terminal.setSixelSharedPalette(i % 2 == 0);
+                }
+            } catch (Throwable t) {
+                threadException.compareAndSet(null, t);
+            }
+        });
+        
+        flushThread.start();
+        setterThread.start();
+        
+        flushThread.join(5000);
+        setterThread.join(5000);
+        
+        assertNull(threadException.get(), 
+            "Concurrent access should not throw: " + threadException.get());
+    }
+
+    @Test
+    @DisplayName("setHasSixel does not throw when called concurrently with flushPhysical")
+    void testConcurrentSetHasSixelWithFlush() throws InterruptedException {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+        
+        final java.util.concurrent.atomic.AtomicReference<Throwable> threadException = 
+            new java.util.concurrent.atomic.AtomicReference<>();
+        
+        Thread flushThread = new Thread(() -> {
+            try {
+                for (int i = 0; i < 100; i++) {
+                    terminal.flushPhysical();
+                }
+            } catch (Throwable t) {
+                threadException.compareAndSet(null, t);
+            }
+        });
+        
+        Thread setterThread = new Thread(() -> {
+            try {
+                for (int i = 0; i < 100; i++) {
+                    terminal.setHasSixel(i % 2 == 0);
+                }
+            } catch (Throwable t) {
+                threadException.compareAndSet(null, t);
+            }
+        });
+        
+        flushThread.start();
+        setterThread.start();
+        
+        flushThread.join(5000);
+        setterThread.join(5000);
+        
+        assertNull(threadException.get(), 
+            "Concurrent access should not throw: " + threadException.get());
+    }
+    
     
 }

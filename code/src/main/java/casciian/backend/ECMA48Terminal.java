@@ -298,8 +298,11 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * The sixel post-rendered string cache.
+     * Volatile to ensure visibility when the cache is reset by one thread
+     * and accessed by another (e.g., when setSixelPaletteSize() sets it to null
+     * while toSixel() reads from it).
      */
-    private ImageCache sixelCache = null;
+    private volatile ImageCache sixelCache = null;
 
     /**
      * If not DISABLED, emit image data via Casciian image protocol if the
@@ -309,13 +312,17 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * The Casciian post-rendered string cache.
+     * Volatile to ensure visibility when the cache is written by one thread
+     * and accessed by another.
      */
-    private ImageCache jexerCache = null;
+    private volatile ImageCache jexerCache = null;
 
     /**
      * The Unicode glyph post-rendered string cache.
+     * Volatile to ensure visibility when the cache is written by one thread
+     * and accessed by another.
      */
-    private ImageCache unicodeGlyphCache = null;
+    private volatile ImageCache unicodeGlyphCache = null;
 
     /**
      * The number of threads for image rendering.
@@ -3667,6 +3674,9 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         boolean saveInCache = true;
+        // Capture the volatile cache reference once to avoid race conditions
+        // where another thread may set it to null between accesses.
+        final ImageCache cache = sixelCache;
         if (sixelFastAndDirty) {
             saveInCache = false;
         } else {
@@ -3682,8 +3692,8 @@ public class ECMA48Terminal extends LogicalScreen
                 cell.hashCode();
             }
 
-            if (saveInCache) {
-                String cachedResult = sixelCache.get(cells);
+            if (saveInCache && cache != null) {
+                String cachedResult = cache.get(cells);
                 if (cachedResult != null) {
                     // System.err.println("CACHE HIT");
                     sb.append(startSixel(x, y));
@@ -3708,7 +3718,7 @@ public class ECMA48Terminal extends LogicalScreen
                     sixelEncoder.getPaletteSize() * 10 / getTextHeight()));
             /*
             System.err.printf("maxChunkLength: %d cache used size %d\n",
-                maxChunkLength, sixelCache.size());
+                maxChunkLength, cache != null ? cache.size() : 0);
              */
         }
         if (cells.size() * getTextWidth() > maxChunkLength) {
@@ -3732,9 +3742,9 @@ public class ECMA48Terminal extends LogicalScreen
         ImageRGB image = cellsToImage(cells);
         String sixel = sixelEncoder.toSixel(image);
 
-        if (saveInCache) {
+        if (saveInCache && cache != null) {
             // This row is OK to save into the cache.
-            sixelCache.put(cells, sixel);
+            cache.put(cells, sixel);
         }
 
         return (startSixel(x, y) + sixel + endSixel());
@@ -3905,6 +3915,9 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Save and get rows to/from the cache that do NOT have inverted
         // cells.
+        // Capture the volatile cache reference once to avoid race conditions
+        // where another thread may set it to null between accesses.
+        final ImageCache cache = jexerCache;
         boolean saveInCache = true;
         for (Cell cell : cells) {
             if (cell.isInvertedImage()) {
@@ -3915,8 +3928,8 @@ public class ECMA48Terminal extends LogicalScreen
             // for looking up in the image cache.
             cell.hashCode();
         }
-        if (saveInCache) {
-            String cachedResult = jexerCache.get(cells);
+        if (saveInCache && cache != null) {
+            String cachedResult = cache.get(cells);
             if (cachedResult != null) {
                 sb.append(sortableGotoXY(x, y));
                 sb.append(cachedResult);
@@ -3948,9 +3961,9 @@ public class ECMA48Terminal extends LogicalScreen
             sb.append("\007");
         }
 
-        if (saveInCache) {
+        if (saveInCache && cache != null) {
             // This row is OK to save into the cache.
-            jexerCache.put(cells, sb.toString());
+            cache.put(cells, sb.toString());
         }
 
         return (gotoXY(x, y) + sb.toString());
