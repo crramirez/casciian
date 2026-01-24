@@ -15,40 +15,152 @@
     </topic>
     <topic title="Help On Help">
       <text>
-        The #{help} system...
+        The #{help} system provides comprehensive information about using
+        the application. Topics are organized with a #{table of contents}
+        and searchable #{index}.
 
+        To navigate the help system:
+        - Click on [links](Help) to jump to related topics
+        - Use the #{Contents} button to see all topics
+        - Use the #{Index} button to search by keyword
+        - Use the #{Search} feature to find specific text
+
+        Links are shown in a different color and can be activated by
+        clicking with the mouse or using the Tab key to move between
+        links and pressing Enter.
       </text>
     </topic>
 
     <topic title="Menus">
       <text>
-        #{Menus} do ...
+        #{Menus} provide access to application commands and features
+        through the #{menu bar} at the top of the screen.
+
+        To use menus:
+        - Click on a menu name to open it
+        - Use #{keyboard shortcuts} (Alt+letter) to open menus
+        - Navigate menu items with arrow keys
+        - Press Enter to select a menu item
+        - Press Esc to close a menu
+
+        Common menus include:
+        - #{File} menu: Open, save, and exit operations
+        - #{Edit} menu: Cut, copy, paste, and other editing functions
+        - #{View} menu: Control window and display settings
+        - #{Help} menu: Access help topics and about information
       </text>
     </topic>
 
     <topic title="Windows">
       <text>
-        #{Windows} do ...
+        #{Windows} are rectangular areas on the screen that contain
+        application content. Each window can be moved, resized, and
+        managed independently.
+
+        Window features:
+        - #{Title bar}: Shows the window title and close button
+        - #{Status bar}: Displays context information at the bottom
+        - #{Scroll bars}: Navigate content larger than the window
+        - #{Focus}: The active window receives keyboard input
+
+        Window operations:
+        - #{Move}: Click and drag the title bar
+        - #{Resize}: Click and drag the window edges or corners
+        - #{Close}: Click the close button or press keyboard shortcut
+        - #{Switch}: Click on a window to bring it to focus
+        - #{Minimize}: Some windows can be minimized to the taskbar
+
+        Multiple windows can be open at the same time, and you can
+        switch between them by clicking or using keyboard shortcuts.
       </text>
     </topic>
 
     <topic title="Editing Text">
       <text>
-        The #{text editing} [window](Windows)...
+        The #{text editing} [window](Windows) allows you to create and
+        modify text files with full keyboard navigation and editing
+        capabilities.
+
+        Navigation:
+        - #{Arrow keys}: Move cursor character by character or line by line
+        - #{Home}/#{End}: Jump to beginning or end of line
+        - #{Page Up}/#{Page Down}: Scroll through the document
+        - #{Ctrl+Home}/#{Ctrl+End}: Jump to start or end of document
+
+        Editing operations:
+        - #{Type}: Enter text at the cursor position
+        - #{Backspace}: Delete character before cursor
+        - #{Delete}: Delete character at cursor
+        - #{Cut} (Ctrl+X): Remove selected text to clipboard
+        - #{Copy} (Ctrl+C): Copy selected text to clipboard
+        - #{Paste} (Ctrl+V): Insert clipboard contents at cursor
+
+        Text selection:
+        - #{Mouse}: Click and drag to select text
+        - #{Shift+arrows}: Select text using keyboard
+        - Double-click to select a word
+
+        The editor supports #{undo} and #{redo} operations and can
+        handle files of various sizes efficiently.
       </text>
     </topic>
 
     <topic title="Editing Tables">
-      <text></text>
+      <text>
+        The #{table editing} [window](Windows) provides a spreadsheet-like
+        interface for viewing and editing tabular data.
+
+        Navigation:
+        - #{Arrow keys}: Move between cells
+        - #{Tab}: Move to next cell
+        - #{Shift+Tab}: Move to previous cell
+        - #{Home}/#{End}: Jump to first or last cell in row
+        - #{Page Up}/#{Page Down}: Scroll through rows
+
+        Editing cells:
+        - #{Enter} or #{F2}: Start editing the current cell
+        - #{Type}: Enter data into the cell
+        - #{Enter}: Confirm changes and move to next row
+        - #{Esc}: Cancel editing and restore previous value
+
+        Table operations:
+        - #{Insert row}: Add a new row to the table
+        - #{Delete row}: Remove the current row
+        - #{Insert column}: Add a new column to the table
+        - #{Delete column}: Remove the current column
+        - #{Sort}: Sort table data by column
+
+        The table editor supports copying and pasting data between
+        cells and can handle large datasets efficiently.
+      </text>
     </topic>
 
     <topic title="Terminal Window">
       <text>
-        The terminal window ...
+        The #{terminal window} provides access to a #{command-line interface}
+        within the application, allowing you to run shell commands and
+        interact with the underlying operating system.
+
+        Features:
+        - #{Full terminal emulation}: Supports ANSI/VT100 sequences
+        - #{Command execution}: Run any shell command
+        - #{Scrollback buffer}: View previous output
+        - #{Text selection}: Copy and paste text
+        - #{Resizable}: Adjust window size to fit your needs
+
+        Usage:
+        - #{Type commands}: Enter shell commands at the prompt
+        - #{Execute}: Press Enter to run the command
+        - #{Scroll}: Use mouse wheel or scrollbar to view history
+        - #{Copy}: Select text with mouse and use Ctrl+C to copy
+        - #{Paste}: Use Ctrl+V to paste text at cursor
+
+        The terminal window maintains its own shell session and
+        environment, separate from other terminal windows you may open.
       </text>
     </topic>
 
-    <topic title="Copyright Infomation">
+    <topic title="Copyright Information">
       <text>
         Written 2013-2025 by Autumn Lamonte
 
