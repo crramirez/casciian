@@ -320,9 +320,9 @@ public class TTerminal extends TScrollable
         // Use 'script' instead to run a shell in a pty.  And because BSD and
         // GNU differ on the '-f' vs '-F' flags, we need two different
         // commands.  Lovely.
-        String cmdShellGNU = "/bin/bash --login";
-        String cmdShellGNUSetsid = "setsid /bin/bash --login";
-        String cmdShellBSD = "/bin/bash --login";
+        String cmdShellGNU = "script -fqe /dev/null";
+        String cmdShellGNUSetsid = "setsid script -fqe /dev/null";
+        String cmdShellBSD = "script -q -F /dev/null";
 
         // ptypipe is another solution that permits dynamic window resizing.
         String cmdShellPtypipe = "ptypipe /bin/bash --login";
