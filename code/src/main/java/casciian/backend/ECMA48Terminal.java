@@ -501,7 +501,8 @@ public class ECMA48Terminal extends LogicalScreen
             this.cache = new java.util.LinkedHashMap<>(maxSize + 1, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(java.util.Map.Entry<String, String> eldest) {
-                    return size() > maxSize;
+                    // Use the LinkedHashMap's own size() method (not ImageCache.size())
+                    return this.size() > maxSize;
                 }
             };
         }
@@ -2088,7 +2089,11 @@ public class ECMA48Terminal extends LogicalScreen
     private TInputEvent csiFnKey() {
         int key = 0;
         if (!params.isEmpty()) {
-            key = Integer.parseInt(params.getFirst());
+            try {
+                key = Integer.parseInt(params.getFirst());
+            } catch (NumberFormatException e) {
+                return null; // Invalid parameter, ignore
+            }
         }
         boolean alt = false;
         boolean ctrl = false;
@@ -2101,7 +2106,11 @@ public class ECMA48Terminal extends LogicalScreen
             ctrl = csiIsCtrl(params.get(1));
         }
         if (params.size() > 2) {
-            otherKey = Integer.parseInt(params.get(2));
+            try {
+                otherKey = Integer.parseInt(params.get(2));
+            } catch (NumberFormatException e) {
+                return null; // Invalid parameter, ignore
+            }
         }
 
         return switch (key) {
@@ -3925,18 +3934,14 @@ public class ECMA48Terminal extends LogicalScreen
             sb.append(String.format("\033]444;0;%d;%d;0;", image.getWidth(),
                 Math.min(image.getHeight(), fullHeight)));
 
-            int width = image.getWidth();
-            int height = image.getHeight();
-            byte[] bytes = new byte[width * height * 3];
-            // Iterate in row-major order for better cache locality
-            for (int py = 0; py < height; py++) {
-                int rowOffset = py * width * 3;
-                for (int px = 0; px < width; px++) {
+            byte[] bytes = new byte[image.getWidth() * image.getHeight() * 3];
+            int stride = image.getWidth();
+            for (int px = 0; px < stride; px++) {
+                for (int py = 0; py < image.getHeight(); py++) {
                     int rgb = image.getRGB(px, py);
-                    int pixelOffset = rowOffset + (px * 3);
-                    bytes[pixelOffset] = (byte) ((rgb >>> 16) & 0xFF);
-                    bytes[pixelOffset + 1] = (byte) ((rgb >>> 8) & 0xFF);
-                    bytes[pixelOffset + 2] = (byte) (rgb & 0xFF);
+                    bytes[(py * stride * 3) + (px * 3)] = (byte) ((rgb >>> 16) & 0xFF);
+                    bytes[(py * stride * 3) + (px * 3) + 1] = (byte) ((rgb >>> 8) & 0xFF);
+                    bytes[(py * stride * 3) + (px * 3) + 2] = (byte) (rgb & 0xFF);
                 }
             }
             sb.append(StringUtils.toBase64(bytes));
