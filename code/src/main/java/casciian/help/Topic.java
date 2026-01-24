@@ -217,27 +217,27 @@ public class Topic implements Comparable<Topic> {
         StringBuilder sb = new StringBuilder();
         String [] lines = text.split("\n");
         int wordIndex = 0;
+        var cleanLine = new StringBuilder();
         for (String line: lines) {
             line = line.trim();
-
-            String cleanLine = "";
+            cleanLine.setLength(0);
 
             // System.err.println("LINE " + wordIndex + " : '" + line + "'");
 
             Matcher index = INDEX_REGEX.matcher(line);
             int start = 0;
             while (index.find()) {
-                cleanLine += line.substring(start, index.start());
+                cleanLine.append(line, start, index.start());
                 String key = index.group(1);
-                cleanLine += key;
+                cleanLine.append(key);
                 start = index.end();
                 // System.err.println("ADD KEY: " + key);
                 indexKeys.add(key);
             }
-            cleanLine += line.substring(start);
+            cleanLine.append(line.substring(start));
 
-            line = cleanLine;
-            cleanLine = "";
+            line = cleanLine.toString();
+            cleanLine.setLength(0);
 
             /*
             System.err.println("line after removing #{index} tags: " +
@@ -254,7 +254,7 @@ public class Topic implements Comparable<Topic> {
             while (true) {
 
                 if (hasLink == false) {
-                    cleanLine += line.substring(start);
+                    cleanLine.append(line.substring(start));
 
                     String remaining = line.substring(start).trim();
                     Matcher word = WORD_REGEX.matcher(remaining);
@@ -273,10 +273,10 @@ public class Topic implements Comparable<Topic> {
 
                 int linkWordIndex = link.start();
                 int cleanLineStart = cleanLine.length();
-                cleanLine += line.substring(start, linkWordIndex);
+                cleanLine.append(line, start, linkWordIndex);
                 String linkText = link.group(1);
                 String topic = link.group(2);
-                cleanLine += linkText;
+                cleanLine.append(linkText);
                 start = link.end();
 
                 // Increment wordIndex until we reach the first word of
@@ -319,12 +319,10 @@ public class Topic implements Comparable<Topic> {
 
             // Append the entire line.
             sb.append(cleanLine);
-            sb.append("\n");
-
-            this.text = sb.toString();
-
+            sb.append('\n');
         } // for (String line: lines)
 
+        this.text = sb.toString();
     }
 
 }
