@@ -76,15 +76,19 @@
     </topic>
 
     <topic title="Editing Text">
-      <text>
+      <text><![CDATA[
         The #{text editing} [window](Windows) allows you to create and
         modify text files with full keyboard navigation and editing
         capabilities.
 
         Navigation:
+
         - #{Arrow keys}: Move cursor character by character or line by line
+
         - #{Home}/#{End}: Jump to beginning or end of line
+
         - #{Page Up}/#{Page Down}: Scroll through the document
+
         - #{Ctrl+Home}/#{Ctrl+End}: Jump to start or end of document
 
         Editing operations:
@@ -101,7 +105,8 @@
 
         The editor supports #{undo} and #{redo} operations and can
         handle files of various sizes efficiently.
-      </text>
+
+      ]]></text>
     </topic>
 
     <topic title="Editing Tables">
@@ -112,7 +117,6 @@
         Navigation:
         - #{Arrow keys}: Move between cells
         - #{Tab}: Move to next cell
-        - #{Shift+Tab}: Move to previous cell
         - #{Home}/#{End}: Jump to first or last cell in row
         - #{Page Up}/#{Page Down}: Scroll through rows
 
@@ -143,7 +147,6 @@
         - #{Full terminal emulation}: Supports ANSI/VT100 sequences
         - #{Command execution}: Run any shell command
         - #{Scrollback buffer}: View previous output
-        - #{Text selection}: Copy and paste text
         - #{Resizable}: Adjust window size to fit your needs
 
         Usage:
