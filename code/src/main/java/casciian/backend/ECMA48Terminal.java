@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -2097,28 +2098,19 @@ public class ECMA48Terminal extends LogicalScreen
      * fnKey == ESC)
      */
     private TKeypressEvent controlChar(final char ch, final boolean alt) {
-        // System.err.printf("controlChar: %02x\n", ch);
-
-        switch (ch) {
-            case 0x0D:
-                // Carriage return --> ENTER
-                return new TKeypressEvent(backend, kbEnter, alt, false, false);
-            case 0x0A:
-                // Linefeed --> ENTER
-                return new TKeypressEvent(backend, kbEnter, alt, false, false);
-            case 0x1B:
-                // ESC
-                return new TKeypressEvent(backend, kbEsc, alt, false, false);
-            case '\t':
-                // TAB
-                return new TKeypressEvent(backend, kbTab, alt, false, false);
-            default:
+        return switch (ch) {
+            case 0x0D, 0x0A -> // Carriage return or Linefeed --> ENTER
+                new TKeypressEvent(backend, kbEnter, alt, false, false);
+            case 0x1B -> // ESC
+                new TKeypressEvent(backend, kbEsc, alt, false, false);
+            case '\t' -> // TAB
+                new TKeypressEvent(backend, kbTab, alt, false, false);
+            default ->
                 // Make all other control characters come back as the alphabetic
-                // character with the ctrl field set.  So SOH would be 'A' +
-                // ctrl.
-                return new TKeypressEvent(backend, false, 0, (char) (ch + 0x40),
+                // character with the ctrl field set.  So SOH would be 'A' + ctrl.
+                new TKeypressEvent(backend, false, 0, (char) (ch + 0x40),
                     alt, true, false);
-        }
+        };
     }
 
     /**
@@ -2134,27 +2126,18 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private boolean handleArrowKey(final List<TInputEvent> events, final int ch,
                                    final boolean alt, final boolean ctrl, final boolean shift) {
-
-        switch (ch) {
-            case 'A':
-                // Up
-                events.add(new TKeypressEvent(backend, kbUp, alt, ctrl, shift));
-                return true;
-            case 'B':
-                // Down
-                events.add(new TKeypressEvent(backend, kbDown, alt, ctrl, shift));
-                return true;
-            case 'C':
-                // Right
-                events.add(new TKeypressEvent(backend, kbRight, alt, ctrl, shift));
-                return true;
-            case 'D':
-                // Left
-                events.add(new TKeypressEvent(backend, kbLeft, alt, ctrl, shift));
-                return true;
-            default:
-                return false;
+        TKeypressEvent event = switch (ch) {
+            case 'A' -> new TKeypressEvent(backend, kbUp, alt, ctrl, shift);
+            case 'B' -> new TKeypressEvent(backend, kbDown, alt, ctrl, shift);
+            case 'C' -> new TKeypressEvent(backend, kbRight, alt, ctrl, shift);
+            case 'D' -> new TKeypressEvent(backend, kbLeft, alt, ctrl, shift);
+            default -> null;
+        };
+        if (event != null) {
+            events.add(event);
+            return true;
         }
+        return false;
     }
 
     /**
@@ -2164,8 +2147,8 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private TInputEvent csiFnKey() {
         int key = 0;
-        if (params.size() > 0) {
-            key = Integer.parseInt(params.get(0));
+        if (!params.isEmpty()) {
+            key = Integer.parseInt(params.getFirst());
         }
         boolean alt = false;
         boolean ctrl = false;
@@ -2181,67 +2164,54 @@ public class ECMA48Terminal extends LogicalScreen
             otherKey = Integer.parseInt(params.get(2));
         }
 
-        switch (key) {
-            case 1:
-                return new TKeypressEvent(backend, kbHome, alt, ctrl, shift);
-            case 2:
-                return new TKeypressEvent(backend, kbIns, alt, ctrl, shift);
-            case 3:
-                return new TKeypressEvent(backend, kbDel, alt, ctrl, shift);
-            case 4:
-                return new TKeypressEvent(backend, kbEnd, alt, ctrl, shift);
-            case 5:
-                return new TKeypressEvent(backend, kbPgUp, alt, ctrl, shift);
-            case 6:
-                return new TKeypressEvent(backend, kbPgDn, alt, ctrl, shift);
-            case 15:
-                return new TKeypressEvent(backend, kbF5, alt, ctrl, shift);
-            case 17:
-                return new TKeypressEvent(backend, kbF6, alt, ctrl, shift);
-            case 18:
-                return new TKeypressEvent(backend, kbF7, alt, ctrl, shift);
-            case 19:
-                return new TKeypressEvent(backend, kbF8, alt, ctrl, shift);
-            case 20:
-                return new TKeypressEvent(backend, kbF9, alt, ctrl, shift);
-            case 21:
-                return new TKeypressEvent(backend, kbF10, alt, ctrl, shift);
-            case 23:
-                return new TKeypressEvent(backend, kbF11, alt, ctrl, shift);
-            case 24:
-                return new TKeypressEvent(backend, kbF12, alt, ctrl, shift);
+        return switch (key) {
+            case 1 -> new TKeypressEvent(backend, kbHome, alt, ctrl, shift);
+            case 2 -> new TKeypressEvent(backend, kbIns, alt, ctrl, shift);
+            case 3 -> new TKeypressEvent(backend, kbDel, alt, ctrl, shift);
+            case 4 -> new TKeypressEvent(backend, kbEnd, alt, ctrl, shift);
+            case 5 -> new TKeypressEvent(backend, kbPgUp, alt, ctrl, shift);
+            case 6 -> new TKeypressEvent(backend, kbPgDn, alt, ctrl, shift);
+            case 15 -> new TKeypressEvent(backend, kbF5, alt, ctrl, shift);
+            case 17 -> new TKeypressEvent(backend, kbF6, alt, ctrl, shift);
+            case 18 -> new TKeypressEvent(backend, kbF7, alt, ctrl, shift);
+            case 19 -> new TKeypressEvent(backend, kbF8, alt, ctrl, shift);
+            case 20 -> new TKeypressEvent(backend, kbF9, alt, ctrl, shift);
+            case 21 -> new TKeypressEvent(backend, kbF10, alt, ctrl, shift);
+            case 23 -> new TKeypressEvent(backend, kbF11, alt, ctrl, shift);
+            case 24 -> new TKeypressEvent(backend, kbF12, alt, ctrl, shift);
+            case 27 -> handleModifyOtherKeys(otherKey, alt, ctrl, shift);
+            default -> null; // Unknown
+        };
+    }
 
-            case 27:
-                // modifyOtherKeys sequence
-                switch (otherKey) {
-                    case 8:
-                        return new TKeypressEvent(backend, kbBackspace, alt, ctrl, shift);
-                    case 9:
-                        return new TKeypressEvent(backend, kbTab, alt, ctrl, shift);
-                    case 13:
-                        return new TKeypressEvent(backend, kbEnter, alt, ctrl, shift);
-                    case 27:
-                        return new TKeypressEvent(backend, kbEsc, alt, ctrl, shift);
-                    default:
-                        if (otherKey < 32) {
-                            break;
-                        }
-                        if ((otherKey >= 'a') && (otherKey <= 'z') && ctrl) {
-                            // Turn Ctrl-lowercase into Ctrl-uppercase
-                            return new TKeypressEvent(backend, false, 0, (otherKey - 32),
-                                alt, ctrl, shift);
-                        }
-                        return new TKeypressEvent(backend, false, 0, otherKey,
-                            alt, ctrl, shift);
+    /**
+     * Handle the modifyOtherKeys sequence (CSI 27).
+     *
+     * @param otherKey the key code
+     * @param alt      true if alt was pressed
+     * @param ctrl     true if ctrl was pressed
+     * @param shift    true if shift was pressed
+     * @return the corresponding keypress event, or null if unsupported
+     */
+    private TInputEvent handleModifyOtherKeys(final int otherKey, final boolean alt,
+                                               final boolean ctrl, final boolean shift) {
+        return switch (otherKey) {
+            case 8 -> new TKeypressEvent(backend, kbBackspace, alt, ctrl, shift);
+            case 9 -> new TKeypressEvent(backend, kbTab, alt, ctrl, shift);
+            case 13 -> new TKeypressEvent(backend, kbEnter, alt, ctrl, shift);
+            case 27 -> new TKeypressEvent(backend, kbEsc, alt, ctrl, shift);
+            default -> {
+                if (otherKey < 32) {
+                    yield null;
                 }
-
-                // Unsupported other key
-                return null;
-
-            default:
-                // Unknown
-                return null;
-        }
+                if (otherKey >= 'a' && otherKey <= 'z' && ctrl) {
+                    // Turn Ctrl-lowercase into Ctrl-uppercase
+                    yield new TKeypressEvent(backend, false, 0, (otherKey - 32),
+                        alt, ctrl, shift);
+                }
+                yield new TKeypressEvent(backend, false, 0, otherKey, alt, ctrl, shift);
+            }
+        };
     }
 
     /**
@@ -2593,18 +2563,26 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Set of CSI parameters indicating Shift key was pressed.
+     */
+    private static final Set<String> CSI_SHIFT_PARAMS = Set.of("2", "4", "6", "8");
+
+    /**
+     * Set of CSI parameters indicating Alt key was pressed.
+     */
+    private static final Set<String> CSI_ALT_PARAMS = Set.of("3", "4", "7", "8");
+
+    /**
+     * Set of CSI parameters indicating Ctrl key was pressed.
+     */
+    private static final Set<String> CSI_CTRL_PARAMS = Set.of("5", "6", "7", "8");
+
+    /**
      * Returns true if the CSI parameter for a keyboard command means that
      * shift was down.
      */
     private boolean csiIsShift(final String x) {
-        if ((x.equals("2"))
-            || (x.equals("4"))
-            || (x.equals("6"))
-            || (x.equals("8"))
-        ) {
-            return true;
-        }
-        return false;
+        return CSI_SHIFT_PARAMS.contains(x);
     }
 
     /**
@@ -2612,14 +2590,7 @@ public class ECMA48Terminal extends LogicalScreen
      * alt was down.
      */
     private boolean csiIsAlt(final String x) {
-        if ((x.equals("3"))
-            || (x.equals("4"))
-            || (x.equals("7"))
-            || (x.equals("8"))
-        ) {
-            return true;
-        }
-        return false;
+        return CSI_ALT_PARAMS.contains(x);
     }
 
     /**
@@ -2627,14 +2598,7 @@ public class ECMA48Terminal extends LogicalScreen
      * ctrl was down.
      */
     private boolean csiIsCtrl(final String x) {
-        if ((x.equals("5"))
-            || (x.equals("6"))
-            || (x.equals("7"))
-            || (x.equals("8"))
-        ) {
-            return true;
-        }
-        return false;
+        return CSI_CTRL_PARAMS.contains(x);
     }
 
     /**
@@ -2759,123 +2723,99 @@ public class ECMA48Terminal extends LogicalScreen
                     red, green, blue);
             }
             int rgbColor = red << 16 | green << 8 | blue;
-            switch (color) {
-                case 0:
-                    MYBLACK = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BLACK");
-                    }
-                    break;
-                case 1:
-                    MYRED = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set RED");
-                    }
-                    break;
-                case 2:
-                    MYGREEN = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set GREEN");
-                    }
-                    break;
-                case 3:
-                    MYYELLOW = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set YELLOW");
-                    }
-                    break;
-                case 4:
-                    MYBLUE = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BLUE");
-                    }
-                    break;
-                case 5:
-                    MYMAGENTA = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set MAGENTA");
-                    }
-                    break;
-                case 6:
-                    MYCYAN = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set CYAN");
-                    }
-                    break;
-                case 7:
-                    MYWHITE = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set WHITE");
-                    }
-                    break;
-                case 8:
-                    MYBOLD_BLACK = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD BLACK");
-                    }
-                    break;
-                case 9:
-                    MYBOLD_RED = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD RED");
-                    }
-                    break;
-                case 10:
-                    MYBOLD_GREEN = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD GREEN");
-                    }
-                    break;
-                case 11:
-                    MYBOLD_YELLOW = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD YELLOW");
-                    }
-                    break;
-                case 12:
-                    MYBOLD_BLUE = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD BLUE");
-                    }
-                    break;
-                case 13:
-                    MYBOLD_MAGENTA = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD MAGENTA");
-                    }
-                    break;
-                case 14:
-                    MYBOLD_CYAN = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD CYAN");
-                    }
-                    break;
-                case 15:
-                    MYBOLD_WHITE = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set BOLD WHITE");
-                    }
-                    break;
-                case 39:
-                    DEFAULT_FORECOLOR = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set DEFAULT FOREGROUND");
-                    }
-                    break;
-                case 49:
-                    DEFAULT_BACKCOLOR = rgbColor;
-                    if (debugToStderr) {
-                        System.err.println("    Set DEFAULT BACKGROUND");
-                    }
-                    break;
-                default:
-                    break;
-            }
+            setColorFromOsc(color, rgbColor);
 
             // We have changed a system color.  Redraw the entire screen.
             clearPhysical();
             reallyCleared = true;
         } catch (NumberFormatException e) {
+            // SQUASH
+        }
+    }
+
+    /**
+     * Set a palette color from an OSC response.
+     *
+     * @param colorIndex the color index (0-15 for palette, 39 for default foreground, 49 for default background)
+     * @param rgbColor   the RGB color value
+     */
+    private void setColorFromOsc(final int colorIndex, final int rgbColor) {
+        switch (colorIndex) {
+            case 0 -> {
+                MYBLACK = rgbColor;
+                if (debugToStderr) System.err.println("    Set BLACK");
+            }
+            case 1 -> {
+                MYRED = rgbColor;
+                if (debugToStderr) System.err.println("    Set RED");
+            }
+            case 2 -> {
+                MYGREEN = rgbColor;
+                if (debugToStderr) System.err.println("    Set GREEN");
+            }
+            case 3 -> {
+                MYYELLOW = rgbColor;
+                if (debugToStderr) System.err.println("    Set YELLOW");
+            }
+            case 4 -> {
+                MYBLUE = rgbColor;
+                if (debugToStderr) System.err.println("    Set BLUE");
+            }
+            case 5 -> {
+                MYMAGENTA = rgbColor;
+                if (debugToStderr) System.err.println("    Set MAGENTA");
+            }
+            case 6 -> {
+                MYCYAN = rgbColor;
+                if (debugToStderr) System.err.println("    Set CYAN");
+            }
+            case 7 -> {
+                MYWHITE = rgbColor;
+                if (debugToStderr) System.err.println("    Set WHITE");
+            }
+            case 8 -> {
+                MYBOLD_BLACK = rgbColor;
+                if (debugToStderr) System.err.println("    Set BOLD BLACK");
+            }
+            case 9 -> {
+                MYBOLD_RED = rgbColor;
+                if (debugToStderr) System.err.println("    Set BOLD RED");
+            }
+            case 10 -> {
+                MYBOLD_GREEN = rgbColor;
+                if (debugToStderr) System.err.println("    Set BOLD GREEN");
+            }
+            case 11 -> {
+                MYBOLD_YELLOW = rgbColor;
+                if (debugToStderr) System.err.println("    Set BOLD YELLOW");
+            }
+            case 12 -> {
+                MYBOLD_BLUE = rgbColor;
+                if (debugToStderr) System.err.println("    Set BOLD BLUE");
+            }
+            case 13 -> {
+                MYBOLD_MAGENTA = rgbColor;
+                if (debugToStderr) System.err.println("    Set BOLD MAGENTA");
+            }
+            case 14 -> {
+                MYBOLD_CYAN = rgbColor;
+                if (debugToStderr) System.err.println("    Set BOLD CYAN");
+            }
+            case 15 -> {
+                MYBOLD_WHITE = rgbColor;
+                if (debugToStderr) System.err.println("    Set BOLD WHITE");
+            }
+            case 39 -> {
+                DEFAULT_FORECOLOR = rgbColor;
+                if (debugToStderr) System.err.println("    Set DEFAULT FOREGROUND");
+            }
+            case 49 -> {
+                DEFAULT_BACKCOLOR = rgbColor;
+                if (debugToStderr) System.err.println("    Set DEFAULT BACKGROUND");
+            }
+            default -> {
+                // Unknown color index, ignore
+            }
         }
     }
 
@@ -4199,45 +4139,31 @@ public class ECMA48Terminal extends LogicalScreen
             return rgb;
         }
 
+        int colorValue = attr.getForeColor().getValue();
         if (attr.isBold()) {
-            if (attr.getForeColor().equals(Color.BLACK)) {
-                return MYBOLD_BLACK;
-            } else if (attr.getForeColor().equals(Color.RED)) {
-                return MYBOLD_RED;
-            } else if (attr.getForeColor().equals(Color.BLUE)) {
-                return MYBOLD_BLUE;
-            } else if (attr.getForeColor().equals(Color.GREEN)) {
-                return MYBOLD_GREEN;
-            } else if (attr.getForeColor().equals(Color.YELLOW)) {
-                return MYBOLD_YELLOW;
-            } else if (attr.getForeColor().equals(Color.CYAN)) {
-                return MYBOLD_CYAN;
-            } else if (attr.getForeColor().equals(Color.MAGENTA)) {
-                return MYBOLD_MAGENTA;
-            } else if (attr.getForeColor().equals(Color.WHITE)) {
-                return MYBOLD_WHITE;
-            }
-        } else {
-            if (attr.getForeColor().equals(Color.BLACK)) {
-                return MYBLACK;
-            } else if (attr.getForeColor().equals(Color.RED)) {
-                return MYRED;
-            } else if (attr.getForeColor().equals(Color.BLUE)) {
-                return MYBLUE;
-            } else if (attr.getForeColor().equals(Color.GREEN)) {
-                return MYGREEN;
-            } else if (attr.getForeColor().equals(Color.YELLOW)) {
-                return MYYELLOW;
-            } else if (attr.getForeColor().equals(Color.CYAN)) {
-                return MYCYAN;
-            } else if (attr.getForeColor().equals(Color.MAGENTA)) {
-                return MYMAGENTA;
-            } else if (attr.getForeColor().equals(Color.WHITE)) {
-                return MYWHITE;
-            }
+            return switch (colorValue) {
+                case 0 -> MYBOLD_BLACK;  // Color.BLACK
+                case 1 -> MYBOLD_RED;    // Color.RED
+                case 2 -> MYBOLD_GREEN;  // Color.GREEN
+                case 3 -> MYBOLD_YELLOW; // Color.YELLOW
+                case 4 -> MYBOLD_BLUE;   // Color.BLUE
+                case 5 -> MYBOLD_MAGENTA;// Color.MAGENTA
+                case 6 -> MYBOLD_CYAN;   // Color.CYAN
+                case 7 -> MYBOLD_WHITE;  // Color.WHITE
+                default -> throw new IllegalArgumentException("Invalid color: " + colorValue);
+            };
         }
-        throw new IllegalArgumentException("Invalid color: " +
-            attr.getForeColor().getValue());
+        return switch (colorValue) {
+            case 0 -> MYBLACK;   // Color.BLACK
+            case 1 -> MYRED;     // Color.RED
+            case 2 -> MYGREEN;   // Color.GREEN
+            case 3 -> MYYELLOW;  // Color.YELLOW
+            case 4 -> MYBLUE;    // Color.BLUE
+            case 5 -> MYMAGENTA; // Color.MAGENTA
+            case 6 -> MYCYAN;    // Color.CYAN
+            case 7 -> MYWHITE;   // Color.WHITE
+            default -> throw new IllegalArgumentException("Invalid color: " + colorValue);
+        };
     }
 
     /**
@@ -4256,25 +4182,17 @@ public class ECMA48Terminal extends LogicalScreen
             return rgb;
         }
 
-        if (attr.getBackColor().equals(Color.BLACK)) {
-            return MYBLACK;
-        } else if (attr.getBackColor().equals(Color.RED)) {
-            return MYRED;
-        } else if (attr.getBackColor().equals(Color.BLUE)) {
-            return MYBLUE;
-        } else if (attr.getBackColor().equals(Color.GREEN)) {
-            return MYGREEN;
-        } else if (attr.getBackColor().equals(Color.YELLOW)) {
-            return MYYELLOW;
-        } else if (attr.getBackColor().equals(Color.CYAN)) {
-            return MYCYAN;
-        } else if (attr.getBackColor().equals(Color.MAGENTA)) {
-            return MYMAGENTA;
-        } else if (attr.getBackColor().equals(Color.WHITE)) {
-            return MYWHITE;
-        }
-        throw new IllegalArgumentException("Invalid color: " +
-            attr.getBackColor().getValue());
+        return switch (attr.getBackColor().getValue()) {
+            case 0 -> MYBLACK;   // Color.BLACK
+            case 1 -> MYRED;     // Color.RED
+            case 2 -> MYGREEN;   // Color.GREEN
+            case 3 -> MYYELLOW;  // Color.YELLOW
+            case 4 -> MYBLUE;    // Color.BLUE
+            case 5 -> MYMAGENTA; // Color.MAGENTA
+            case 6 -> MYCYAN;    // Color.CYAN
+            case 7 -> MYWHITE;   // Color.WHITE
+            default -> throw new IllegalArgumentException("Invalid color: " + attr.getBackColor().getValue());
+        };
     }
 
     /**
@@ -4375,6 +4293,37 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Get the palette color for a Color constant.
+     *
+     * @param color the Color constant
+     * @param bold  if true, return the bold/bright variant
+     * @return the RGB palette color value
+     */
+    private static int getPaletteColor(final Color color, final boolean bold) {
+        return bold ? switch (color.getValue()) {
+            case 0 -> MYBOLD_BLACK;
+            case 1 -> MYBOLD_RED;
+            case 2 -> MYBOLD_GREEN;
+            case 3 -> MYBOLD_YELLOW;
+            case 4 -> MYBOLD_BLUE;
+            case 5 -> MYBOLD_MAGENTA;
+            case 6 -> MYBOLD_CYAN;
+            case 7 -> MYBOLD_WHITE;
+            default -> MYBOLD_WHITE;
+        } : switch (color.getValue()) {
+            case 0 -> MYBLACK;
+            case 1 -> MYRED;
+            case 2 -> MYGREEN;
+            case 3 -> MYYELLOW;
+            case 4 -> MYBLUE;
+            case 5 -> MYMAGENTA;
+            case 6 -> MYCYAN;
+            case 7 -> MYWHITE;
+            default -> MYWHITE;
+        };
+    }
+
+    /**
      * Create a T.416 RGB parameter sequence for a single color change.
      *
      * @param bold       if true, set bold
@@ -4385,53 +4334,17 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String rgbColor(final boolean bold, final Color color,
                             final boolean foreground) {
-        if (doRgbColor == false) {
+        if (!doRgbColor) {
             return "";
         }
         StringBuilder sb = new StringBuilder("\033[");
         if (bold) {
             // Bold implies foreground only
             sb.append("38;2;");
-            if (color.equals(Color.BLACK)) {
-                sb.append(systemColorRGB(MYBOLD_BLACK));
-            } else if (color.equals(Color.RED)) {
-                sb.append(systemColorRGB(MYBOLD_RED));
-            } else if (color.equals(Color.GREEN)) {
-                sb.append(systemColorRGB(MYBOLD_GREEN));
-            } else if (color.equals(Color.YELLOW)) {
-                sb.append(systemColorRGB(MYBOLD_YELLOW));
-            } else if (color.equals(Color.BLUE)) {
-                sb.append(systemColorRGB(MYBOLD_BLUE));
-            } else if (color.equals(Color.MAGENTA)) {
-                sb.append(systemColorRGB(MYBOLD_MAGENTA));
-            } else if (color.equals(Color.CYAN)) {
-                sb.append(systemColorRGB(MYBOLD_CYAN));
-            } else if (color.equals(Color.WHITE)) {
-                sb.append(systemColorRGB(MYBOLD_WHITE));
-            }
+            sb.append(systemColorRGB(getPaletteColor(color, true)));
         } else {
-            if (foreground) {
-                sb.append("38;2;");
-            } else {
-                sb.append("48;2;");
-            }
-            if (color.equals(Color.BLACK)) {
-                sb.append(systemColorRGB(MYBLACK));
-            } else if (color.equals(Color.RED)) {
-                sb.append(systemColorRGB(MYRED));
-            } else if (color.equals(Color.GREEN)) {
-                sb.append(systemColorRGB(MYGREEN));
-            } else if (color.equals(Color.YELLOW)) {
-                sb.append(systemColorRGB(MYYELLOW));
-            } else if (color.equals(Color.BLUE)) {
-                sb.append(systemColorRGB(MYBLUE));
-            } else if (color.equals(Color.MAGENTA)) {
-                sb.append(systemColorRGB(MYMAGENTA));
-            } else if (color.equals(Color.CYAN)) {
-                sb.append(systemColorRGB(MYCYAN));
-            } else if (color.equals(Color.WHITE)) {
-                sb.append(systemColorRGB(MYWHITE));
-            }
+            sb.append(foreground ? "38;2;" : "48;2;");
+            sb.append(systemColorRGB(getPaletteColor(color, false)));
         }
         sb.append("m");
         return sb.toString();
@@ -4449,7 +4362,7 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String rgbColor(final boolean bold, final Color foreColor,
                             final Color backColor) {
-        if (doRgbColor == false) {
+        if (!doRgbColor) {
             return "";
         }
 
@@ -4558,6 +4471,27 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Build the SGR attribute prefix string based on reverse, blink, and underline flags.
+     * The returned string includes the ESC[ and ends with either 'm' (if terminated)
+     * or a trailing separator for additional parameters.
+     *
+     * @param reverse    if true, include reverse attribute (7)
+     * @param blink      if true, include blink attribute (5)
+     * @param underline  if true, include underline attribute (4)
+     * @param terminated if true, end with 'm'; otherwise end with ';' for more params
+     * @return the SGR prefix string
+     */
+    private static String buildAttributePrefix(final boolean reverse, final boolean blink,
+                                               final boolean underline, final boolean terminated) {
+        StringBuilder sb = new StringBuilder("\033[0");
+        if (reverse) sb.append(";7");
+        if (blink) sb.append(";5");
+        if (underline) sb.append(";4");
+        sb.append(terminated ? "m" : ";");
+        return sb.toString();
+    }
+
+    /**
      * Create a SGR parameter sequence for foreground, background, and
      * several attributes.  This sequence first resets all attributes to
      * default, then sets attributes as per the parameters.
@@ -4579,35 +4513,12 @@ public class ECMA48Terminal extends LogicalScreen
                          final boolean bold, final boolean reverse, final boolean blink,
                          final boolean underline) {
 
-        int ecmaForeColor = foreColor.getValue();
-        int ecmaBackColor = backColor.getValue();
+        int ecmaForeColor = foreColor.getValue() + 30;
+        int ecmaBackColor = backColor.getValue() + 40;
 
-        // Convert Color.* values to SGR numerics
-        ecmaBackColor += 40;
-        ecmaForeColor += 30;
-
-        StringBuilder sb = new StringBuilder();
-        if (reverse && blink && !underline) {
-            sb.append("\033[0;7;5;");
-        } else if (reverse && !blink && !underline) {
-            sb.append("\033[0;7;");
-        } else if (!reverse && blink && !underline) {
-            sb.append("\033[0;5;");
-        } else if (reverse && blink && underline) {
-            sb.append("\033[0;7;5;4;");
-        } else if (reverse && !blink && underline) {
-            sb.append("\033[0;7;4;");
-        } else if (!reverse && blink && underline) {
-            sb.append("\033[0;5;4;");
-        } else if (!reverse && !blink && underline) {
-            sb.append("\033[0;4;");
-        } else {
-            assert (!reverse && !blink && !underline);
-            sb.append("\033[0;");
-        }
-        sb.append(String.format("%d;%dm", ecmaForeColor, ecmaBackColor));
-        sb.append(rgbColor(bold, foreColor, backColor));
-        return sb.toString();
+        return buildAttributePrefix(reverse, blink, underline, false)
+            + String.format("%d;%dm", ecmaForeColor, ecmaBackColor)
+            + rgbColor(bold, foreColor, backColor);
     }
 
     /**
@@ -4628,27 +4539,7 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String attributes(final boolean bold, final boolean reverse,
                               final boolean blink, final boolean underline) {
-
-        StringBuilder sb = new StringBuilder();
-        if (reverse && blink && !underline) {
-            sb.append("\033[0;7;5m");
-        } else if (reverse && !blink && !underline) {
-            sb.append("\033[0;7m");
-        } else if (!reverse && blink && !underline) {
-            sb.append("\033[0;5m");
-        } else if (reverse && blink && underline) {
-            sb.append("\033[0;7;5;4m");
-        } else if (reverse && !blink && underline) {
-            sb.append("\033[0;7;4m");
-        } else if (!reverse && blink && underline) {
-            sb.append("\033[0;5;4m");
-        } else if (!reverse && !blink && underline) {
-            sb.append("\033[0;4m");
-        } else {
-            assert (!reverse && !blink && !underline);
-            sb.append("\033[0m");
-        }
-        return sb.toString();
+        return buildAttributePrefix(reverse, blink, underline, true);
     }
 
     /**
@@ -4680,34 +4571,10 @@ public class ECMA48Terminal extends LogicalScreen
         int backColorGreen = (backColorRGB >>> 8) & 0xFF;
         int backColorBlue = backColorRGB & 0xFF;
 
-        StringBuilder sb = new StringBuilder();
-        if (reverse && blink && !underline) {
-            sb.append("\033[0;7;5;");
-        } else if (reverse && !blink && !underline) {
-            sb.append("\033[0;7;");
-        } else if (!reverse && blink && !underline) {
-            sb.append("\033[0;5;");
-        } else if (reverse && blink && underline) {
-            sb.append("\033[0;7;5;4;");
-        } else if (reverse && !blink && underline) {
-            sb.append("\033[0;7;4;");
-        } else if (!reverse && blink && underline) {
-            sb.append("\033[0;5;4;");
-        } else if (!reverse && !blink && underline) {
-            sb.append("\033[0;4;");
-        } else {
-            assert (!reverse && !blink && !underline);
-            sb.append("\033[0;");
-        }
-
-        sb.append("m\033[38;2;");
-        sb.append(String.format("%d;%d;%d", foreColorRed, foreColorGreen,
-            foreColorBlue));
-        sb.append("m\033[48;2;");
-        sb.append(String.format("%d;%d;%d", backColorRed, backColorGreen,
-            backColorBlue));
-        sb.append("m");
-        return sb.toString();
+        return buildAttributePrefix(reverse, blink, underline, false)
+            + String.format("m\033[38;2;%d;%d;%dm\033[48;2;%d;%d;%dm",
+                foreColorRed, foreColorGreen, foreColorBlue,
+                backColorRed, backColorGreen, backColorBlue);
     }
 
     /**
