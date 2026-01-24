@@ -323,41 +323,45 @@ public class THelpText extends TScrollable {
 
         if (paragraphs != null) {
             getChildren().removeAll(paragraphs);
+            paragraphs.clear();
+        } else {
+            paragraphs = new ArrayList<>();
         }
-        paragraphs = new ArrayList<TParagraph>();
 
         // Add title paragraph at top.  We explicitly set the separator to
         // false to achieve the underscore effect.
-        List<TWord> title = new ArrayList<TWord>();
+        List<TWord> title = new ArrayList<>();
         title.add(new TWord(topic.getTitle(), null));
         TParagraph titleParagraph = new TParagraph(this, title);
         titleParagraph.separator = false;
         paragraphs.add(titleParagraph);
-        title = new ArrayList<TWord>();
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < topic.getTitle().length(); i++) {
-            sb.append('\u2580');
-        }
-        title.add(new TWord(sb.toString(), null));
+        title = new ArrayList<>();
+        @SuppressWarnings("UnnecessaryUnicodeEscape")
+        String underline = "\u2580".repeat(topic.getTitle().length());
+
+        title.add(new TWord(underline, null));
         titleParagraph = new TParagraph(this, title);
         paragraphs.add(titleParagraph);
 
         // Now add the actual text as paragraphs.
         int wordIndex = 0;
 
+        List<TWord> words = new ArrayList<>();
         // Break up text into paragraphs
         String [] blocks = topic.getText().split("\n\n");
         for (String block: blocks) {
-            List<TWord> words = new ArrayList<TWord>();
             String [] lines = block.split("\n");
-            for (String line: lines) {
+            // for (String line: lines)
+            for (int j = 0; j < lines.length; j++) {
+                String line = lines[j];
+                words.clear();
                 line = line.trim();
                 // System.err.println("line: " + line);
-                String [] wordTokens = line.split("\\s+");
+                String[] wordTokens = line.split("\\s+");
                 for (int i = 0; i < wordTokens.length; i++) {
                     String wordStr = wordTokens[i].trim();
                     Link wordLink = null;
-                    for (Link link: topic.getLinks()) {
+                    for (Link link : topic.getLinks()) {
                         if ((i + wordIndex >= link.getIndex())
                             && (i + wordIndex < link.getIndex() + link.getWordCount())
                         ) {
@@ -376,10 +380,11 @@ public class THelpText extends TScrollable {
                     words.add(word);
                 } // for (int i = 0; i < words.length; i++)
                 wordIndex += wordTokens.length;
-            } // for (String line: lines)
-            TParagraph paragraph = new TParagraph(this, words);
-            paragraph.separator = separator;
-            paragraphs.add(paragraph);
+
+                TParagraph paragraph = new TParagraph(this, words.stream().toList());
+                paragraph.separator = separator && j == lines.length - 1;
+                paragraphs.add(paragraph);
+            }
         } // for (String block: blocks)
 
         setBottomValue(paragraphs.size() - 1);

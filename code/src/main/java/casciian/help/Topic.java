@@ -215,12 +215,12 @@ public class Topic implements Comparable<Topic> {
      */
     private void processText(final String text) {
         StringBuilder sb = new StringBuilder();
-        String [] lines = text.split(System.lineSeparator());
+        String [] lines = text.split("\n");
         int wordIndex = 0;
+        var cleanLine = new StringBuilder();
         for (String line: lines) {
             line = line.trim();
-
-            var cleanLine = new StringBuilder();
+            cleanLine.setLength(0);
 
             // System.err.println("LINE " + wordIndex + " : '" + line + "'");
 
@@ -319,12 +319,10 @@ public class Topic implements Comparable<Topic> {
 
             // Append the entire line.
             sb.append(cleanLine);
-            sb.append(System.lineSeparator());
-
-            this.text = sb.toString();
-
+            sb.append('\n');
         } // for (String line: lines)
 
+        this.text = sb.toString();
     }
 
 }
