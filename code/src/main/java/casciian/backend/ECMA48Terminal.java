@@ -87,6 +87,12 @@ public class ECMA48Terminal extends LogicalScreen
     public static final String OSC_POINTER_SHAPE = "22";
 
     /**
+     * OSC sequence identifier for querying/setting the clipboard.
+     * Used in OSC 52 sequences to query or set the terminal's clipboard.
+     */
+    public static final String OSC_CLIPBOARD = "52";
+
+    /**
      * Arrow pointer shape name for xterm OSC 22 sequence.
      */
     private static final String POINTER_SHAPE_LEFT_PTR = "left_ptr";
@@ -2628,6 +2634,16 @@ public class ECMA48Terminal extends LogicalScreen
         boolean isColorPalette = ps[oscIndex].equals(OSC_PALETTE);
         boolean isDefaultForegroundColor = ps[oscIndex].equals(OSC_DEFAULT_FORECOLOR);
         boolean isDefaultBackgroundColor = ps[oscIndex].equals(OSC_DEFAULT_BACKCOLOR);
+        boolean isClipboard = ps[oscIndex].equals(OSC_CLIPBOARD);
+
+        if (isClipboard) {
+            if (ps.length != 3) {
+                return;
+            }
+
+            receiveClipboardResponse(ps[1], ps[2]);
+            return;
+        }
 
         if (!isColorPalette && !isDefaultForegroundColor && !isDefaultBackgroundColor) {
             return;
@@ -2686,6 +2702,36 @@ public class ECMA48Terminal extends LogicalScreen
             reallyCleared = true;
         } catch (NumberFormatException e) {
             // SQUASH
+        }
+    }
+
+    private void receiveClipboardResponse(String selection, String base64data) {
+        if (base64data == null || base64data.isEmpty()) {
+            if (debugToStderr) {
+                System.err.println("receiveClipboardResponse: empty or null data");
+            }
+            return;
+        }
+
+        try {
+            byte[] decodedBytes = StringUtils.fromBase64(base64data.getBytes(StandardCharsets.UTF_8));
+            String clipboardText = new String(decodedBytes, StandardCharsets.UTF_8);
+
+            if (debugToStderr) {
+                System.err.printf("receiveClipboardResponse: selection=%s, text length=%d\n",
+                    selection, clipboardText.length());
+            }
+
+            // For now, we don't expose the underlying terminal clipboard to TApplication,
+            // because we provide a per-application clipboard buffer already.
+            // Future enhancement: could store clipboardText in a field and provide
+            // a getter method for applications that want to access it.
+
+        } catch (IllegalArgumentException e) {
+            if (debugToStderr) {
+                System.err.println("receiveClipboardResponse: invalid Base64 data");
+                e.printStackTrace();
+            }
         }
     }
 
@@ -3186,7 +3232,7 @@ public class ECMA48Terminal extends LogicalScreen
                                         textBlinkOption = TextBlinkOption.SOFT;
                                     }
                                 }
-                                if (x.equals("52")) {
+                                if (x.equals(OSC_CLIPBOARD)) {
                                     // Terminal reports OSC 52 support
                                     if (debugToStderr) {
                                         System.err.println("Device Attributes: OSC52");
@@ -4711,7 +4757,8 @@ public class ECMA48Terminal extends LogicalScreen
     public void xtermSetClipboardText(final String text) {
         byte[] textBytes = text.getBytes(StandardCharsets.UTF_8);
         String textToCopy = StringUtils.toBase64(textBytes);
-        this.output.printf("\033]52;c;%s\033\\", textToCopy);
+        this.output.printf("\033]%s;c;%s\033\\", OSC_CLIPBOARD, textToCopy);
+        this.output.printf("\033]%s;c;?\033\\", OSC_CLIPBOARD);
         this.output.flush();
     }
 
