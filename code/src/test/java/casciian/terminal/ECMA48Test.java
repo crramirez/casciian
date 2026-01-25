@@ -339,4 +339,93 @@ class ECMA48Test {
         executor.shutdown();
         emulator.close();
     }
+
+    /**
+     * Test that captureState() with active reader thread does not cause
+     * ConcurrentModificationException in TerminalState.copyBuffer().
+     * 
+     * This verifies the fix for the bug where concurrent iteration over
+     * scrollback/display lists during captureState() while the reader
+     * thread modifies them would cause ConcurrentModificationException.
+     */
+    @RepeatedTest(5)
+    @DisplayName("captureState should not cause ConcurrentModificationException with active reader")
+    void shouldNotThrowConcurrentModificationExceptionDuringCaptureState() throws Exception {
+        Backend backend = new HeadlessBackend();
+        
+        // Create a piped stream to simulate continuous data flow
+        java.io.PipedOutputStream pipedOut = new java.io.PipedOutputStream();
+        java.io.PipedInputStream pipedIn = new java.io.PipedInputStream(pipedOut, 4096);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        
+        ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, pipedIn,
+            outputStream, null, backend);
+        
+        int captureIterations = 50;
+        AtomicBoolean failed = new AtomicBoolean(false);
+        AtomicBoolean writerDone = new AtomicBoolean(false);
+        StringBuilder errorMessage = new StringBuilder();
+        
+        // Thread to write data to the emulator (simulates terminal output)
+        Thread writerThread = new Thread(() -> {
+            try {
+                // Write data that causes scrolling to modify scrollback/display lists
+                for (int i = 0; i < 100 && !failed.get(); i++) {
+                    // Write text that will cause scrolling
+                    String line = "Line " + i + " with some content to fill buffer\n";
+                    pipedOut.write(line.getBytes("UTF-8"));
+                    pipedOut.flush();
+                    Thread.sleep(1); // Small delay to allow processing
+                }
+            } catch (Exception e) {
+                if (!failed.get()) {
+                    errorMessage.append("Writer thread error: " + e.getMessage());
+                    failed.set(true);
+                }
+            } finally {
+                writerDone.set(true);
+            }
+        });
+        
+        // Thread to call captureState() repeatedly
+        Thread captureThread = new Thread(() -> {
+            try {
+                for (int i = 0; i < captureIterations && !failed.get(); i++) {
+                    TerminalState state = emulator.captureState();
+                    assertNotNull(state, "captureState should return non-null");
+                    // Access the buffers to ensure they are valid
+                    state.getScrollbackBuffer();
+                    state.getDisplayBuffer();
+                    Thread.sleep(1); // Small delay
+                }
+            } catch (java.util.ConcurrentModificationException e) {
+                errorMessage.append("ConcurrentModificationException in captureState: " + e.getMessage());
+                failed.set(true);
+            } catch (Exception e) {
+                if (!failed.get()) {
+                    errorMessage.append("Capture thread error: " + e.getMessage());
+                    failed.set(true);
+                }
+            }
+        });
+        
+        writerThread.start();
+        captureThread.start();
+        
+        // Wait for threads to complete
+        captureThread.join(10000);
+        writerDone.set(true); // Signal writer to stop if still running
+        writerThread.join(5000);
+        
+        // Close the emulator
+        try {
+            pipedOut.close();
+        } catch (Exception e) {
+            // Ignore
+        }
+        emulator.close();
+        
+        assertFalse(failed.get(),
+            "No ConcurrentModificationException should occur: " + errorMessage);
+    }
 }
