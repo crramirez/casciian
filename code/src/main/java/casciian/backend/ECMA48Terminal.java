@@ -32,6 +32,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import casciian.TApplication;
+import casciian.TCommand;
 import casciian.backend.terminal.Terminal;
 import casciian.backend.terminal.TerminalFactory;
 import casciian.bits.Cell;
@@ -2722,11 +2724,14 @@ public class ECMA48Terminal extends LogicalScreen
                     selection, clipboardText.length());
             }
 
-            // For now, we don't expose the underlying terminal clipboard to TApplication,
-            // because we provide a per-application clipboard buffer already.
-            // Future enhancement: could store clipboardText in a field and provide
-            // a getter method for applications that want to access it.
-
+            synchronized (eventQueue) {
+                eventQueue.add(new TCommandEvent(backend, cmPaste));
+            }
+            if (listener != null) {
+                synchronized (listener) {
+                    listener.notifyAll();
+                }
+            }
         } catch (IllegalArgumentException e) {
             if (debugToStderr) {
                 System.err.println("receiveClipboardResponse: invalid Base64 data");
@@ -4757,7 +4762,7 @@ public class ECMA48Terminal extends LogicalScreen
     public void xtermSetClipboardText(final String text) {
         byte[] textBytes = text.getBytes(StandardCharsets.UTF_8);
         String textToCopy = StringUtils.toBase64(textBytes);
-        this.output.printf("\033]%s;c;%s\033\\", OSC_CLIPBOARD, textToCopy);
+        //this.output.printf("\033]%s;c;%s\033\\", OSC_CLIPBOARD, textToCopy);
         this.output.printf("\033]%s;c;?\033\\", OSC_CLIPBOARD);
         this.output.flush();
     }
