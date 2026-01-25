@@ -3034,14 +3034,15 @@ public class ECMA48 implements Runnable {
         }
 
         int remaining = regionBottom + 1 - regionTop - n;
-        var displayTop = new ArrayList<>(display.subList(0, regionTop));
-        var displayBottom = new ArrayList<>(display.subList(regionBottom + 1, display.size()));
-        var displayMiddle = new ArrayList<>(display.subList(regionBottom + 1 - remaining, regionBottom + 1));
-        display = new ArrayList<>(displayTop.size() + displayMiddle.size() + n + displayBottom.size());
-        display.addAll(displayTop);
+        List<DisplayLine> displayTop = display.subList(0, regionTop);
+        List<DisplayLine> displayBottom = display.subList(regionBottom + 1,
+            display.size());
+        List<DisplayLine> displayMiddle = display.subList(regionBottom + 1
+            - remaining, regionBottom + 1);
+        display = new ArrayList<DisplayLine>(displayTop);
         display.addAll(displayMiddle);
         for (int i = 0; i < n; i++) {
-            var line = new DisplayLine(currentState.attr);
+            DisplayLine line = new DisplayLine(currentState.attr);
             line.setReverseColor(reverseVideo);
             display.add(line);
         }
@@ -3076,13 +3077,14 @@ public class ECMA48 implements Runnable {
         }
 
         int remaining = regionBottom + 1 - regionTop - n;
-        var displayTop = new ArrayList<>(display.subList(0, regionTop));
-        var displayBottom = new ArrayList<>(display.subList(regionBottom + 1, display.size()));
-        var displayMiddle = new ArrayList<>(display.subList(regionTop, regionTop + remaining));
-        display = new ArrayList<>(displayTop.size() + n + displayMiddle.size() + displayBottom.size());
-        display.addAll(displayTop);
+        List<DisplayLine> displayTop = display.subList(0, regionTop);
+        List<DisplayLine> displayBottom = display.subList(regionBottom + 1,
+            display.size());
+        List<DisplayLine> displayMiddle = display.subList(regionTop,
+            regionTop + remaining);
+        display = new ArrayList<DisplayLine>(displayTop);
         for (int i = 0; i < n; i++) {
-            var line = new DisplayLine(currentState.attr);
+            DisplayLine line = new DisplayLine(currentState.attr);
             line.setReverseColor(reverseVideo);
             display.add(line);
         }
