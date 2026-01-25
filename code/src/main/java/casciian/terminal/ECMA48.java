@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import casciian.TKeypress;
 import casciian.backend.Backend;
 import casciian.backend.ECMA48Terminal;
+import casciian.backend.Screen;
 import casciian.bits.ImageRGB;
 import casciian.bits.Clipboard;
 import casciian.bits.Color;
@@ -8128,9 +8129,12 @@ public class ECMA48 implements Runnable {
      */
     private int getActualTextWidth() {
         if (backend != null) {
-            int backendWidth = backend.getScreen().getTextWidth();
-            if (backendWidth > 0) {
-                return backendWidth;
+            Screen screen = backend.getScreen();
+            if (screen != null) {
+                int backendWidth = screen.getTextWidth();
+                if (backendWidth > 0) {
+                    return backendWidth;
+                }
             }
         }
         return textWidth;
@@ -8144,9 +8148,12 @@ public class ECMA48 implements Runnable {
      */
     private int getActualTextHeight() {
         if (backend != null) {
-            int backendHeight = backend.getScreen().getTextHeight();
-            if (backendHeight > 0) {
-                return backendHeight;
+            Screen screen = backend.getScreen();
+            if (screen != null) {
+                int backendHeight = screen.getTextHeight();
+                if (backendHeight > 0) {
+                    return backendHeight;
+                }
             }
         }
         return textHeight;
