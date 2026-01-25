@@ -31,7 +31,6 @@ repositories {
 dependencies {
     // JLine terminal for platform-agnostic raw mode support
     implementation "org.jline:jline-terminal:${jlineVersion}"
-    implementation "org.jline:jline-terminal-ffm:${jlineVersion}"
     implementation "org.jline:jline-terminal-jni:${jlineVersion}"
 
     testImplementation platform('org.junit:junit-bom:5.10.1')
@@ -222,6 +221,7 @@ graalvmNative {
             mainClass = 'demo.Demo1'
             buildArgs.add('-march=compatibility')
             buildArgs.add('-Os')
+            buildArgs.add('--future-defaults=all')
             buildArgs.add('--enable-native-access=ALL-UNNAMED')
             buildArgs.addAll(providers.provider {
                 [

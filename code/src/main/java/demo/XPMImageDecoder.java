@@ -34,7 +34,6 @@ import java.util.regex.Pattern;
 public class XPMImageDecoder implements ImageDecoder {
 
     private static final Pattern VALUES_PATTERN = Pattern.compile("\"(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+).*\"");
-    private static final Pattern COLOR_PATTERN = Pattern.compile("\"(.+?)\\s+c\\s+(.+?)\"");
     private static final Pattern PIXEL_PATTERN = Pattern.compile("\"(.+?)\"");
 
     @Override
