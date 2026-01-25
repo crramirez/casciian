@@ -27,7 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import casciian.backend.Backend;
 import casciian.backend.HeadlessBackend;
@@ -166,80 +166,83 @@ class ECMA48Test {
         int iterations = 100;
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch doneLatch = new CountDownLatch(numThreads);
-        AtomicBoolean failed = new AtomicBoolean(false);
+        AtomicReference<Exception> caughtException = new AtomicReference<>();
         
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         
-        // Thread 1: Capture state repeatedly
-        executor.submit(() -> {
-            try {
-                startLatch.await();
-                for (int i = 0; i < iterations && !failed.get(); i++) {
-                    TerminalState state = emulator.captureState();
-                    assertNotNull(state);
+        try {
+            // Thread 1: Capture state repeatedly
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    for (int i = 0; i < iterations && caughtException.get() == null; i++) {
+                        TerminalState state = emulator.captureState();
+                        assertNotNull(state);
+                    }
+                } catch (Exception e) {
+                    caughtException.compareAndSet(null, e);
+                } finally {
+                    doneLatch.countDown();
                 }
-            } catch (Exception e) {
-                failed.set(true);
-            } finally {
-                doneLatch.countDown();
-            }
-        });
-        
-        // Thread 2: Set width repeatedly
-        executor.submit(() -> {
-            try {
-                startLatch.await();
-                for (int i = 0; i < iterations && !failed.get(); i++) {
-                    emulator.setWidth(80 + (i % 20));
+            });
+            
+            // Thread 2: Set width repeatedly
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    for (int i = 0; i < iterations && caughtException.get() == null; i++) {
+                        emulator.setWidth(80 + (i % 20));
+                    }
+                } catch (Exception e) {
+                    caughtException.compareAndSet(null, e);
+                } finally {
+                    doneLatch.countDown();
                 }
-            } catch (Exception e) {
-                failed.set(true);
-            } finally {
-                doneLatch.countDown();
-            }
-        });
-        
-        // Thread 3: Set height repeatedly
-        executor.submit(() -> {
-            try {
-                startLatch.await();
-                for (int i = 0; i < iterations && !failed.get(); i++) {
-                    emulator.setHeight(24 + (i % 10));
+            });
+            
+            // Thread 3: Set height repeatedly
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    for (int i = 0; i < iterations && caughtException.get() == null; i++) {
+                        emulator.setHeight(24 + (i % 10));
+                    }
+                } catch (Exception e) {
+                    caughtException.compareAndSet(null, e);
+                } finally {
+                    doneLatch.countDown();
                 }
-            } catch (Exception e) {
-                failed.set(true);
-            } finally {
-                doneLatch.countDown();
-            }
-        });
-        
-        // Thread 4: Capture state again
-        executor.submit(() -> {
-            try {
-                startLatch.await();
-                for (int i = 0; i < iterations && !failed.get(); i++) {
-                    TerminalState state = emulator.captureState();
-                    assertNotNull(state);
+            });
+            
+            // Thread 4: Capture state again
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    for (int i = 0; i < iterations && caughtException.get() == null; i++) {
+                        TerminalState state = emulator.captureState();
+                        assertNotNull(state);
+                    }
+                } catch (Exception e) {
+                    caughtException.compareAndSet(null, e);
+                } finally {
+                    doneLatch.countDown();
                 }
-            } catch (Exception e) {
-                failed.set(true);
-            } finally {
-                doneLatch.countDown();
-            }
-        });
-        
-        // Start all threads
-        startLatch.countDown();
-        
-        // Wait for completion
-        assertTrue(doneLatch.await(10, TimeUnit.SECONDS),
-            "All threads should complete within timeout");
-        
-        assertFalse(failed.get(),
-            "No thread should encounter exceptions during concurrent operations");
-        
-        executor.shutdown();
-        emulator.close();
+            });
+            
+            // Start all threads
+            startLatch.countDown();
+            
+            // Wait for completion
+            assertTrue(doneLatch.await(10, TimeUnit.SECONDS),
+                "All threads should complete within timeout");
+            
+            Exception ex = caughtException.get();
+            assertNull(ex, "No thread should encounter exceptions during concurrent operations: " 
+                + (ex != null ? ex.getClass().getName() + ": " + ex.getMessage() : ""));
+        } finally {
+            executor.shutdown();
+            emulator.close();
+        }
     }
 
     /**
@@ -258,35 +261,38 @@ class ECMA48Test {
         int numThreads = 4;
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch doneLatch = new CountDownLatch(numThreads);
-        AtomicBoolean failed = new AtomicBoolean(false);
+        AtomicReference<Exception> caughtException = new AtomicReference<>();
         
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         
-        for (int t = 0; t < numThreads; t++) {
-            executor.submit(() -> {
-                try {
-                    startLatch.await();
-                    // Multiple threads calling close concurrently
-                    emulator.close();
-                } catch (Exception e) {
-                    failed.set(true);
-                } finally {
-                    doneLatch.countDown();
-                }
-            });
+        try {
+            for (int t = 0; t < numThreads; t++) {
+                executor.submit(() -> {
+                    try {
+                        startLatch.await();
+                        // Multiple threads calling close concurrently
+                        emulator.close();
+                    } catch (Exception e) {
+                        caughtException.compareAndSet(null, e);
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+            
+            // Start all threads
+            startLatch.countDown();
+            
+            // Wait for completion
+            assertTrue(doneLatch.await(10, TimeUnit.SECONDS),
+                "All threads should complete within timeout");
+            
+            Exception ex = caughtException.get();
+            assertNull(ex, "No thread should encounter exceptions during concurrent close(): "
+                + (ex != null ? ex.getClass().getName() + ": " + ex.getMessage() : ""));
+        } finally {
+            executor.shutdown();
         }
-        
-        // Start all threads
-        startLatch.countDown();
-        
-        // Wait for completion
-        assertTrue(doneLatch.await(10, TimeUnit.SECONDS),
-            "All threads should complete within timeout");
-        
-        assertFalse(failed.get(),
-            "No thread should encounter exceptions during concurrent close()");
-        
-        executor.shutdown();
     }
 
     /**
@@ -306,38 +312,41 @@ class ECMA48Test {
         int iterations = 100;
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch doneLatch = new CountDownLatch(numThreads);
-        AtomicBoolean failed = new AtomicBoolean(false);
+        AtomicReference<Exception> caughtException = new AtomicReference<>();
         
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         
-        for (int t = 0; t < numThreads; t++) {
-            final int threadId = t;
-            executor.submit(() -> {
-                try {
-                    startLatch.await();
-                    for (int i = 0; i < iterations && !failed.get(); i++) {
-                        emulator.setScrollbackMax(1000 + threadId * 100 + i);
+        try {
+            for (int t = 0; t < numThreads; t++) {
+                final int threadId = t;
+                executor.submit(() -> {
+                    try {
+                        startLatch.await();
+                        for (int i = 0; i < iterations && caughtException.get() == null; i++) {
+                            emulator.setScrollbackMax(1000 + threadId * 100 + i);
+                        }
+                    } catch (Exception e) {
+                        caughtException.compareAndSet(null, e);
+                    } finally {
+                        doneLatch.countDown();
                     }
-                } catch (Exception e) {
-                    failed.set(true);
-                } finally {
-                    doneLatch.countDown();
-                }
-            });
+                });
+            }
+            
+            // Start all threads
+            startLatch.countDown();
+            
+            // Wait for completion
+            assertTrue(doneLatch.await(10, TimeUnit.SECONDS),
+                "All threads should complete within timeout");
+            
+            Exception ex = caughtException.get();
+            assertNull(ex, "No thread should encounter exceptions during concurrent setScrollbackMax(): "
+                + (ex != null ? ex.getClass().getName() + ": " + ex.getMessage() : ""));
+        } finally {
+            executor.shutdown();
+            emulator.close();
         }
-        
-        // Start all threads
-        startLatch.countDown();
-        
-        // Wait for completion
-        assertTrue(doneLatch.await(10, TimeUnit.SECONDS),
-            "All threads should complete within timeout");
-        
-        assertFalse(failed.get(),
-            "No thread should encounter exceptions during concurrent setScrollbackMax()");
-        
-        executor.shutdown();
-        emulator.close();
     }
 
     /**
@@ -361,71 +370,66 @@ class ECMA48Test {
         ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, pipedIn,
             outputStream, null, backend);
         
-        int captureIterations = 50;
-        AtomicBoolean failed = new AtomicBoolean(false);
-        AtomicBoolean writerDone = new AtomicBoolean(false);
-        StringBuilder errorMessage = new StringBuilder();
-        
-        // Thread to write data to the emulator (simulates terminal output)
-        Thread writerThread = new Thread(() -> {
-            try {
-                // Write data that causes scrolling to modify scrollback/display lists
-                for (int i = 0; i < 100 && !failed.get(); i++) {
-                    // Write text that will cause scrolling
-                    String line = "Line " + i + " with some content to fill buffer\n";
-                    pipedOut.write(line.getBytes("UTF-8"));
-                    pipedOut.flush();
-                    Thread.sleep(1); // Small delay to allow processing
-                }
-            } catch (Exception e) {
-                if (!failed.get()) {
-                    errorMessage.append("Writer thread error: " + e.getMessage());
-                    failed.set(true);
-                }
-            } finally {
-                writerDone.set(true);
-            }
-        });
-        
-        // Thread to call captureState() repeatedly
-        Thread captureThread = new Thread(() -> {
-            try {
-                for (int i = 0; i < captureIterations && !failed.get(); i++) {
-                    TerminalState state = emulator.captureState();
-                    assertNotNull(state, "captureState should return non-null");
-                    // Access the buffers to ensure they are valid
-                    state.getScrollbackBuffer();
-                    state.getDisplayBuffer();
-                    Thread.sleep(1); // Small delay
-                }
-            } catch (java.util.ConcurrentModificationException e) {
-                errorMessage.append("ConcurrentModificationException in captureState: " + e.getMessage());
-                failed.set(true);
-            } catch (Exception e) {
-                if (!failed.get()) {
-                    errorMessage.append("Capture thread error: " + e.getMessage());
-                    failed.set(true);
-                }
-            }
-        });
-        
-        writerThread.start();
-        captureThread.start();
-        
-        // Wait for threads to complete
-        captureThread.join(10000);
-        writerDone.set(true); // Signal writer to stop if still running
-        writerThread.join(5000);
-        
-        // Close the emulator
         try {
-            pipedOut.close();
-        } catch (Exception e) {
-            // Ignore
+            int captureIterations = 50;
+            AtomicBoolean writerDone = new AtomicBoolean(false);
+            AtomicReference<Exception> caughtException = new AtomicReference<>();
+            
+            // Thread to write data to the emulator (simulates terminal output)
+            Thread writerThread = new Thread(() -> {
+                try {
+                    // Write data that causes scrolling to modify scrollback/display lists
+                    for (int i = 0; i < 100 && caughtException.get() == null; i++) {
+                        // Write text that will cause scrolling
+                        String line = "Line " + i + " with some content to fill buffer\n";
+                        pipedOut.write(line.getBytes("UTF-8"));
+                        pipedOut.flush();
+                        Thread.sleep(1); // Small delay to allow processing
+                    }
+                } catch (Exception e) {
+                    caughtException.compareAndSet(null, e);
+                } finally {
+                    writerDone.set(true);
+                }
+            });
+            
+            // Thread to call captureState() repeatedly
+            Thread captureThread = new Thread(() -> {
+                try {
+                    for (int i = 0; i < captureIterations && caughtException.get() == null; i++) {
+                        TerminalState state = emulator.captureState();
+                        assertNotNull(state, "captureState should return non-null");
+                        // Access the buffers to ensure they are valid
+                        state.getScrollbackBuffer();
+                        state.getDisplayBuffer();
+                        Thread.sleep(1); // Small delay
+                    }
+                } catch (java.util.ConcurrentModificationException e) {
+                    caughtException.compareAndSet(null, e);
+                } catch (Exception e) {
+                    caughtException.compareAndSet(null, e);
+                }
+            });
+            
+            writerThread.start();
+            captureThread.start();
+            
+            // Wait for threads to complete
+            captureThread.join(10000);
+            writerDone.set(true); // Signal writer to stop if still running
+            writerThread.join(5000);
+            
+            Exception ex = caughtException.get();
+            assertNull(ex, "No ConcurrentModificationException should occur: "
+                + (ex != null ? ex.getClass().getName() + ": " + ex.getMessage() : ""));
+        } finally {
+            // Close the emulator and associated stream
+            try {
+                pipedOut.close();
+            } catch (Exception e) {
+                // Ignore
+            }
+            emulator.close();
         }
-        emulator.close();
-        
-        assertFalse(failed.get(),
-            "No ConcurrentModificationException should occur: " + errorMessage);
     }
 }
