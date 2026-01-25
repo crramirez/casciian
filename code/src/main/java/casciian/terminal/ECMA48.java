@@ -27,6 +27,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -415,7 +416,7 @@ public class ECMA48 implements Runnable {
     /**
      * Last Unicode grapheme printed.
      */
-    private List<Integer> repCodePoints = new ArrayList<Integer>(5);
+    private List<Integer> repCodePoints = new ArrayList<>(5);
 
     /**
      * Last cursor X location of full-width grapheme printed.
@@ -585,7 +586,7 @@ public class ECMA48 implements Runnable {
      * Input queue for keystrokes and mouse events to send to the remote
      * side.
      */
-    private final ArrayList<TInputEvent> userQueue = new ArrayList<TInputEvent>();
+    private final ArrayList<TInputEvent> userQueue = new ArrayList<>();
 
     /**
      * Number of bytes/characters passed to consume().
@@ -736,23 +737,23 @@ public class ECMA48 implements Runnable {
         assert (outputStream != null);
         assert (backend != null);
 
-        csiParams         = new ArrayList<Integer>();
-        tabStops          = new ArrayList<Integer>();
-        scrollback        = new ArrayList<DisplayLine>();
-        display           = new ArrayList<DisplayLine>();
+        csiParams         = new ArrayList<>();
+        tabStops          = new ArrayList<>();
+        scrollback        = new ArrayList<>();
+        display           = new ArrayList<>();
 
         this.type         = type;
-        if (inputStream instanceof TimeoutInputStream) {
-            this.inputStream  = (TimeoutInputStream) inputStream;
+        if (inputStream instanceof TimeoutInputStream timeoutInputStream) {
+            this.inputStream  = timeoutInputStream;
         } else {
             this.inputStream  = new TimeoutInputStream(inputStream,
                 ((inputStream instanceof FileInputStream) ? 0 : 2000));
         }
         if (type == DeviceType.XTERM) {
             this.input    = new InputStreamReader(new BufferedInputStream(
-                this.inputStream, 1024 * 128), "UTF-8");
+                this.inputStream, 1024 * 128), StandardCharsets.UTF_8);
             this.output   = new OutputStreamWriter(new
-                BufferedOutputStream(outputStream), "UTF-8");
+                BufferedOutputStream(outputStream), StandardCharsets.UTF_8);
             this.outputStream = null;
         } else {
             this.output       = null;
@@ -800,8 +801,8 @@ public class ECMA48 implements Runnable {
 
         while (!done && !stopReaderThread) {
             synchronized (userQueue) {
-                while (userQueue.size() > 0) {
-                    handleUserEvent(userQueue.remove(0));
+                while (!userQueue.isEmpty()) {
+                    handleUserEvent(userQueue.removeFirst());
                 }
             }
 
@@ -812,14 +813,12 @@ public class ECMA48 implements Runnable {
                 if (utf8) {
                     if (readBufferUTF8.length < n) {
                         // The buffer wasn't big enough, make it huger
-                        int newSizeHalf = Math.max(readBufferUTF8.length, n);
-                        readBufferUTF8 = new char[newSizeHalf * 2];
+                        readBufferUTF8 = new char[n * 2];
                     }
                 } else {
                     if (readBuffer.length < n) {
                         // The buffer wasn't big enough, make it huger
-                        int newSizeHalf = Math.max(readBuffer.length, n);
-                        readBuffer = new byte[newSizeHalf * 2];
+                        readBuffer = new byte[n * 2];
                     }
                 }
                 if (n == 0) {
@@ -994,11 +993,11 @@ public class ECMA48 implements Runnable {
      * @param event the input event to consume
      */
     private void handleUserEvent(final TInputEvent event) {
-        if (event instanceof TKeypressEvent) {
-            keypress(((TKeypressEvent) event).getKey());
+        if (event instanceof TKeypressEvent keypressEvent) {
+            keypress(keypressEvent.getKey());
         }
-        if (event instanceof TMouseEvent) {
-            mouse((TMouseEvent) event);
+        if (event instanceof TMouseEvent mouseEvent) {
+            mouse(mouseEvent);
         }
     }
 
@@ -1036,7 +1035,7 @@ public class ECMA48 implements Runnable {
      * @param scrollBottom the number of rows from the bottom to scroll back
      * @return a copy of the display + scrollback buffers
      */
-    private final List<DisplayLine> getVisibleDisplay(final int visibleHeight,
+    private List<DisplayLine> getVisibleDisplay(final int visibleHeight,
         final int scrollBottom) {
 
         assert (visibleHeight >= 0);
@@ -1807,7 +1806,7 @@ public class ECMA48 implements Runnable {
         // XTERM
         mouseProtocol           = MouseProtocol.OFF;
         mouseEncoding           = MouseEncoding.X10;
-        selectBuffers           = new HashMap<Character, String>();
+        selectBuffers           = new HashMap<>();
 
         // Tab stops
         resetTabStops();
@@ -3039,7 +3038,7 @@ public class ECMA48 implements Runnable {
             display.size());
         List<DisplayLine> displayMiddle = display.subList(regionBottom + 1
             - remaining, regionBottom + 1);
-        display = new ArrayList<DisplayLine>(displayTop);
+        display = new ArrayList<>(displayTop);
         display.addAll(displayMiddle);
         for (int i = 0; i < n; i++) {
             DisplayLine line = new DisplayLine(currentState.attr);
@@ -3082,7 +3081,7 @@ public class ECMA48 implements Runnable {
             display.size());
         List<DisplayLine> displayMiddle = display.subList(regionTop,
             regionTop + remaining);
-        display = new ArrayList<DisplayLine>(displayTop);
+        display = new ArrayList<>(displayTop);
         for (int i = 0; i < n; i++) {
             DisplayLine line = new DisplayLine(currentState.attr);
             line.setReverseColor(reverseVideo);
@@ -3700,7 +3699,7 @@ public class ECMA48 implements Runnable {
                         } else {
                             // Use shared color registers for each sixel
                             // graphic.
-                            sixelPalette = new HashMap<Integer, Integer>();
+                            sixelPalette = new HashMap<>();
                             SixelDecoder.initializePaletteVT340(sixelPalette);
                         }
                     }
@@ -5637,12 +5636,8 @@ public class ECMA48 implements Runnable {
 
         byte [] textBytes = textToCopy.getBytes();
         String clipboardText = null;
-        try {
-            clipboardText = new String(StringUtils.fromBase64(textBytes),
-                "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            // SQUASH
-        }
+        clipboardText = new String(StringUtils.fromBase64(textBytes),
+            StandardCharsets.UTF_8);
 
         /*
         System.err.println("xtermCopyClipboard() " + clipboards + " --> "
