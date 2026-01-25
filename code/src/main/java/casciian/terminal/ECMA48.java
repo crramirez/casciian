@@ -909,7 +909,7 @@ public class ECMA48 implements Runnable {
                 // but it is related to the spawned process rather than the
                 // actual UI.  We will generate the stack trace, and consume
                 // it as though it was emitted by the shell.
-                CharArrayWriter writer = new CharArrayWriter();
+                var writer = new CharArrayWriter();
                 // Send a ST and RIS to clear the emulator state.
                 try {
                     writer.write("\033\\\033c");
@@ -919,12 +919,12 @@ public class ECMA48 implements Runnable {
                 } catch (IOException e2) {
                     // SQUASH
                 }
-                char [] stackTrace = writer.toCharArray();
-                for (int i = 0; i < stackTrace.length; i++) {
-                    if (stackTrace[i] == '\n') {
+                var stackTrace = writer.toCharArray();
+                for (char c : stackTrace) {
+                    if (c == '\n') {
                         consume('\r');
                     }
-                    consume(stackTrace[i]);
+                    consume(c);
                 }
             }
 
@@ -1055,7 +1055,7 @@ public class ECMA48 implements Runnable {
 
         int visibleBottom = scrollback.size() + display.size() - scrollBottom;
 
-        List<DisplayLine> preceedingBlankLines = new ArrayList<DisplayLine>();
+        var preceedingBlankLines = new ArrayList<DisplayLine>();
         int visibleTop = visibleBottom - visibleHeight;
         if (visibleTop < 0) {
             for (int i = visibleTop; i < 0; i++) {
@@ -1065,11 +1065,11 @@ public class ECMA48 implements Runnable {
         }
         assert (visibleTop >= 0);
 
-        List<DisplayLine> displayLines = new ArrayList<DisplayLine>();
+        var displayLines = new ArrayList<DisplayLine>(scrollback.size() + display.size());
         displayLines.addAll(scrollback);
         displayLines.addAll(display);
 
-        List<DisplayLine> visibleLines = new ArrayList<DisplayLine>();
+        var visibleLines = new ArrayList<DisplayLine>(visibleHeight);
         visibleLines.addAll(preceedingBlankLines);
         visibleLines.addAll(displayLines.subList(visibleTop,
                 Math.min(visibleBottom, displayLines.size())));
@@ -1091,8 +1091,8 @@ public class ECMA48 implements Runnable {
      * @return a deep copy of the buffer's data
      */
     private List<DisplayLine> copyBuffer(final List<DisplayLine> buffer) {
-        List<DisplayLine> result = new ArrayList<DisplayLine>(buffer.size());
-        for (DisplayLine line: buffer) {
+        var result = new ArrayList<DisplayLine>(buffer.size());
+        for (DisplayLine line : buffer) {
             result.add(new DisplayLine(line));
         }
         return result;
@@ -1105,28 +1105,17 @@ public class ECMA48 implements Runnable {
      * this.type
      */
     private String deviceTypeResponse() {
-        switch (type) {
-        case VT100:
-            // "I am a VT100 with advanced video option" (often VT102)
-            return "\033[?1;2c";
-
-        case VT102:
-            // "I am a VT102"
-            return "\033[?6c";
-
-        case VT220:
-        case XTERM:
-            // "I am a VT220" - 7 bit version, with sixel and Casciian image
-            // support, and OSC 52.
-            if (!s8c1t) {
-                return "\033[?62;1;6;9;4;22;52;444c";
-            }
-            // "I am a VT220" - 8 bit version, with sixel and Casciian image
-            // support, and OSC 52.
-            return "\u009b?62;1;6;9;4;22;52;444c";
-        default:
-            throw new IllegalArgumentException("Invalid device type: " + type);
-        }
+        return switch (type) {
+            case VT100 ->
+                // "I am a VT100 with advanced video option" (often VT102)
+                "\033[?1;2c";
+            case VT102 ->
+                // "I am a VT102"
+                "\033[?6c";
+            case VT220, XTERM ->
+                // "I am a VT220" with sixel and Casciian image support, and OSC 52.
+                s8c1t ? "\u009b?62;1;6;9;4;22;52;444c" : "\033[?62;1;6;9;4;22;52;444c";
+        };
     }
 
     /**
@@ -1138,23 +1127,12 @@ public class ECMA48 implements Runnable {
      * @return "vt100", "xterm", etc.
      */
     public static String deviceTypeTerm(final DeviceType deviceType) {
-        switch (deviceType) {
-        case VT100:
-            return "vt100";
-
-        case VT102:
-            return "vt102";
-
-        case VT220:
-            return "vt220";
-
-        case XTERM:
-            return "xterm";
-
-        default:
-            throw new IllegalArgumentException("Invalid device type: "
-                + deviceType);
-        }
+        return switch (deviceType) {
+            case VT100 -> "vt100";
+            case VT102 -> "vt102";
+            case VT220 -> "vt220";
+            case XTERM -> "xterm";
+        };
     }
 
     /**
@@ -1170,20 +1148,10 @@ public class ECMA48 implements Runnable {
     public static String deviceTypeLang(final DeviceType deviceType,
         final String baseLang) {
 
-        switch (deviceType) {
-
-        case VT100:
-        case VT102:
-        case VT220:
-            return baseLang;
-
-        case XTERM:
-            return baseLang + ".UTF-8";
-
-        default:
-            throw new IllegalArgumentException("Invalid device type: "
-                + deviceType);
-        }
+        return switch (deviceType) {
+            case VT100, VT102, VT220 -> baseLang;
+            case XTERM -> baseLang + ".UTF-8";
+        };
     }
 
     /**
@@ -1362,15 +1330,15 @@ public class ECMA48 implements Runnable {
             savedState.cursorY = height - 1;
         }
         while (display.size() < height) {
-            if (scrollback.size() == 0) {
-                DisplayLine line = new DisplayLine(currentState.attr);
+            if (scrollback.isEmpty()) {
+                var line = new DisplayLine(currentState.attr);
                 line.setReverseColor(reverseVideo);
-                scrollback.add(0, line);
+                scrollback.addFirst(line);
             }
-            display.add(0, scrollback.remove(scrollback.size() - 1));
+            display.addFirst(scrollback.removeLast());
         }
         while (display.size() > height) {
-            appendScrollbackLine(display.remove(0));
+            appendScrollbackLine(display.removeFirst());
         }
     }
 
@@ -1407,14 +1375,11 @@ public class ECMA48 implements Runnable {
      * Reset the 88- or 256-colors.
      */
     private void resetColors() {
-        colors88 = new ArrayList<Integer>(256);
-        for (int i = 0; i < 256; i++) {
-            colors88.add(0);
-        }
+        colors88 = new ArrayList<>(java.util.Collections.nCopies(256, 0));
 
         if (backend != null) {
             // Set default system colors to match the backend.
-            CellAttributes attr = new CellAttributes();
+            var attr = new CellAttributes();
             for (int i = 0; i < 8; i++) {
                 attr.setForeColor(Color.getSgrColor(i));
                 colors88.set(i, backend.attrToForegroundColor(attr));
@@ -1422,8 +1387,7 @@ public class ECMA48 implements Runnable {
             attr.setBold(true);
             for (int i = 0; i < 8; i++) {
                 attr.setForeColor(Color.getSgrColor(i));
-                colors88.set(i + 8,
-                    backend.attrToForegroundColor(attr));
+                colors88.set(i + 8, backend.attrToForegroundColor(attr));
             }
         } else {
             // Set default system colors.  These match DOS colors.
@@ -1880,9 +1844,9 @@ public class ECMA48 implements Runnable {
             scrollback.remove(0);
             scrollback.trimToSize();
         }
-        display.remove(0);
+        display.removeFirst();
         display.trimToSize();
-        DisplayLine line = new DisplayLine(currentState.attr);
+        var line = new DisplayLine(currentState.attr);
         line.setReverseColor(reverseVideo);
         display.add(line);
         screenIsDirty = true;
@@ -1913,7 +1877,7 @@ public class ECMA48 implements Runnable {
      * Reverse the color of the visible display.
      */
     private void invertDisplayColors() {
-        for (DisplayLine line: display) {
+        for (DisplayLine line : display) {
             line.setReverseColor(!line.isReverseColor());
         }
         screenIsDirty = true;
@@ -1966,10 +1930,7 @@ public class ECMA48 implements Runnable {
      */
     private void printEmojiXY(final int x, final int y, final int wcWidth) {
         screenIsDirty = true;
-        int [] codePoints = new int[repCodePoints.size()];
-        for (int i = 0; i < repCodePoints.size(); i++) {
-            codePoints[i] = repCodePoints.get(i);
-        }
+        var codePoints = repCodePoints.stream().mapToInt(Integer::intValue).toArray();
 
         // The first codepoint in a sequence might have been narrow-width.
         // If so, advance the cursor to make room for the right half.
@@ -1977,16 +1938,12 @@ public class ECMA48 implements Runnable {
             printCharacter(' ');
         }
 
-        ComplexCell cell = new ComplexCell(codePoints, currentState.attr);
-        if (wcWidth == 2) {
-            cell.setWidth(Cell.Width.LEFT);
-        } else {
-            cell.setWidth(Cell.Width.SINGLE);
-        }
+        var cell = new ComplexCell(codePoints, currentState.attr);
+        cell.setWidth(wcWidth == 2 ? Cell.Width.LEFT : Cell.Width.SINGLE);
         display.get(y).replace(x, cell);
 
         if (wcWidth == 2) {
-            ComplexCell right = new ComplexCell(cell);
+            var right = new ComplexCell(cell);
             right.setWidth(Cell.Width.RIGHT);
             display.get(y).replace(x + 1, right);
         }
@@ -2047,11 +2004,10 @@ public class ECMA48 implements Runnable {
             wrapLineFlag = false;
         }
 
-        // "Print" the character
-        ComplexCell newCell = new ComplexCell(ch);
+        var newCell = new ComplexCell(ch);
         CellAttributes newCellAttributes = newCell;
         newCellAttributes.setTo(currentState.attr);
-        DisplayLine line = display.get(currentState.cursorY);
+        var line = display.get(currentState.cursorY);
 
         // Insert mode special case
         if (insertMode) {
@@ -2139,7 +2095,7 @@ public class ECMA48 implements Runnable {
         }
 
         // Now encode the event
-        StringBuilder sb = new StringBuilder(6);
+        var sb = new StringBuilder(32);
         if (mouseEncoding == MouseEncoding.SGR) {
             sb.append((char) 0x1B);
             sb.append("[<");
@@ -2328,39 +2284,27 @@ public class ECMA48 implements Runnable {
             }
         }
 
-        if ((newLineMode == true) && (keypress.equals(kbEnter))) {
+        if (newLineMode && keypress.equals(kbEnter)) {
             // NLM: send CRLF
             return "\015\012";
         }
 
         // Handle control characters
-        if ((keypress.isCtrl()) && (!keypress.isFnKey())) {
-            StringBuilder sb = new StringBuilder();
-            int ch = keypress.getChar();
-            ch &= 0x1F;
-            sb.append(Character.toChars(ch));
-            return sb.toString();
+        if (keypress.isCtrl() && !keypress.isFnKey()) {
+            int ch = keypress.getChar() & 0x1F;
+            return new String(Character.toChars(ch));
         }
 
         // Handle alt characters
-        if ((keypress.isAlt()) && (!keypress.isFnKey())) {
-            StringBuilder sb = new StringBuilder("\033");
-            int ch = keypress.getChar();
-            sb.append(Character.toChars(ch));
-            return sb.toString();
+        if (keypress.isAlt() && !keypress.isFnKey()) {
+            return "\033" + new String(Character.toChars(keypress.getChar()));
         }
 
         if (keypress.equals(kbBackspaceDel)) {
-            switch (type) {
-            case VT100:
-                return "\010";
-            case VT102:
-                return "\010";
-            case VT220:
-                return "\177";
-            case XTERM:
-                return "\177";
-            }
+            return switch (type) {
+                case VT100, VT102 -> "\010";
+                case VT220, XTERM -> "\177";
+            };
         }
 
         if (keypress.equalsWithoutModifiers(kbLeft)) {
@@ -2884,22 +2828,13 @@ public class ECMA48 implements Runnable {
             return "\011";
         }
 
-        if ((keypress.equalsWithoutModifiers(kbBackTab)) ||
-            (keypress.equals(kbShiftTab))
-        ) {
-            switch (type) {
-            case XTERM:
-                return "\033[Z";
-            default:
-                return "\011";
-            }
+        if (keypress.equalsWithoutModifiers(kbBackTab) || keypress.equals(kbShiftTab)) {
+            return type == DeviceType.XTERM ? "\033[Z" : "\011";
         }
 
         // Non-alt, non-ctrl characters
         if (!keypress.isFnKey()) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(Character.toChars(keypress.getChar()));
-            return sb.toString();
+            return new String(Character.toChars(keypress.getChar()));
         }
         return "";
     }
@@ -2921,68 +2856,29 @@ public class ECMA48 implements Runnable {
         CharacterSet lookupCharset = charsetGl;
 
         if (ch >= 0x80) {
-            assert ((type == DeviceType.VT220) || (type == DeviceType.XTERM));
+            assert (type == DeviceType.VT220 || type == DeviceType.XTERM);
             lookupCharset = charsetGr;
             lookupChar &= 0x7F;
         }
 
-        switch (lookupCharset) {
-
-        case DRAWING:
-            return DECCharacterSets.SPECIAL_GRAPHICS[lookupChar];
-
-        case UK:
-            return DECCharacterSets.UK[lookupChar];
-
-        case US:
-            return DECCharacterSets.US_ASCII[lookupChar];
-
-        case NRC_DUTCH:
-            return DECCharacterSets.NL[lookupChar];
-
-        case NRC_FINNISH:
-            return DECCharacterSets.FI[lookupChar];
-
-        case NRC_FRENCH:
-            return DECCharacterSets.FR[lookupChar];
-
-        case NRC_FRENCH_CA:
-            return DECCharacterSets.FR_CA[lookupChar];
-
-        case NRC_GERMAN:
-            return DECCharacterSets.DE[lookupChar];
-
-        case NRC_ITALIAN:
-            return DECCharacterSets.IT[lookupChar];
-
-        case NRC_NORWEGIAN:
-            return DECCharacterSets.NO[lookupChar];
-
-        case NRC_SPANISH:
-            return DECCharacterSets.ES[lookupChar];
-
-        case NRC_SWEDISH:
-            return DECCharacterSets.SV[lookupChar];
-
-        case NRC_SWISS:
-            return DECCharacterSets.SWISS[lookupChar];
-
-        case DEC_SUPPLEMENTAL:
-            return DECCharacterSets.DEC_SUPPLEMENTAL[lookupChar];
-
-        case VT52_GRAPHICS:
-            return DECCharacterSets.VT52_SPECIAL_GRAPHICS[lookupChar];
-
-        case ROM:
-            return DECCharacterSets.US_ASCII[lookupChar];
-
-        case ROM_SPECIAL:
-            return DECCharacterSets.US_ASCII[lookupChar];
-
-        default:
-            throw new IllegalArgumentException("Invalid character set value: "
-                + lookupCharset);
-        }
+        return switch (lookupCharset) {
+            case DRAWING -> DECCharacterSets.SPECIAL_GRAPHICS[lookupChar];
+            case UK -> DECCharacterSets.UK[lookupChar];
+            case US -> DECCharacterSets.US_ASCII[lookupChar];
+            case NRC_DUTCH -> DECCharacterSets.NL[lookupChar];
+            case NRC_FINNISH -> DECCharacterSets.FI[lookupChar];
+            case NRC_FRENCH -> DECCharacterSets.FR[lookupChar];
+            case NRC_FRENCH_CA -> DECCharacterSets.FR_CA[lookupChar];
+            case NRC_GERMAN -> DECCharacterSets.DE[lookupChar];
+            case NRC_ITALIAN -> DECCharacterSets.IT[lookupChar];
+            case NRC_NORWEGIAN -> DECCharacterSets.NO[lookupChar];
+            case NRC_SPANISH -> DECCharacterSets.ES[lookupChar];
+            case NRC_SWEDISH -> DECCharacterSets.SV[lookupChar];
+            case NRC_SWISS -> DECCharacterSets.SWISS[lookupChar];
+            case DEC_SUPPLEMENTAL -> DECCharacterSets.DEC_SUPPLEMENTAL[lookupChar];
+            case VT52_GRAPHICS -> DECCharacterSets.VT52_SPECIAL_GRAPHICS[lookupChar];
+            case ROM, ROM_SPECIAL -> DECCharacterSets.US_ASCII[lookupChar];
+        };
     }
 
     /**
@@ -3137,15 +3033,14 @@ public class ECMA48 implements Runnable {
         }
 
         int remaining = regionBottom + 1 - regionTop - n;
-        List<DisplayLine> displayTop = display.subList(0, regionTop);
-        List<DisplayLine> displayBottom = display.subList(regionBottom + 1,
-            display.size());
-        List<DisplayLine> displayMiddle = display.subList(regionBottom + 1
-            - remaining, regionBottom + 1);
-        display = new ArrayList<DisplayLine>(displayTop);
+        var displayTop = new ArrayList<>(display.subList(0, regionTop));
+        var displayBottom = new ArrayList<>(display.subList(regionBottom + 1, display.size()));
+        var displayMiddle = new ArrayList<>(display.subList(regionBottom + 1 - remaining, regionBottom + 1));
+        display = new ArrayList<>(displayTop.size() + displayMiddle.size() + n + displayBottom.size());
+        display.addAll(displayTop);
         display.addAll(displayMiddle);
         for (int i = 0; i < n; i++) {
-            DisplayLine line = new DisplayLine(currentState.attr);
+            var line = new DisplayLine(currentState.attr);
             line.setReverseColor(reverseVideo);
             display.add(line);
         }
@@ -3180,14 +3075,13 @@ public class ECMA48 implements Runnable {
         }
 
         int remaining = regionBottom + 1 - regionTop - n;
-        List<DisplayLine> displayTop = display.subList(0, regionTop);
-        List<DisplayLine> displayBottom = display.subList(regionBottom + 1,
-            display.size());
-        List<DisplayLine> displayMiddle = display.subList(regionTop,
-            regionTop + remaining);
-        display = new ArrayList<DisplayLine>(displayTop);
+        var displayTop = new ArrayList<>(display.subList(0, regionTop));
+        var displayBottom = new ArrayList<>(display.subList(regionBottom + 1, display.size()));
+        var displayMiddle = new ArrayList<>(display.subList(regionTop, regionTop + remaining));
+        display = new ArrayList<>(displayTop.size() + n + displayMiddle.size() + displayBottom.size());
+        display.addAll(displayTop);
         for (int i = 0; i < n; i++) {
-            DisplayLine line = new DisplayLine(currentState.attr);
+            var line = new DisplayLine(currentState.attr);
             line.setReverseColor(reverseVideo);
             display.add(line);
         }
@@ -3305,12 +3199,12 @@ public class ECMA48 implements Runnable {
      * Advance the cursor to the next tab stop.
      */
     private void advanceToNextTabStop() {
-        if (tabStops.size() == 0) {
+        if (tabStops.isEmpty()) {
             // Go to the rightmost column
             cursorRight(rightMargin - currentState.cursorX, false);
             return;
         }
-        for (Integer stop: tabStops) {
+        for (Integer stop : tabStops) {
             if (stop > currentState.cursorX) {
                 cursorRight(stop - currentState.cursorX, false);
                 return;
@@ -4146,8 +4040,9 @@ public class ECMA48 implements Runnable {
      */
     private void decswl() {
         screenIsDirty = true;
-        display.get(currentState.cursorY).setDoubleWidth(false);
-        display.get(currentState.cursorY).setDoubleHeight(0);
+        var line = display.get(currentState.cursorY);
+        line.setDoubleWidth(false);
+        line.setDoubleHeight(0);
     }
 
     /**
@@ -4155,8 +4050,9 @@ public class ECMA48 implements Runnable {
      */
     private void decdwl() {
         screenIsDirty = true;
-        display.get(currentState.cursorY).setDoubleWidth(true);
-        display.get(currentState.cursorY).setDoubleHeight(0);
+        var line = display.get(currentState.cursorY);
+        line.setDoubleWidth(true);
+        line.setDoubleHeight(0);
     }
 
     /**
@@ -4167,12 +4063,9 @@ public class ECMA48 implements Runnable {
      */
     private void dechdl(final boolean topHalf) {
         screenIsDirty = true;
-        display.get(currentState.cursorY).setDoubleWidth(true);
-        if (topHalf == true) {
-            display.get(currentState.cursorY).setDoubleHeight(1);
-        } else {
-            display.get(currentState.cursorY).setDoubleHeight(2);
-        }
+        var line = display.get(currentState.cursorY);
+        line.setDoubleWidth(true);
+        line.setDoubleHeight(topHalf ? 1 : 2);
     }
 
     /**
@@ -4180,8 +4073,8 @@ public class ECMA48 implements Runnable {
      */
     private void decaln() {
         screenIsDirty = true;
-        ComplexCell newCell = new ComplexCell('E');
-        for (DisplayLine line: display) {
+        var newCell = new ComplexCell('E');
+        for (DisplayLine line : display) {
             for (int i = 0; i < line.length(); i++) {
                 line.replace(i, newCell);
             }
@@ -4386,8 +4279,8 @@ public class ECMA48 implements Runnable {
     private void dch() {
         screenIsDirty = true;
         int n = getCsiParam(0, 1);
-        DisplayLine line = display.get(currentState.cursorY);
-        ComplexCell blank = new ComplexCell();
+        var line = display.get(currentState.cursorY);
+        var blank = new ComplexCell();
         for (int i = 0; i < n; i++) {
             line.delete(currentState.cursorX, blank);
         }
@@ -4399,8 +4292,8 @@ public class ECMA48 implements Runnable {
     private void ich() {
         screenIsDirty = true;
         int n = getCsiParam(0, 1);
-        DisplayLine line = display.get(currentState.cursorY);
-        ComplexCell blank = new ComplexCell();
+        var line = display.get(currentState.cursorY);
+        var blank = new ComplexCell();
         for (int i = 0; i < n; i++) {
             line.insert(currentState.cursorX, blank);
         }
@@ -5249,14 +5142,10 @@ public class ECMA48 implements Runnable {
     private void tbc() {
         int i = getCsiParam(0, 0);
         if (i == 0) {
-            List<Integer> newStops = new ArrayList<Integer>();
-            for (Integer stop: tabStops) {
-                if (stop == currentState.cursorX) {
-                    continue;
-                }
-                newStops.add(stop);
-            }
-            tabStops = newStops;
+            final int cursorX = currentState.cursorX;
+            tabStops = tabStops.stream()
+                .filter(stop -> stop != cursorX)
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
         }
         if (i == 3) {
             tabStops.clear();
@@ -5287,31 +5176,26 @@ public class ECMA48 implements Runnable {
             start = 0;
         }
 
+        var line = display.get(currentState.cursorY);
         for (int i = start; i <= end; i++) {
-            DisplayLine line = display.get(currentState.cursorY);
-            if ((!honorProtected)
-                || ((honorProtected) && (!line.charAt(i).isProtect()))) {
-
+            if (!honorProtected || !line.charAt(i).isProtect()) {
                 switch (type) {
-                case VT100:
-                case VT102:
-                case VT220:
-                    /*
-                     * From the VT102 manual:
-                     *
-                     * Erasing a character also erases any character
-                     * attribute of the character.
-                     */
-                    line.setBlank(i);
-                    break;
-                case XTERM:
-                    /*
-                     * Erase with the current color a.k.a. back-color erase
-                     * (bce).
-                     */
-                    line.setChar(i, ' ');
-                    line.setAttr(i, currentState.attr);
-                    break;
+                    case VT100, VT102, VT220 ->
+                        /*
+                         * From the VT102 manual:
+                         *
+                         * Erasing a character also erases any character
+                         * attribute of the character.
+                         */
+                        line.setBlank(i);
+                    case XTERM -> {
+                        /*
+                         * Erase with the current color a.k.a. back-color erase
+                         * (bce).
+                         */
+                        line.setChar(i, ' ');
+                        line.setAttr(i, currentState.attr);
+                    }
                 }
             }
         }
@@ -5449,14 +5333,11 @@ public class ECMA48 implements Runnable {
 
         // Xterm cases...
         if (oscEnd) {
-            String args = null;
-            if (xtermChar == 0x07) {
-                args = collectBuffer.substring(0, collectBuffer.length() - 1);
-            } else {
-                args = collectBuffer.substring(0, collectBuffer.length() - 2);
-            }
+            var args = xtermChar == 0x07
+                ? collectBuffer.substring(0, collectBuffer.length() - 1)
+                : collectBuffer.substring(0, collectBuffer.length() - 2);
 
-            String [] p = args.split(";");
+            var p = args.split(";");
             if (p.length > 0) {
                 if ((p[0].equals("0")) || (p[0].equals("2"))) {
                     if (p.length > 1) {
