@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import casciian.TKeypress;
 import casciian.backend.Backend;
@@ -1375,7 +1376,7 @@ public class ECMA48 implements Runnable {
      * Reset the 88- or 256-colors.
      */
     private void resetColors() {
-        colors88 = new ArrayList<>(java.util.Collections.nCopies(256, 0));
+        colors88 = new ArrayList<>(Collections.nCopies(256, 0));
 
         if (backend != null) {
             // Set default system colors to match the backend.
@@ -2094,7 +2095,7 @@ public class ECMA48 implements Runnable {
             break;
         }
 
-        // Now encode the event
+        // Now encode the event - capacity 32 for typical SGR mouse sequence like "\x1b[<0;123;456M"
         var sb = new StringBuilder(32);
         if (mouseEncoding == MouseEncoding.SGR) {
             sb.append((char) 0x1B);
@@ -5145,7 +5146,7 @@ public class ECMA48 implements Runnable {
             final int cursorX = currentState.cursorX;
             tabStops = tabStops.stream()
                 .filter(stop -> stop != cursorX)
-                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+                .collect(Collectors.toCollection(ArrayList::new));
         }
         if (i == 3) {
             tabStops.clear();
