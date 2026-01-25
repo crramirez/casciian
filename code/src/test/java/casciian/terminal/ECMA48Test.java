@@ -18,9 +18,16 @@ package casciian.terminal;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.RepeatedTest;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import casciian.backend.Backend;
 import casciian.backend.HeadlessBackend;
@@ -139,5 +146,197 @@ class ECMA48Test {
             emulator.waitForOutput(1000);
             emulator.close();
         }, "OSC 4 sequence with 12-bit colors should be processed without exceptions");
+    }
+
+    /**
+     * Test that concurrent calls to captureState() and setWidth/setHeight
+     * do not cause data corruption or exceptions.
+     */
+    @RepeatedTest(3)
+    @DisplayName("Concurrent captureState and dimension changes should be thread-safe")
+    void shouldHandleConcurrentCaptureStateAndDimensionChanges() throws Exception {
+        Backend backend = new HeadlessBackend();
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(new byte[0]);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        
+        ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
+            outputStream, null, backend);
+        
+        int numThreads = 4;
+        int iterations = 100;
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(numThreads);
+        AtomicBoolean failed = new AtomicBoolean(false);
+        
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        
+        // Thread 1: Capture state repeatedly
+        executor.submit(() -> {
+            try {
+                startLatch.await();
+                for (int i = 0; i < iterations && !failed.get(); i++) {
+                    TerminalState state = emulator.captureState();
+                    assertNotNull(state);
+                }
+            } catch (Exception e) {
+                failed.set(true);
+            } finally {
+                doneLatch.countDown();
+            }
+        });
+        
+        // Thread 2: Set width repeatedly
+        executor.submit(() -> {
+            try {
+                startLatch.await();
+                for (int i = 0; i < iterations && !failed.get(); i++) {
+                    emulator.setWidth(80 + (i % 20));
+                }
+            } catch (Exception e) {
+                failed.set(true);
+            } finally {
+                doneLatch.countDown();
+            }
+        });
+        
+        // Thread 3: Set height repeatedly
+        executor.submit(() -> {
+            try {
+                startLatch.await();
+                for (int i = 0; i < iterations && !failed.get(); i++) {
+                    emulator.setHeight(24 + (i % 10));
+                }
+            } catch (Exception e) {
+                failed.set(true);
+            } finally {
+                doneLatch.countDown();
+            }
+        });
+        
+        // Thread 4: Capture state again
+        executor.submit(() -> {
+            try {
+                startLatch.await();
+                for (int i = 0; i < iterations && !failed.get(); i++) {
+                    TerminalState state = emulator.captureState();
+                    assertNotNull(state);
+                }
+            } catch (Exception e) {
+                failed.set(true);
+            } finally {
+                doneLatch.countDown();
+            }
+        });
+        
+        // Start all threads
+        startLatch.countDown();
+        
+        // Wait for completion
+        assertTrue(doneLatch.await(10, TimeUnit.SECONDS),
+            "All threads should complete within timeout");
+        
+        assertFalse(failed.get(),
+            "No thread should encounter exceptions during concurrent operations");
+        
+        executor.shutdown();
+        emulator.close();
+    }
+
+    /**
+     * Test that concurrent calls to close() are handled safely.
+     */
+    @RepeatedTest(3)
+    @DisplayName("Concurrent close() calls should be thread-safe")
+    void shouldHandleConcurrentClose() throws Exception {
+        Backend backend = new HeadlessBackend();
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(new byte[0]);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        
+        ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
+            outputStream, null, backend);
+        
+        int numThreads = 4;
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(numThreads);
+        AtomicBoolean failed = new AtomicBoolean(false);
+        
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        
+        for (int t = 0; t < numThreads; t++) {
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    // Multiple threads calling close concurrently
+                    emulator.close();
+                } catch (Exception e) {
+                    failed.set(true);
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+        
+        // Start all threads
+        startLatch.countDown();
+        
+        // Wait for completion
+        assertTrue(doneLatch.await(10, TimeUnit.SECONDS),
+            "All threads should complete within timeout");
+        
+        assertFalse(failed.get(),
+            "No thread should encounter exceptions during concurrent close()");
+        
+        executor.shutdown();
+    }
+
+    /**
+     * Test that concurrent setScrollbackMax calls are thread-safe.
+     */
+    @RepeatedTest(3)
+    @DisplayName("Concurrent setScrollbackMax calls should be thread-safe")
+    void shouldHandleConcurrentSetScrollbackMax() throws Exception {
+        Backend backend = new HeadlessBackend();
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(new byte[0]);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        
+        ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
+            outputStream, null, backend);
+        
+        int numThreads = 4;
+        int iterations = 100;
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(numThreads);
+        AtomicBoolean failed = new AtomicBoolean(false);
+        
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        
+        for (int t = 0; t < numThreads; t++) {
+            final int threadId = t;
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    for (int i = 0; i < iterations && !failed.get(); i++) {
+                        emulator.setScrollbackMax(1000 + threadId * 100 + i);
+                    }
+                } catch (Exception e) {
+                    failed.set(true);
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+        
+        // Start all threads
+        startLatch.countDown();
+        
+        // Wait for completion
+        assertTrue(doneLatch.await(10, TimeUnit.SECONDS),
+            "All threads should complete within timeout");
+        
+        assertFalse(failed.get(),
+            "No thread should encounter exceptions during concurrent setScrollbackMax()");
+        
+        executor.shutdown();
+        emulator.close();
     }
 }

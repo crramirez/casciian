@@ -1018,7 +1018,7 @@ public class ECMA48 implements Runnable {
      * @return the terminal state that can be used by an external user
      * interface
      */
-    public TerminalState captureState() {
+    public synchronized TerminalState captureState() {
         return new TerminalState(currentState.attr, width, height,
             scrollback, display, cursorVisible,
             currentState.cursorX, currentState.cursorY,
@@ -1191,7 +1191,7 @@ public class ECMA48 implements Runnable {
      *
      * @param str string to send
      */
-    public void writeRemote(final String str) {
+    public synchronized void writeRemote(final String str) {
         if (stopReaderThread) {
             // Reader hit EOF, bail out now.
             close();
@@ -1240,7 +1240,7 @@ public class ECMA48 implements Runnable {
      * Close the input and output streams and stop the reader thread.  Note
      * that it is safe to call this multiple times.
      */
-    public final void close() {
+    public final synchronized void close() {
 
         // Tell the reader thread to stop looking at input.  It will close
         // the input streams.
@@ -1380,7 +1380,7 @@ public class ECMA48 implements Runnable {
      * @param scrollbackMax the maximum number of lines for the scrollback
      * buffer
      */
-    public final void setScrollbackMax(final int scrollbackMax) {
+    public final synchronized void setScrollbackMax(final int scrollbackMax) {
         this.scrollbackMax = scrollbackMax;
     }
 
@@ -8228,7 +8228,7 @@ public class ECMA48 implements Runnable {
      *
      * @param textWidth the width in pixels of a character cell
      */
-    public void setTextWidth(final int textWidth) {
+    public synchronized void setTextWidth(final int textWidth) {
         this.textWidth = textWidth;
     }
 
@@ -8237,7 +8237,7 @@ public class ECMA48 implements Runnable {
      *
      * @param textHeight the height in pixels of a character cell
      */
-    public void setTextHeight(final int textHeight) {
+    public synchronized void setTextHeight(final int textHeight) {
         this.textHeight = textHeight;
     }
 
@@ -8245,7 +8245,7 @@ public class ECMA48 implements Runnable {
      * Let the application know this terminal gained focus, if it has enabled
      * FOCUS_MOUSE_MODE.
      */
-    public void onFocus() {
+    public synchronized void onFocus() {
         if (focusMouseMode) {
             writeRemote("\033[I");
         }
@@ -8255,7 +8255,7 @@ public class ECMA48 implements Runnable {
      * Let the application know this terminal lost focus, if it has enabled
      * FOCUS_MOUSE_MODE.
      */
-    public void onUnfocus() {
+    public synchronized void onUnfocus() {
         if (focusMouseMode) {
             writeRemote("\033[O");
         }
