@@ -8125,7 +8125,7 @@ public class ECMA48 implements Runnable {
      * Get the actual width of a character cell in pixels, preferring the
      * backend's value if available.
      *
-     * @return the width in pixels of a character cell
+     * @return the width in pixels of a character cell (minimum 16)
      */
     private int getActualTextWidth() {
         if (backend != null) {
@@ -8137,14 +8137,18 @@ public class ECMA48 implements Runnable {
                 }
             }
         }
-        return textWidth;
+        if (textWidth > 0) {
+            return textWidth;
+        }
+        // Fallback to a sane minimum to avoid zero/negative widths breaking image math
+        return 16;
     }
 
     /**
      * Get the actual height of a character cell in pixels, preferring the
      * backend's value if available.
      *
-     * @return the height in pixels of a character cell
+     * @return the height in pixels of a character cell (minimum 20)
      */
     private int getActualTextHeight() {
         if (backend != null) {
@@ -8156,7 +8160,11 @@ public class ECMA48 implements Runnable {
                 }
             }
         }
-        return textHeight;
+        if (textHeight > 0) {
+            return textHeight;
+        }
+        // Fallback to a sane minimum to avoid zero/negative heights breaking image math
+        return 20;
     }
 
     /**
