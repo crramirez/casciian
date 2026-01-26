@@ -8127,7 +8127,7 @@ public class ECMA48 implements Runnable {
      *
      * @return the width in pixels of a character cell (minimum 16)
      */
-    private int getActualTextWidth() {
+    private synchronized int getActualTextWidth() {
         if (backend != null) {
             Screen screen = backend.getScreen();
             if (screen != null) {
@@ -8150,7 +8150,7 @@ public class ECMA48 implements Runnable {
      *
      * @return the height in pixels of a character cell (minimum 20)
      */
-    private int getActualTextHeight() {
+    private synchronized int getActualTextHeight() {
         if (backend != null) {
             Screen screen = backend.getScreen();
             if (screen != null) {
