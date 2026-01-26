@@ -63,7 +63,7 @@ public class TTYSessionInfo implements SessionInfo {
      * with CSI 18 t enabled. This is used as a defensive measure in case
      * CSI 8 t responses are not being received (e.g., due to ptypipe bugs).
      */
-    private long lastFallbackQueryTime;
+    volatile long lastFallbackQueryTime;
 
     /**
      * The time this session was started.
@@ -80,7 +80,8 @@ public class TTYSessionInfo implements SessionInfo {
      * If set, this session can only use CSI 8 t to get window size.  Note
      * package private access.
      */
-    PrintWriter output = null;
+    @SuppressWarnings("java:S3077")
+    volatile PrintWriter output = null;
 
     /**
      * The terminal to use for querying window size.
@@ -208,6 +209,14 @@ public class TTYSessionInfo implements SessionInfo {
             lastQueryWindowTime = nowTime;
         }
 
+        // Also send CSI 18 t if the terminal supports it.
+        // The response (CSI 8 t) will update windowWidth/windowHeight
+        // via ECMA48Terminal when it arrives.
+        if (output != null) {
+            output.write(ECMA48Terminal.xtermQueryWindowSize());
+            output.flush();
+        }
+
         // Determine if we should query the terminal directly.
         // JLine tracks SIGWINCH automatically, so getWindowWidth/Height() is cheap.
         // For stty (TerminalShImpl), each query spawns a process, which is expensive.
@@ -230,10 +239,11 @@ public class TTYSessionInfo implements SessionInfo {
                 // in case CSI 8 t responses are not being received (e.g., due to
                 // ptypipe bugs that strip the responses).
                 long nowTime = System.currentTimeMillis();
-                if (nowTime - lastFallbackQueryTime >= 10000) {
-                    // Do a fallback stty query every 10 seconds
+                if (nowTime - lastFallbackQueryTime >= 3000) {
+                    // Do a fallback stty query every 3 seconds
                     useFallbackQuery = true;
                     lastFallbackQueryTime = nowTime;
+                    output = null; // If we don't receive CSI 18 t anymore, we'll again spam stty
                 }
             }
         }
@@ -248,14 +258,6 @@ public class TTYSessionInfo implements SessionInfo {
             if (height > 0) {
                 windowHeight = height;
             }
-        }
-
-        // Also send CSI 18 t if the terminal supports it.
-        // The response (CSI 8 t) will update windowWidth/windowHeight
-        // via ECMA48Terminal when it arrives.
-        if (output != null) {
-            output.write(ECMA48Terminal.xtermQueryWindowSize());
-            output.flush();
         }
     }
 

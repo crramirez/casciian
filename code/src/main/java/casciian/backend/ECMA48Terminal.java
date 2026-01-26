@@ -3197,7 +3197,7 @@ public class ECMA48Terminal extends LogicalScreen
                                      */
                                 }
 
-                                if (x.equals("444")) {
+                                if (x.equals("445")) {
                                     // Terminal reports Casciian images support
                                     if (debugToStderr) {
                                         System.err.println("Device Attributes: Casciian images");
@@ -3285,6 +3285,7 @@ public class ECMA48Terminal extends LogicalScreen
                                 if (sessionInfo instanceof TTYSessionInfo) {
                                     TTYSessionInfo tty = (TTYSessionInfo) sessionInfo;
                                     tty.output = output;
+                                    tty.lastFallbackQueryTime = System.currentTimeMillis();
 
                                     int newHeight = height;
                                     int newWidth = width;
@@ -3941,7 +3942,7 @@ public class ECMA48Terminal extends LogicalScreen
         if (jexerImageOption == JexerImageOption.RGB) {
 
             // RGB
-            sb.append(String.format("\033]444;0;%d;%d;0;", image.getWidth(),
+            sb.append(String.format("\033]445;0;%d;%d;0;", image.getWidth(),
                 Math.min(image.getHeight(), fullHeight)));
 
             byte[] bytes = new byte[image.getWidth() * image.getHeight() * 3];

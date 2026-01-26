@@ -1136,7 +1136,7 @@ public class ECMA48 implements Runnable {
                 "\033[?6c";
             case VT220, XTERM ->
                 // "I am a VT220" with sixel and Casciian image support, and OSC 52.
-                s8c1t ? "\u009b?62;1;6;9;4;22;52;444c" : "\033[?62;1;6;9;4;22;52;444c";
+                s8c1t ? "\u009b?62;1;6;9;4;22;52;445c" : "\033[?62;1;6;9;4;22;52;445c";
         };
     }
 
@@ -5480,7 +5480,7 @@ public class ECMA48 implements Runnable {
                     }
                 }
 
-                if (p[0].equals("444")) {
+                if (p[0].equals("445")) {
                     if ((p.length == 6) && p[1].equals("0")) {
                         // Jexer image - RGB
                         parseJexerImageRGB(p[2], p[3], p[4], p[5]);
