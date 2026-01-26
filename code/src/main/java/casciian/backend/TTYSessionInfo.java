@@ -17,6 +17,7 @@ package casciian.backend;
 import java.io.PrintWriter;
 
 import casciian.backend.terminal.Terminal;
+import casciian.backend.terminal.TerminalJlineImpl;
 
 /**
  * TTYSessionInfo queries environment variables and the tty window size for
@@ -200,11 +201,25 @@ public class TTYSessionInfo implements SessionInfo {
             lastQueryWindowTime = nowTime;
         }
 
-        // Always query the terminal directly to catch SIGWINCH-based resizes.
-        // This is essential when running inside a virtual terminal (e.g.,
-        // TTerminal with ptypipe) where resizes come via SIGWINCH rather than
-        // CSI 8 t responses.
+        // Determine if we should query the terminal directly.
+        // JLine tracks SIGWINCH automatically, so getWindowWidth/Height() is cheap.
+        // For stty (TerminalShImpl), each query spawns a process, which is expensive.
+        // When CSI 18 t mode is enabled (output != null), the terminal supports
+        // CSI 18 t queries, and we rely on CSI 8 t responses for size updates.
+        // However, when running inside ptypipe, CSI 8 t responses are stripped,
+        // so we need to query JLine (which tracks SIGWINCH) to catch those resizes.
+        boolean useDirectQuery = false;
         if (terminal != null) {
+            if (terminal instanceof TerminalJlineImpl) {
+                // JLine tracks SIGWINCH automatically, always query it (cheap)
+                useDirectQuery = true;
+            } else if (output == null) {
+                // CSI 18 t not enabled, must use direct query
+                useDirectQuery = true;
+            }
+        }
+
+        if (useDirectQuery && terminal != null) {
             terminal.queryWindowSize();
             int width = terminal.getWindowWidth();
             int height = terminal.getWindowHeight();
