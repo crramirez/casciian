@@ -200,14 +200,10 @@ public class TTYSessionInfo implements SessionInfo {
             lastQueryWindowTime = nowTime;
         }
 
-        if (output != null) {
-            // System.err.println("Using CSI 18 t for window size");
-
-            output.write(ECMA48Terminal.xtermQueryWindowSize());
-            output.flush();
-            return;
-        }
-
+        // Always query the terminal directly to catch SIGWINCH-based resizes.
+        // This is essential when running inside a virtual terminal (e.g.,
+        // TTerminal with ptypipe) where resizes come via SIGWINCH rather than
+        // CSI 8 t responses.
         if (terminal != null) {
             terminal.queryWindowSize();
             int width = terminal.getWindowWidth();
@@ -218,6 +214,14 @@ public class TTYSessionInfo implements SessionInfo {
             if (height > 0) {
                 windowHeight = height;
             }
+        }
+
+        // Also send CSI 18 t if the terminal supports it.
+        // The response (CSI 8 t) will update windowWidth/windowHeight
+        // via ECMA48Terminal when it arrives.
+        if (output != null) {
+            output.write(ECMA48Terminal.xtermQueryWindowSize());
+            output.flush();
         }
     }
 
