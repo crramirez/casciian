@@ -59,6 +59,13 @@ public class TTYSessionInfo implements SessionInfo {
     private long lastQueryWindowTime;
 
     /**
+     * Time at which we last did a fallback direct query for stty terminals
+     * with CSI 18 t enabled. This is used as a defensive measure in case
+     * CSI 8 t responses are not being received (e.g., due to ptypipe bugs).
+     */
+    private long lastFallbackQueryTime;
+
+    /**
      * The time this session was started.
      */
     private final long startTime = System.currentTimeMillis();
@@ -209,6 +216,7 @@ public class TTYSessionInfo implements SessionInfo {
         // However, when running inside ptypipe, CSI 8 t responses are stripped,
         // so we need to query JLine (which tracks SIGWINCH) to catch those resizes.
         boolean useDirectQuery = false;
+        boolean useFallbackQuery = false;
         if (terminal != null) {
             if (terminal instanceof TerminalJlineImpl) {
                 // JLine tracks SIGWINCH automatically, always query it (cheap)
@@ -216,10 +224,21 @@ public class TTYSessionInfo implements SessionInfo {
             } else if (output == null) {
                 // CSI 18 t not enabled, must use direct query
                 useDirectQuery = true;
+            } else {
+                // CSI 18 t mode enabled for stty terminal.
+                // As a defensive measure, periodically query via stty anyway
+                // in case CSI 8 t responses are not being received (e.g., due to
+                // ptypipe bugs that strip the responses).
+                long nowTime = System.currentTimeMillis();
+                if (nowTime - lastFallbackQueryTime >= 10000) {
+                    // Do a fallback stty query every 10 seconds
+                    useFallbackQuery = true;
+                    lastFallbackQueryTime = nowTime;
+                }
             }
         }
 
-        if (useDirectQuery && terminal != null) {
+        if ((useDirectQuery || useFallbackQuery) && terminal != null) {
             terminal.queryWindowSize();
             int width = terminal.getWindowWidth();
             int height = terminal.getWindowHeight();
