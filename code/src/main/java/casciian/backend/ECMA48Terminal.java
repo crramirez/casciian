@@ -2455,53 +2455,50 @@ public class ECMA48Terminal extends LogicalScreen
         if (windowSizeDelay > 1000) {
             int oldTextWidth = getTextWidth();
             int oldTextHeight = getTextHeight();
-            boolean useStty = true;
 
-            //noinspection RedundantIfStatement
-            if (sessionInfo instanceof TTYSessionInfo ttySessionInfo && ttySessionInfo.output != null) {
-                // If we are using CSI 18 t, the new dimensions will come
-                // later.
-                useStty = false;
-            }
+            // Always query the window size via the terminal/stty path.
+            // This handles SIGWINCH-based resizes when running inside
+            // a virtual terminal (e.g., TTerminal with ptypipe).
+            // CSI 18 t responses are still processed separately when they
+            // arrive, but we must also check the terminal directly to catch
+            // resizes that come via SIGWINCH.
             sessionInfo.queryWindowSize();
 
-            if (useStty) {
-                int newWidth = sessionInfo.getWindowWidth();
-                int newHeight = sessionInfo.getWindowHeight();
+            int newWidth = sessionInfo.getWindowWidth();
+            int newHeight = sessionInfo.getWindowHeight();
 
-                if ((newWidth != windowResize.getWidth())
-                    || (newHeight != windowResize.getHeight())
-                ) {
+            if ((newWidth != windowResize.getWidth())
+                || (newHeight != windowResize.getHeight())
+            ) {
 
-                    // Request xterm report window dimensions in pixels
-                    // again.  Between now and then, ensure that the reported
-                    // text cell size is the same by setting widthPixels and
-                    // heightPixels to match the new dimensions.
-                    widthPixels = oldTextWidth * newWidth;
-                    heightPixels = oldTextHeight * newHeight;
+                // Request xterm report window dimensions in pixels
+                // again.  Between now and then, ensure that the reported
+                // text cell size is the same by setting widthPixels and
+                // heightPixels to match the new dimensions.
+                widthPixels = oldTextWidth * newWidth;
+                heightPixels = oldTextHeight * newHeight;
 
-                    if (debugToStderr) {
-                        System.err.println("Screen size changed, old size " +
-                            windowResize);
-                        System.err.println("                     new size " +
-                            newWidth + " x " + newHeight);
-                        System.err.println("                old cell sixe " +
-                            oldTextWidth + " x " + oldTextHeight);
-                        System.err.println("                new cell size " +
-                            getTextWidth() + " x " + getTextHeight());
-                    }
-
-                    if (output != null) {
-                        output.printf("%s", xtermReportPixelDimensions());
-                        output.flush();
-                    }
-
-                    TResizeEvent event = new TResizeEvent(backend,
-                        TResizeEvent.Type.SCREEN, newWidth, newHeight);
-                    windowResize = new TResizeEvent(backend,
-                        TResizeEvent.Type.SCREEN, newWidth, newHeight);
-                    queue.add(event);
+                if (debugToStderr) {
+                    System.err.println("Screen size changed, old size " +
+                        windowResize);
+                    System.err.println("                     new size " +
+                        newWidth + " x " + newHeight);
+                    System.err.println("                old cell size " +
+                        oldTextWidth + " x " + oldTextHeight);
+                    System.err.println("                new cell size " +
+                        getTextWidth() + " x " + getTextHeight());
                 }
+
+                if (output != null) {
+                    output.printf("%s", xtermReportPixelDimensions());
+                    output.flush();
+                }
+
+                TResizeEvent event = new TResizeEvent(backend,
+                    TResizeEvent.Type.SCREEN, newWidth, newHeight);
+                windowResize = new TResizeEvent(backend,
+                    TResizeEvent.Type.SCREEN, newWidth, newHeight);
+                queue.add(event);
             }
 
             windowSizeTime = nowTime;
@@ -3200,7 +3197,7 @@ public class ECMA48Terminal extends LogicalScreen
                                      */
                                 }
 
-                                if (x.equals("444")) {
+                                if (x.equals("445")) {
                                     // Terminal reports Casciian images support
                                     if (debugToStderr) {
                                         System.err.println("Device Attributes: Casciian images");
@@ -3288,6 +3285,7 @@ public class ECMA48Terminal extends LogicalScreen
                                 if (sessionInfo instanceof TTYSessionInfo) {
                                     TTYSessionInfo tty = (TTYSessionInfo) sessionInfo;
                                     tty.output = output;
+                                    tty.lastFallbackQueryTime = System.currentTimeMillis();
 
                                     int newHeight = height;
                                     int newWidth = width;
@@ -3944,7 +3942,7 @@ public class ECMA48Terminal extends LogicalScreen
         if (jexerImageOption == JexerImageOption.RGB) {
 
             // RGB
-            sb.append(String.format("\033]444;0;%d;%d;0;", image.getWidth(),
+            sb.append(String.format("\033]445;0;%d;%d;0;", image.getWidth(),
                 Math.min(image.getHeight(), fullHeight)));
 
             byte[] bytes = new byte[image.getWidth() * image.getHeight() * 3];
