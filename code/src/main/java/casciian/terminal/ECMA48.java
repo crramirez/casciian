@@ -833,10 +833,18 @@ public class ECMA48 implements Runnable {
                         // Special case: force a read of files in order
                         // to see the EOF.
                     } else {
-                        // Check if the screen was modified and needs an update
-                        if (screenIsDirty && (terminalListener != null)) {
-                            terminalListener.postUpdate(captureState());
-                            screenIsDirty = false;
+                        // Check if the screen was modified and needs an update.
+                        // Synchronize to avoid race conditions with resize
+                        // operations that modify screenIsDirty.
+                        TerminalState stateToPost = null;
+                        synchronized (this) {
+                            if (screenIsDirty && (terminalListener != null)) {
+                                stateToPost = captureState();
+                                screenIsDirty = false;
+                            }
+                        }
+                        if (stateToPost != null) {
+                            terminalListener.postUpdate(stateToPost);
                         }
                         // Go back to waiting.
                         continue;
@@ -900,9 +908,17 @@ public class ECMA48 implements Runnable {
                         }
                     }
                     // Permit my enclosing UI to know that I updated.
-                    if ((terminalListener != null) && !doNotUpdateDisplay) {
-                        terminalListener.postUpdate(captureState());
-                        screenIsDirty = false;
+                    // Synchronize to avoid race conditions with resize
+                    // operations that modify screenIsDirty.
+                    TerminalState stateToPost = null;
+                    synchronized (this) {
+                        if ((terminalListener != null) && !doNotUpdateDisplay) {
+                            stateToPost = captureState();
+                            screenIsDirty = false;
+                        }
+                    }
+                    if (stateToPost != null) {
+                        terminalListener.postUpdate(stateToPost);
                     }
                     doNotUpdateDisplay = false;
                 }
@@ -2284,9 +2300,17 @@ public class ECMA48 implements Runnable {
                 // Local echo for everything else
                 printCharacter(keypress.getChar());
             }
-            if (terminalListener != null) {
-                terminalListener.postUpdate(captureState());
-                screenIsDirty = false;
+            // Synchronize to avoid race conditions with resize
+            // operations that modify screenIsDirty.
+            TerminalState stateToPost = null;
+            synchronized (this) {
+                if (terminalListener != null) {
+                    stateToPost = captureState();
+                    screenIsDirty = false;
+                }
+            }
+            if (stateToPost != null) {
+                terminalListener.postUpdate(stateToPost);
             }
         }
 
