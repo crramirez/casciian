@@ -833,6 +833,11 @@ public class ECMA48 implements Runnable {
                         // Special case: force a read of files in order
                         // to see the EOF.
                     } else {
+                        // Check if the screen was modified and needs an update
+                        if (screenIsDirty && (terminalListener != null)) {
+                            terminalListener.postUpdate(captureState());
+                            screenIsDirty = false;
+                        }
                         // Go back to waiting.
                         continue;
                     }
