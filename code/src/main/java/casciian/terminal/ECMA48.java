@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import casciian.TKeypress;
 import casciian.backend.Backend;
 import casciian.backend.ECMA48Terminal;
+import casciian.backend.Screen;
 import casciian.bits.ImageRGB;
 import casciian.bits.Clipboard;
 import casciian.bits.Color;
@@ -5530,13 +5531,13 @@ public class ECMA48 implements Runnable {
                 // Report xterm text area size in pixels as CSI 4 ; height ;
                 // width t
                 writeRemote(String.format("%s4;%d;%dt", CSI,
-                            textHeight * height, textWidth * width));
+                            getActualTextHeight() * height, getActualTextWidth() * width));
                 break;
             case 16:
                 // Report character size in pixels as CSI 6 ; height ; width
                 // t
                 writeRemote(String.format("%s6;%d;%dt", CSI,
-                            textHeight, textWidth));
+                            getActualTextHeight(), getActualTextWidth()));
                 break;
             case 18:
                 // Report the text are size in characters as CSI 8 ; height ;
@@ -8121,6 +8122,52 @@ public class ECMA48 implements Runnable {
     }
 
     /**
+     * Get the actual width of a character cell in pixels, preferring the
+     * backend's value if available.
+     *
+     * @return the width in pixels of a character cell (minimum 16)
+     */
+    private synchronized int getActualTextWidth() {
+        if (backend != null) {
+            Screen screen = backend.getScreen();
+            if (screen != null) {
+                int backendWidth = screen.getTextWidth();
+                if (backendWidth > 0) {
+                    return backendWidth;
+                }
+            }
+        }
+        if (textWidth > 0) {
+            return textWidth;
+        }
+        // Fallback to a sane minimum to avoid zero/negative widths breaking image math
+        return 16;
+    }
+
+    /**
+     * Get the actual height of a character cell in pixels, preferring the
+     * backend's value if available.
+     *
+     * @return the height in pixels of a character cell (minimum 20)
+     */
+    private synchronized int getActualTextHeight() {
+        if (backend != null) {
+            Screen screen = backend.getScreen();
+            if (screen != null) {
+                int backendHeight = screen.getTextHeight();
+                if (backendHeight > 0) {
+                    return backendHeight;
+                }
+            }
+        }
+        if (textHeight > 0) {
+            return textHeight;
+        }
+        // Fallback to a sane minimum to avoid zero/negative heights breaking image math
+        return 20;
+    }
+
+    /**
      * Let the application know this terminal gained focus, if it has enabled
      * FOCUS_MOUSE_MODE.
      */
@@ -8246,6 +8293,9 @@ public class ECMA48 implements Runnable {
 
         int oldCursorX = currentState.cursorX;
         int oldCursorY = currentState.cursorY;
+        // Get actual text cell dimensions from the backend
+        int actualTextWidth = getActualTextWidth();
+        int actualTextHeight = getActualTextHeight();
         if (!sixelScrolling) {
             currentState.cursorX = 0;
             currentState.cursorY = 0;
@@ -8256,8 +8306,8 @@ public class ECMA48 implements Runnable {
             imageToCells(image, true, maybeTransparent);
             if (sixelCursorOnRight) {
                 currentState.cursorX = oldCursorX + (image.getWidth() /
-                    textWidth);
-                if ((image.getWidth() % textWidth) != 0) {
+                    actualTextWidth);
+                if ((image.getWidth() % actualTextWidth) != 0) {
                     currentState.cursorX++;
                 }
                 currentState.cursorX = Math.min(currentState.cursorX, width - 1);
@@ -8266,8 +8316,8 @@ public class ECMA48 implements Runnable {
             }
             // Cursor always on bottom row of pixel data.
             currentState.cursorY = oldCursorY;
-            int downY = image.getHeight() / textHeight;
-            if ((image.getHeight() % textHeight) == 0) {
+            int downY = image.getHeight() / actualTextHeight;
+            if ((image.getHeight() % actualTextHeight) == 0) {
                 downY--;
             }
             cursorDown(downY, true);
@@ -8374,12 +8424,16 @@ public class ECMA48 implements Runnable {
         // draw the black underneath the cells.
         boolean transparent = false;
 
-        int cellColumns = image.getWidth() / textWidth;
-        while (cellColumns * textWidth < image.getWidth()) {
+        // Get actual text cell dimensions from the backend
+        int actualTextWidth = getActualTextWidth();
+        int actualTextHeight = getActualTextHeight();
+
+        int cellColumns = image.getWidth() / actualTextWidth;
+        while (cellColumns * actualTextWidth < image.getWidth()) {
             cellColumns++;
         }
-        int cellRows = image.getHeight() / textHeight;
-        while (cellRows * textHeight < image.getHeight()) {
+        int cellRows = image.getHeight() / actualTextHeight;
+        while (cellRows * actualTextHeight < image.getHeight()) {
             cellRows++;
         }
 
@@ -8389,13 +8443,13 @@ public class ECMA48 implements Runnable {
         ComplexCell [][] cells = new ComplexCell[cellColumns][cellRows];
         for (int x = 0; x < cellColumns; x++) {
             for (int y = 0; y < cellRows; y++) {
-                int width = textWidth;
-                if ((x + 1) * textWidth > image.getWidth()) {
-                    width = image.getWidth() - (x * textWidth);
+                int width = actualTextWidth;
+                if ((x + 1) * actualTextWidth > image.getWidth()) {
+                    width = image.getWidth() - (x * actualTextWidth);
                 }
-                int height = textHeight;
-                if ((y + 1) * textHeight > image.getHeight()) {
-                    height = image.getHeight() - (y * textHeight);
+                int height = actualTextHeight;
+                if ((y + 1) * actualTextHeight > image.getHeight()) {
+                    height = image.getHeight() - (y * actualTextHeight);
                 }
 
                 // I'm genuinely not sure if making many small cells with
@@ -8404,8 +8458,8 @@ public class ECMA48 implements Runnable {
                 // we will ALWAYS make a copy.
                 ComplexCell cell = new ComplexCell(currentState.attr);
 
-                ImageRGB imageSlice = image.getSubimage(x * textWidth,
-                    y * textHeight, width, height);
+                ImageRGB imageSlice = image.getSubimage(x * actualTextWidth,
+                    y * actualTextHeight, width, height);
 
                 imageId++;
                 cell.setImage(imageSlice, imageId & 0x7FFFFFFF);
