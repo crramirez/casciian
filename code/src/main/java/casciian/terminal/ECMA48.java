@@ -276,7 +276,7 @@ public class ECMA48 implements Runnable {
     /**
      * When true, an operation modified the visible display.
      */
-    private boolean screenIsDirty = true;
+    private volatile boolean screenIsDirty = true;
 
     /**
      * When true, synchronized update has already pushed a screen to the
