@@ -874,6 +874,24 @@
             ]
         },
         {
+            "type": "com.sun.jna.ptr.PointerByReference",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
+            "type": "com.sun.jna.platform.win32.WinNT$HANDLE",
+            "methods": [
+                {
+                    "name": "<init>",
+                    "parameterTypes": []
+                }
+            ]
+        },
+        {
             "type": "sun.text.resources.cldr.FormatData"
         },
         {
