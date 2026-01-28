@@ -27,7 +27,7 @@ import casciian.backend.SystemProperties;
 /**
  * Dialog to change shadow opacity.
  */
-public class DemoShadowOpacityDialog extends TWindow {
+public final class DemoShadowOpacityDialog extends TWindow {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------

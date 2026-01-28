@@ -50,7 +50,7 @@ import static casciian.TKeypress.*;
  * TTerminal exposes a ECMA-48 / ANSI X3.64 style terminal in a widget.
  */
 public class TTerminal extends TScrollable
-                       implements TerminalListener, EditMenuUser {
+    implements TerminalListener, EditMenuUser {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
@@ -78,12 +78,24 @@ public class TTerminal extends TScrollable
     /**
      * The Process created by the shell spawning constructor.
      */
-    private PtyProcess shell;
+    private Process shell;
 
     /**
      * The command line for the shell.
      */
-    private String [] commandLine;
+    private String[] commandLine;
+
+    /**
+     * If true, something called 'ptypipe' is on the PATH and executable.
+     */
+    private static boolean ptypipeOnPath = false;
+
+    /**
+     * If true, we are using the ptypipe utility to support dynamic window
+     * resizing.  ptypipe is available at
+     * https://gitlab.com/AutumnMeowMeow/ptypipe .
+     */
+    private boolean ptypipe = false;
 
     /**
      * The last seen terminal state.
@@ -140,13 +152,13 @@ public class TTerminal extends TScrollable
     /**
      * Public constructor spawns a custom command line.
      *
-     * @param parent parent widget
-     * @param x column relative to parent
-     * @param y row relative to parent
+     * @param parent      parent widget
+     * @param x           column relative to parent
+     * @param y           row relative to parent
      * @param commandLine the command line to execute
      */
     public TTerminal(final TWidget parent, final int x, final int y,
-        final String commandLine) {
+                     final String commandLine) {
 
         this(parent, x, y, commandLine.split("\\s+"));
     }
@@ -154,17 +166,17 @@ public class TTerminal extends TScrollable
     /**
      * Public constructor spawns a custom command line.
      *
-     * @param parent parent widget
-     * @param x column relative to parent
-     * @param y row relative to parent
+     * @param parent  parent widget
+     * @param x       column relative to parent
+     * @param y       row relative to parent
      * @param command the command line to execute, as an array of strings
-     * which signifies the external program file to be invoked (command[0])
-     * and its arguments, if any (command[1], command[2], ...). Refer also to
-     * java.lang.ProcessBuilder for further operating-system specific
-     * details.
+     *                which signifies the external program file to be invoked (command[0])
+     *                and its arguments, if any (command[1], command[2], ...). Refer also to
+     *                java.lang.ProcessBuilder for further operating-system specific
+     *                details.
      */
     public TTerminal(final TWidget parent, final int x, final int y,
-        final String [] command) {
+                     final String[] command) {
 
         this(parent, x, y, command, null);
     }
@@ -172,18 +184,18 @@ public class TTerminal extends TScrollable
     /**
      * Public constructor spawns a custom command line.
      *
-     * @param parent parent widget
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param command the command line to execute, as an array of strings
-     * which signifies the external program file to be invoked (command[0])
-     * and its arguments, if any (command[1], command[2], ...). Refer also to
-     * java.lang.ProcessBuilder for further operating-system specific
-     * details.
+     * @param parent      parent widget
+     * @param x           column relative to parent
+     * @param y           row relative to parent
+     * @param command     the command line to execute, as an array of strings
+     *                    which signifies the external program file to be invoked (command[0])
+     *                    and its arguments, if any (command[1], command[2], ...). Refer also to
+     *                    java.lang.ProcessBuilder for further operating-system specific
+     *                    details.
      * @param closeAction action to perform when the shell exits
      */
     public TTerminal(final TWidget parent, final int x, final int y,
-        final String [] command, final TAction closeAction) {
+                     final String[] command, final TAction closeAction) {
 
         this(parent, x, y, 80, 24, command, closeAction);
     }
@@ -191,22 +203,22 @@ public class TTerminal extends TScrollable
     /**
      * Public constructor spawns a custom command line.
      *
-     * @param parent parent widget
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param width width of widget
-     * @param height height of widget
-     * @param command the command line to execute, as an array of strings
-     * which signifies the external program file to be invoked (command[0])
-     * and its arguments, if any (command[1], command[2], ...). Refer also to
-     * java.lang.ProcessBuilder for further operating-system specific
-     * details.
+     * @param parent      parent widget
+     * @param x           column relative to parent
+     * @param y           row relative to parent
+     * @param width       width of widget
+     * @param height      height of widget
+     * @param command     the command line to execute, as an array of strings
+     *                    which signifies the external program file to be invoked (command[0])
+     *                    and its arguments, if any (command[1], command[2], ...). Refer also to
+     *                    java.lang.ProcessBuilder for further operating-system specific
+     *                    details.
      * @param closeAction action to perform when the shell exits
      */
     @SuppressWarnings("this-escape")
     public TTerminal(final TWidget parent, final int x, final int y,
-        final int width, final int height, final String [] command,
-        final TAction closeAction) {
+                     final int width, final int height, final String[] command,
+                     final TAction closeAction) {
 
         super(parent, x, y, width, height);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
@@ -219,10 +231,26 @@ public class TTerminal extends TScrollable
         // terminal, not the fully-processed command line.
         commandLine = command;
 
-        String [] fullCommand;
+        String[] fullCommand;
 
         // Spawn a shell and pass its I/O to the other constructor.
-        if (System.getProperty("os.name").startsWith("Windows")) {
+        if ((System.getProperty("casciian.TTerminal.ptypipe") != null)
+            && (System.getProperty("casciian.TTerminal.ptypipe").
+            equals("true"))
+        ) {
+            ptypipe = true;
+            fullCommand = new String[command.length + 1];
+            fullCommand[0] = "ptypipe";
+            System.arraycopy(command, 0, fullCommand, 1, command.length);
+        } else if (System.getProperty("casciian.TTerminal.ptypipe",
+            "auto").equals("auto")
+            && (ptypipeOnPath == true)
+        ) {
+            ptypipe = true;
+            fullCommand = new String[command.length + 1];
+            fullCommand[0] = "ptypipe";
+            System.arraycopy(command, 0, fullCommand, 1, command.length);
+        } else if (System.getProperty("os.name").startsWith("Windows")) {
             fullCommand = new String[3];
             fullCommand[0] = "cmd";
             fullCommand[1] = "/c";
@@ -238,7 +266,7 @@ public class TTerminal extends TScrollable
         } else {
             // Default: behave like Linux
             if (System.getProperty("casciian.TTerminal.setsid",
-                    "true").equals("false")
+                "true").equals("false")
             ) {
                 fullCommand = new String[5];
                 fullCommand[0] = "script";
@@ -263,8 +291,8 @@ public class TTerminal extends TScrollable
      * Public constructor spawns a shell.
      *
      * @param parent parent widget
-     * @param x column relative to parent
-     * @param y row relative to parent
+     * @param x      column relative to parent
+     * @param y      row relative to parent
      */
     public TTerminal(final TWidget parent, final int x, final int y) {
         this(parent, x, y, (TAction) null);
@@ -273,13 +301,13 @@ public class TTerminal extends TScrollable
     /**
      * Public constructor spawns a shell.
      *
-     * @param parent parent widget
-     * @param x column relative to parent
-     * @param y row relative to parent
+     * @param parent      parent widget
+     * @param x           column relative to parent
+     * @param y           row relative to parent
      * @param closeAction action to perform when the shell exits
      */
     public TTerminal(final TWidget parent, final int x, final int y,
-        final TAction closeAction) {
+                     final TAction closeAction) {
 
         this(parent, x, y, 80, 24, closeAction);
     }
@@ -287,16 +315,16 @@ public class TTerminal extends TScrollable
     /**
      * Public constructor spawns a shell.
      *
-     * @param parent parent widget
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param width width of widget
-     * @param height height of widget
+     * @param parent      parent widget
+     * @param x           column relative to parent
+     * @param y           row relative to parent
+     * @param width       width of widget
+     * @param height      height of widget
      * @param closeAction action to perform when the shell exits
      */
     @SuppressWarnings("this-escape")
     public TTerminal(final TWidget parent, final int x, final int y,
-        final int width, final int height, final TAction closeAction) {
+                     final int width, final int height, final TAction closeAction) {
 
         super(parent, x, y, width, height);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
@@ -307,6 +335,9 @@ public class TTerminal extends TScrollable
 
         if (System.getProperty("casciian.TTerminal.shell") != null) {
             String shell = System.getProperty("casciian.TTerminal.shell");
+            if (shell.trim().startsWith("ptypipe")) {
+                ptypipe = true;
+            }
             spawnShell(shell.split("\\s+"));
             return;
         }
@@ -314,7 +345,7 @@ public class TTerminal extends TScrollable
         // Save an empty command line.
         commandLine = new String[0];
 
-        String cmdShellWindows = "cmd.exe";
+        String cmdShellWindows = "powershell.exe";
 
         // You cannot run a login shell in a bare Process interactively, due
         // to libc's behavior of buffering when stdin/stdout aren't a tty.
@@ -334,13 +365,25 @@ public class TTerminal extends TScrollable
         }
 
         // Spawn a shell and pass its I/O to the other constructor.
-        if (System.getProperty("os.name").startsWith("Windows")) {
+        if ((System.getProperty("casciian.TTerminal.ptypipe") != null)
+            && (System.getProperty("casciian.TTerminal.ptypipe").
+            equals("true"))
+        ) {
+            ptypipe = true;
+            spawnShell(cmdShellPtypipe.split("\\s+"));
+        } else if (System.getProperty("casciian.TTerminal.ptypipe",
+            "auto").equals("auto")
+            && (ptypipeOnPath == true)
+        ) {
+            ptypipe = true;
+            spawnShell(cmdShellPtypipe.split("\\s+"));
+        } else if (System.getProperty("os.name").startsWith("Windows")) {
             spawnShell(cmdShellWindows.split("\\s+"));
         } else if (System.getProperty("os.name").startsWith("Mac")) {
             spawnShell(cmdShellBSD.split("\\s+"));
         } else if (System.getProperty("os.name").startsWith("Linux")) {
             if (System.getProperty("casciian.TTerminal.setsid",
-                    "true").equals("false")
+                "true").equals("false")
             ) {
                 spawnShell(cmdShellGNU.split("\\s+"));
             } else {
@@ -386,6 +429,11 @@ public class TTerminal extends TScrollable
                     emulator.setHeight(getHeight());
 
                     emulator.writeRemote(ControlSequences.CSI_8T.formatted(getHeight(), getWidth()));
+                } else if (shell instanceof PtyProcess ptyProcess) {
+                    emulator.setWidth(getWidth());
+                    emulator.setHeight(getHeight());
+
+                    ptyProcess.setWinSize(new WinSize(getWidth(), getHeight()));
                 }
             }
         }
@@ -442,9 +490,11 @@ public class TTerminal extends TScrollable
             if (keypress.equals(kbEnter)) {
                 if (System.getProperty("os.name").startsWith("Windows")
                     && (System.getProperty("casciian.TTerminal.cmdHack",
-                            "true").equals("true"))
+                    "true").equals("true"))
                 ) {
-                    emulator.addUserEvent(new TKeypressEvent(keypress.getBackend(), kbCtrlJ));
+                    if (!(shell instanceof PtyProcess)) {
+                        emulator.addUserEvent(new TKeypressEvent(keypress.getBackend(), kbCtrlJ));
+                    }
                 }
             }
             return;
@@ -588,7 +638,7 @@ public class TTerminal extends TScrollable
 
         // Draw the emulator screen.
         int row = 0;
-        for (DisplayLine line: display) {
+        for (DisplayLine line : display) {
             int widthMax = width;
             if (line.isDoubleWidth()) {
                 widthMax /= 2;
@@ -656,7 +706,7 @@ public class TTerminal extends TScrollable
         // Vertical scrollbar
         setTopValue(getHeight()
             - (terminalState.getScrollbackBuffer().size()
-                + terminalState.getDisplayBuffer().size()));
+            + terminalState.getDisplayBuffer().size()));
         setVerticalBigChange(getHeight());
 
     }
@@ -690,6 +740,28 @@ public class TTerminal extends TScrollable
      * Check for 'ptypipe' on the path.  If available, set ptypipeOnPath.
      */
     private static void checkForPtypipe() {
+        try {
+            // Use ProcessBuilder to check if the command exists
+            // This is more efficient as it leverages the OS's PATH resolution
+            ProcessBuilder pb;
+            if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                pb = new ProcessBuilder("where", "ptypipe");
+            } else {
+                pb = new ProcessBuilder("sh", "-c", "command -v ptypipe");
+            }
+            Process process = pb.start();
+            int exitCode = process.waitFor();
+            ptypipeOnPath = (exitCode == 0);
+        } catch (InterruptedException e) {
+            // If the check fails, assume ptypipe is not available
+            ptypipeOnPath = false;
+
+            // Restore the interrupted status so calling code can handle it.
+            Thread.currentThread().interrupt();
+        } catch (IOException e) {
+            // If the check fails, assume ptypipe is not available
+            ptypipeOnPath = false;
+        }
     }
 
     /**
@@ -706,7 +778,7 @@ public class TTerminal extends TScrollable
      *
      * @return the command line
      */
-    public String [] getCommandLine() {
+    public String[] getCommandLine() {
         return commandLine;
     }
 
@@ -772,7 +844,7 @@ public class TTerminal extends TScrollable
      * @param array the string array
      * @return a single string
      */
-    private String stringArrayToString(final String [] array) {
+    private String stringArrayToString(final String[] array) {
         StringBuilder sb = new StringBuilder(array[0].length());
         for (int i = 0; i < array.length; i++) {
             sb.append(array[i]);
@@ -788,7 +860,7 @@ public class TTerminal extends TScrollable
      *
      * @param command the command line to execute
      */
-    private void spawnShell(final String [] command) {
+    private void spawnShell(final String[] command) {
         /*
         System.err.printf("spawnShell(): '%s'\n",
             stringArrayToString(command));
@@ -806,7 +878,18 @@ public class TTerminal extends TScrollable
         ECMA48.DeviceType deviceType = ECMA48.DeviceType.XTERM;
 
         try {
-            Map<String, String> env = new HashMap<>(System.getenv());
+            ProcessBuilder pb = null;
+            PtyProcessBuilder ptyPb = null;
+            Map<String, String> env;
+
+           /* if (System.getProperty("os.name").toLowerCase().contains("win") && !ptypipe) {
+                ptyPb = new PtyProcessBuilder(command);
+                env = new HashMap<>(System.getenv());
+            } else {*/
+                pb = new ProcessBuilder(command);
+                env = pb.environment();
+            //}
+
             String langString = System.getenv().get("LANG");
             if (langString == null) {
                 Locale locale = Locale.getDefault();
@@ -827,11 +910,17 @@ public class TTerminal extends TScrollable
             env.put("COLUMNS", "80");
             env.put("LINES", "24");
 
-            shell = new PtyProcessBuilder()
-                .setCommand(command)
-                .setEnvironment(env)
-                .setRedirectErrorStream(true)
-                .start();
+            if (pb != null) {
+                pb.redirectErrorStream(true);
+                shell = pb.start();
+            } else {
+                ptyPb.setEnvironment(env);
+                ptyPb.setRedirectErrorStream(true);
+                ptyPb.setInitialColumns(80);
+                ptyPb.setInitialRows(24);
+
+                shell = ptyPb.start();
+            }
 
             emulator = new ECMA48(deviceType, shell.getInputStream(),
                 shell.getOutputStream(), this, getApplication().getBackend());
@@ -843,11 +932,11 @@ public class TTerminal extends TScrollable
 
         // Setup the scroll bars
         onResize(new TResizeEvent(null, TResizeEvent.Type.WIDGET, getWidth(),
-                getHeight()));
+            getHeight()));
 
         // Hide mouse when typing option
         if (System.getProperty("casciian.TTerminal.hideMouseWhenTyping",
-                "true").equals("false")) {
+            "true").equals("false")) {
 
             hideMouseWhenTyping = false;
         }
@@ -874,7 +963,7 @@ public class TTerminal extends TScrollable
             // shell.destroy() works successfully at killing this side of
             // 'script'.  But we need to make sure the other side (child
             // process) is also killed.
-            String [] cmdKillIt = {
+            String[] cmdKillIt = {
                 "pkill", "-P", Long.toString(pid), "--signal", "KILL"
             };
             try {
@@ -949,7 +1038,7 @@ public class TTerminal extends TScrollable
         long pid = getPid();
 
         if (pid != -1) {
-            String [] cmdSendSignal = {
+            String[] cmdSendSignal = {
                 "kill", Long.toString(pid), "--signal",
                 Integer.toString(signal)
             };
@@ -972,7 +1061,7 @@ public class TTerminal extends TScrollable
         long pid = getPid();
 
         if (pid != -1) {
-            String [] cmdSendSignal = {
+            String[] cmdSendSignal = {
                 "kill", Long.toString(pid), "--signal", signal
             };
             try {
@@ -1129,12 +1218,12 @@ public class TTerminal extends TScrollable
      * screen cells.
      *
      * @param line the line this VT100 cell is in
-     * @param x the X position to draw the left half to
-     * @param y the Y position to draw to
+     * @param x    the X position to draw the left half to
+     * @param y    the Y position to draw to
      * @param cell the cell to draw
      */
     private void putDoubleWidthCharXY(final DisplayLine line, final int x,
-        final int y, final ComplexCell cell) {
+                                      final int y, final ComplexCell cell) {
 
         putCharXY(x, y, cell);
         putCharXY(x + 1, y, ' ', cell);
@@ -1158,17 +1247,17 @@ public class TTerminal extends TScrollable
      */
     public void writeSessionAsText(final Writer writer) throws IOException {
         checkTerminalState();
-        for (DisplayLine line: terminalState.getScrollbackBuffer()) {
+        for (DisplayLine line : terminalState.getScrollbackBuffer()) {
             for (int i = 0; i < line.length(); i++) {
                 writer.write(new String(Character.toChars(
-                        line.charAt(i).getChar())));
+                    line.charAt(i).getChar())));
             }
             writer.write("\n");
         }
-        for (DisplayLine line: terminalState.getDisplayBuffer()) {
+        for (DisplayLine line : terminalState.getDisplayBuffer()) {
             for (int i = 0; i < line.length(); i++) {
                 writer.write(new String(Character.toChars(
-                        line.charAt(i).getChar())));
+                    line.charAt(i).getChar())));
             }
             writer.write("\n");
         }
@@ -1184,13 +1273,13 @@ public class TTerminal extends TScrollable
      */
     public void writeSessionAsHtml(final Writer writer) throws IOException {
         checkTerminalState();
-        for (DisplayLine line: terminalState.getScrollbackBuffer()) {
+        for (DisplayLine line : terminalState.getScrollbackBuffer()) {
             for (int i = 0; i < line.length(); i++) {
                 writer.write(line.charAt(i).toHtml());
             }
             writer.write("\n");
         }
-        for (DisplayLine line: terminalState.getDisplayBuffer()) {
+        for (DisplayLine line : terminalState.getDisplayBuffer()) {
             for (int i = 0; i < line.length(); i++) {
                 writer.write(line.charAt(i).toHtml());
             }
@@ -1223,7 +1312,10 @@ public class TTerminal extends TScrollable
      * @return the number of columns in the display
      */
     public int getDisplayWidth() {
-        return getWidth();
+        if (ptypipe || shell instanceof PtyProcess) {
+            return getWidth();
+        }
+        return 80;
     }
 
     /**
@@ -1232,7 +1324,10 @@ public class TTerminal extends TScrollable
      * @return the number of rows in the display
      */
     public int getDisplayHeight() {
-        return getHeight();
+        if (ptypipe || shell instanceof PtyProcess) {
+            return getHeight();
+        }
+        return 24;
     }
 
     /**

@@ -74,6 +74,8 @@ import casciian.image.decoders.SixelImageDecoder;
 import casciian.menu.TMenu;
 import casciian.menu.TMenuItem;
 import casciian.menu.TSubMenu;
+import com.pty4j.PtyProcessBuilder;
+
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
 
@@ -832,6 +834,7 @@ public class TApplication implements Runnable {
      */
     private void TApplicationImpl() {
         // Hide mouse when typing, status bar, and menu bar are now managed via SystemProperties
+        new PtyProcessBuilder(); //Let's SLF4J(W) initialize
 
         theme           = new ColorTheme();
         desktopTop      = (SystemProperties.isHideMenuBar() ? 0 : 1);

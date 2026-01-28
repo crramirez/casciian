@@ -302,12 +302,12 @@ public class ECMA48 implements Runnable {
     /**
      * The scrollback buffer characters + attributes.
      */
-    private final List<DisplayLine> scrollback;
+    private final ArrayList<DisplayLine> scrollback;
 
     /**
      * The raw display buffer characters + attributes.
      */
-    private List<DisplayLine> display;
+    private ArrayList<DisplayLine> display;
 
     /**
      * The maximum number of lines in the scrollback buffer.
@@ -323,6 +323,7 @@ public class ECMA48 implements Runnable {
     /**
      * The terminal's raw InputStream.  This is used for type != XTERM.
      */
+    @SuppressWarnings("java:S3077")
     private volatile TimeoutInputStream inputStream;
 
     /**
@@ -1862,11 +1863,9 @@ public class ECMA48 implements Runnable {
     private void newDisplayLine() {
         // Scroll the top line off into the scrollback buffer
         appendScrollbackLine(display.get(0));
-
-        synchronized (scrollback) {
-            while (scrollback.size() > scrollbackMax) {
-                scrollback.remove(0);
-            }
+        while (scrollback.size() > scrollbackMax) {
+            scrollback.remove(0);
+            scrollback.trimToSize();
         }
         display.removeFirst();
         display.trimToSize();
