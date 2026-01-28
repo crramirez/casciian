@@ -882,13 +882,13 @@ public class TTerminal extends TScrollable
             PtyProcessBuilder ptyPb = null;
             Map<String, String> env;
 
-           /* if (System.getProperty("os.name").toLowerCase().contains("win") && !ptypipe) {
+            if (System.getProperty("os.name").toLowerCase().contains("win") && !ptypipe) {
                 ptyPb = new PtyProcessBuilder(command);
                 env = new HashMap<>(System.getenv());
-            } else {*/
+            } else {
                 pb = new ProcessBuilder(command);
                 env = pb.environment();
-            //}
+            }
 
             String langString = System.getenv().get("LANG");
             if (langString == null) {
