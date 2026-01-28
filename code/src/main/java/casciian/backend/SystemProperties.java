@@ -15,6 +15,12 @@
  */
 package casciian.backend;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -142,6 +148,33 @@ public class SystemProperties {
      * always use JLine on Windows)
      */
     public static final String CASCIIAN_USE_JLINE = "casciian.useJline";
+
+    /**
+     * Environment variable name for the Casciian configuration file path.
+     * If this environment variable is set, it should point to a properties file
+     * that will be loaded at class initialization. Properties from this file
+     * will be used as defaults, but can be overridden by -D JVM options.
+     * <p>
+     * The file format is a standard Java properties file with one property per line
+     * in the format: key=value
+     * <p>
+     * Example file content:
+     * <pre>
+     * casciian.animations=true
+     * casciian.shadowOpacity=80
+     * casciian.textMouse=false
+     * </pre>
+     */
+    public static final String CASCIIANRC_ENV_VAR = "CASCIIANRC";
+
+    /**
+     * Static initializer that loads properties from the CASCIIANRC file if defined.
+     * Properties from the file are only set if they are not already defined
+     * via -D JVM options (i.e., -D options take priority).
+     */
+    static {
+        loadPropertiesFromCasciianRcFile();
+    }
 
     /**
      * Atomic reference representing the animations setting.
@@ -273,6 +306,56 @@ public class SystemProperties {
     private static final AtomicReference<Boolean> useJline = new AtomicReference<>(null);
 
     private SystemProperties() {
+    }
+
+    /**
+     * Loads properties from the CASCIIANRC file if defined.
+     * Properties from the file are only set if they are not already defined
+     * via -D JVM options (i.e., -D options take priority).
+     * <p>
+     * This method is called during class initialization and can also be called
+     * after reset() for testing purposes.
+     */
+    static void loadPropertiesFromCasciianRcFile() {
+        String rcFilePath = System.getenv(CASCIIANRC_ENV_VAR);
+        loadPropertiesFromFile(rcFilePath);
+    }
+
+    /**
+     * Loads properties from the specified file path.
+     * Properties from the file are only set if they are not already defined
+     * via -D JVM options (i.e., -D options take priority).
+     * <p>
+     * This method is package-private for testing purposes.
+     *
+     * @param rcFilePath the path to the configuration file, or null/empty if not set
+     */
+    static void loadPropertiesFromFile(String rcFilePath) {
+        if (rcFilePath == null || rcFilePath.isEmpty()) {
+            return;
+        }
+
+        Properties fileProperties = new Properties();
+        try {
+            Path path = Paths.get(rcFilePath);
+            if (!Files.exists(path) || !Files.isRegularFile(path)) {
+                return;
+            }
+
+            try (BufferedReader reader = Files.newBufferedReader(path)) {
+                fileProperties.load(reader);
+            }
+        } catch (Exception e) {
+            // Silently ignore any errors (including invalid paths) - similar to how dialog handles DIALOGRC
+            return;
+        }
+
+        // Set properties from the file only if not already defined via -D
+        for (String propertyName : fileProperties.stringPropertyNames()) {
+            if (System.getProperty(propertyName) == null) {
+                System.setProperty(propertyName, fileProperties.getProperty(propertyName));
+            }
+        }
     }
 
     /**
