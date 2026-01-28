@@ -14,7 +14,6 @@
  */
 package casciian;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.reflect.Field;
@@ -28,19 +27,19 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
-import casciian.bits.Cell;
 import casciian.bits.Clipboard;
 import casciian.bits.ComplexCell;
+import casciian.bits.ControlSequences;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
-import casciian.event.TMenuEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
-import casciian.menu.TMenu;
 import casciian.terminal.DisplayLine;
 import casciian.terminal.ECMA48;
 import casciian.terminal.TerminalListener;
 import casciian.terminal.TerminalState;
+import org.jline.utils.InfoCmp;
+
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
 
@@ -355,7 +354,12 @@ public class TTerminal extends TScrollable
         String cmdShellBSD = "script -q -F /dev/null";
 
         // ptypipe is another solution that permits dynamic window resizing.
-        String cmdShellPtypipe = "ptypipe /bin/bash --login";
+        String cmdShellPtypipe;
+        if (System.getProperty("os.name").startsWith("Windows")) {
+            cmdShellPtypipe = "ptypipe " + cmdShellWindows;
+        } else {
+            cmdShellPtypipe = "ptypipe /bin/bash --login";
+        }
 
         // Spawn a shell and pass its I/O to the other constructor.
         if ((System.getProperty("casciian.TTerminal.ptypipe") != null)
@@ -409,7 +413,6 @@ public class TTerminal extends TScrollable
         // Synchronize against the emulator so we don't stomp on its reader
         // thread.
         synchronized (emulator) {
-
             if (resize.getType() == TResizeEvent.Type.WIDGET) {
                 // Resize the scroll bars
                 reflowData();
@@ -422,13 +425,10 @@ public class TTerminal extends TScrollable
                     emulator.setWidth(getWidth());
                     emulator.setHeight(getHeight());
 
-                    emulator.writeRemote("\033[8;" + getHeight() + ";" +
-                        getWidth() + "t");
+                    emulator.writeRemote(ControlSequences.CSI_8T.formatted(getHeight(), getWidth()));
                 }
             }
-            return;
-
-        } // synchronized (emulator)
+        }
     }
 
     /**
@@ -484,8 +484,7 @@ public class TTerminal extends TScrollable
                     && (System.getProperty("casciian.TTerminal.cmdHack",
                             "true").equals("true"))
                 ) {
-                    emulator.addUserEvent(new TKeypressEvent(
-                        keypress.getBackend(), kbCtrlJ));
+                    emulator.addUserEvent(new TKeypressEvent(                        keypress.getBackend(), kbCtrlJ));
                 }
             }
             return;
