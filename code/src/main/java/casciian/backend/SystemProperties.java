@@ -335,16 +335,18 @@ public class SystemProperties {
             return;
         }
 
-        Path path = Paths.get(rcFilePath);
-        if (!Files.exists(path) || !Files.isRegularFile(path)) {
-            return;
-        }
-
         Properties fileProperties = new Properties();
-        try (BufferedReader reader = Files.newBufferedReader(path)) {
-            fileProperties.load(reader);
-        } catch (IOException e) {
-            // Silently ignore read errors - similar to how dialog handles DIALOGRC
+        try {
+            Path path = Paths.get(rcFilePath);
+            if (!Files.exists(path) || !Files.isRegularFile(path)) {
+                return;
+            }
+
+            try (BufferedReader reader = Files.newBufferedReader(path)) {
+                fileProperties.load(reader);
+            }
+        } catch (Exception e) {
+            // Silently ignore any errors (including invalid paths) - similar to how dialog handles DIALOGRC
             return;
         }
 
