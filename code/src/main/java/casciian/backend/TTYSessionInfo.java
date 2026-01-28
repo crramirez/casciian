@@ -17,6 +17,7 @@ package casciian.backend;
 import java.io.PrintWriter;
 
 import casciian.backend.terminal.Terminal;
+import casciian.backend.terminal.TerminalJlineImpl;
 
 /**
  * TTYSessionInfo queries environment variables and the tty window size for
@@ -58,6 +59,13 @@ public class TTYSessionInfo implements SessionInfo {
     private long lastQueryWindowTime;
 
     /**
+     * Time at which we last did a fallback direct query for stty terminals
+     * with CSI 18 t enabled. This is used as a defensive measure in case
+     * CSI 8 t responses are not being received (e.g., due to ptypipe bugs).
+     */
+    volatile long lastFallbackQueryTime;
+
+    /**
      * The time this session was started.
      */
     private final long startTime = System.currentTimeMillis();
@@ -72,7 +80,8 @@ public class TTYSessionInfo implements SessionInfo {
      * If set, this session can only use CSI 8 t to get window size.  Note
      * package private access.
      */
-    PrintWriter output = null;
+    @SuppressWarnings("java:S3077")
+    volatile PrintWriter output = null;
 
     /**
      * The terminal to use for querying window size.
@@ -200,15 +209,46 @@ public class TTYSessionInfo implements SessionInfo {
             lastQueryWindowTime = nowTime;
         }
 
+        // Also send CSI 18 t if the terminal supports it.
+        // The response (CSI 8 t) will update windowWidth/windowHeight
+        // via ECMA48Terminal when it arrives.
         if (output != null) {
-            // System.err.println("Using CSI 18 t for window size");
-
             output.write(ECMA48Terminal.xtermQueryWindowSize());
             output.flush();
-            return;
         }
 
+        // Determine if we should query the terminal directly.
+        // JLine tracks SIGWINCH automatically, so getWindowWidth/Height() is cheap.
+        // For stty (TerminalShImpl), each query spawns a process, which is expensive.
+        // When CSI 18 t mode is enabled (output != null), the terminal supports
+        // CSI 18 t queries, and we rely on CSI 8 t responses for size updates.
+        // However, when running inside ptypipe, CSI 8 t responses are stripped,
+        // so we need to query JLine (which tracks SIGWINCH) to catch those resizes.
+        boolean useDirectQuery = false;
+        boolean useFallbackQuery = false;
         if (terminal != null) {
+            if (terminal instanceof TerminalJlineImpl) {
+                // JLine tracks SIGWINCH automatically, always query it (cheap)
+                useDirectQuery = true;
+            } else if (output == null) {
+                // CSI 18 t not enabled, must use direct query
+                useDirectQuery = true;
+            } else {
+                // CSI 18 t mode enabled for stty terminal.
+                // As a defensive measure, periodically query via stty anyway
+                // in case CSI 8 t responses are not being received (e.g., due to
+                // ptypipe bugs that strip the responses).
+                long nowTime = System.currentTimeMillis();
+                if (nowTime - lastFallbackQueryTime >= 3000) {
+                    // Do a fallback stty query every 3 seconds
+                    useFallbackQuery = true;
+                    lastFallbackQueryTime = nowTime;
+                    output = null; // If we don't receive CSI 18 t anymore, we'll again spam stty
+                }
+            }
+        }
+
+        if ((useDirectQuery || useFallbackQuery) && terminal != null) {
             terminal.queryWindowSize();
             int width = terminal.getWindowWidth();
             int height = terminal.getWindowHeight();

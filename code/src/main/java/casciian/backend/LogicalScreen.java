@@ -1796,8 +1796,8 @@ public class LogicalScreen implements Screen {
         /*
          * We need to blend the background colors of other's cells over the
          * cells of this screen (foreground and background), honoring our
-         * alpha.  We will create a bitmap of one pixel per cell, blend that
-         * via AWT, and then set the cell RGBs and char's.
+         * alpha.  We will create a bitmap of one pixel per cell, blend that,
+         * and then set the cell RGBs and char's.
          */
         synchronized (this) {
 

@@ -30,6 +30,7 @@ import java.util.ResourceBundle;
 
 import casciian.bits.Clipboard;
 import casciian.bits.ComplexCell;
+import casciian.bits.ControlSequences;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
@@ -325,7 +326,12 @@ public class TTerminal extends TScrollable
         String cmdShellBSD = "script -q -F /dev/null";
 
         // ptypipe is another solution that permits dynamic window resizing.
-        String cmdShellPtypipe = "ptypipe /bin/bash --login";
+        String cmdShellPtypipe;
+        if (System.getProperty("os.name").startsWith("Windows")) {
+            cmdShellPtypipe = "ptypipe " + cmdShellWindows;
+        } else {
+            cmdShellPtypipe = "ptypipe /bin/bash --login";
+        }
 
         // Spawn a shell and pass its I/O to the other constructor.
         if (System.getProperty("os.name").startsWith("Windows")) {
@@ -367,7 +373,6 @@ public class TTerminal extends TScrollable
         // Synchronize against the emulator so we don't stomp on its reader
         // thread.
         synchronized (emulator) {
-
             if (resize.getType() == TResizeEvent.Type.WIDGET) {
                 // Resize the scroll bars
                 reflowData();
@@ -376,13 +381,14 @@ public class TTerminal extends TScrollable
                 // Get out of scrollback
                 setVerticalValue(0);
 
-                emulator.setWidth(getWidth());
-                emulator.setHeight(getHeight());
-                shell.setWinSize(new WinSize(getWidth(), getHeight()));
-            }
-            return;
+                if (ptypipe) {
+                    emulator.setWidth(getWidth());
+                    emulator.setHeight(getHeight());
 
-        } // synchronized (emulator)
+                    emulator.writeRemote(ControlSequences.CSI_8T.formatted(getHeight(), getWidth()));
+                }
+            }
+        }
     }
 
     /**
@@ -438,7 +444,7 @@ public class TTerminal extends TScrollable
                     && (System.getProperty("casciian.TTerminal.cmdHack",
                             "true").equals("true"))
                 ) {
-                    //emulator.addUserEvent(new TKeypressEvent(keypress.getBackend(), kbCtrlJ));
+                    emulator.addUserEvent(new TKeypressEvent(keypress.getBackend(), kbCtrlJ));
                 }
             }
             return;

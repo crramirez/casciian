@@ -31,7 +31,6 @@ repositories {
 dependencies {
     // JLine terminal for platform-agnostic raw mode support
     implementation "org.jline:jline-terminal:${jlineVersion}"
-    implementation "org.jline:jline-terminal-ffm:${jlineVersion}"
     implementation "org.jline:jline-terminal-jni:${jlineVersion}"
     implementation "org.jetbrains.pty4j:pty4j:0.13.11"
 
@@ -223,6 +222,7 @@ graalvmNative {
             mainClass = 'demo.Demo1'
             buildArgs.add('-march=compatibility')
             buildArgs.add('-Os')
+            buildArgs.add('--future-defaults=all')
             buildArgs.add('--enable-native-access=ALL-UNNAMED')
             buildArgs.addAll(providers.provider {
                 [

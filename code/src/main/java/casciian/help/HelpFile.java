@@ -127,8 +127,8 @@ public class HelpFile {
     public void load(final InputStream input) throws IOException,
                                 ParserConfigurationException, SAXException {
 
-        topicsByTitle = new HashMap<String, Topic>();
-        topicsByTerm = new HashMap<String, Topic>();
+        topicsByTitle = new HashMap<>();
+        topicsByTerm = new HashMap<>();
 
         try {
             // Null check, in case input was loaded from ClassLoader from a
@@ -165,11 +165,11 @@ public class HelpFile {
      * search string
      */
     public Topic getSearchResults(final String searchString) {
-        List<Topic> allTopics = new ArrayList<Topic>();
+        List<Topic> allTopics = new ArrayList<>();
         allTopics.addAll(topicsByTitle.values());
         Collections.sort(allTopics);
 
-        List<Topic> results = new ArrayList<Topic>();
+        List<Topic> results = new ArrayList<>();
         Pattern pattern = Pattern.compile(searchString);
         Pattern patternLower = Pattern.compile(searchString.toLowerCase());
 
@@ -198,7 +198,7 @@ public class HelpFile {
 
         StringBuilder text = new StringBuilder();
         int wordIndex = 0;
-        List<Link> links = new ArrayList<Link>();
+        List<Link> links = new ArrayList<>();
         for (Topic topic: results) {
             text.append(topic.getTitle());
             text.append("\n\n");
@@ -234,13 +234,13 @@ public class HelpFile {
      * Generate the table of contents topic.
      */
     private void generateTableOfContents() {
-        List<Topic> allTopics = new ArrayList<Topic>();
+        List<Topic> allTopics = new ArrayList<>();
         allTopics.addAll(topicsByTitle.values());
         Collections.sort(allTopics);
 
         StringBuilder text = new StringBuilder();
         int wordIndex = 0;
-        List<Link> links = new ArrayList<Link>();
+        List<Link> links = new ArrayList<>();
         for (Topic topic: allTopics) {
             text.append(topic.getTitle());
             text.append("\n\n");
@@ -258,29 +258,29 @@ public class HelpFile {
      * Generate the index topic.
      */
     private void generateIndex() {
-        List<Topic> allTopics = new ArrayList<Topic>();
+        List<Topic> allTopics = new ArrayList<>();
         allTopics.addAll(topicsByTitle.values());
 
         HashMap<String, ArrayList<Topic>> allKeys;
-        allKeys = new HashMap<String, ArrayList<Topic>>();
+        allKeys = new HashMap<>();
         for (Topic topic: allTopics) {
             for (String key: topic.getIndexKeys()) {
                 key = key.toLowerCase();
                 ArrayList<Topic> topics = allKeys.get(key);
                 if (topics == null) {
-                    topics = new ArrayList<Topic>();
+                    topics = new ArrayList<>();
                     allKeys.put(key, topics);
                 }
                 topics.add(topic);
             }
         }
-        List<String> keys = new ArrayList<String>();
+        List<String> keys = new ArrayList<>();
         keys.addAll(allKeys.keySet());
         Collections.sort(keys);
 
         StringBuilder text = new StringBuilder();
         int wordIndex = 0;
-        List<Link> links = new ArrayList<Link>();
+        List<Link> links = new ArrayList<>();
 
         for (String key: keys) {
             List<Topic> topics = allKeys.get(key);
@@ -323,22 +323,22 @@ public class HelpFile {
         NodeList level1 = root.getChildNodes();
         for (int i = 0; i < level1.getLength(); i++) {
             Node node = level1.item(i);
-            String name = node.getNodeName();
+            String topicName = node.getNodeName();
             String value = node.getTextContent();
 
-            if (name.equals("name")) {
+            if (topicName.equals("name")) {
                 this.name = value;
             }
-            if (name.equals("version")) {
+            if (topicName.equals("version")) {
                 this.version = value;
             }
-            if (name.equals("author")) {
+            if (topicName.equals("author")) {
                 this.author = value;
             }
-            if (name.equals("date")) {
+            if (topicName.equals("date")) {
                 this.date = value;
             }
-            if (name.equals("topics")) {
+            if (topicName.equals("topics")) {
                 NodeList topics = node.getChildNodes();
                 for (int j = 0; j < topics.getLength(); j++) {
                     Node topic = topics.item(j);
