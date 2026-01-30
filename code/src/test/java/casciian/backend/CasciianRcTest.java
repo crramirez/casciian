@@ -168,7 +168,7 @@ class CasciianRcTest {
         String content = """
                 casciian.animations=true
                 casciian.custom.property=customValue
-                my.app.setting=12345
+                casciian.my.app.setting=12345
                 """;
         Files.writeString(rcFilePath, content);
 
@@ -178,11 +178,12 @@ class CasciianRcTest {
         // Verify all properties were loaded, including custom ones
         assertEquals("true", System.getProperty(SystemProperties.CASCIIAN_ANIMATIONS));
         assertEquals("customValue", System.getProperty("casciian.custom.property"));
-        assertEquals("12345", System.getProperty("my.app.setting"));
+        assertEquals("12345", System.getProperty("casciian.my.app.setting"));
 
         // Clean up
+        System.clearProperty(SystemProperties.CASCIIAN_ANIMATIONS);
         System.clearProperty("casciian.custom.property");
-        System.clearProperty("my.app.setting");
+        System.clearProperty("casciian.my.app.setting");
     }
 
     @Test

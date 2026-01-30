@@ -168,6 +168,11 @@ public class SystemProperties {
     public static final String CASCIIANRC_ENV_VAR = "CASCIIANRC";
 
     /**
+     * Property prefix for Casciian properties.
+     */
+    public static final String CASCIAN_PROPERTY_PREFIX = "casciian.";
+
+    /**
      * Static initializer that loads properties from the CASCIIANRC file if defined.
      * Properties from the file are only set if they are not already defined
      * via -D JVM options (i.e., -D options take priority).
@@ -352,8 +357,13 @@ public class SystemProperties {
 
         // Set properties from the file only if not already defined via -D
         for (String propertyName : fileProperties.stringPropertyNames()) {
+            String propertyValue = fileProperties.getProperty(propertyName);
+
+            if (!propertyName.startsWith(CASCIAN_PROPERTY_PREFIX)) {
+                continue;
+            }
             if (System.getProperty(propertyName) == null) {
-                System.setProperty(propertyName, fileProperties.getProperty(propertyName));
+                System.setProperty(propertyName, propertyValue);
             }
         }
     }

@@ -19,12 +19,19 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+
+import static casciian.backend.SystemProperties.CASCIAN_PROPERTY_PREFIX;
+import static casciian.backend.SystemProperties.CASCIIANRC_ENV_VAR;
 
 /**
  * ColorTheme is a collection of colors keyed by string.  A default theme is
@@ -32,14 +39,10 @@ import java.util.TreeMap;
  */
 public class ColorTheme {
 
-    // ------------------------------------------------------------------------
-    // Variables --------------------------------------------------------------
-    // ------------------------------------------------------------------------
-
     /**
      * The current theme colors.
      */
-    private SortedMap<String, CellAttributes> colors;
+    private final SortedMap<String, CellAttributes> colors;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -50,8 +53,36 @@ public class ColorTheme {
      */
     @SuppressWarnings("this-escape")
     public ColorTheme() {
-        colors = new TreeMap<String, CellAttributes>();
+        colors = new TreeMap<>();
         setDefaultTheme();
+        loadThemeFromCasciianRcFile();
+    }
+
+
+    /**
+     * Loads properties from the CASCIIANRC file if defined.
+     * Properties from the file are only set if they are not already defined
+     * via -D JVM options (i.e., -D options take priority).
+     * <p>
+     * This method is called during class initialization and can also be called
+     * after reset() for testing purposes.
+     */
+    private void loadThemeFromCasciianRcFile() {
+        String rcFilePath = System.getenv(CASCIIANRC_ENV_VAR);
+        if (rcFilePath == null || rcFilePath.isEmpty()) {
+            return;
+        }
+
+        try {
+            Path path = Paths.get(rcFilePath);
+            if (!Files.exists(path) || !Files.isRegularFile(path)) {
+                return;
+            }
+
+            load(rcFilePath);
+        } catch (Exception e) {
+            // Silently ignore any errors (including invalid paths) - similar to how dialog handles DIALOGRC
+        }
     }
 
     // ------------------------------------------------------------------------
@@ -84,9 +115,9 @@ public class ColorTheme {
     /**
      * Set the color for a named theme color.
      *
-     * @param name theme color name, e.g. "twindow.border"
+     * @param name  theme color name, e.g. "twindow.border"
      * @param color the new color to associate with name, e.g. bold yellow on
-     * blue
+     *              blue
      */
     public void setColor(final String name, final CellAttributes color) {
         colors.put(name, color);
@@ -100,7 +131,7 @@ public class ColorTheme {
      */
     public void save(final String filename) throws IOException {
         FileWriter file = new FileWriter(filename);
-        for (String key: colors.keySet()) {
+        for (String key : colors.keySet()) {
             CellAttributes color = getColor(key);
             file.write(String.format("%s = %s\n", key, color));
         }
@@ -121,7 +152,7 @@ public class ColorTheme {
      * Set a color based on a text string.  Color text string is of the form:
      * <code>[ bold ] [ blink ] { foreground on background }</code>
      *
-     * @param key the color key string
+     * @param key  the color key string
      * @param text the text string
      */
     public void setColorFromString(final String key, final String text) {
@@ -216,25 +247,27 @@ public class ColorTheme {
      * @throws IOException if the I/O fails
      */
     public void load(final Reader reader) throws IOException {
-        BufferedReader bufferedReader = new BufferedReader(reader);
-        String line = bufferedReader.readLine();
-        for (; line != null; line = bufferedReader.readLine()) {
-            // Look for lines that resemble:
-            //     "key = blah on blah"
-            //     "key = bold blah on blah"
-            //     "key = blink bold blah on blah"
-            //     "key = bold blink blah on blah"
-            //     "key = blink blah on blah"
-            if (line.indexOf('=') == -1) {
-                // Invalid line.
-                continue;
+        try (BufferedReader bufferedReader = new BufferedReader(reader)) {
+            String line = bufferedReader.readLine();
+            for (; line != null; line = bufferedReader.readLine()) {
+                // Look for lines that resemble:
+                //     "key = blah on blah"
+                //     "key = bold blah on blah"
+                //     "key = blink bold blah on blah"
+                //     "key = bold blink blah on blah"
+                //     "key = blink blah on blah"
+                if (line.indexOf('=') == -1) {
+                    // Invalid line.
+                    continue;
+                }
+                String key = line.substring(0, line.indexOf('=')).trim();
+                String text = line.substring(line.indexOf('=') + 1);
+
+                if (!key.startsWith(CASCIAN_PROPERTY_PREFIX)) {
+                    setColorFromString(key, text);
+                }
             }
-            String key = line.substring(0, line.indexOf('=')).trim();
-            String text = line.substring(line.indexOf('=') + 1);
-            setColorFromString(key, text);
         }
-        // All done.
-        bufferedReader.close();
     }
 
     /**
@@ -759,7 +792,7 @@ public class ColorTheme {
         final int blue = 0x55cdfc;
         final int pink2 = 0xd77888;
 
-        for (String key: colors.keySet()) {
+        for (String key : colors.keySet()) {
             CellAttributes color = colors.get(key);
 
             Color fg = color.getForeColor();
