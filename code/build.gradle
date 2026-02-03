@@ -85,7 +85,7 @@ tasks.jar {
     }
 }
 
-// Full JAR: includes EVERYTHING (library + demo + dependencies), not published
+// Demo fat JAR: includes EVERYTHING (library + demo + dependencies), not published
 tasks.register('jarDemo', Jar) {
     group = 'build'
     description = 'Assembles a fat JAR containing casciian/**, demo/**, and all runtime dependencies.'
@@ -110,7 +110,7 @@ tasks.register('jarDemo', Jar) {
     }
 }
 
-// Ensure assemble also builds the full jar
+// Ensure assemble also builds the demo jar
 tasks.assemble {
     dependsOn tasks.named('jarDemo')
 }
