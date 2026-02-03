@@ -237,6 +237,98 @@ tasks.named('nativeCompile') {
     dependsOn(jarDemoTaskProvider)
 }
 
+// -----------------------------------------------------------------------------
+// DEB and RPM packaging using fpm
+// -----------------------------------------------------------------------------
+def nativeBinaryPath = layout.buildDirectory.file('native/nativeCompile/casciian').get().asFile
+def packagingDir = layout.buildDirectory.dir('packaging').get().asFile
+def debOutputDir = layout.buildDirectory.dir('distributions/deb').get().asFile
+def rpmOutputDir = layout.buildDirectory.dir('distributions/rpm').get().asFile
+def packageVersion = project.version.toString().replace('-SNAPSHOT', '')
+
+tasks.register('preparePackaging') {
+    group = 'distribution'
+    description = 'Prepares directory structure for packaging (requires native binary)'
+    dependsOn tasks.named('nativeCompile')
+
+    doFirst {
+        if (!nativeBinaryPath.exists()) {
+            throw new GradleException("Native binary not found at ${nativeBinaryPath}. Run './gradlew nativeCompile' first to build the native executable.")
+        }
+    }
+
+    doLast {
+        delete packagingDir
+        def binDir = new File(packagingDir, 'usr/bin')
+        binDir.mkdirs()
+
+        copy {
+            from nativeBinaryPath
+            into binDir
+            rename { 'casciian-demo' }
+        }
+
+        // Make the binary executable
+        new File(binDir, 'casciian-demo').setExecutable(true, false)
+    }
+}
+
+tasks.register('buildDeb', Exec) {
+    group = 'distribution'
+    description = 'Builds DEB package using fpm'
+    dependsOn preparePackaging
+
+    doFirst {
+        debOutputDir.mkdirs()
+    }
+
+    commandLine 'fpm',
+            '-s', 'dir',
+            '-t', 'deb',
+            '-n', 'casciian-demo',
+            '-v', packageVersion,
+            '--iteration', '1',
+            '-a', 'amd64',
+            '--description', 'Casciian Demo - Java Text User Interface demo application',
+            '--url', 'https://github.com/crramirez/casciian',
+            '--maintainer', 'crramirez',
+            '--license', 'Apache-2.0',
+            '-C', packagingDir.absolutePath,
+            '-p', "${debOutputDir.absolutePath}/casciian-demo_${packageVersion}-1_amd64.deb",
+            '.'
+}
+
+tasks.register('buildRpm', Exec) {
+    group = 'distribution'
+    description = 'Builds RPM package using fpm'
+    dependsOn preparePackaging
+
+    doFirst {
+        rpmOutputDir.mkdirs()
+    }
+
+    commandLine 'fpm',
+            '-s', 'dir',
+            '-t', 'rpm',
+            '-n', 'casciian-demo',
+            '-v', packageVersion,
+            '--iteration', '1',
+            '-a', 'x86_64',
+            '--description', 'Casciian Demo - Java Text User Interface demo application',
+            '--url', 'https://github.com/crramirez/casciian',
+            '--maintainer', 'crramirez',
+            '--license', 'Apache-2.0',
+            '-C', packagingDir.absolutePath,
+            '-p', "${rpmOutputDir.absolutePath}/casciian-demo-${packageVersion}-1.x86_64.rpm",
+            '.'
+}
+
+tasks.register('buildPackages') {
+    group = 'distribution'
+    description = 'Builds both DEB and RPM packages (requires native binary)'
+    dependsOn buildDeb, buildRpm
+}
+
 release {
     preTagCommitMessage = '[release] prepare release '
     tagCommitMessage = '[release] '
@@ -245,5 +337,5 @@ release {
 }
 
 tasks.named('afterReleaseBuild') {
-    dependsOn 'jarDemo', 'publishToLocalStaging', 'centralBundleZip', 'nativeCompile'
+    dependsOn 'jarDemo', 'publishToLocalStaging', 'centralBundleZip', 'nativeCompile', 'buildPackages'
 }
