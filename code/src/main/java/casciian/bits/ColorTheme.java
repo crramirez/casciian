@@ -44,91 +44,263 @@ import static casciian.backend.SystemProperties.CASCIIANRC_ENV_VAR;
 public class ColorTheme {
 
     // Color key constants
+
+    /** Color key for TWindow border. */
     public static final String TWINDOW_BORDER = "twindow.border";
+
+    /** Color key for TWindow background. */
     public static final String TWINDOW_BACKGROUND = "twindow.background";
+
+    /** Color key for TWindow border when inactive. */
     public static final String TWINDOW_BORDER_INACTIVE = "twindow.border.inactive";
+
+    /** Color key for TWindow background when inactive. */
     public static final String TWINDOW_BACKGROUND_INACTIVE = "twindow.background.inactive";
+
+    /** Color key for TWindow border in modal mode. */
     public static final String TWINDOW_BORDER_MODAL = "twindow.border.modal";
+
+    /** Color key for TWindow background in modal mode. */
     public static final String TWINDOW_BACKGROUND_MODAL = "twindow.background.modal";
+
+    /** Color key for TWindow border when modal and inactive. */
     public static final String TWINDOW_BORDER_MODAL_INACTIVE = "twindow.border.modal.inactive";
+
+    /** Color key for TWindow background when modal and inactive. */
     public static final String TWINDOW_BACKGROUND_MODAL_INACTIVE = "twindow.background.modal.inactive";
+
+    /** Color key for TWindow border during window movement in modal mode. */
     public static final String TWINDOW_BORDER_MODAL_WINDOWMOVE = "twindow.border.modal.windowmove";
+
+    /** Color key for TWindow border during window movement. */
     public static final String TWINDOW_BORDER_WINDOWMOVE = "twindow.border.windowmove";
+
+    /** Color key for TWindow background during window movement. */
     public static final String TWINDOW_BACKGROUND_WINDOWMOVE = "twindow.background.windowmove";
+
+    /** Color key for TDesktop background. */
     public static final String TDESKTOP_BACKGROUND = "tdesktop.background";
+
+    /** Color key for TButton when inactive. */
     public static final String TBUTTON_INACTIVE = "tbutton.inactive";
+
+    /** Color key for TButton when active. */
     public static final String TBUTTON_ACTIVE = "tbutton.active";
+
+    /** Color key for TButton when disabled. */
     public static final String TBUTTON_DISABLED = "tbutton.disabled";
+
+    /** Color key for TButton mnemonic character. */
     public static final String TBUTTON_MNEMONIC = "tbutton.mnemonic";
+
+    /** Color key for TButton mnemonic character when highlighted. */
     public static final String TBUTTON_MNEMONIC_HIGHLIGHTED = "tbutton.mnemonic.highlighted";
+
+    /** Color key for TButton mnemonic character pulse effect. */
     public static final String TBUTTON_MNEMONIC_PULSE = "tbutton.mnemonic.pulse";
+
+    /** Color key for TButton pulse effect. */
     public static final String TBUTTON_PULSE = "tbutton.pulse";
+
+    /** Color key for TLabel. */
     public static final String TLABEL = "tlabel";
+
+    /** Color key for TLabel mnemonic character. */
     public static final String TLABEL_MNEMONIC = "tlabel.mnemonic";
+
+    /** Color key for TText. */
     public static final String TTEXT = "ttext";
+
+    /** Color key for TField when inactive. */
     public static final String TFIELD_INACTIVE = "tfield.inactive";
+
+    /** Color key for TField when active. */
     public static final String TFIELD_ACTIVE = "tfield.active";
+
+    /** Color key for TField pulse effect. */
     public static final String TFIELD_PULSE = "tfield.pulse";
+
+    /** Color key for TCheckBox when inactive. */
     public static final String TCHECKBOX_INACTIVE = "tcheckbox.inactive";
+
+    /** Color key for TCheckBox when active. */
     public static final String TCHECKBOX_ACTIVE = "tcheckbox.active";
+
+    /** Color key for TCheckBox mnemonic character. */
     public static final String TCHECKBOX_MNEMONIC = "tcheckbox.mnemonic";
+
+    /** Color key for TCheckBox mnemonic character when highlighted. */
     public static final String TCHECKBOX_MNEMONIC_HIGHLIGHTED = "tcheckbox.mnemonic.highlighted";
+
+    /** Color key for TCheckBox pulse effect. */
     public static final String TCHECKBOX_PULSE = "tcheckbox.pulse";
+
+    /** Color key for TComboBox when inactive. */
     public static final String TCOMBOBOX_INACTIVE = "tcombobox.inactive";
+
+    /** Color key for TComboBox when active. */
     public static final String TCOMBOBOX_ACTIVE = "tcombobox.active";
+
+    /** Color key for TSpinner when inactive. */
     public static final String TSPINNER_INACTIVE = "tspinner.inactive";
+
+    /** Color key for TSpinner when active. */
     public static final String TSPINNER_ACTIVE = "tspinner.active";
+
+    /** Color key for TCalendar background. */
     public static final String TCALENDAR_BACKGROUND = "tcalendar.background";
+
+    /** Color key for TCalendar day. */
     public static final String TCALENDAR_DAY = "tcalendar.day";
+
+    /** Color key for TCalendar selected day. */
     public static final String TCALENDAR_DAY_SELECTED = "tcalendar.day.selected";
+
+    /** Color key for TCalendar navigation arrow. */
     public static final String TCALENDAR_ARROW = "tcalendar.arrow";
+
+    /** Color key for TCalendar title. */
     public static final String TCALENDAR_TITLE = "tcalendar.title";
+
+    /** Color key for TPanel border. */
     public static final String TPANEL_BORDER = "tpanel.border";
+
+    /** Color key for TRadioButton when inactive. */
     public static final String TRADIOBUTTON_INACTIVE = "tradiobutton.inactive";
+
+    /** Color key for TRadioButton when active. */
     public static final String TRADIOBUTTON_ACTIVE = "tradiobutton.active";
+
+    /** Color key for TRadioButton mnemonic character. */
     public static final String TRADIOBUTTON_MNEMONIC = "tradiobutton.mnemonic";
+
+    /** Color key for TRadioButton mnemonic character when highlighted. */
     public static final String TRADIOBUTTON_MNEMONIC_HIGHLIGHTED = "tradiobutton.mnemonic.highlighted";
+
+    /** Color key for TRadioButton pulse effect. */
     public static final String TRADIOBUTTON_PULSE = "tradiobutton.pulse";
+
+    /** Color key for TRadioGroup when inactive. */
     public static final String TRADIOGROUP_INACTIVE = "tradiogroup.inactive";
+
+    /** Color key for TRadioGroup when active. */
     public static final String TRADIOGROUP_ACTIVE = "tradiogroup.active";
+
+    /** Color key for TMenu. */
     public static final String TMENU = "tmenu";
+
+    /** Color key for TMenu when highlighted. */
     public static final String TMENU_HIGHLIGHTED = "tmenu.highlighted";
+
+    /** Color key for TMenu mnemonic character. */
     public static final String TMENU_MNEMONIC = "tmenu.mnemonic";
+
+    /** Color key for TMenu mnemonic character when highlighted. */
     public static final String TMENU_MNEMONIC_HIGHLIGHTED = "tmenu.mnemonic.highlighted";
+
+    /** Color key for TMenu when disabled. */
     public static final String TMENU_DISABLED = "tmenu.disabled";
+
+    /** Color key for TProgressBar completed portion. */
     public static final String TPROGRESSBAR_COMPLETE = "tprogressbar.complete";
+
+    /** Color key for TProgressBar incomplete portion. */
     public static final String TPROGRESSBAR_INCOMPLETE = "tprogressbar.incomplete";
+
+    /** Color key for THScroller and TVScroller bar. */
     public static final String TSCROLLER_BAR = "tscroller.bar";
+
+    /** Color key for THScroller and TVScroller arrows. */
     public static final String TSCROLLER_ARROWS = "tscroller.arrows";
+
+    /** Color key for TTreeView. */
     public static final String TTREEVIEW = "ttreeview";
+
+    /** Color key for TTreeView expand button. */
     public static final String TTREEVIEW_EXPANDBUTTON = "ttreeview.expandbutton";
+
+    /** Color key for TTreeView selected item. */
     public static final String TTREEVIEW_SELECTED = "ttreeview.selected";
+
+    /** Color key for TTreeView unreadable item. */
     public static final String TTREEVIEW_UNREADABLE = "ttreeview.unreadable";
+
+    /** Color key for TTreeView when inactive. */
     public static final String TTREEVIEW_INACTIVE = "ttreeview.inactive";
+
+    /** Color key for TTreeView selected item when inactive. */
     public static final String TTREEVIEW_SELECTED_INACTIVE = "ttreeview.selected.inactive";
+
+    /** Color key for TList. */
     public static final String TLIST = "tlist";
+
+    /** Color key for TList selected item. */
     public static final String TLIST_SELECTED = "tlist.selected";
+
+    /** Color key for TList unreadable item. */
     public static final String TLIST_UNREADABLE = "tlist.unreadable";
+
+    /** Color key for TList when inactive. */
     public static final String TLIST_INACTIVE = "tlist.inactive";
+
+    /** Color key for TList selected item when inactive. */
     public static final String TLIST_SELECTED_INACTIVE = "tlist.selected.inactive";
+
+    /** Color key for TStatusBar text. */
     public static final String TSTATUSBAR_TEXT = "tstatusbar.text";
+
+    /** Color key for TStatusBar button. */
     public static final String TSTATUSBAR_BUTTON = "tstatusbar.button";
+
+    /** Color key for TStatusBar selected item. */
     public static final String TSTATUSBAR_SELECTED = "tstatusbar.selected";
+
+    /** Color key for TEditor. */
     public static final String TEDITOR = "teditor";
+
+    /** Color key for TEditor selected text. */
     public static final String TEDITOR_SELECTED = "teditor.selected";
+
+    /** Color key for TEditor margin. */
     public static final String TEDITOR_MARGIN = "teditor.margin";
+
+    /** Color key for TTable when inactive. */
     public static final String TTABLE_INACTIVE = "ttable.inactive";
+
+    /** Color key for TTable when active. */
     public static final String TTABLE_ACTIVE = "ttable.active";
+
+    /** Color key for TTable selected item. */
     public static final String TTABLE_SELECTED = "ttable.selected";
+
+    /** Color key for TTable label. */
     public static final String TTABLE_LABEL = "ttable.label";
+
+    /** Color key for TTable selected label. */
     public static final String TTABLE_LABEL_SELECTED = "ttable.label.selected";
+
+    /** Color key for TTable border. */
     public static final String TTABLE_BORDER = "ttable.border";
+
+    /** Color key for TSplitPane. */
     public static final String TSPLITPANE = "tsplitpane";
+
+    /** Color key for THelpWindow during window movement. */
     public static final String THELPWINDOW_WINDOWMOVE = "thelpwindow.windowmove";
+
+    /** Color key for THelpWindow border. */
     public static final String THELPWINDOW_BORDER = "thelpwindow.border";
+
+    /** Color key for THelpWindow background. */
     public static final String THELPWINDOW_BACKGROUND = "thelpwindow.background";
+
+    /** Color key for THelpWindow text. */
     public static final String THELPWINDOW_TEXT = "thelpwindow.text";
+
+    /** Color key for THelpWindow link. */
     public static final String THELPWINDOW_LINK = "thelpwindow.link";
+
+    /** Color key for THelpWindow active link. */
     public static final String THELPWINDOW_LINK_ACTIVE = "thelpwindow.link.active";
 
     /**
@@ -875,6 +1047,7 @@ public class ColorTheme {
     /**
      * Set the theme to femme.  I love pink.  You can too!  💗
      */
+    @SuppressWarnings("DuplicatedCode")
     public void setFemme() {
         setDefaultTheme();
         final int pink = 0xf7a8b8;
@@ -976,6 +1149,7 @@ public class ColorTheme {
         colors.put(TCHECKBOX_ACTIVE, color);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static CellAttributes getFemmeCellAttributes(CellAttributes color, int pink, int blue) {
         Color fg = color.getForeColor();
         Color bg = color.getBackColor();
