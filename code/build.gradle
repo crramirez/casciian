@@ -86,7 +86,7 @@ tasks.jar {
 }
 
 // Full JAR: includes EVERYTHING (library + demo + dependencies), not published
-tasks.register('jarFull', Jar) {
+tasks.register('jarDemo', Jar) {
     group = 'build'
     description = 'Assembles a fat JAR containing casciian/**, demo/**, and all runtime dependencies.'
 
@@ -101,7 +101,7 @@ tasks.register('jarFull', Jar) {
     // Handle duplicate files from dependencies
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    archiveBaseName.set('casciian-full')
+    archiveBaseName.set('casciian-demo')
     manifest {
         attributes(
                 'Main-Class': 'demo.Demo1',
@@ -112,7 +112,7 @@ tasks.register('jarFull', Jar) {
 
 // Ensure assemble also builds the full jar
 tasks.assemble {
-    dependsOn tasks.named('jarFull')
+    dependsOn tasks.named('jarDemo')
 }
 
 publishing {
@@ -200,9 +200,9 @@ tasks.javadoc {
 }
 
 // -----------------------------------------------------------------------------
-// Use jarFull on the native-image classpath (Native Build Tools 0.10.x)
+// Use jarDemo on the native-image classpath (Native Build Tools 0.10.x)
 // -----------------------------------------------------------------------------
-def jarFullTaskProvider = tasks.named('jarFull', Jar)
+def jarDemoTaskProvider = tasks.named('jarDemo', Jar)
 
 // -----------------------------------------------------------------------------
 // GraalVM native-image via official plugin
@@ -226,7 +226,7 @@ graalvmNative {
             buildArgs.addAll(providers.provider {
                 [
                     '-cp',
-                    jarFullTaskProvider.get().archiveFile.get().asFile.absolutePath
+                    jarDemoTaskProvider.get().archiveFile.get().asFile.absolutePath
                 ]
             })
         }
@@ -234,7 +234,7 @@ graalvmNative {
 }
 
 tasks.named('nativeCompile') {
-    dependsOn(jarFullTaskProvider)
+    dependsOn(jarDemoTaskProvider)
 }
 
 release {
@@ -245,5 +245,5 @@ release {
 }
 
 tasks.named('afterReleaseBuild') {
-    dependsOn 'jarFull', 'publishToLocalStaging', 'centralBundleZip', 'nativeCompile'
+    dependsOn 'jarDemo', 'publishToLocalStaging', 'centralBundleZip', 'nativeCompile'
 }
