@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.bits;
 
@@ -24,7 +29,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.StringTokenizer;
@@ -38,6 +42,94 @@ import static casciian.backend.SystemProperties.CASCIIANRC_ENV_VAR;
  * also provided that matches the blue-and-white theme used by Turbo Vision.
  */
 public class ColorTheme {
+
+    // Color key constants
+    public static final String TWINDOW_BORDER = "twindow.border";
+    public static final String TWINDOW_BACKGROUND = "twindow.background";
+    public static final String TWINDOW_BORDER_INACTIVE = "twindow.border.inactive";
+    public static final String TWINDOW_BACKGROUND_INACTIVE = "twindow.background.inactive";
+    public static final String TWINDOW_BORDER_MODAL = "twindow.border.modal";
+    public static final String TWINDOW_BACKGROUND_MODAL = "twindow.background.modal";
+    public static final String TWINDOW_BORDER_MODAL_INACTIVE = "twindow.border.modal.inactive";
+    public static final String TWINDOW_BACKGROUND_MODAL_INACTIVE = "twindow.background.modal.inactive";
+    public static final String TWINDOW_BORDER_MODAL_WINDOWMOVE = "twindow.border.modal.windowmove";
+    public static final String TWINDOW_BORDER_WINDOWMOVE = "twindow.border.windowmove";
+    public static final String TWINDOW_BACKGROUND_WINDOWMOVE = "twindow.background.windowmove";
+    public static final String TDESKTOP_BACKGROUND = "tdesktop.background";
+    public static final String TBUTTON_INACTIVE = "tbutton.inactive";
+    public static final String TBUTTON_ACTIVE = "tbutton.active";
+    public static final String TBUTTON_DISABLED = "tbutton.disabled";
+    public static final String TBUTTON_MNEMONIC = "tbutton.mnemonic";
+    public static final String TBUTTON_MNEMONIC_HIGHLIGHTED = "tbutton.mnemonic.highlighted";
+    public static final String TBUTTON_MNEMONIC_PULSE = "tbutton.mnemonic.pulse";
+    public static final String TBUTTON_PULSE = "tbutton.pulse";
+    public static final String TLABEL = "tlabel";
+    public static final String TLABEL_MNEMONIC = "tlabel.mnemonic";
+    public static final String TTEXT = "ttext";
+    public static final String TFIELD_INACTIVE = "tfield.inactive";
+    public static final String TFIELD_ACTIVE = "tfield.active";
+    public static final String TFIELD_PULSE = "tfield.pulse";
+    public static final String TCHECKBOX_INACTIVE = "tcheckbox.inactive";
+    public static final String TCHECKBOX_ACTIVE = "tcheckbox.active";
+    public static final String TCHECKBOX_MNEMONIC = "tcheckbox.mnemonic";
+    public static final String TCHECKBOX_MNEMONIC_HIGHLIGHTED = "tcheckbox.mnemonic.highlighted";
+    public static final String TCHECKBOX_PULSE = "tcheckbox.pulse";
+    public static final String TCOMBOBOX_INACTIVE = "tcombobox.inactive";
+    public static final String TCOMBOBOX_ACTIVE = "tcombobox.active";
+    public static final String TSPINNER_INACTIVE = "tspinner.inactive";
+    public static final String TSPINNER_ACTIVE = "tspinner.active";
+    public static final String TCALENDAR_BACKGROUND = "tcalendar.background";
+    public static final String TCALENDAR_DAY = "tcalendar.day";
+    public static final String TCALENDAR_DAY_SELECTED = "tcalendar.day.selected";
+    public static final String TCALENDAR_ARROW = "tcalendar.arrow";
+    public static final String TCALENDAR_TITLE = "tcalendar.title";
+    public static final String TPANEL_BORDER = "tpanel.border";
+    public static final String TRADIOBUTTON_INACTIVE = "tradiobutton.inactive";
+    public static final String TRADIOBUTTON_ACTIVE = "tradiobutton.active";
+    public static final String TRADIOBUTTON_MNEMONIC = "tradiobutton.mnemonic";
+    public static final String TRADIOBUTTON_MNEMONIC_HIGHLIGHTED = "tradiobutton.mnemonic.highlighted";
+    public static final String TRADIOBUTTON_PULSE = "tradiobutton.pulse";
+    public static final String TRADIOGROUP_INACTIVE = "tradiogroup.inactive";
+    public static final String TRADIOGROUP_ACTIVE = "tradiogroup.active";
+    public static final String TMENU = "tmenu";
+    public static final String TMENU_HIGHLIGHTED = "tmenu.highlighted";
+    public static final String TMENU_MNEMONIC = "tmenu.mnemonic";
+    public static final String TMENU_MNEMONIC_HIGHLIGHTED = "tmenu.mnemonic.highlighted";
+    public static final String TMENU_DISABLED = "tmenu.disabled";
+    public static final String TPROGRESSBAR_COMPLETE = "tprogressbar.complete";
+    public static final String TPROGRESSBAR_INCOMPLETE = "tprogressbar.incomplete";
+    public static final String TSCROLLER_BAR = "tscroller.bar";
+    public static final String TSCROLLER_ARROWS = "tscroller.arrows";
+    public static final String TTREEVIEW = "ttreeview";
+    public static final String TTREEVIEW_EXPANDBUTTON = "ttreeview.expandbutton";
+    public static final String TTREEVIEW_SELECTED = "ttreeview.selected";
+    public static final String TTREEVIEW_UNREADABLE = "ttreeview.unreadable";
+    public static final String TTREEVIEW_INACTIVE = "ttreeview.inactive";
+    public static final String TTREEVIEW_SELECTED_INACTIVE = "ttreeview.selected.inactive";
+    public static final String TLIST = "tlist";
+    public static final String TLIST_SELECTED = "tlist.selected";
+    public static final String TLIST_UNREADABLE = "tlist.unreadable";
+    public static final String TLIST_INACTIVE = "tlist.inactive";
+    public static final String TLIST_SELECTED_INACTIVE = "tlist.selected.inactive";
+    public static final String TSTATUSBAR_TEXT = "tstatusbar.text";
+    public static final String TSTATUSBAR_BUTTON = "tstatusbar.button";
+    public static final String TSTATUSBAR_SELECTED = "tstatusbar.selected";
+    public static final String TEDITOR = "teditor";
+    public static final String TEDITOR_SELECTED = "teditor.selected";
+    public static final String TEDITOR_MARGIN = "teditor.margin";
+    public static final String TTABLE_INACTIVE = "ttable.inactive";
+    public static final String TTABLE_ACTIVE = "ttable.active";
+    public static final String TTABLE_SELECTED = "ttable.selected";
+    public static final String TTABLE_LABEL = "ttable.label";
+    public static final String TTABLE_LABEL_SELECTED = "ttable.label.selected";
+    public static final String TTABLE_BORDER = "ttable.border";
+    public static final String TSPLITPANE = "tsplitpane";
+    public static final String THELPWINDOW_WINDOWMOVE = "thelpwindow.windowmove";
+    public static final String THELPWINDOW_BORDER = "thelpwindow.border";
+    public static final String THELPWINDOW_BACKGROUND = "thelpwindow.background";
+    public static final String THELPWINDOW_TEXT = "thelpwindow.text";
+    public static final String THELPWINDOW_LINK = "thelpwindow.link";
+    public static final String THELPWINDOW_LINK_ACTIVE = "thelpwindow.link.active";
 
     /**
      * The current theme colors.
@@ -96,8 +188,7 @@ public class ColorTheme {
      * @return color associated with name, e.g. bold yellow on blue
      */
     public CellAttributes getColor(final String name) {
-        CellAttributes attr = colors.get(name);
-        return attr;
+        return colors.get(name);
     }
 
     /**
@@ -107,7 +198,7 @@ public class ColorTheme {
      */
     public List<String> getColorNames() {
         Set<String> keys = colors.keySet();
-        List<String> names = new ArrayList<String>(keys.size());
+        List<String> names = new ArrayList<>(keys.size());
         names.addAll(keys);
         return names;
     }
@@ -130,12 +221,12 @@ public class ColorTheme {
      * @throws IOException if the I/O fails
      */
     public void save(final String filename) throws IOException {
-        FileWriter file = new FileWriter(filename);
-        for (String key : colors.keySet()) {
-            CellAttributes color = getColor(key);
-            file.write(String.format("%s = %s\n", key, color));
+        try (FileWriter file = new FileWriter(filename)) {
+            for (String key : colors.keySet()) {
+                CellAttributes color = getColor(key);
+                file.write("%s = %s%n".formatted(key, color));
+            }
         }
-        file.close();
     }
 
     /**
@@ -165,42 +256,8 @@ public class ColorTheme {
         StringTokenizer tokenizer = new StringTokenizer(text);
         token = tokenizer.nextToken();
 
-        if (token.toLowerCase().equals("rgb:")) {
-            // Foreground
-            int foreColorRGB = -1;
-            try {
-                String rgbText = tokenizer.nextToken();
-                while (rgbText.startsWith("#")) {
-                    rgbText = rgbText.substring(1);
-                }
-                foreColorRGB = Integer.parseInt(rgbText, 16);
-            } catch (NumberFormatException e) {
-                // Default to white on black
-                foreColorRGB = 0xFFFFFF;
-            }
-
-            // "on"
-            if (!tokenizer.nextToken().toLowerCase().equals("on")) {
-                // Invalid line.
-                return;
-            }
-
-            // Background
-            int backColorRGB = -1;
-            try {
-                String rgbText = tokenizer.nextToken();
-                while (rgbText.startsWith("#")) {
-                    rgbText = rgbText.substring(1);
-                }
-                backColorRGB = Integer.parseInt(rgbText, 16);
-            } catch (NumberFormatException e) {
-                backColorRGB = 0;
-            }
-
-            CellAttributes color = new CellAttributes();
-            color.setForeColorRGB(foreColorRGB);
-            color.setBackColorRGB(backColorRGB);
-            colors.put(key, color);
+        if (token.equalsIgnoreCase("rgb:")) {
+            setRgbColorFromString(key, tokenizer);
             return;
         }
 
@@ -221,7 +278,7 @@ public class ColorTheme {
         // What's left is "blah on blah"
         foreColor = token.toLowerCase();
 
-        if (!tokenizer.nextToken().toLowerCase().equals("on")) {
+        if (!tokenizer.nextToken().equalsIgnoreCase("on")) {
             // Invalid line.
             return;
         }
@@ -236,6 +293,44 @@ public class ColorTheme {
         }
         color.setForeColor(Color.getColor(foreColor));
         color.setBackColor(Color.getColor(backColor));
+        colors.put(key, color);
+    }
+
+    private void setRgbColorFromString(String key, StringTokenizer tokenizer) {
+        // Foreground
+        int foreColorRGB;
+        try {
+            String rgbText = tokenizer.nextToken();
+            while (rgbText.startsWith("#")) {
+                rgbText = rgbText.substring(1);
+            }
+            foreColorRGB = Integer.parseInt(rgbText, 16);
+        } catch (NumberFormatException e) {
+            // Default to white on black
+            foreColorRGB = 0xFFFFFF;
+        }
+
+        // "on"
+        if (!tokenizer.nextToken().equalsIgnoreCase("on")) {
+            // Invalid line.
+            return;
+        }
+
+        // Background
+        int backColorRGB;
+        try {
+            String rgbText = tokenizer.nextToken();
+            while (rgbText.startsWith("#")) {
+                rgbText = rgbText.substring(1);
+            }
+            backColorRGB = Integer.parseInt(rgbText, 16);
+        } catch (NumberFormatException e) {
+            backColorRGB = 0;
+        }
+
+        CellAttributes color = new CellAttributes();
+        color.setForeColorRGB(foreColorRGB);
+        color.setBackColorRGB(backColorRGB);
         colors.put(key, color);
     }
 
@@ -281,506 +376,500 @@ public class ColorTheme {
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("twindow.border", color);
+        colors.put(TWINDOW_BORDER, color);
 
         // TWindow background
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("twindow.background", color);
+        colors.put(TWINDOW_BACKGROUND, color);
 
         // TWindow border - inactive
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("twindow.border.inactive", color);
+        colors.put(TWINDOW_BORDER_INACTIVE, color);
 
         // TWindow background - inactive
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("twindow.background.inactive", color);
+        colors.put(TWINDOW_BACKGROUND_INACTIVE, color);
 
         // TWindow border - modal
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.WHITE);
         color.setBold(true);
-        colors.put("twindow.border.modal", color);
+        colors.put(TWINDOW_BORDER_MODAL, color);
 
         // TWindow background - modal
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("twindow.background.modal", color);
+        colors.put(TWINDOW_BACKGROUND_MODAL, color);
 
         // TWindow border - modal + inactive
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(true);
-        colors.put("twindow.border.modal.inactive", color);
+        colors.put(TWINDOW_BORDER_MODAL_INACTIVE, color);
 
         // TWindow background - modal + inactive
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("twindow.background.modal.inactive", color);
+        colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, color);
 
         // TWindow border - during window movement - modal
         color = new CellAttributes();
         color.setForeColor(Color.GREEN);
         color.setBackColor(Color.WHITE);
         color.setBold(true);
-        colors.put("twindow.border.modal.windowmove", color);
+        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, color);
 
         // TWindow border - during window movement
         color = new CellAttributes();
         color.setForeColor(Color.GREEN);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("twindow.border.windowmove", color);
+        colors.put(TWINDOW_BORDER_WINDOWMOVE, color);
 
         // TWindow background - during window movement
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("twindow.background.windowmove", color);
+        colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, color);
 
         // TDesktop background
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tdesktop.background", color);
+        colors.put(TDESKTOP_BACKGROUND, color);
 
         // TButton text
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.GREEN);
         color.setBold(false);
-        colors.put("tbutton.inactive", color);
+        colors.put(TBUTTON_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.CYAN);
         color.setBackColor(Color.GREEN);
         color.setBold(true);
-        colors.put("tbutton.active", color);
+        colors.put(TBUTTON_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(true);
-        colors.put("tbutton.disabled", color);
+        colors.put(TBUTTON_DISABLED, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.GREEN);
         color.setBold(true);
-        colors.put("tbutton.mnemonic", color);
+        colors.put(TBUTTON_MNEMONIC, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.GREEN);
         color.setBold(true);
-        colors.put("tbutton.mnemonic.highlighted", color);
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tbutton.mnemonic.pulse", color);
+        colors.put(TBUTTON_MNEMONIC_PULSE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tbutton.pulse", color);
+        colors.put(TBUTTON_PULSE, color);
 
         // TLabel text
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tlabel", color);
+        colors.put(TLABEL, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tlabel.mnemonic", color);
+        colors.put(TLABEL_MNEMONIC, color);
 
         // TText text
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttext", color);
+        colors.put(TTEXT, color);
 
         // TField text
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tfield.inactive", color);
+        colors.put(TFIELD_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tfield.active", color);
+        colors.put(TFIELD_ACTIVE, color);
         color = new CellAttributes();
         // Just a small bit of amber.
         color.setForeColorRGB(0x8A610D);
-        colors.put("tfield.pulse", color);
+        colors.put(TFIELD_PULSE, color);
 
         // TCheckBox
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tcheckbox.inactive", color);
+        colors.put(TCHECKBOX_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tcheckbox.active", color);
+        colors.put(TCHECKBOX_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tcheckbox.mnemonic", color);
+        colors.put(TCHECKBOX_MNEMONIC, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tcheckbox.mnemonic.highlighted", color);
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, color);
         color = new CellAttributes();
         // Just a small bit of amber.
         color.setForeColorRGB(0x8A610D);
-        colors.put("tcheckbox.pulse", color);
+        colors.put(TCHECKBOX_PULSE, color);
 
         // TComboBox
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tcombobox.inactive", color);
+        colors.put(TCOMBOBOX_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tcombobox.active", color);
+        colors.put(TCOMBOBOX_ACTIVE, color);
 
         // TSpinner
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tspinner.inactive", color);
+        colors.put(TSPINNER_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tspinner.active", color);
+        colors.put(TSPINNER_ACTIVE, color);
 
         // TCalendar
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tcalendar.background", color);
+        colors.put(TCALENDAR_BACKGROUND, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tcalendar.day", color);
+        colors.put(TCALENDAR_DAY, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tcalendar.day.selected", color);
+        colors.put(TCALENDAR_DAY_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tcalendar.arrow", color);
+        colors.put(TCALENDAR_ARROW, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tcalendar.title", color);
+        colors.put(TCALENDAR_TITLE, color);
 
         // TPanel border
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
-        colors.put("tpanel.border", color);
+        colors.put(TPANEL_BORDER, color);
 
         // TRadioButton
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tradiobutton.inactive", color);
+        colors.put(TRADIOBUTTON_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tradiobutton.active", color);
+        colors.put(TRADIOBUTTON_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tradiobutton.mnemonic", color);
+        colors.put(TRADIOBUTTON_MNEMONIC, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tradiobutton.mnemonic.highlighted", color);
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, color);
         color = new CellAttributes();
         // Just a small bit of amber.
         color.setForeColorRGB(0x8A610D);
-        colors.put("tradiobutton.pulse", color);
+        colors.put(TRADIOBUTTON_PULSE, color);
 
         // TRadioGroup
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tradiogroup.inactive", color);
+        colors.put(TRADIOGROUP_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tradiogroup.active", color);
+        colors.put(TRADIOGROUP_ACTIVE, color);
 
         // TMenu
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tmenu", color);
+        colors.put(TMENU, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.GREEN);
         color.setBold(false);
-        colors.put("tmenu.highlighted", color);
+        colors.put(TMENU_HIGHLIGHTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tmenu.mnemonic", color);
+        colors.put(TMENU_MNEMONIC, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.GREEN);
         color.setBold(false);
-        colors.put("tmenu.mnemonic.highlighted", color);
+        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(true);
-        colors.put("tmenu.disabled", color);
+        colors.put(TMENU_DISABLED, color);
 
         // TProgressBar
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tprogressbar.complete", color);
+        colors.put(TPROGRESSBAR_COMPLETE, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tprogressbar.incomplete", color);
+        colors.put(TPROGRESSBAR_INCOMPLETE, color);
 
         // THScroller / TVScroller
         color = new CellAttributes();
         color.setForeColor(Color.CYAN);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tscroller.bar", color);
+        colors.put(TSCROLLER_BAR, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tscroller.arrows", color);
+        colors.put(TSCROLLER_ARROWS, color);
 
         // TTreeView
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttreeview", color);
+        colors.put(TTREEVIEW, color);
         color = new CellAttributes();
         color.setForeColor(Color.GREEN);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("ttreeview.expandbutton", color);
+        colors.put(TTREEVIEW_EXPANDBUTTON, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("ttreeview.selected", color);
+        colors.put(TTREEVIEW_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttreeview.unreadable", color);
+        colors.put(TTREEVIEW_UNREADABLE, color);
         color = new CellAttributes();
-        // color.setForeColor(Color.BLACK);
-        // color.setBackColor(Color.BLUE);
-        // color.setBold(true);
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttreeview.inactive", color);
+        colors.put(TTREEVIEW_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("ttreeview.selected.inactive", color);
+        colors.put(TTREEVIEW_SELECTED_INACTIVE, color);
 
         // TList
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tlist", color);
+        colors.put(TLIST, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tlist.selected", color);
+        colors.put(TLIST_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tlist.unreadable", color);
+        colors.put(TLIST_UNREADABLE, color);
         color = new CellAttributes();
-        // color.setForeColor(Color.BLACK);
-        // color.setBackColor(Color.BLUE);
-        // color.setBold(true);
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tlist.inactive", color);
+        colors.put(TLIST_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tlist.selected.inactive", color);
+        colors.put(TLIST_SELECTED_INACTIVE, color);
 
         // TStatusBar
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tstatusbar.text", color);
+        colors.put(TSTATUSBAR_TEXT, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tstatusbar.button", color);
+        colors.put(TSTATUSBAR_BUTTON, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tstatusbar.selected", color);
+        colors.put(TSTATUSBAR_SELECTED, color);
 
         // TEditor
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("teditor", color);
+        colors.put(TEDITOR, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("teditor.selected", color);
+        colors.put(TEDITOR_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("teditor.margin", color);
+        colors.put(TEDITOR_MARGIN, color);
 
         // TTable
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttable.inactive", color);
+        colors.put(TTABLE_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("ttable.active", color);
+        colors.put(TTABLE_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("ttable.selected", color);
+        colors.put(TTABLE_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("ttable.label", color);
+        colors.put(TTABLE_LABEL, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("ttable.label.selected", color);
+        colors.put(TTABLE_LABEL_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttable.border", color);
+        colors.put(TTABLE_BORDER, color);
 
         // TSplitPane
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tsplitpane", color);
+        colors.put(TSPLITPANE, color);
 
         // THelpWindow border - during window movement
         color = new CellAttributes();
         color.setForeColor(Color.GREEN);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("thelpwindow.windowmove", color);
+        colors.put(THELPWINDOW_WINDOWMOVE, color);
 
         // THelpWindow border
         color = new CellAttributes();
         color.setForeColor(Color.GREEN);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("thelpwindow.border", color);
+        colors.put(THELPWINDOW_BORDER, color);
 
         // THelpWindow background
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("thelpwindow.background", color);
+        colors.put(THELPWINDOW_BACKGROUND, color);
 
         // THelpWindow text
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("thelpwindow.text", color);
+        colors.put(THELPWINDOW_TEXT, color);
 
         // THelpWindow link
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("thelpwindow.link", color);
+        colors.put(THELPWINDOW_LINK, color);
 
         // THelpWindow link - active
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("thelpwindow.link.active", color);
+        colors.put(THELPWINDOW_LINK_ACTIVE, color);
     }
 
     /**
@@ -792,46 +881,9 @@ public class ColorTheme {
         final int blue = 0x55cdfc;
         final int pink2 = 0xd77888;
 
-        for (String key : colors.keySet()) {
-            CellAttributes color = colors.get(key);
-
-            Color fg = color.getForeColor();
-            Color bg = color.getBackColor();
-            boolean bold = color.isBold();
-            if (bg.equals(Color.WHITE) && fg.equals(Color.BLACK)) {
-                color.setForeColor(Color.MAGENTA);
-                color.setBackColorRGB(pink);
-            } else if (bg.equals(Color.WHITE) && fg.equals(Color.WHITE)) {
-                color.setForeColor(Color.MAGENTA);
-                color.setBackColorRGB(pink);
-                color.setBold(true);
-            } else if (bg.equals(Color.WHITE) && fg.equals(Color.WHITE)) {
-                color.setForeColorRGB(blue);
-                color.setBackColorRGB(pink);
-                color.setBold(true);
-            } else if (bg.equals(Color.WHITE) && fg.equals(Color.GREEN)) {
-                color.setForeColor(Color.BLUE);
-                color.setBackColor(Color.BLACK);
-                color.setBold(true);
-            } else if (bg.equals(Color.WHITE) && fg.equals(Color.RED)) {
-                color.setForeColorRGB(blue);
-                color.setBackColorRGB(pink);
-                color.setBold(true);
-            } else if (bg.equals(Color.BLUE) && fg.equals(Color.CYAN)) {
-                color.setForeColor(Color.RED);
-                color.setBackColor(Color.MAGENTA);
-                color.setBold(true);
-            } else if (fg.equals(Color.BLUE) && bg.equals(Color.CYAN)) {
-                color.setForeColor(Color.MAGENTA);
-                color.setBackColor(Color.RED);
-                color.setBold(true);
-            } else if (bg.equals(Color.BLUE)) {
-                color.setBackColor(Color.BLACK);
-            } else if (bg.equals(Color.GREEN)) {
-                color.setBackColor(Color.CYAN);
-            } else if (fg.equals(Color.WHITE) && bold) {
-                color.setForeColor(Color.RED);
-            }
+        for (var entry : colors.entrySet()) {
+            var key = entry.getKey();
+            var color = getFemmeCellAttributes(entry.getValue(), pink, blue);
 
             colors.put(key, color);
         }
@@ -841,34 +893,34 @@ public class ColorTheme {
         color.setForeColor(Color.MAGENTA);
         color.setBackColorRGB(pink2);
         color.setBold(false);
-        colors.put("twindow.background", color);
-        colors.put("twindow.background.inactive", color);
-        colors.put("twindow.background.modal", color);
-        colors.put("twindow.background.modal.inactive", color);
-        colors.put("twindow.background.windowmove", color);
+        colors.put(TWINDOW_BACKGROUND, color);
+        colors.put(TWINDOW_BACKGROUND_INACTIVE, color);
+        colors.put(TWINDOW_BACKGROUND_MODAL, color);
+        colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, color);
+        colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, color);
 
         color = new CellAttributes();
         color.setForeColor(Color.MAGENTA);
         color.setBold(true);
-        colors.put("twindow.border", color);
-        colors.put("twindow.border.inactive", color);
-        colors.put("twindow.border.modal", color);
-        colors.put("twindow.border.modal.inactive", color);
+        colors.put(TWINDOW_BORDER, color);
+        colors.put(TWINDOW_BORDER_INACTIVE, color);
+        colors.put(TWINDOW_BORDER_MODAL, color);
+        colors.put(TWINDOW_BORDER_MODAL_INACTIVE, color);
 
         color = new CellAttributes();
         color.setForeColorRGB(blue);
-        colors.put("twindow.border.windowmove", color);
-        colors.put("twindow.border.modal.windowmove", color);
+        colors.put(TWINDOW_BORDER_WINDOWMOVE, color);
+        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, color);
 
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBold(true);
         color.setBackColorRGB(pink);
-        colors.put("tbutton.active", color);
+        colors.put(TBUTTON_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColorRGB(pink);
-        colors.put("tbutton.inactive", color);
+        colors.put(TBUTTON_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBold(true);
@@ -876,52 +928,89 @@ public class ColorTheme {
         color.setForeColorRGB(blue);
         color.setBold(true);
         color.setBackColorRGB(pink);
-        colors.put("tbutton.mnemonic.highlighted", color);
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, color);
         color = new CellAttributes();
         color.setForeColorRGB(blue);
         color.setBold(true);
         color.setBackColorRGB(pink);
-        colors.put("tbutton.mnemonic", color);
+        colors.put(TBUTTON_MNEMONIC, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
-        colors.put("tbutton.pulse", color);
+        colors.put(TBUTTON_PULSE, color);
         color = new CellAttributes();
         color.setForeColorRGB(blue);
         color.setBold(true);
-        colors.put("tbutton.mnemonic.pulse", color);
+        colors.put(TBUTTON_MNEMONIC_PULSE, color);
 
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColorRGB(pink2);
         color.setBold(true);
-        colors.put("tprogressbar.complete", color);
+        colors.put(TPROGRESSBAR_COMPLETE, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColorRGB(pink2);
         color.setBold(false);
-        colors.put("tprogressbar.incomplete", color);
+        colors.put(TPROGRESSBAR_INCOMPLETE, color);
 
         color = new CellAttributes();
         color.setForeColor(Color.MAGENTA);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tpanel.border", color);
+        colors.put(TPANEL_BORDER, color);
 
         color = new CellAttributes();
         color.setForeColor(Color.MAGENTA);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tradiogroup.active", color);
+        colors.put(TRADIOGROUP_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.MAGENTA);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tradiobutton.active", color);
+        colors.put(TRADIOBUTTON_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.MAGENTA);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tcheckbox.active", color);
+        colors.put(TCHECKBOX_ACTIVE, color);
+    }
+
+    private static CellAttributes getFemmeCellAttributes(CellAttributes color, int pink, int blue) {
+        Color fg = color.getForeColor();
+        Color bg = color.getBackColor();
+        boolean bold = color.isBold();
+        if (bg.equals(Color.WHITE) && fg.equals(Color.BLACK)) {
+            color.setForeColor(Color.MAGENTA);
+            color.setBackColorRGB(pink);
+        } else if (bg.equals(Color.WHITE) && fg.equals(Color.WHITE)) {
+            color.setForeColor(Color.MAGENTA);
+            color.setBackColorRGB(pink);
+            color.setBold(true);
+        } else if (bg.equals(Color.WHITE) && fg.equals(Color.GREEN)) {
+            color.setForeColor(Color.BLUE);
+            color.setBackColor(Color.BLACK);
+            color.setBold(true);
+        } else if (bg.equals(Color.WHITE) && fg.equals(Color.RED)) {
+            color.setForeColorRGB(blue);
+            color.setBackColorRGB(pink);
+            color.setBold(true);
+        } else if (bg.equals(Color.BLUE) && fg.equals(Color.CYAN)) {
+            color.setForeColor(Color.RED);
+            color.setBackColor(Color.MAGENTA);
+            color.setBold(true);
+        } else if (fg.equals(Color.BLUE) && bg.equals(Color.CYAN)) {
+            color.setForeColor(Color.MAGENTA);
+            color.setBackColor(Color.RED);
+            color.setBold(true);
+        } else if (bg.equals(Color.BLUE)) {
+            color.setBackColor(Color.BLACK);
+        } else if (bg.equals(Color.GREEN)) {
+            color.setBackColor(Color.CYAN);
+        } else if (fg.equals(Color.WHITE) && bold) {
+            color.setForeColor(Color.RED);
+        }
+        return color;
     }
 
     /**
@@ -935,505 +1024,499 @@ public class ColorTheme {
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("twindow.border", color);
+        colors.put(TWINDOW_BORDER, color);
 
         // TWindow background
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.CYAN);
-        colors.put("twindow.background", color);
+        colors.put(TWINDOW_BACKGROUND, color);
 
         // TWindow border - inactive
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("twindow.border.inactive", color);
+        colors.put(TWINDOW_BORDER_INACTIVE, color);
 
         // TWindow background - inactive
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.CYAN);
-        colors.put("twindow.background.inactive", color);
+        colors.put(TWINDOW_BACKGROUND_INACTIVE, color);
 
         // TWindow border - modal
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.WHITE);
         color.setBold(true);
-        colors.put("twindow.border.modal", color);
+        colors.put(TWINDOW_BORDER_MODAL, color);
 
         // TWindow background - modal
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("twindow.background.modal", color);
+        colors.put(TWINDOW_BACKGROUND_MODAL, color);
 
         // TWindow border - modal + inactive
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(true);
-        colors.put("twindow.border.modal.inactive", color);
+        colors.put(TWINDOW_BORDER_MODAL_INACTIVE, color);
 
         // TWindow background - modal + inactive
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("twindow.background.modal.inactive", color);
+        colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, color);
 
         // TWindow border - during window movement - modal
         color = new CellAttributes();
         color.setForeColor(Color.GREEN);
         color.setBackColor(Color.WHITE);
         color.setBold(true);
-        colors.put("twindow.border.modal.windowmove", color);
+        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, color);
 
         // TWindow border - during window movement
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("twindow.border.windowmove", color);
+        colors.put(TWINDOW_BORDER_WINDOWMOVE, color);
 
         // TWindow background - during window movement
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("twindow.background.windowmove", color);
+        colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, color);
 
         // TDesktop background
         color = new CellAttributes();
         color.setForeColor(Color.CYAN);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tdesktop.background", color);
+        colors.put(TDESKTOP_BACKGROUND, color);
 
         // TButton text
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.GREEN);
         color.setBold(false);
-        colors.put("tbutton.inactive", color);
+        colors.put(TBUTTON_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.CYAN);
         color.setBackColor(Color.GREEN);
         color.setBold(true);
-        colors.put("tbutton.active", color);
+        colors.put(TBUTTON_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(true);
-        colors.put("tbutton.disabled", color);
+        colors.put(TBUTTON_DISABLED, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.GREEN);
         color.setBold(true);
-        colors.put("tbutton.mnemonic", color);
+        colors.put(TBUTTON_MNEMONIC, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.GREEN);
         color.setBold(true);
-        colors.put("tbutton.mnemonic.highlighted", color);
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tbutton.mnemonic.pulse", color);
+        colors.put(TBUTTON_MNEMONIC_PULSE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tbutton.pulse", color);
+        colors.put(TBUTTON_PULSE, color);
 
         // TLabel text
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tlabel", color);
+        colors.put(TLABEL, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tlabel.mnemonic", color);
+        colors.put(TLABEL_MNEMONIC, color);
 
         // TText text
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttext", color);
+        colors.put(TTEXT, color);
 
         // TField text
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tfield.inactive", color);
+        colors.put(TFIELD_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tfield.active", color);
+        colors.put(TFIELD_ACTIVE, color);
         color = new CellAttributes();
         // Just a small bit of amber.
         color.setForeColorRGB(0x8A610D);
-        colors.put("tfield.pulse", color);
+        colors.put(TFIELD_PULSE, color);
 
         // TCheckBox
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tcheckbox.inactive", color);
+        colors.put(TCHECKBOX_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tcheckbox.active", color);
+        colors.put(TCHECKBOX_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tcheckbox.mnemonic", color);
+        colors.put(TCHECKBOX_MNEMONIC, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tcheckbox.mnemonic.highlighted", color);
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, color);
         color = new CellAttributes();
         // Just a small bit of amber.
         color.setForeColorRGB(0x8A610D);
-        colors.put("tcheckbox.pulse", color);
+        colors.put(TCHECKBOX_PULSE, color);
 
         // TComboBox
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tcombobox.inactive", color);
+        colors.put(TCOMBOBOX_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tcombobox.active", color);
+        colors.put(TCOMBOBOX_ACTIVE, color);
 
         // TSpinner
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tspinner.inactive", color);
+        colors.put(TSPINNER_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tspinner.active", color);
+        colors.put(TSPINNER_ACTIVE, color);
 
         // TCalendar
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tcalendar.background", color);
+        colors.put(TCALENDAR_BACKGROUND, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tcalendar.day", color);
+        colors.put(TCALENDAR_DAY, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tcalendar.day.selected", color);
+        colors.put(TCALENDAR_DAY_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tcalendar.arrow", color);
+        colors.put(TCALENDAR_ARROW, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tcalendar.title", color);
+        colors.put(TCALENDAR_TITLE, color);
 
         // TPanel border
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("tpanel.border", color);
+        colors.put(TPANEL_BORDER, color);
 
         // TRadioButton
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tradiobutton.inactive", color);
+        colors.put(TRADIOBUTTON_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tradiobutton.active", color);
+        colors.put(TRADIOBUTTON_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tradiobutton.mnemonic", color);
+        colors.put(TRADIOBUTTON_MNEMONIC, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.BLACK);
         color.setBold(true);
-        colors.put("tradiobutton.mnemonic.highlighted", color);
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, color);
         color = new CellAttributes();
         // Just a small bit of amber.
         color.setForeColorRGB(0x8A610D);
-        colors.put("tradiobutton.pulse", color);
+        colors.put(TRADIOBUTTON_PULSE, color);
 
         // TRadioGroup
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tradiogroup.inactive", color);
+        colors.put(TRADIOGROUP_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("tradiogroup.active", color);
+        colors.put(TRADIOGROUP_ACTIVE, color);
 
         // TMenu
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tmenu", color);
+        colors.put(TMENU, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.GREEN);
         color.setBold(false);
-        colors.put("tmenu.highlighted", color);
+        colors.put(TMENU_HIGHLIGHTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tmenu.mnemonic", color);
+        colors.put(TMENU_MNEMONIC, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.GREEN);
         color.setBold(false);
-        colors.put("tmenu.mnemonic.highlighted", color);
+        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(true);
-        colors.put("tmenu.disabled", color);
+        colors.put(TMENU_DISABLED, color);
 
         // TProgressBar
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("tprogressbar.complete", color);
+        colors.put(TPROGRESSBAR_COMPLETE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tprogressbar.incomplete", color);
+        colors.put(TPROGRESSBAR_INCOMPLETE, color);
 
         // THScroller / TVScroller
         color = new CellAttributes();
         color.setForeColor(Color.CYAN);
         color.setBackColor(Color.BLACK);
         color.setBold(false);
-        colors.put("tscroller.bar", color);
+        colors.put(TSCROLLER_BAR, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tscroller.arrows", color);
+        colors.put(TSCROLLER_ARROWS, color);
 
         // TTreeView
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttreeview", color);
+        colors.put(TTREEVIEW, color);
         color = new CellAttributes();
         color.setForeColor(Color.GREEN);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("ttreeview.expandbutton", color);
+        colors.put(TTREEVIEW_EXPANDBUTTON, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("ttreeview.selected", color);
+        colors.put(TTREEVIEW_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttreeview.unreadable", color);
+        colors.put(TTREEVIEW_UNREADABLE, color);
         color = new CellAttributes();
-        // color.setForeColor(Color.BLACK);
-        // color.setBackColor(Color.BLUE);
-        // color.setBold(true);
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttreeview.inactive", color);
+        colors.put(TTREEVIEW_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("ttreeview.selected.inactive", color);
+        colors.put(TTREEVIEW_SELECTED_INACTIVE, color);
 
         // TList
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tlist", color);
+        colors.put(TLIST, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tlist.selected", color);
+        colors.put(TLIST_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("tlist.unreadable", color);
+        colors.put(TLIST_UNREADABLE, color);
         color = new CellAttributes();
-        // color.setForeColor(Color.BLACK);
-        // color.setBackColor(Color.BLUE);
-        // color.setBold(true);
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tlist.inactive", color);
+        colors.put(TLIST_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tlist.selected.inactive", color);
+        colors.put(TLIST_SELECTED_INACTIVE, color);
 
         // TStatusBar
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tstatusbar.text", color);
+        colors.put(TSTATUSBAR_TEXT, color);
         color = new CellAttributes();
         color.setForeColor(Color.RED);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("tstatusbar.button", color);
+        colors.put(TSTATUSBAR_BUTTON, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tstatusbar.selected", color);
+        colors.put(TSTATUSBAR_SELECTED, color);
 
         // TEditor
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("teditor", color);
+        colors.put(TEDITOR, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("teditor.selected", color);
+        colors.put(TEDITOR_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("teditor.margin", color);
+        colors.put(TEDITOR_MARGIN, color);
 
         // TTable
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttable.inactive", color);
+        colors.put(TTABLE_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.CYAN);
         color.setBold(false);
-        colors.put("ttable.active", color);
+        colors.put(TTABLE_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("ttable.selected", color);
+        colors.put(TTABLE_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLACK);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("ttable.label", color);
+        colors.put(TTABLE_LABEL, color);
         color = new CellAttributes();
         color.setForeColor(Color.BLUE);
         color.setBackColor(Color.WHITE);
         color.setBold(false);
-        colors.put("ttable.label.selected", color);
+        colors.put(TTABLE_LABEL_SELECTED, color);
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("ttable.border", color);
+        colors.put(TTABLE_BORDER, color);
 
         // TSplitPane
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("tsplitpane", color);
+        colors.put(TSPLITPANE, color);
 
         // THelpWindow border - during window movement
         color = new CellAttributes();
         color.setForeColor(Color.GREEN);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("thelpwindow.windowmove", color);
+        colors.put(THELPWINDOW_WINDOWMOVE, color);
 
         // THelpWindow border
         color = new CellAttributes();
         color.setForeColor(Color.GREEN);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("thelpwindow.border", color);
+        colors.put(THELPWINDOW_BORDER, color);
 
         // THelpWindow background
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("thelpwindow.background", color);
+        colors.put(THELPWINDOW_BACKGROUND, color);
 
         // THelpWindow text
         color = new CellAttributes();
         color.setForeColor(Color.WHITE);
         color.setBackColor(Color.BLUE);
         color.setBold(false);
-        colors.put("thelpwindow.text", color);
+        colors.put(THELPWINDOW_TEXT, color);
 
         // THelpWindow link
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
-        colors.put("thelpwindow.link", color);
+        colors.put(THELPWINDOW_LINK, color);
 
         // THelpWindow link - active
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.CYAN);
         color.setBold(true);
-        colors.put("thelpwindow.link.active", color);
+        colors.put(THELPWINDOW_LINK_ACTIVE, color);
 
     }
 

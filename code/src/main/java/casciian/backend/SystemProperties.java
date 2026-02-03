@@ -335,7 +335,7 @@ public class SystemProperties {
      *
      * @param rcFilePath the path to the configuration file, or null/empty if not set
      */
-    static void loadPropertiesFromFile(String rcFilePath) {
+    public static void loadPropertiesFromFile(String rcFilePath) {
         if (rcFilePath == null || rcFilePath.isEmpty()) {
             return;
         }
