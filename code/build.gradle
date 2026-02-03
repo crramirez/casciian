@@ -243,7 +243,19 @@ tasks.register('windowsZip', Zip) {
     description = 'Creates a ZIP distribution of the Windows native executable (unsigned).'
     dependsOn('nativeCompile')
 
+    // Only build this ZIP on Windows
+    onlyIf { System.getProperty('os.name').toLowerCase().contains('windows') }
+
     def nativeImageName = graalvmNative.binaries.main.imageName.get()
+
+    // Fail fast if the expected .exe is not present to avoid creating an empty/invalid ZIP
+    doFirst {
+        def exeFile = layout.buildDirectory.file("native/nativeCompile/${nativeImageName}.exe").get().asFile
+        if (!exeFile.exists()) {
+            throw new GradleException("Expected Windows native executable not found at ${exeFile}. Run './gradlew nativeCompile' on Windows to build the .exe before creating the ZIP.")
+        }
+    }
+
     from(layout.buildDirectory.dir("native/nativeCompile")) {
         include "${nativeImageName}.exe"
     }
@@ -255,7 +267,8 @@ tasks.register('windowsZip', Zip) {
 // -----------------------------------------------------------------------------
 // DEB and RPM packaging using fpm
 // -----------------------------------------------------------------------------
-def nativeBinaryPath = layout.buildDirectory.file('native/nativeCompile/casciian-demo').get().asFile
+def nativeImageNameForPackaging = graalvmNative.binaries.main.imageName.get()
+def nativeBinaryPath = layout.buildDirectory.file("native/nativeCompile/${nativeImageNameForPackaging}").get().asFile
 def packagingDir = layout.buildDirectory.dir('packaging').get().asFile
 def debOutputDir = layout.buildDirectory.dir('distributions/deb').get().asFile
 def rpmOutputDir = layout.buildDirectory.dir('distributions/rpm').get().asFile
@@ -280,11 +293,11 @@ tasks.register('preparePackaging') {
         copy {
             from nativeBinaryPath
             into binDir
-            rename { 'casciian-demo' }
+            rename { nativeImageNameForPackaging }
         }
 
         // Make the binary executable
-        new File(binDir, 'casciian-demo').setExecutable(true, false)
+        new File(binDir, nativeImageNameForPackaging).setExecutable(true, false)
     }
 }
 
@@ -300,7 +313,7 @@ tasks.register('buildDeb', Exec) {
     commandLine 'fpm',
             '-s', 'dir',
             '-t', 'deb',
-            '-n', 'casciian-demo',
+            '-n', nativeImageNameForPackaging,
             '-v', packageVersion,
             '--iteration', '1',
             '-a', 'amd64',
@@ -309,7 +322,7 @@ tasks.register('buildDeb', Exec) {
             '--maintainer', 'crramirez',
             '--license', 'Apache-2.0',
             '-C', packagingDir.absolutePath,
-            '-p', "${debOutputDir.absolutePath}/casciian-demo_${packageVersion}-1_amd64.deb",
+            '-p', "${debOutputDir.absolutePath}/${nativeImageNameForPackaging}_${packageVersion}-1_amd64.deb",
             '.'
 }
 
@@ -325,7 +338,7 @@ tasks.register('buildRpm', Exec) {
     commandLine 'fpm',
             '-s', 'dir',
             '-t', 'rpm',
-            '-n', 'casciian-demo',
+            '-n', nativeImageNameForPackaging,
             '-v', packageVersion,
             '--iteration', '1',
             '-a', 'x86_64',
@@ -334,7 +347,7 @@ tasks.register('buildRpm', Exec) {
             '--maintainer', 'crramirez',
             '--license', 'Apache-2.0',
             '-C', packagingDir.absolutePath,
-            '-p', "${rpmOutputDir.absolutePath}/casciian-demo-${packageVersion}-1.x86_64.rpm",
+            '-p', "${rpmOutputDir.absolutePath}/${nativeImageNameForPackaging}-${packageVersion}-1.x86_64.rpm",
             '.'
 }
 
