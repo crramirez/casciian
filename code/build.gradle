@@ -255,7 +255,7 @@ tasks.register('windowsZip', Zip) {
 // -----------------------------------------------------------------------------
 // DEB and RPM packaging using fpm
 // -----------------------------------------------------------------------------
-def nativeBinaryPath = layout.buildDirectory.file('native/nativeCompile/casciian').get().asFile
+def nativeBinaryPath = layout.buildDirectory.file('native/nativeCompile/casciian-demo').get().asFile
 def packagingDir = layout.buildDirectory.dir('packaging').get().asFile
 def debOutputDir = layout.buildDirectory.dir('distributions/deb').get().asFile
 def rpmOutputDir = layout.buildDirectory.dir('distributions/rpm').get().asFile
