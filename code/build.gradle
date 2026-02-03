@@ -239,7 +239,6 @@ tasks.named('nativeCompile') {
 
 // -----------------------------------------------------------------------------
 // DEB and RPM packaging using fpm
-// Packages can be built from either native binary or JAR
 // -----------------------------------------------------------------------------
 def nativeBinaryPath = layout.buildDirectory.file('native/nativeCompile/casciian').get().asFile
 def packagingDir = layout.buildDirectory.dir('packaging').get().asFile
@@ -293,7 +292,7 @@ tasks.register('buildDeb', Exec) {
             '--description', 'Casciian Demo - Java Text User Interface demo application',
             '--url', 'https://github.com/crramirez/casciian',
             '--maintainer', 'crramirez',
-            '--license', 'MIT',
+            '--license', 'Apache-2.0',
             '-C', packagingDir.absolutePath,
             '-p', "${debOutputDir.absolutePath}/casciian-demo_${packageVersion}-1_amd64.deb",
             '.'
@@ -318,7 +317,7 @@ tasks.register('buildRpm', Exec) {
             '--description', 'Casciian Demo - Java Text User Interface demo application',
             '--url', 'https://github.com/crramirez/casciian',
             '--maintainer', 'crramirez',
-            '--license', 'MIT',
+            '--license', 'Apache-2.0',
             '-C', packagingDir.absolutePath,
             '-p', "${rpmOutputDir.absolutePath}/casciian-demo-${packageVersion}-1.x86_64.rpm",
             '.'
