@@ -217,7 +217,7 @@ graalvmNative {
                 languageVersion = JavaLanguageVersion.of(25)
             }
 
-            imageName = 'casciian'
+            imageName = 'casciian-demo'
             mainClass = 'demo.Demo1'
             buildArgs.add('-march=compatibility')
             buildArgs.add('-Os')
@@ -235,6 +235,21 @@ graalvmNative {
 
 tasks.named('nativeCompile') {
     dependsOn(jarDemoTaskProvider)
+}
+
+// Windows distribution: pack the native exe into a zip (no code signing available)
+tasks.register('windowsZip', Zip) {
+    group = 'distribution'
+    description = 'Creates a ZIP distribution of the Windows native executable (unsigned).'
+    dependsOn('nativeCompile')
+
+    def nativeImageName = graalvmNative.binaries.main.imageName.get()
+    from(layout.buildDirectory.dir("native/nativeCompile")) {
+        include "${nativeImageName}.exe"
+    }
+    archiveBaseName.set("${nativeImageName}-windows")
+    archiveVersion.set(project.version.toString())
+    destinationDirectory.set(layout.buildDirectory.dir("distributions"))
 }
 
 release {
