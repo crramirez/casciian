@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import casciian.bits.StringUtils;
 import casciian.event.TKeypressEvent;
@@ -80,7 +81,7 @@ public class TChangeDirBox extends TWindow {
     /**
      * Session history of directory changes.
      */
-    private static List<String> dirHistory = new ArrayList<>();
+    private static List<String> dirHistory = new CopyOnWriteArrayList<>();
 
     /**
      * The resulting directory path, or null if the user cancelled.
