@@ -110,6 +110,11 @@ public class TMenu extends TWindow {
      */
     public static final int MID_SHELL           = 15;
 
+    /**
+     * Change directory dialog.
+     */
+    public static final int MID_CHANGE_DIR      = 16;
+
     // Edit menu --------------------------------------------------------------
 
     /**
@@ -945,6 +950,11 @@ public class TMenu extends TWindow {
 
         case MID_SAVE_AS_FILE:
             label = i18n.getString("menuSaveAs");
+            break;
+
+        case MID_CHANGE_DIR:
+            label = i18n.getString("menuChangeDir");
+            icon = 0x1F4C2;
             break;
 
         case MID_UNDO:
