@@ -345,7 +345,7 @@ public class TTerminal extends TScrollable
         // Save an empty command line.
         commandLine = new String[0];
 
-        String cmdShellWindows = "powershell.exe";
+        String cmdShellWindows = "cmd.exe";
 
         // You cannot run a login shell in a bare Process interactively, due
         // to libc's behavior of buffering when stdin/stdout aren't a tty.

@@ -28,6 +28,7 @@ module casciian {
     requires transitive java.xml;
     requires org.jline.terminal;
     requires org.jline.terminal.jni;
+    requires com.sshtools.pty4j;
 
     exports casciian;
     exports casciian.backend;

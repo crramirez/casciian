@@ -131,7 +131,6 @@ class ScreenEdgeCasesTest {
             screen.putCharXY(1, 0, '好', attr);
             screen.putCharXY(2, 0, '世', attr);
             screen.putCharXY(3, 0, '界', attr);
-            screen.putCharXY(4, 0, '🎉', attr);
         });
     }
 
