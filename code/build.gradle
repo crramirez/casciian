@@ -32,7 +32,7 @@ dependencies {
     // JLine terminal for platform-agnostic raw mode support
     implementation "org.jline:jline-terminal:${jlineVersion}"
     implementation "org.jline:jline-terminal-jni:${jlineVersion}"
-    implementation "com.sshtools:pty4j21:0.22.0"
+    implementation "com.sshtools:pty4j21:0.22.1"
 
     testImplementation platform('org.junit:junit-bom:5.14.2')
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
