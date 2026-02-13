@@ -1230,6 +1230,15 @@ public class TApplication implements Runnable {
             return true;
         }
 
+        if (menu.getId() == TMenu.MID_CHANGE_DIR) {
+            try {
+                changeDirBox(System.getProperty("user.dir"));
+            } catch (Exception e) {
+                new TExceptionDialog(this, e);
+            }
+            return true;
+        }
+
         if (menu.getId() == TMenu.MID_TILE) {
             tileWindows();
             return true;
@@ -4248,6 +4257,7 @@ public class TApplication implements Runnable {
     @SuppressWarnings("UnusedReturnValue")
     public final TMenu addFileMenu() {
         TMenu fileMenu = addMenu(i18n.getString("fileMenuTitle"));
+        fileMenu.addDefaultItem(TMenu.MID_CHANGE_DIR);
         fileMenu.addDefaultItem(TMenu.MID_SHELL);
         fileMenu.addSeparator();
         fileMenu.addDefaultItem(TMenu.MID_EXIT);
@@ -4759,6 +4769,18 @@ public class TApplication implements Runnable {
      */
     public final String fileSaveBox(final String path) throws IOException {
         return fileOpenBox(path, TFileOpenBox.Type.SAVE);
+    }
+
+    /**
+     * Convenience function to spawn a change directory dialog.
+     *
+     * @param path the initial directory path
+     * @return the selected directory, or null if cancelled
+     * @throws IOException if a java.io operation throws
+     */
+    public final String changeDirBox(final String path) throws IOException {
+        TChangeDirBox box = new TChangeDirBox(this, path);
+        return box.getResult();
     }
 
     /**
