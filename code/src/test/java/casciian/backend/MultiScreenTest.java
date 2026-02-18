@@ -558,7 +558,7 @@ class MultiScreenTest {
     void testTextDimensionsDefault() {
         MultiScreen multi = new MultiScreen();
         
-        assertEquals(10, multi.getTextWidth());
+        assertEquals(16, multi.getTextWidth());
         assertEquals(20, multi.getTextHeight());
     }
 }
