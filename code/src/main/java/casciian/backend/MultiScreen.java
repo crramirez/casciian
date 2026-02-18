@@ -17,10 +17,6 @@ package casciian.backend;
 import java.util.ArrayList;
 import java.util.List;
 
-import casciian.bits.BorderStyle;
-import casciian.bits.Cell;
-import casciian.bits.CellAttributes;
-import casciian.bits.Clipboard;
 
 /**
  * MultiScreen mirrors its I/O to several screens.
@@ -39,7 +35,7 @@ public class MultiScreen extends LogicalScreen implements Screen {
     /**
      * The text cell width in pixels to report.
      */
-    private int textWidth = 10;
+    private int textWidth = 16;
 
     /**
      * The text cell height in pixels to report.
