@@ -36,6 +36,16 @@ public class MultiScreen extends LogicalScreen implements Screen {
      */
     private List<Screen> screens = new ArrayList<Screen>();
 
+    /**
+     * The text cell width in pixels to report.
+     */
+    private int textWidth = 10;
+
+    /**
+     * The text cell height in pixels to report.
+     */
+    private int textHeight = 20;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -56,12 +66,34 @@ public class MultiScreen extends LogicalScreen implements Screen {
         super(screen.getWidth(), screen.getHeight());
         synchronized (screens) {
             screens.add(screen);
+            this.textWidth = screen.getTextWidth();
+            this.textHeight = screen.getTextHeight();
         }
     }
 
     // ------------------------------------------------------------------------
     // LogicalScreen ----------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Get the width of a character cell in pixels.
+     *
+     * @return the width in pixels of a character cell
+     */
+    @Override
+    public int getTextWidth() {
+        return textWidth;
+    }
+
+    /**
+     * Get the height of a character cell in pixels.
+     *
+     * @return the height in pixels of a character cell
+     */
+    @Override
+    public int getTextHeight() {
+        return textHeight;
+    }
 
     /**
      * Change the width.  Everything on-screen will be destroyed and must be
@@ -183,6 +215,8 @@ public class MultiScreen extends LogicalScreen implements Screen {
         synchronized (screens) {
             screens.add(screen);
         }
+        textWidth = Math.min(textWidth, screen.getTextWidth());
+        textHeight = Math.min(textHeight, screen.getTextHeight());
     }
 
     /**
@@ -194,6 +228,10 @@ public class MultiScreen extends LogicalScreen implements Screen {
         synchronized (screens) {
             if (screens.size() > 1) {
                 screens.remove(screenToRemove);
+            }
+            for (Screen screen: screens) {
+                textWidth = Math.min(textWidth, screen.getTextWidth());
+                textHeight = Math.min(textHeight, screen.getTextHeight());
             }
         }
     }
