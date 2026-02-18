@@ -214,9 +214,9 @@ public class MultiScreen extends LogicalScreen implements Screen {
     public void addScreen(final Screen screen) {
         synchronized (screens) {
             screens.add(screen);
+            textWidth = Math.min(textWidth, screen.getTextWidth());
+            textHeight = Math.min(textHeight, screen.getTextHeight());
         }
-        textWidth = Math.min(textWidth, screen.getTextWidth());
-        textHeight = Math.min(textHeight, screen.getTextHeight());
     }
 
     /**
@@ -229,9 +229,15 @@ public class MultiScreen extends LogicalScreen implements Screen {
             if (screens.size() > 1) {
                 screens.remove(screenToRemove);
             }
+            int minTextWidth = Integer.MAX_VALUE;
+            int minTextHeight = Integer.MAX_VALUE;
             for (Screen screen: screens) {
-                textWidth = Math.min(textWidth, screen.getTextWidth());
-                textHeight = Math.min(textHeight, screen.getTextHeight());
+                minTextWidth = Math.min(minTextWidth, screen.getTextWidth());
+                minTextHeight = Math.min(minTextHeight, screen.getTextHeight());
+            }
+            if (!screens.isEmpty()) {
+                textWidth = minTextWidth;
+                textHeight = minTextHeight;
             }
         }
     }
