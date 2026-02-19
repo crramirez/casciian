@@ -272,11 +272,10 @@ public class TerminalState {
         if (buffer == null) {
             return null;
         }
-        List<DisplayLine> result = new ArrayList<DisplayLine>(buffer.size());
-        for (DisplayLine line: buffer) {
-            result.add(new DisplayLine(line));
-        }
-        return result;
+
+        return buffer.stream()
+            .map(DisplayLine::new)
+            .toList();
     }
 
     /**
