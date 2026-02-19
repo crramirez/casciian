@@ -17,10 +17,6 @@ package casciian.backend;
 import java.util.ArrayList;
 import java.util.List;
 
-import casciian.bits.BorderStyle;
-import casciian.bits.Cell;
-import casciian.bits.CellAttributes;
-import casciian.bits.Clipboard;
 
 /**
  * MultiScreen mirrors its I/O to several screens.
@@ -35,6 +31,8 @@ public class MultiScreen extends LogicalScreen implements Screen {
      * The list of screens to use.
      */
     private List<Screen> screens = new ArrayList<Screen>();
+
+
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -62,6 +60,44 @@ public class MultiScreen extends LogicalScreen implements Screen {
     // ------------------------------------------------------------------------
     // LogicalScreen ----------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Get the width of a character cell in pixels.
+     *
+     * @return the width in pixels of a character cell
+     */
+    @Override
+    public int getTextWidth() {
+        synchronized (screens) {
+            if (screens.isEmpty()) {
+                return super.getTextWidth();
+            }
+            int min = Integer.MAX_VALUE;
+            for (Screen screen : screens) {
+                min = Math.min(min, screen.getTextWidth());
+            }
+            return min < Integer.MAX_VALUE ? min : super.getTextWidth();
+        }
+    }
+
+    /**
+     * Get the height of a character cell in pixels.
+     *
+     * @return the height in pixels of a character cell
+     */
+    @Override
+    public int getTextHeight() {
+        synchronized (screens) {
+            if (screens.isEmpty()) {
+                return super.getTextHeight();
+            }
+            int min = Integer.MAX_VALUE;
+            for (Screen screen : screens) {
+                min = Math.min(min, screen.getTextHeight());
+            }
+            return min < Integer.MAX_VALUE ? min : super.getTextHeight();
+        }
+    }
 
     /**
      * Change the width.  Everything on-screen will be destroyed and must be

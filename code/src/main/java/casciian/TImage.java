@@ -393,6 +393,9 @@ public class TImage extends TWidget implements EditMenuUser {
      */
     public void setImage(final ImageRGB image) {
         this.image = image;
+        lastTextWidth = -1;
+        lastTextHeight = -1;
+        sizeToImage(true);
     }
 
     /**
