@@ -554,11 +554,80 @@ class MultiScreenTest {
     }
 
     @Test
-    @DisplayName("Text dimensions default to 10x20 for empty multi screen")
+    @DisplayName("Text dimensions default to 16x20 for empty multi screen")
     void testTextDimensionsDefault() {
         MultiScreen multi = new MultiScreen();
         
         assertEquals(16, multi.getTextWidth());
         assertEquals(20, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Text dimensions dynamically reflect screen changes")
+    void testTextDimensionsDynamicUpdate() {
+        // Simulate a screen whose text dimensions change after being added
+        // (like ECMA48Terminal receiving CSI 6t response)
+        final int[] dynamicWidth = {10};
+        final int[] dynamicHeight = {16};
+        TestScreen dynamicScreen = new TestScreen(80, 24) {
+            @Override
+            public int getTextWidth() {
+                return dynamicWidth[0];
+            }
+            @Override
+            public int getTextHeight() {
+                return dynamicHeight[0];
+            }
+        };
+
+        MultiScreen multi = new MultiScreen(dynamicScreen);
+        assertEquals(10, multi.getTextWidth());
+        assertEquals(16, multi.getTextHeight());
+
+        // Simulate the screen detecting its actual cell size (like terminal
+        // response to CSI 6t)
+        dynamicWidth[0] = 12;
+        dynamicHeight[0] = 24;
+
+        // MultiScreen should reflect the updated values
+        assertEquals(12, multi.getTextWidth());
+        assertEquals(24, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("HeadlessBackend screen does not constrain text dimensions in MultiScreen")
+    void testHeadlessBackendDoesNotConstrainTextDimensions() {
+        // HeadlessBackend returns Integer.MAX_VALUE for text dimensions,
+        // so it should not constrain real terminal screens
+        HeadlessBackend headless = new HeadlessBackend();
+        MultiScreen multi = new MultiScreen(headless.getScreen());
+
+        // With only headless, should fall back to LogicalScreen defaults
+        assertEquals(16, multi.getTextWidth());
+        assertEquals(20, multi.getTextHeight());
+
+        // Add a "real" screen with specific dimensions
+        TestScreen realScreen = new TestScreen(80, 24, 10, 18);
+        multi.addScreen(realScreen);
+
+        // Should use the real screen's dimensions, not headless defaults
+        assertEquals(10, multi.getTextWidth());
+        assertEquals(18, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("HeadlessBackend screen does not constrain larger real terminal dimensions")
+    void testHeadlessBackendDoesNotConstrainLargerDimensions() {
+        HeadlessBackend headless = new HeadlessBackend();
+        MultiScreen multi = new MultiScreen(headless.getScreen());
+
+        // Add a real screen with dimensions LARGER than LogicalScreen defaults
+        TestScreen realScreen = new TestScreen(80, 24, 20, 30);
+        multi.addScreen(realScreen);
+
+        // Should use the real screen's dimensions (20x30),
+        // not the old LogicalScreen defaults (16x20)
+        assertEquals(20, multi.getTextWidth());
+        assertEquals(30, multi.getTextHeight());
     }
 }
