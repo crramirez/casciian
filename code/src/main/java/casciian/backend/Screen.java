@@ -501,6 +501,14 @@ public interface Screen {
     public void clearPhysical();
 
     /**
+     * Unset every image cell on one row of the physical screen, forcing
+     * images on that row to be redrawn.
+     *
+     * @param y row coordinate.  0 is the top-most row.
+     */
+    public void unsetImageRow(final int y);
+
+    /**
      * Classes must provide an implementation to push the logical screen to
      * the physical device.
      */

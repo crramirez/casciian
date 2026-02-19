@@ -141,6 +141,10 @@ class BackendTest {
         
         GenericBackend testBackend = new GenericBackend() {
             @Override
+            public boolean isImagesOverText() {
+                return false;
+            }
+            @Override
             public int attrToForegroundColor(CellAttributes attr) { return 0xFFFFFF; }
             @Override
             public int attrToBackgroundColor(CellAttributes attr) { return 0x000000; }

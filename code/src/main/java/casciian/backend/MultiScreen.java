@@ -17,10 +17,6 @@ package casciian.backend;
 import java.util.ArrayList;
 import java.util.List;
 
-import casciian.bits.BorderStyle;
-import casciian.bits.Cell;
-import casciian.bits.CellAttributes;
-import casciian.bits.Clipboard;
 
 /**
  * MultiScreen mirrors its I/O to several screens.
@@ -35,6 +31,16 @@ public class MultiScreen extends LogicalScreen implements Screen {
      * The list of screens to use.
      */
     private List<Screen> screens = new ArrayList<Screen>();
+
+    /**
+     * The text cell width in pixels to report.
+     */
+    private int textWidth = 16;
+
+    /**
+     * The text cell height in pixels to report.
+     */
+    private int textHeight = 20;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -56,12 +62,34 @@ public class MultiScreen extends LogicalScreen implements Screen {
         super(screen.getWidth(), screen.getHeight());
         synchronized (screens) {
             screens.add(screen);
+            this.textWidth = screen.getTextWidth();
+            this.textHeight = screen.getTextHeight();
         }
     }
 
     // ------------------------------------------------------------------------
     // LogicalScreen ----------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Get the width of a character cell in pixels.
+     *
+     * @return the width in pixels of a character cell
+     */
+    @Override
+    public int getTextWidth() {
+        return textWidth;
+    }
+
+    /**
+     * Get the height of a character cell in pixels.
+     *
+     * @return the height in pixels of a character cell
+     */
+    @Override
+    public int getTextHeight() {
+        return textHeight;
+    }
 
     /**
      * Change the width.  Everything on-screen will be destroyed and must be
@@ -182,6 +210,8 @@ public class MultiScreen extends LogicalScreen implements Screen {
     public void addScreen(final Screen screen) {
         synchronized (screens) {
             screens.add(screen);
+            textWidth = Math.min(textWidth, screen.getTextWidth());
+            textHeight = Math.min(textHeight, screen.getTextHeight());
         }
     }
 
@@ -194,6 +224,16 @@ public class MultiScreen extends LogicalScreen implements Screen {
         synchronized (screens) {
             if (screens.size() > 1) {
                 screens.remove(screenToRemove);
+            }
+            int minTextWidth = Integer.MAX_VALUE;
+            int minTextHeight = Integer.MAX_VALUE;
+            for (Screen screen: screens) {
+                minTextWidth = Math.min(minTextWidth, screen.getTextWidth());
+                minTextHeight = Math.min(minTextHeight, screen.getTextHeight());
+            }
+            if (!screens.isEmpty()) {
+                textWidth = minTextWidth;
+                textHeight = minTextHeight;
             }
         }
     }
