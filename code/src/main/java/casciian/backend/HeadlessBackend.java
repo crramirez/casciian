@@ -59,10 +59,11 @@ public class HeadlessBackend extends LogicalScreen implements Backend {
 
     /**
      * Get the width of a character cell in pixels.  HeadlessBackend returns
-     * Integer.MAX_VALUE so that it does not constrain real terminals when
-     * used in a MultiBackend.
+     * Integer.MAX_VALUE to indicate "no constraint" so that it does not
+     * constrain real terminals in MultiScreen's Math.min() computation
+     * when used in a MultiBackend.
      *
-     * @return the width in pixels of a character cell
+     * @return Integer.MAX_VALUE (no constraint on pixel width)
      */
     @Override
     public int getTextWidth() {
@@ -71,10 +72,11 @@ public class HeadlessBackend extends LogicalScreen implements Backend {
 
     /**
      * Get the height of a character cell in pixels.  HeadlessBackend returns
-     * Integer.MAX_VALUE so that it does not constrain real terminals when
-     * used in a MultiBackend.
+     * Integer.MAX_VALUE to indicate "no constraint" so that it does not
+     * constrain real terminals in MultiScreen's Math.min() computation
+     * when used in a MultiBackend.
      *
-     * @return the height in pixels of a character cell
+     * @return Integer.MAX_VALUE (no constraint on pixel height)
      */
     @Override
     public int getTextHeight() {
