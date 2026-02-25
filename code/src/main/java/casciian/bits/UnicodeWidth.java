@@ -166,6 +166,7 @@ public class UnicodeWidth {
             || ch == 0x1F5F6
             || ch == 0x1F5D0
             || ch == 0x1F5D7
+            || ch == 0x1F5D1
             || ch == 0x1F5BC;
     }
 
