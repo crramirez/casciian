@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import casciian.backend.SystemProperties;
 import casciian.bits.StringUtils;
 import casciian.event.TKeypressEvent;
 import casciian.layout.AnchoredLayoutManager;
@@ -115,7 +116,12 @@ public class TChangeDirBox extends TWindow {
             getWidth() - 2, getHeight() - 2);
         setLayoutManager(layout);
 
-        originalDir = (new File(path)).getCanonicalPath();
+        // Resolve relative paths against the application working directory
+        File pathFile = new File(path);
+        if (!pathFile.isAbsolute()) {
+            pathFile = new File(SystemProperties.getUserDir(), path);
+        }
+        originalDir = pathFile.getCanonicalPath();
 
         // Initialize the history list if it doesn't already contain the
         // current path
@@ -145,7 +151,7 @@ public class TChangeDirBox extends TWindow {
                 }
             }
         );
-        treeViewRoot = new TDirectoryTreeItem(treeView, path, true);
+        treeViewRoot = new TDirectoryTreeItem(treeView, originalDir, true);
 
         // Setup buttons on the right
         String okLabel = i18n.getString("okButton");
@@ -303,7 +309,7 @@ public class TChangeDirBox extends TWindow {
 
         File dir = new File(dirPath).getCanonicalFile();
         if (dir.isDirectory()) {
-            System.setProperty("user.dir", dir.getCanonicalPath());
+            SystemProperties.setUserDir(dir.getCanonicalPath());
         }
     }
 

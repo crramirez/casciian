@@ -1232,7 +1232,7 @@ public class TApplication implements Runnable {
 
         if (menu.getId() == TMenu.MID_CHANGE_DIR) {
             try {
-                changeDirBox(System.getProperty("user.dir"));
+                changeDirBox(SystemProperties.getUserDir());
             } catch (Exception e) {
                 new TExceptionDialog(this, e);
             }

@@ -18,6 +18,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import casciian.backend.SystemProperties;
 import casciian.bits.StringUtils;
 
 /**
@@ -165,7 +166,11 @@ public class TDirectoryList extends TList {
      * @param path new path to list files for
      */
     public void setPath(final String path) {
-        this.path = new File(path);
+        File pathFile = new File(path);
+        if (!pathFile.isAbsolute()) {
+            pathFile = new File(SystemProperties.getUserDir(), path);
+        }
+        this.path = pathFile;
 
         List<String> newStrings = new ArrayList<String>();
         files.clear();

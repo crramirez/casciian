@@ -310,6 +310,15 @@ public class SystemProperties {
      */
     private static final AtomicReference<Boolean> useJline = new AtomicReference<>(null);
 
+    /**
+     * Atomic reference representing the current working directory.
+     * Initialized from the "user.dir" system property.  Only the cached
+     * value is changed by {@link #setUserDir(String)} — the underlying
+     * system property is never modified.
+     */
+    private static final AtomicReference<String> userDir =
+        new AtomicReference<>(System.getProperty("user.dir"));
+
     private SystemProperties() {
     }
 
@@ -752,6 +761,29 @@ public class SystemProperties {
     }
 
     /**
+     * Get the current working directory.
+     * This returns the cached value which may differ from
+     * {@code System.getProperty("user.dir")} after a call to
+     * {@link #setUserDir(String)}.
+     *
+     * @return the current working directory path
+     */
+    public static String getUserDir() {
+        return userDir.get();
+    }
+
+    /**
+     * Set the current working directory.
+     * Only the cached value is updated — the underlying
+     * {@code "user.dir"} system property is <b>not</b> modified.
+     *
+     * @param path the new working directory path
+     */
+    public static void setUserDir(final String path) {
+        userDir.set(path);
+    }
+
+    /**
      * Reset all cached system property values to their unset state.
      * This will force values to be re-read from system properties on the next access.
      */
@@ -772,5 +804,6 @@ public class SystemProperties {
         disablePreTransform.set(null);
         disablePostTransform.set(null);
         useJline.set(null);
+        userDir.set(System.getProperty("user.dir"));
     }
 }
