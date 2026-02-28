@@ -35,19 +35,19 @@ public class MultiBackend implements Backend {
     /**
      * The screen to use.
      */
-    private MultiScreen multiScreen;
+    private final MultiScreen multiScreen;
 
     /**
      * The list of backends to use.
      * This is a CopyOnWriteArrayList to support safe iteration while the list
      * may be modified from another thread (e.g., adding/removing backends).
      */
-    private List<Backend> backends = new CopyOnWriteArrayList<Backend>();
+    private final List<Backend> backends = new CopyOnWriteArrayList<>();
 
     /**
      * The SessionInfo to return.
      */
-    private SessionInfo sessionInfo;
+    private final SessionInfo sessionInfo;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -214,6 +214,22 @@ public class MultiBackend implements Backend {
         for (Backend backend: backends) {
             backend.reloadOptions();
         }
+    }
+
+    /**
+     * Check if backend will support incomplete image fragments over text
+     * display.
+     *
+     * @return true if images can partially obscure text
+     */
+    public boolean isImagesOverText() {
+        // If any connected backends can do it, then this one can too.
+        for (Backend backend: backends) {
+            if (backend.isImagesOverText()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ------------------------------------------------------------------------

@@ -302,7 +302,7 @@ public class ECMA48 implements Runnable {
     /**
      * The scrollback buffer characters + attributes.
      */
-    private ArrayList<DisplayLine> scrollback;
+    private final ArrayList<DisplayLine> scrollback;
 
     /**
      * The raw display buffer characters + attributes.
@@ -323,6 +323,7 @@ public class ECMA48 implements Runnable {
     /**
      * The terminal's raw InputStream.  This is used for type != XTERM.
      */
+    @SuppressWarnings("java:S3077")
     private volatile TimeoutInputStream inputStream;
 
     /**

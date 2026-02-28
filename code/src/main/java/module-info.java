@@ -36,6 +36,7 @@ module casciian {
     exports casciian.effect;
     exports casciian.event;
     exports casciian.help;
+    exports casciian.image.decoders;
     exports casciian.io;
     exports casciian.layout;
     exports casciian.menu;

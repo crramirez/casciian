@@ -22,9 +22,27 @@ class MultiScreenTest {
         private int flushCount = 0;
         private int copyCount = 0;
         private boolean physicalCleared = false;
+        private int textWidth = 16;
+        private int textHeight = 20;
 
         public TestScreen(int width, int height) {
             super(width, height);
+        }
+
+        public TestScreen(int width, int height, int textWidth, int textHeight) {
+            super(width, height);
+            this.textWidth = textWidth;
+            this.textHeight = textHeight;
+        }
+
+        @Override
+        public int getTextWidth() {
+            return textWidth;
+        }
+
+        @Override
+        public int getTextHeight() {
+            return textHeight;
         }
 
         @Override
@@ -426,5 +444,190 @@ class MultiScreenTest {
         assertEquals(customMulti.getWidth(), screen100x50.getWidth());
         assertEquals(customMulti.getHeight(), screen100x50.getHeight());
         // screen80x24 should have been resized to match
+    }
+
+    // Text dimension tracking tests
+
+    @Test
+    @DisplayName("Text dimensions are initialized from first screen")
+    void testTextDimensionsInitialization() {
+        TestScreen screen = new TestScreen(80, 24, 12, 18);
+        MultiScreen multi = new MultiScreen(screen);
+        
+        assertEquals(12, multi.getTextWidth());
+        assertEquals(18, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Text dimensions track minimum across added screens")
+    void testTextDimensionsTrackMinimum() {
+        TestScreen screen1 = new TestScreen(80, 24, 16, 20);
+        MultiScreen multi = new MultiScreen(screen1);
+        
+        TestScreen screen2 = new TestScreen(80, 24, 12, 18);
+        multi.addScreen(screen2);
+        
+        // Should report the minimum values
+        assertEquals(12, multi.getTextWidth());
+        assertEquals(18, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Text dimensions update when larger screen is added")
+    void testTextDimensionsWithLargerScreen() {
+        TestScreen screen1 = new TestScreen(80, 24, 12, 18);
+        MultiScreen multi = new MultiScreen(screen1);
+        
+        TestScreen screen2 = new TestScreen(80, 24, 16, 20);
+        multi.addScreen(screen2);
+        
+        // Should still report the minimum values
+        assertEquals(12, multi.getTextWidth());
+        assertEquals(18, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Text dimensions recalculate correctly after screen removal")
+    void testTextDimensionsAfterRemoval() {
+        TestScreen screen1 = new TestScreen(80, 24, 10, 15);
+        MultiScreen multi = new MultiScreen(screen1);
+        
+        TestScreen screen2 = new TestScreen(80, 24, 12, 18);
+        TestScreen screen3 = new TestScreen(80, 24, 16, 20);
+        multi.addScreen(screen2);
+        multi.addScreen(screen3);
+        
+        // Initially should be the minimum (10, 15)
+        assertEquals(10, multi.getTextWidth());
+        assertEquals(15, multi.getTextHeight());
+        
+        // Remove the screen with smallest dimensions
+        multi.removeScreen(screen1);
+        
+        // Should now report the minimum of remaining screens (12, 18)
+        assertEquals(12, multi.getTextWidth());
+        assertEquals(18, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Text dimensions recalculate when middle screen is removed")
+    void testTextDimensionsRemoveMiddleScreen() {
+        TestScreen screen1 = new TestScreen(80, 24, 10, 15);
+        MultiScreen multi = new MultiScreen(screen1);
+        
+        TestScreen screen2 = new TestScreen(80, 24, 12, 18);
+        TestScreen screen3 = new TestScreen(80, 24, 16, 20);
+        multi.addScreen(screen2);
+        multi.addScreen(screen3);
+        
+        // Remove middle screen (should not affect minimum)
+        multi.removeScreen(screen2);
+        
+        // Should still report the minimum (10, 15)
+        assertEquals(10, multi.getTextWidth());
+        assertEquals(15, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Text dimensions remain correct with multiple additions and removals")
+    void testTextDimensionsMultipleOperations() {
+        TestScreen screen1 = new TestScreen(80, 24, 16, 20);
+        MultiScreen multi = new MultiScreen(screen1);
+        
+        TestScreen screen2 = new TestScreen(80, 24, 12, 18);
+        multi.addScreen(screen2);
+        assertEquals(12, multi.getTextWidth());
+        assertEquals(18, multi.getTextHeight());
+        
+        TestScreen screen3 = new TestScreen(80, 24, 8, 14);
+        multi.addScreen(screen3);
+        assertEquals(8, multi.getTextWidth());
+        assertEquals(14, multi.getTextHeight());
+        
+        multi.removeScreen(screen3);
+        assertEquals(12, multi.getTextWidth());
+        assertEquals(18, multi.getTextHeight());
+        
+        multi.removeScreen(screen2);
+        assertEquals(16, multi.getTextWidth());
+        assertEquals(20, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Text dimensions default to 16x20 for empty multi screen")
+    void testTextDimensionsDefault() {
+        MultiScreen multi = new MultiScreen();
+        
+        assertEquals(16, multi.getTextWidth());
+        assertEquals(20, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Text dimensions dynamically reflect screen changes")
+    void testTextDimensionsDynamicUpdate() {
+        // Simulate a screen whose text dimensions change after being added
+        // (like ECMA48Terminal receiving CSI 6t response)
+        final int[] dynamicWidth = {10};
+        final int[] dynamicHeight = {16};
+        TestScreen dynamicScreen = new TestScreen(80, 24) {
+            @Override
+            public int getTextWidth() {
+                return dynamicWidth[0];
+            }
+            @Override
+            public int getTextHeight() {
+                return dynamicHeight[0];
+            }
+        };
+
+        MultiScreen multi = new MultiScreen(dynamicScreen);
+        assertEquals(10, multi.getTextWidth());
+        assertEquals(16, multi.getTextHeight());
+
+        // Simulate the screen detecting its actual cell size (like terminal
+        // response to CSI 6t)
+        dynamicWidth[0] = 12;
+        dynamicHeight[0] = 24;
+
+        // MultiScreen should reflect the updated values
+        assertEquals(12, multi.getTextWidth());
+        assertEquals(24, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("HeadlessBackend screen does not constrain text dimensions in MultiScreen")
+    void testHeadlessBackendDoesNotConstrainTextDimensions() {
+        // HeadlessBackend returns Integer.MAX_VALUE for text dimensions,
+        // so it should not constrain real terminal screens
+        HeadlessBackend headless = new HeadlessBackend();
+        MultiScreen multi = new MultiScreen(headless.getScreen());
+
+        // With only headless, should fall back to LogicalScreen defaults
+        assertEquals(16, multi.getTextWidth());
+        assertEquals(20, multi.getTextHeight());
+
+        // Add a "real" screen with specific dimensions
+        TestScreen realScreen = new TestScreen(80, 24, 10, 18);
+        multi.addScreen(realScreen);
+
+        // Should use the real screen's dimensions, not headless defaults
+        assertEquals(10, multi.getTextWidth());
+        assertEquals(18, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("HeadlessBackend screen does not constrain larger real terminal dimensions")
+    void testHeadlessBackendDoesNotConstrainLargerDimensions() {
+        HeadlessBackend headless = new HeadlessBackend();
+        MultiScreen multi = new MultiScreen(headless.getScreen());
+
+        // Add a real screen with dimensions LARGER than LogicalScreen defaults
+        TestScreen realScreen = new TestScreen(80, 24, 20, 30);
+        multi.addScreen(realScreen);
+
+        // Should use the real screen's dimensions (20x30),
+        // not the old LogicalScreen defaults (16x20)
+        assertEquals(20, multi.getTextWidth());
+        assertEquals(30, multi.getTextHeight());
     }
 }

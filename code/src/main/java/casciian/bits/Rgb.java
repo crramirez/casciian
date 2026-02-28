@@ -147,9 +147,9 @@ public record Rgb(int r, int g, int b) {
     public Rgb addErrorAndClamp(final int redError, final int greenError,
             final int blueError) {
         return new Rgb(
-            Math.clamp(r + redError, 0, 100),
-            Math.clamp(g + greenError, 0, 100),
-            Math.clamp(b + blueError, 0, 100)
+            Math.clamp((long)r + redError, 0, 100),
+            Math.clamp((long)g + greenError, 0, 100),
+            Math.clamp((long)b + blueError, 0, 100)
         );
     }
 

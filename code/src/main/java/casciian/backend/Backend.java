@@ -103,6 +103,14 @@ public interface Backend {
     public void setReadOnly(final boolean readOnly);
 
     /**
+     * Check if backend will support incomplete image fragments over text
+     * display.
+     *
+     * @return true if images can partially obscure text
+     */
+    public boolean isImagesOverText();
+
+    /**
      * Set the mouse pointer (cursor) style.
      *
      * @param mouseStyle the pointer style string, one of: "default", "none",

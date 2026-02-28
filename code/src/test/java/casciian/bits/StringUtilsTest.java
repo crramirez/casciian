@@ -186,4 +186,20 @@ class StringUtilsTest {
         // So "!!!" returns an empty array.
         assertArrayEquals(new byte[0], StringUtils.fromBase64("!!!".getBytes()));
     }
+
+    @Test
+    void testMoreEmojis() {
+        assertEquals(1, StringUtils.width(0x25B6));
+        assertEquals(1, StringUtils.width(0x23F8));
+        assertEquals(1, StringUtils.width(0x25A0));
+        assertEquals(1, StringUtils.width(0x29CF));
+        assertEquals(1, StringUtils.width(0x29D0));
+        assertEquals(2, StringUtils.width(0x1F503));
+        assertEquals(1, StringUtils.width(0x26C1));
+        assertEquals(2, StringUtils.width(0x1F3B5));
+        assertEquals(1, StringUtils.width(0x1F5D1));
+        assertEquals(2, StringUtils.width(0x1F9F9));
+        assertEquals(2, StringUtils.width(0x2705));
+        assertEquals(1, StringUtils.width(0x2699));
+    }
 }

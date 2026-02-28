@@ -2000,6 +2000,16 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Check if screen will support incomplete image fragments over text
+     * display.
+     *
+     * @return true if images can partially obscure text
+     */
+    public boolean isImagesOverText() {
+        return false;
+    }
+
+    /**
      * Get window/terminal system focus.
      *
      * @return true if this terminal has the mouse/keyboard focus
