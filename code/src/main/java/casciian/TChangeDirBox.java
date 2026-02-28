@@ -110,6 +110,11 @@ public class TChangeDirBox extends TWindow {
             getLocale());
         setTitle(i18n.getString("title"));
 
+        // Setup buttons on the right
+        String okLabel = i18n.getString("okButton");
+        String revertLabel = i18n.getString("revertButton");
+        final int buttonPanelWidth = 8 + StringUtils.width(okLabel);
+
         setMinimumWindowWidth(getWidth());
         setMinimumWindowHeight(getHeight());
         AnchoredLayoutManager layout = new AnchoredLayoutManager(
@@ -130,12 +135,12 @@ public class TChangeDirBox extends TWindow {
         }
 
         // Add combobox at the top with directory history
-        dirComboBox = addComboBox(1, 1, getWidth() - 4,
+        dirComboBox = addComboBox(1, 1, getWidth() - 6,
             new ArrayList<>(dirHistory),
-            dirHistory.indexOf(originalDir), 5, null);
+            dirHistory.indexOf(originalDir), 5, false, this::doOk);
 
         // Add directory tree view
-        treeView = addTreeViewWidget(1, 3, getWidth() - 16,
+        treeView = addTreeViewWidget(1, 3, getWidth() - buttonPanelWidth - 1,
             getHeight() - 6,
             new TAction() {
                 public void DO() {
@@ -153,49 +158,15 @@ public class TChangeDirBox extends TWindow {
         );
         treeViewRoot = new TDirectoryTreeItem(treeView, originalDir, true);
 
-        // Setup buttons on the right
-        String okLabel = i18n.getString("okButton");
-        String chdirLabel = i18n.getString("chdirButton");
-        String revertLabel = i18n.getString("revertButton");
-
         int buttonX = getWidth() - StringUtils.width(okLabel) - 5;
 
         // OK button: accept the current combobox value as the result
-        TButton okButton = addButton(okLabel, buttonX, 3,
-            new TAction() {
-                public void DO() {
-                    result = dirComboBox.getText();
-                    try {
-                        changeToDirectory(result);
-                    } catch (IOException e) {
-                        // SQUASH
-                    }
-                    getApplication().closeWindow(TChangeDirBox.this);
-                }
-            }
-        );
+        TButton okButton = addButton(okLabel, buttonX, 3, this::doOk);
         layout.setAnchor(okButton, null,
             AnchoredLayoutManager.Anchor.TOP_RIGHT);
 
-        // Chdir button: change to the selected directory, update combo
-        TButton chdirButton = addButton(chdirLabel, buttonX, 6,
-            new TAction() {
-                public void DO() {
-                    String dirPath = dirComboBox.getText();
-                    try {
-                        changeToDirectory(dirPath);
-                        updateComboBox(dirPath);
-                    } catch (IOException e) {
-                        // SQUASH
-                    }
-                }
-            }
-        );
-        layout.setAnchor(chdirButton, null,
-            AnchoredLayoutManager.Anchor.TOP_RIGHT);
-
         // Revert button: revert to the directory when dialog was opened
-        TButton revertButton = addButton(revertLabel, buttonX, 9,
+        TButton revertButton = addButton(revertLabel, buttonX, 6,
             new TAction() {
                 public void DO() {
                     try {
@@ -222,6 +193,19 @@ public class TChangeDirBox extends TWindow {
         // Yield to the secondary thread.  When I come back from the
         // constructor response will already be set.
         getApplication().yield();
+    }
+
+    /**
+     * Handle OK button click.
+     */
+    private void doOk() {
+        result = dirComboBox.getText();
+        try {
+            changeToDirectory(result);
+        } catch (IOException e) {
+            // SQUASH
+        }
+        getApplication().closeWindow(TChangeDirBox.this);
     }
 
     // ------------------------------------------------------------------------
@@ -260,6 +244,9 @@ public class TChangeDirBox extends TWindow {
                 try {
                     dirComboBox.setText(
                         selectedDir.getCanonicalPath());
+                    if (keypress.equalsToKey(kbEnter)) {
+                        doOk();
+                    }
                 } catch (IOException e) {
                     // SQUASH
                 }
