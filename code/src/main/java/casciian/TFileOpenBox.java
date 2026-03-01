@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.ResourceBundle;
 
+import casciian.backend.SystemProperties;
 import casciian.bits.GraphicsChars;
 import casciian.bits.StringUtils;
 import casciian.event.TKeypressEvent;
@@ -151,6 +152,13 @@ public class TFileOpenBox extends TWindow {
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
+        // Resolve relative paths against the application working directory
+        File pathFile = new File(path);
+        if (!pathFile.isAbsolute()) {
+            pathFile = new File(SystemProperties.getUserDir(), path);
+        }
+        final String resolvedPath = pathFile.getCanonicalPath();
+
         setMinimumWindowWidth(getWidth());
         setMinimumWindowHeight(getHeight());
         AnchoredLayoutManager layout = new AnchoredLayoutManager(getWidth() - 2,
@@ -161,7 +169,7 @@ public class TFileOpenBox extends TWindow {
 
         // Add text field
         entryField = addField(1, 1, getWidth() - 4, false,
-            (new File(path)).getCanonicalPath(),
+            resolvedPath,
             new TAction() {
                 public void DO() {
                     try {
@@ -192,10 +200,10 @@ public class TFileOpenBox extends TWindow {
                 }
             }
         );
-        treeViewRoot = new TDirectoryTreeItem(treeView, path, true);
+        treeViewRoot = new TDirectoryTreeItem(treeView, resolvedPath, true);
 
         // Add directory files list
-        directoryList = addDirectoryList(path, 35, 3, 27, getHeight() - 6,
+        directoryList = addDirectoryList(resolvedPath, 35, 3, 27, getHeight() - 6,
             new TAction() {
                 public void DO() {
                     try {

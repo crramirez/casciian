@@ -50,7 +50,7 @@ public class TComboBox extends TWidget {
     /**
      * If true, the field cannot be updated to a value not on the list.
      */
-    private boolean limitToListValue = true;
+    private boolean limitToListValue;
 
     /**
      * The maximum height of the values drop-down when it is visible.
@@ -73,21 +73,27 @@ public class TComboBox extends TWidget {
      * value
      * @param maxValuesHeight the maximum height of the values drop-down when
      * it is visible
+     * @param limitToListValue if true, the field cannot be updated to a value
+     * not on the list
      * @param updateAction action to call when a new value is selected from
      * the list or enter is pressed in the edit field
      */
     @SuppressWarnings("this-escape")
     public TComboBox(final TWidget parent, final int x, final int y,
         final int width, final List<String> values, final int valuesIndex,
-        final int maxValuesHeight, final TAction updateAction) {
+        final int maxValuesHeight, final boolean limitToListValue,
+        final TAction updateAction) {
 
         // Set parent and window
         super(parent, x, y, width, 1);
 
-        assert (values != null);
+        if (values == null) {
+            throw new IllegalArgumentException("values cannot be null");
+        }
 
         this.updateAction = updateAction;
         this.maxValuesHeight = maxValuesHeight;
+        this.limitToListValue = limitToListValue;
 
         field = addField(0, 0, width - 3, false, "", updateAction, null);
         if ((valuesIndex >= 0) && (valuesIndex < values.size())) {
@@ -102,7 +108,7 @@ public class TComboBox extends TWidget {
                     list.setEnabled(false);
                     list.setVisible(false);
                     TComboBox.super.setHeight(1);
-                    if (TComboBox.this.limitToListValue == false) {
+                    if (!TComboBox.this.limitToListValue) {
                         TComboBox.this.activate(field);
                     }
                     if (updateAction != null) {
@@ -123,6 +129,29 @@ public class TComboBox extends TWidget {
         } else {
             activate(field);
         }
+    }
+
+    /**
+     * Public constructor.
+     *
+     * @param parent parent widget
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param width visible combobox width, including the down-arrow
+     * @param values the possible values for the box, shown in the drop-down
+     * @param valuesIndex the initial index in values, or -1 for no default
+     * value
+     * @param maxValuesHeight the maximum height of the values drop-down when
+     * it is visible
+     * @param updateAction action to call when a new value is selected from
+     * the list or enter is pressed in the edit field
+     */
+    public TComboBox(final TWidget parent, final int x, final int y,
+        final int width, final List<String> values, final int valuesIndex,
+        final int maxValuesHeight, final TAction updateAction) {
+
+        this(parent, x, y, width, values, valuesIndex, maxValuesHeight, true,
+            updateAction);
     }
 
     // ------------------------------------------------------------------------
@@ -358,5 +387,4 @@ public class TComboBox extends TWidget {
                     maxValuesHeight)));
         field.setText("");
     }
-
 }

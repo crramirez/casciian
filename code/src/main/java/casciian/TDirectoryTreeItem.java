@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.LinkedList;
 
+import casciian.backend.SystemProperties;
+
 /**
  * TDirectoryTreeItem is a single item in a disk directory tree view.
  */
@@ -80,6 +82,9 @@ public class TDirectoryTreeItem extends TTreeItem {
 
         // Convert to canonical path
         File rootFile = new File(text);
+        if (!rootFile.isAbsolute()) {
+            rootFile = new File(SystemProperties.getUserDir(), text);
+        }
         rootFile = rootFile.getCanonicalFile();
 
         if (openParents) {

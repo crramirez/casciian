@@ -103,14 +103,23 @@ public class TKeypressEvent extends TInputEvent {
             return false;
         }
 
-        if (rhs instanceof TKeypressEvent) {
-            TKeypressEvent that = (TKeypressEvent) rhs;
+        if (rhs instanceof TKeypressEvent that) {
             return (key.equals(that.key)
                 && (getTime().equals(that.getTime())));
         }
 
         TKeypress that = (TKeypress) rhs;
-        return (key.equals(that));
+        return equalsToKey(that);
+    }
+
+    /**
+     * Comparison check.  All fields must match to return true.
+     *
+     * @param rhs another TKeypress instance
+     * @return true if all fields are equal
+     */
+    public boolean equalsToKey(final TKeypress rhs) {
+        return (key.equals(rhs));
     }
 
     /**

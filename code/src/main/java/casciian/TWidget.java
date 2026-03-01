@@ -2598,6 +2598,26 @@ public abstract class TWidget implements Comparable<TWidget> {
      * value
      * @param maxValuesHeight the maximum height of the values drop-down when
      * it is visible
+     * @return the new combobox
+     */
+    public final TComboBox addComboBox(final int x, final int y,
+        final int width, final List<String> values, final int valuesIndex,
+        final int maxValuesHeight) {
+
+        return addComboBox(x, y, width, values, valuesIndex, maxValuesHeight, (TAction)null);
+    }
+
+    /**
+     * Convenience function to add a combobox to this container/window.
+     *
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param width visible combobox width, including the down-arrow
+     * @param values the possible values for the box, shown in the drop-down
+     * @param valuesIndex the initial index in values, or -1 for no default
+     * value
+     * @param maxValuesHeight the maximum height of the values drop-down when
+     * it is visible
      * @param updateAction action to call when a new value is selected from
      * the list or enter is pressed in the edit field
      * @return the new combobox
@@ -2608,6 +2628,93 @@ public abstract class TWidget implements Comparable<TWidget> {
 
         return new TComboBox(this, x, y, width, values, valuesIndex,
             maxValuesHeight, updateAction);
+    }
+
+    /**
+     * Creates and adds a new TComboBox to the interface at the specified location
+     * with the given configuration parameters.
+     *
+     * @param x the x-coordinate of the upper-left corner of the TComboBox.
+     * @param y the y-coordinate of the upper-left corner of the TComboBox.
+     * @param width the width of the TComboBox in characters.
+     * @param values a list of string values to populate the TComboBox.
+     * @param valuesIndex the index of the initially selected value from the list.
+     * @param maxValuesHeight the maximum number of visible entries in the TComboBox drop-down.
+     * @param limitToListValue a flag indicating whether the selection is limited
+     *        to the items in the list.
+     * @param updateAction the action to trigger when the selection changes.
+     * @return a newly created TComboBox object with the specified configuration.
+     */
+    public final TComboBox addComboBox(final int x, final int y,
+        final int width, final List<String> values, final int valuesIndex,
+        final int maxValuesHeight, final boolean limitToListValue, final TAction updateAction) {
+
+        return new TComboBox(this, x, y, width, values, valuesIndex,
+            maxValuesHeight, limitToListValue, updateAction);
+    }
+
+    /**
+     * Convenience function to add a combobox to this container/window.
+     *
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param width visible combobox width, including the down-arrow
+     * @param values the possible values for the box, shown in the drop-down
+     * @param valuesIndex the initial index in values, or -1 for no default
+     * value
+     * @param maxValuesHeight the maximum height of the values drop-down when
+     * it is visible
+     * @param updateAction action to call when a new value is selected from
+     * the list or enter is pressed in the edit field
+     * @return the new combobox
+     */
+    public final TComboBox addComboBox(final int x, final int y,
+        final int width, final List<String> values, final int valuesIndex,
+        final int maxValuesHeight, final Runnable updateAction) {
+
+        if (updateAction == null) {
+            return addComboBox(x, y, width, values, valuesIndex, maxValuesHeight);
+        }
+
+        return addComboBox(x, y, width, values, valuesIndex, maxValuesHeight, new TAction() {
+            @Override
+            public void DO() {
+                updateAction.run();
+            }
+        });
+    }
+
+    /**
+     * Convenience function to add a combobox to this container/window.
+     *
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param width visible combobox width, including the down-arrow
+     * @param values the possible values for the box, shown in the drop-down
+     * @param valuesIndex the initial index in values, or -1 for no default
+     * value
+     * @param maxValuesHeight the maximum height of the values drop-down when
+     * it is visible
+     * @param limitToListValue if true, the edit field will only accept values
+     * from the list
+     * @param updateAction action to call when a new value is selected from
+     * the list or enter is pressed in the edit field
+     * @return the new combobox
+     */
+    public final TComboBox addComboBox(final int x, final int y,
+        final int width, final List<String> values, final int valuesIndex,
+        final int maxValuesHeight, final boolean limitToListValue, final Runnable updateAction) {
+
+        if (updateAction == null) {
+            return addComboBox(x, y, width, values, valuesIndex, maxValuesHeight, limitToListValue, (TAction)null);
+        }
+
+        return addComboBox(x, y, width, values, valuesIndex, maxValuesHeight, limitToListValue, new TAction() {
+            @Override
+            public void DO() {
+                updateAction.run();
+            }
+        });
     }
 
     /**

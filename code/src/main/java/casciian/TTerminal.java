@@ -14,6 +14,7 @@
  */
 package casciian;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.reflect.Field;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
+import casciian.backend.SystemProperties;
 import casciian.bits.Clipboard;
 import casciian.bits.ComplexCell;
 import casciian.bits.ControlSequences;
@@ -869,6 +871,7 @@ public class TTerminal extends TScrollable
 
         try {
             ProcessBuilder pb = new ProcessBuilder(command);
+            pb.directory(new File(SystemProperties.getUserDir()));
             Map<String, String> env = pb.environment();
             String langString = System.getenv().get("LANG");
             if (langString == null) {
