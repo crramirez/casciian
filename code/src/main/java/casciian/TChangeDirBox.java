@@ -35,8 +35,8 @@ import static casciian.TKeypress.*;
 /**
  * TChangeDirBox is a system-modal dialog for selecting a new working
  * directory.  It shows a combobox with previously visited directories
- * at the top, a directory tree view below, and OK / Chdir / Revert
- * buttons on the right.
+ * at the top, a directory tree view below, and OK / Revert buttons
+ * on the right.
  */
 public class TChangeDirBox extends TWindow {
 
@@ -199,12 +199,21 @@ public class TChangeDirBox extends TWindow {
      * Handle OK button click.
      */
     private void doOk() {
-        result = dirComboBox.getText();
-        try {
-            changeToDirectory(result);
-        } catch (IOException e) {
-            // SQUASH
+        String path = dirComboBox.getText();
+
+        File dir = new File(path);
+        if (!dir.isDirectory()) {
+            return;
         }
+
+        try {
+            changeToDirectory(path);
+            updateComboBox(path);
+        } catch (IOException e) {
+            return;
+        }
+
+        result = path;
         getApplication().closeWindow(TChangeDirBox.this);
     }
 

@@ -811,4 +811,50 @@ class SystemPropertiesTest {
         // After reset, should read from system property again
         assertFalse(SystemProperties.isUseJline());
     }
+
+    // -------------------------------------------------------------------------
+    // User Dir Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get userDir returns user.dir system property by default")
+    void testGetUserDirDefault() {
+        assertEquals(System.getProperty("user.dir"), SystemProperties.getUserDir());
+    }
+
+    @Test
+    @DisplayName("Set and get userDir round trip")
+    void testSetUserDirRoundTrip() {
+        String original = SystemProperties.getUserDir();
+        String newDir = "/tmp/test-dir";
+        SystemProperties.setUserDir(newDir);
+        assertEquals(newDir, SystemProperties.getUserDir());
+
+        // Restore
+        SystemProperties.setUserDir(original);
+        assertEquals(original, SystemProperties.getUserDir());
+    }
+
+    @Test
+    @DisplayName("setUserDir does not modify the user.dir system property")
+    void testSetUserDirDoesNotModifySystemProperty() {
+        String originalSystemProp = System.getProperty("user.dir");
+        SystemProperties.setUserDir("/tmp/some-other-dir");
+
+        // The system property should remain unchanged
+        assertEquals(originalSystemProp, System.getProperty("user.dir"));
+    }
+
+    @Test
+    @DisplayName("Reset restores userDir from user.dir system property")
+    void testResetRestoresUserDir() {
+        String originalSystemProp = System.getProperty("user.dir");
+        SystemProperties.setUserDir("/tmp/changed-dir");
+        assertEquals("/tmp/changed-dir", SystemProperties.getUserDir());
+
+        SystemProperties.reset();
+
+        // After reset, should re-read from user.dir system property
+        assertEquals(originalSystemProp, SystemProperties.getUserDir());
+    }
 }
