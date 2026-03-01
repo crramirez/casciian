@@ -16,6 +16,8 @@
 
 package casciian.backend;
 
+import java.io.File;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -826,7 +828,7 @@ class SystemPropertiesTest {
     @DisplayName("Set and get userDir round trip")
     void testSetUserDirRoundTrip() {
         String original = SystemProperties.getUserDir();
-        String newDir = "/tmp/test-dir";
+        String newDir = System.getProperty("java.io.tmpdir") + File.separator + "test-dir";
         SystemProperties.setUserDir(newDir);
         assertEquals(newDir, SystemProperties.getUserDir());
 
@@ -839,7 +841,7 @@ class SystemPropertiesTest {
     @DisplayName("setUserDir does not modify the user.dir system property")
     void testSetUserDirDoesNotModifySystemProperty() {
         String originalSystemProp = System.getProperty("user.dir");
-        SystemProperties.setUserDir("/tmp/some-other-dir");
+        SystemProperties.setUserDir(System.getProperty("java.io.tmpdir") + File.separator + "some-other-dir");
 
         // The system property should remain unchanged
         assertEquals(originalSystemProp, System.getProperty("user.dir"));
@@ -849,8 +851,9 @@ class SystemPropertiesTest {
     @DisplayName("Reset restores userDir from user.dir system property")
     void testResetRestoresUserDir() {
         String originalSystemProp = System.getProperty("user.dir");
-        SystemProperties.setUserDir("/tmp/changed-dir");
-        assertEquals("/tmp/changed-dir", SystemProperties.getUserDir());
+        String changedDir = System.getProperty("java.io.tmpdir") + File.separator + "changed-dir";
+        SystemProperties.setUserDir(changedDir);
+        assertEquals(changedDir, SystemProperties.getUserDir());
 
         SystemProperties.reset();
 
