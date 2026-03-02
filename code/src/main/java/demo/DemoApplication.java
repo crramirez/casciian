@@ -32,7 +32,6 @@ import java.util.ResourceBundle;
 import casciian.TApplication;
 import casciian.TButton;
 import casciian.TDesktop;
-import casciian.TEditColorThemeWindow;
 import casciian.TEditorWindow;
 import casciian.TWidget;
 import casciian.TWindow;
@@ -221,11 +220,6 @@ public class DemoApplication extends TApplication {
      */
     @Override
     public boolean onMenu(final TMenuEvent menu) {
-
-        if (menu.getId() == 2050) {
-            new TEditColorThemeWindow(this);
-            return true;
-        }
 
         if (menu.getId() == TMenu.MID_OPEN_FILE) {
             try {
@@ -602,7 +596,6 @@ public class DemoApplication extends TApplication {
         item = demoMenu.addItem(2002, i18n.getString("normal"));
         TSubMenu subMenu = demoMenu.addSubMenu(i18n.getString("subMenu"));
         item = demoMenu.addItem(2010, i18n.getString("normalAD"));
-        item = demoMenu.addItem(2050, i18n.getString("colors"));
 
         item = subMenu.addItem(2000, i18n.getString("checkableSub"));
         item.setCheckable(true);
