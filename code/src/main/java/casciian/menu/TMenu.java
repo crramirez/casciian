@@ -906,7 +906,7 @@ public class TMenu extends TWindow {
 
         case MID_REPAINT:
             label = i18n.getString("menuRepaintDesktop");
-            icon = 0x1F3A8;
+            icon = 0x1F504;
             break;
 
         case MID_VIEW_IMAGE:
