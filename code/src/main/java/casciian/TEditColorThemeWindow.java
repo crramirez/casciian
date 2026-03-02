@@ -722,7 +722,7 @@ public class TEditColorThemeWindow extends TWindow {
     public TEditColorThemeWindow(final TApplication application) {
 
         // Register with the TApplication
-        super(application, "", 0, 0, 60, 24, MODAL);
+        super(application, "", 0, 0, 60, 25, MODAL);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -737,7 +737,7 @@ public class TEditColorThemeWindow extends TWindow {
             editTheme.setColor(key, attr);
         }
 
-        colorNames = addList(colors, 2, 2, 38, getHeight() - 7,
+        colorNames = addList(colors, 2, 2, 38, getHeight() - 10,
             new TAction() {
                 // When the user presses Enter
                 public void DO() {
@@ -762,8 +762,10 @@ public class TEditColorThemeWindow extends TWindow {
         refreshFromTheme(colors.get(0));
         colorNames.setSelectedIndex(0);
 
-        addLabel(i18n.getString("casciianrcHint"), 2, getHeight() - 6,
+        TText tText = addText(i18n.getString("casciianrcHint"), 2, getHeight() - 7, getWidth() - 2, 3,
             "twindow.background.modal");
+        tText.getHorizontalScroller().setVisible(false);
+        tText.setEnabled(false);
 
         addButton(i18n.getString("okButton"), getWidth() - 53, getHeight() - 4,
             new TAction() {
@@ -906,9 +908,9 @@ public class TEditColorThemeWindow extends TWindow {
         } catch (NumberFormatException e) {
             // SQUASH
         }
-        putStringXY(getWidth() - 17, getHeight() - 6,
+        putStringXY(getWidth() - 17, getHeight() - 9,
             i18n.getString("textTextText"), attr);
-        putStringXY(getWidth() - 17, getHeight() - 5,
+        putStringXY(getWidth() - 17, getHeight() - 8,
             i18n.getString("textTextText"), attr);
     }
 
