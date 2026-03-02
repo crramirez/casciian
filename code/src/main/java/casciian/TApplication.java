@@ -1298,6 +1298,11 @@ public class TApplication implements Runnable {
             return true;
         }
 
+        if (menu.getId() == TMenu.MID_COLORS) {
+            new TEditColorThemeWindow(this);
+            return true;
+        }
+
         if (menu.getId() == TMenu.MID_CUT) {
             postMenuEvent(new TCommandEvent(menu.getBackend(), cmCut));
             return true;
@@ -4243,6 +4248,8 @@ public class TApplication implements Runnable {
         toolMenu.addSeparator();
         toolMenu.addDefaultItem(TMenu.MID_VIEW_IMAGE);
         toolMenu.addDefaultItem(TMenu.MID_VIEW_ANSI);
+        toolMenu.addSeparator();
+        toolMenu.addDefaultItem(TMenu.MID_COLORS);
         TStatusBar toolStatusBar = toolMenu.newStatusBar(i18n.
             getString("toolMenuStatus"));
         toolStatusBar.addShortcutKeypress(kbF1, cmHelp, i18n.getString("Help"));

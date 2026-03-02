@@ -722,7 +722,7 @@ public class TEditColorThemeWindow extends TWindow {
     public TEditColorThemeWindow(final TApplication application) {
 
         // Register with the TApplication
-        super(application, "", 0, 0, 60, 22, MODAL);
+        super(application, "", 0, 0, 60, 24, MODAL);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -761,6 +761,9 @@ public class TEditColorThemeWindow extends TWindow {
         background = new BackgroundPicker(this, 42, 9, 14, 6);
         refreshFromTheme(colors.get(0));
         colorNames.setSelectedIndex(0);
+
+        addLabel(i18n.getString("casciianrcHint"), 2, getHeight() - 6,
+            "twindow.background.modal");
 
         addButton(i18n.getString("okButton"), getWidth() - 53, getHeight() - 4,
             new TAction() {

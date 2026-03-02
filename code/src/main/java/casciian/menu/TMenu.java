@@ -73,6 +73,11 @@ public class TMenu extends TWindow {
      */
     public static final int MID_TEXT_CURSOR_GLINT       = 5;
 
+    /**
+     * Colors editor.
+     */
+    public static final int MID_COLORS                  = 6;
+
     // File menu --------------------------------------------------------------
 
     /**
@@ -918,6 +923,11 @@ public class TMenu extends TWindow {
             label = i18n.getString("menuTextCursorGlint");
             key = kbAltF12;
             icon = 0x2728;
+            break;
+
+        case MID_COLORS:
+            label = i18n.getString("menuColors");
+            icon = 0x1F3A8;
             break;
 
         case MID_NEW:
