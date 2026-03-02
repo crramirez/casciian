@@ -762,7 +762,7 @@ public class TEditColorThemeWindow extends TWindow {
         refreshFromTheme(colors.get(0));
         colorNames.setSelectedIndex(0);
 
-        TText tText = addText(i18n.getString("casciianrcHint"), 2, getHeight() - 7, getWidth() - 2, 3,
+        TText tText = addText(i18n.getString("casciianrcHint"), 2, getHeight() - 7, getWidth() - 4, 3,
             "twindow.background.modal");
         tText.getHorizontalScroller().setVisible(false);
         tText.setEnabled(false);
