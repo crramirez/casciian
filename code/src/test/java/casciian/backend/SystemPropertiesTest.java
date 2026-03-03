@@ -48,6 +48,7 @@ class SystemPropertiesTest {
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS);
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET);
         System.clearProperty(SystemProperties.CASCIIAN_USE_JLINE);
+        System.clearProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
         SystemProperties.reset();
     }
 
@@ -812,6 +813,72 @@ class SystemPropertiesTest {
         
         // After reset, should read from system property again
         assertFalse(SystemProperties.isUseJline());
+    }
+
+    // -------------------------------------------------------------------------
+    // RGB Color Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get rgbColor returns default value (false) when not set")
+    void testIsRgbColorDefault() {
+        assertFalse(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Get rgbColor returns true when set to 'true'")
+    void testIsRgbColorSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR, "true");
+        assertTrue(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Get rgbColor returns false when set to 'false'")
+    void testIsRgbColorSetFalse() {
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR, "false");
+        assertFalse(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Set rgbColor to true")
+    void testSetRgbColorTrue() {
+        SystemProperties.setRgbColor(true);
+        assertTrue(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Set rgbColor to false")
+    void testSetRgbColorFalse() {
+        SystemProperties.setRgbColor(false);
+        assertFalse(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Set and get rgbColor round trip")
+    void testSetRgbColorRoundTrip() {
+        // Verify default initial state
+        assertFalse(SystemProperties.isRgbColor());
+
+        SystemProperties.setRgbColor(true);
+        assertTrue(SystemProperties.isRgbColor());
+
+        SystemProperties.setRgbColor(false);
+        assertFalse(SystemProperties.isRgbColor());
+
+        SystemProperties.setRgbColor(true);
+        assertTrue(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Reset clears rgbColor cached value")
+    void testResetClearsRgbColor() {
+        SystemProperties.setRgbColor(true);
+        assertTrue(SystemProperties.isRgbColor());
+
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR, "false");
+        SystemProperties.reset();
+
+        assertFalse(SystemProperties.isRgbColor());
     }
 
     // -------------------------------------------------------------------------

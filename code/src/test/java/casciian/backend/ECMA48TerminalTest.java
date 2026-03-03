@@ -262,12 +262,11 @@ class ECMA48TerminalTest {
     }
 
     @Test
-    @DisplayName("isRgbColor returns boolean value")
+    @DisplayName("isRgbColor returns default value (false)")
     void testIsRgbColor() {
         terminal = createTerminal();
-        boolean isRgb = terminal.isRgbColor();
-        // Should return a boolean value
-        assertNotNull(isRgb);
+        // Default RGB color mode is expected to be false
+        assertFalse(SystemProperties.isRgbColor());
     }
 
     @Test
@@ -275,11 +274,11 @@ class ECMA48TerminalTest {
     void testSetRgbColor() {
         terminal = createTerminal();
 
-        terminal.setRgbColor(true);
-        assertTrue(terminal.isRgbColor());
+        SystemProperties.setRgbColor(true);
+        assertTrue(SystemProperties.isRgbColor());
 
-        terminal.setRgbColor(false);
-        assertFalse(terminal.isRgbColor());
+        SystemProperties.setRgbColor(false);
+        assertFalse(SystemProperties.isRgbColor());
     }
 
     @Test
@@ -593,6 +592,120 @@ class ECMA48TerminalTest {
         }
     }
     
+    // RGB color mode tests (doRgbColor flag)
+
+    @Test
+    @DisplayName("When rgbColor enabled, palette foreground colors emit RGB sequences")
+    void shouldEmitRgbSequenceForPaletteForegroundWhenRgbColorEnabled() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Enable RGB color mode
+        SystemProperties.setRgbColor(true);
+
+        // Set up a cell with palette foreground color (no explicit RGB)
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(false);
+        attr.setForeColor(Color.GREEN);
+        attr.setBackColor(Color.BLACK);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        // Should contain T.416 RGB foreground sequence (38;2;R;G;B)
+        assertTrue(output.contains("\033[38;2;"),
+            "With rgbColor enabled, palette foreground should emit RGB sequence. Output: " +
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("When rgbColor enabled, palette background colors emit RGB sequences")
+    void shouldEmitRgbSequenceForPaletteBackgroundWhenRgbColorEnabled() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Enable RGB color mode
+        SystemProperties.setRgbColor(true);
+
+        // Set up a cell with non-default palette background color (no explicit RGB)
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(false);
+        attr.setForeColor(Color.WHITE);
+        attr.setBackColor(Color.BLUE);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        // Should contain T.416 RGB background sequence (48;2;R;G;B)
+        assertTrue(output.contains("\033[48;2;"),
+            "With rgbColor enabled, palette background should emit RGB sequence. Output: " +
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("When rgbColor disabled, palette colors do NOT emit RGB sequences")
+    void shouldNotEmitRgbSequenceForPaletteColorsWhenRgbColorDisabled() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Ensure RGB color mode is disabled
+        SystemProperties.setRgbColor(false);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(false);
+        attr.setForeColor(Color.GREEN);
+        attr.setBackColor(Color.BLUE);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        // Should NOT contain T.416 RGB sequences
+        assertFalse(output.contains("38;2;"),
+            "With rgbColor disabled, palette foreground should not emit RGB sequence. Output: " +
+            escapeForDisplay(output));
+        assertFalse(output.contains("48;2;"),
+            "With rgbColor disabled, palette background should not emit RGB sequence. Output: " +
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("When rgbColor enabled, bold foreground also emits RGB sequences")
+    void shouldEmitRgbSequenceForBoldForegroundWhenRgbColorEnabled() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        SystemProperties.setRgbColor(true);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(true);
+        attr.setForeColor(Color.GREEN);
+        attr.setBackColor(Color.BLACK);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        // Should contain T.416 RGB foreground sequence (38;2;R;G;B)
+        assertTrue(output.contains("\033[38;2;"),
+            "With rgbColor enabled, bold palette foreground should emit RGB sequence. Output: " +
+            escapeForDisplay(output));
+    }
+
     // Helper methods
 
     private ECMA48Terminal createTerminal() {
