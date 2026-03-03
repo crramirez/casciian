@@ -99,12 +99,17 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * String that XTVERSION should contain if the terminal is Konsole
      */
-    public static final String XTVERSION_FOR_KONSOLE = "Konsole";
+    private static final String XTVERSION_FOR_KONSOLE = "Konsole";
 
     /**
      * String that XTVERSION should contain if the terminal is XTerm
      */
-    public static final String XTVERSION_FOR_XTERM = "XTerm";
+    private static final String XTVERSION_FOR_XTERM = "XTerm";
+
+    /**
+     * String that XTVERSION should contain if the terminal is Warp
+     */
+    private static final String XTVERSION_FOR_WARP = "Warp";
 
     /**
      * States in the input parser.
@@ -2608,6 +2613,14 @@ public class ECMA48Terminal extends LogicalScreen
             }
 
             // Konsole doesn't support changing the palette, and the contrast between regular and bright colors
+            // is too low in the default profile. So, we force sending full rgb colors.
+            if (!SystemProperties.isUseTerminalPalette()) {
+                SystemProperties.setRgbColor(true);
+            }
+        }
+
+        if (text.contains(XTVERSION_FOR_WARP)) {
+            // Warp doesn't support changing the palette, and the contrast between regular and bright colors
             // is too low in the default profile. So, we force sending full rgb colors.
             if (!SystemProperties.isUseTerminalPalette()) {
                 SystemProperties.setRgbColor(true);
