@@ -265,7 +265,7 @@ class ECMA48TerminalTest {
     @DisplayName("isRgbColor returns boolean value")
     void testIsRgbColor() {
         terminal = createTerminal();
-        boolean isRgb = terminal.isRgbColor();
+        boolean isRgb = SystemProperties.isRgbColor();
         // Should return a boolean value
         assertNotNull(isRgb);
     }
@@ -275,11 +275,11 @@ class ECMA48TerminalTest {
     void testSetRgbColor() {
         terminal = createTerminal();
 
-        terminal.setRgbColor(true);
-        assertTrue(terminal.isRgbColor());
+        SystemProperties.setRgbColor(true);
+        assertTrue(SystemProperties.isRgbColor());
 
-        terminal.setRgbColor(false);
-        assertFalse(terminal.isRgbColor());
+        SystemProperties.setRgbColor(false);
+        assertFalse(SystemProperties.isRgbColor());
     }
 
     @Test
@@ -602,7 +602,7 @@ class ECMA48TerminalTest {
         assertNotNull(terminal);
 
         // Enable RGB color mode
-        terminal.setRgbColor(true);
+        SystemProperties.setRgbColor(true);
 
         // Set up a cell with palette foreground color (no explicit RGB)
         CellAttributes attr = new CellAttributes();
@@ -630,7 +630,7 @@ class ECMA48TerminalTest {
         assertNotNull(terminal);
 
         // Enable RGB color mode
-        terminal.setRgbColor(true);
+        SystemProperties.setRgbColor(true);
 
         // Set up a cell with non-default palette background color (no explicit RGB)
         CellAttributes attr = new CellAttributes();
@@ -658,7 +658,7 @@ class ECMA48TerminalTest {
         assertNotNull(terminal);
 
         // Ensure RGB color mode is disabled
-        terminal.setRgbColor(false);
+        SystemProperties.setRgbColor(false);
 
         CellAttributes attr = new CellAttributes();
         attr.setBold(false);
@@ -687,7 +687,7 @@ class ECMA48TerminalTest {
         terminal = createTerminal();
         assertNotNull(terminal);
 
-        terminal.setRgbColor(true);
+        SystemProperties.setRgbColor(true);
 
         CellAttributes attr = new CellAttributes();
         attr.setBold(true);

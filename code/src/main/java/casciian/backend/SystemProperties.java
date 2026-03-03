@@ -150,6 +150,14 @@ public class SystemProperties {
     public static final String CASCIIAN_USE_JLINE = "casciian.useJline";
 
     /**
+     * System property key for emitting T.416-style RGB colors for normal
+     * system colors instead of palette numbers.
+     * Valid values: "true" or "false"
+     * Default: false
+     */
+    public static final String CASCIIAN_ECMA48_RGB_COLOR = "casciian.ECMA48.rgbColor";
+
+    /**
      * Environment variable name for the Casciian configuration file path.
      * If this environment variable is set, it should point to a properties file
      * that will be loaded at class initialization. Properties from this file
@@ -309,6 +317,14 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> useJline = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the ECMA48 RGB color setting.
+     * When true, emit T.416-style RGB colors for normal system colors.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> ecma48RgbColor = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the current working directory.
@@ -761,6 +777,26 @@ public class SystemProperties {
     }
 
     /**
+     * Get the ECMA48 RGB color value from system properties.
+     *
+     * @return true if T.416-style RGB colors should be emitted for normal
+     *         system colors, false otherwise. Default is false.
+     */
+    public static boolean isRgbColor() {
+        return getBooleanProperty(ecma48RgbColor, CASCIIAN_ECMA48_RGB_COLOR, false);
+    }
+
+    /**
+     * Set the ECMA48 RGB color value in system properties.
+     *
+     * @param value true to emit T.416-style RGB colors, false to use palette
+     *              numbers
+     */
+    public static void setRgbColor(boolean value) {
+        setBooleanProperty(ecma48RgbColor, CASCIIAN_ECMA48_RGB_COLOR, value);
+    }
+
+    /**
      * Get the current working directory.
      * This returns the cached value which may differ from
      * {@code System.getProperty("user.dir")} after a call to
@@ -804,6 +840,7 @@ public class SystemProperties {
         disablePreTransform.set(null);
         disablePostTransform.set(null);
         useJline.set(null);
+        ecma48RgbColor.set(null);
         userDir.set(System.getProperty("user.dir"));
     }
 }

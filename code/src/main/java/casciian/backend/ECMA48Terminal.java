@@ -138,12 +138,10 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private boolean debugToStderr = false;
 
-    /**
-     * If true, emit T.416-style RGB colors for normal system colors.  This
-     * is a) expensive in bandwidth, and b) potentially terrible looking for
-     * non-xterms.
+    /*
+     * RGB color mode is now managed by SystemProperties.isRgbColor().
+     * The doRgbColor field has been removed.
      */
-    private boolean doRgbColor = false;
 
     /**
      * The backend that is reading from this terminal.
@@ -1127,14 +1125,7 @@ public class ECMA48Terminal extends LogicalScreen
             modifyOtherKeys = false;
         }
 
-        // Permit RGB colors only if externally requested.
-        if (System.getProperty("casciian.ECMA48.rgbColor",
-            "false").equals("true")
-        ) {
-            doRgbColor = true;
-        } else {
-            doRgbColor = false;
-        }
+        // RGB color mode is now managed by SystemProperties.isRgbColor().
 
         // Default to sixel enabled.
         sixel = !System.getProperty("casciian.ECMA48.sixel", "true").equals("false");
@@ -4289,7 +4280,7 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String rgbColor(final boolean bold, final Color color,
                             final boolean foreground) {
-        if (!doRgbColor) {
+        if (!SystemProperties.isRgbColor()) {
             return "";
         }
         StringBuilder sb = new StringBuilder("\033[");
@@ -4317,7 +4308,7 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String rgbColor(final boolean bold, final Color foreColor,
                             final Color backColor) {
-        if (!doRgbColor) {
+        if (!SystemProperties.isRgbColor()) {
             return "";
         }
 
@@ -4733,7 +4724,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @return true if the standard system colors will be emitted as 24-bit RGB
      */
     public boolean isRgbColor() {
-        return doRgbColor;
+        return SystemProperties.isRgbColor();
     }
 
     /**
@@ -4743,7 +4734,7 @@ public class ECMA48Terminal extends LogicalScreen
      *                 24-bit RGB images
      */
     public void setRgbColor(final boolean rgbColor) {
-        doRgbColor = rgbColor;
+        SystemProperties.setRgbColor(rgbColor);
     }
 
     /**
