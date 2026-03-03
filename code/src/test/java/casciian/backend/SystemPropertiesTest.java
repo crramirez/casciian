@@ -48,6 +48,7 @@ class SystemPropertiesTest {
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS);
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET);
         System.clearProperty(SystemProperties.CASCIIAN_USE_JLINE);
+        System.clearProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
         SystemProperties.reset();
     }
 
@@ -855,6 +856,9 @@ class SystemPropertiesTest {
     @Test
     @DisplayName("Set and get rgbColor round trip")
     void testSetRgbColorRoundTrip() {
+        // Verify default initial state
+        assertFalse(SystemProperties.isRgbColor());
+
         SystemProperties.setRgbColor(true);
         assertTrue(SystemProperties.isRgbColor());
 
