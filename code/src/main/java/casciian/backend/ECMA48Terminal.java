@@ -138,11 +138,6 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private boolean debugToStderr = false;
 
-    /*
-     * RGB color mode is now managed by SystemProperties.isRgbColor().
-     * The doRgbColor field has been removed.
-     */
-
     /**
      * The backend that is reading from this terminal.
      */
@@ -1124,8 +1119,6 @@ public class ECMA48Terminal extends LogicalScreen
         } else {
             modifyOtherKeys = false;
         }
-
-        // RGB color mode is now managed by SystemProperties.isRgbColor().
 
         // Default to sixel enabled.
         sixel = !System.getProperty("casciian.ECMA48.sixel", "true").equals("false");
@@ -4716,25 +4709,6 @@ public class ECMA48Terminal extends LogicalScreen
         String textToCopy = StringUtils.toBase64(textBytes);
         this.output.printf("\033]52;c;%s\033\\", textToCopy);
         this.output.flush();
-    }
-
-    /**
-     * Get the rgbColor flag.
-     *
-     * @return true if the standard system colors will be emitted as 24-bit RGB
-     */
-    public boolean isRgbColor() {
-        return SystemProperties.isRgbColor();
-    }
-
-    /**
-     * Set the rgbColor flag.
-     *
-     * @param rgbColor if true, the standard system colors will be emitted as
-     *                 24-bit RGB images
-     */
-    public void setRgbColor(final boolean rgbColor) {
-        SystemProperties.setRgbColor(rgbColor);
     }
 
     /**
