@@ -1747,6 +1747,8 @@ public class ECMA48Terminal extends LogicalScreen
                         }
                         sb.append(color(lCell.getForeColor(), true, true,
                             lCell.isBold()));
+                        sb.append(rgbColor(lCell.isBold(),
+                            lCell.getForeColor(), true));
                     }
                 }
 
@@ -1778,6 +1780,8 @@ public class ECMA48Terminal extends LogicalScreen
                             System.err.println("6 set backColor");
                         }
                         sb.append(color(lCell.getBackColor(), false, true));
+                        sb.append(rgbColor(false,
+                            lCell.getBackColor(), false));
                     }
                 }
 
