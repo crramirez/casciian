@@ -262,12 +262,11 @@ class ECMA48TerminalTest {
     }
 
     @Test
-    @DisplayName("isRgbColor returns boolean value")
+    @DisplayName("isRgbColor returns default value (false)")
     void testIsRgbColor() {
         terminal = createTerminal();
-        boolean isRgb = SystemProperties.isRgbColor();
-        // Should return a boolean value
-        assertNotNull(isRgb);
+        // Default RGB color mode is expected to be false
+        assertFalse(SystemProperties.isRgbColor());
     }
 
     @Test

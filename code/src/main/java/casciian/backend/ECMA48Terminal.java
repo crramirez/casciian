@@ -2613,17 +2613,25 @@ public class ECMA48Terminal extends LogicalScreen
             }
 
             // Konsole doesn't support changing the palette, and the contrast between regular and bright colors
-            // is too low in the default profile. So, we force sending full rgb colors.
+            // is too low in the default profile. So, we force sending full rgb colors, unless the user has
+            // explicitly configured casciian.ECMA48.rgbColor.
             if (!SystemProperties.isUseTerminalPalette()) {
-                SystemProperties.setRgbColor(true);
+                String rgbColorProperty = System.getProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
+                if (rgbColorProperty == null) {
+                    SystemProperties.setRgbColor(true);
+                }
             }
         }
 
         if (text.contains(XTVERSION_FOR_WARP)) {
             // Warp doesn't support changing the palette, and the contrast between regular and bright colors
-            // is too low in the default profile. So, we force sending full rgb colors.
+            // is too low in the default profile. So, we force sending full rgb colors, unless the user has
+            // explicitly configured casciian.ECMA48.rgbColor.
             if (!SystemProperties.isUseTerminalPalette()) {
-                SystemProperties.setRgbColor(true);
+                String rgbColorProperty = System.getProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
+                if (rgbColorProperty == null) {
+                    SystemProperties.setRgbColor(true);
+                }
             }
         }
 

@@ -815,6 +815,69 @@ class SystemPropertiesTest {
     }
 
     // -------------------------------------------------------------------------
+    // RGB Color Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get rgbColor returns default value (false) when not set")
+    void testIsRgbColorDefault() {
+        assertFalse(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Get rgbColor returns true when set to 'true'")
+    void testIsRgbColorSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR, "true");
+        assertTrue(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Get rgbColor returns false when set to 'false'")
+    void testIsRgbColorSetFalse() {
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR, "false");
+        assertFalse(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Set rgbColor to true")
+    void testSetRgbColorTrue() {
+        SystemProperties.setRgbColor(true);
+        assertTrue(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Set rgbColor to false")
+    void testSetRgbColorFalse() {
+        SystemProperties.setRgbColor(false);
+        assertFalse(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Set and get rgbColor round trip")
+    void testSetRgbColorRoundTrip() {
+        SystemProperties.setRgbColor(true);
+        assertTrue(SystemProperties.isRgbColor());
+
+        SystemProperties.setRgbColor(false);
+        assertFalse(SystemProperties.isRgbColor());
+
+        SystemProperties.setRgbColor(true);
+        assertTrue(SystemProperties.isRgbColor());
+    }
+
+    @Test
+    @DisplayName("Reset clears rgbColor cached value")
+    void testResetClearsRgbColor() {
+        SystemProperties.setRgbColor(true);
+        assertTrue(SystemProperties.isRgbColor());
+
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR, "false");
+        SystemProperties.reset();
+
+        assertFalse(SystemProperties.isRgbColor());
+    }
+
+    // -------------------------------------------------------------------------
     // User Dir Tests
     // -------------------------------------------------------------------------
 
