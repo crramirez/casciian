@@ -16,8 +16,10 @@
 
 package casciian.backend;
 
+import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.Color;
+import casciian.bits.ImageRGB;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -855,6 +857,49 @@ class ECMA48TerminalTest {
         assertNull(threadException.get(), 
             "Concurrent access should not throw: " + threadException.get());
     }
-    
-    
+    // Unicode glyph fallback tests
+
+    @Test
+    @DisplayName("Image cells rendered as colored block characters when sixel and jexer are disabled")
+    void testUnicodeGlyphFallbackRendersBlockCharacters() {
+        System.setProperty("casciian.ECMA48.jexerImages", "false");
+        try {
+            terminal = createTerminal();
+            assertNotNull(terminal);
+
+            // Disable sixel rendering
+            terminal.setHasSixel(false);
+
+            // Create an image cell with a solid red color (0xFF0000)
+            ImageRGB img = new ImageRGB(10, 20);
+            for (int px = 0; px < 10; px++) {
+                for (int py = 0; py < 20; py++) {
+                    img.setRGB(px, py, 0xFF0000);
+                }
+            }
+            Cell cell = new Cell();
+            cell.setImage(img);
+
+            // Put the image cell on the screen
+            terminal.putCharXY(0, 0, cell);
+
+            // Clear output to capture only flush output
+            outputStream.reset();
+
+            terminal.flushPhysical();
+
+            String output = outputStream.toString();
+
+            // Should contain the full block character (U+2588)
+            assertTrue(output.contains("\u2588"),
+                "Fallback should render block character. Output: " + escapeForDisplay(output));
+
+            // Should contain an RGB color sequence (38;2; for foreground)
+            assertTrue(output.contains("38;2;"),
+                "Fallback should emit RGB foreground color. Output: " + escapeForDisplay(output));
+        } finally {
+            System.clearProperty("casciian.ECMA48.jexerImages");
+        }
+    }
+
 }

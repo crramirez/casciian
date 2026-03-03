@@ -1943,6 +1943,8 @@ public class ECMA48Terminal extends LogicalScreen
                             sb.append(toJexerImage(x, y, cellsToDraw));
                         } else if (sixel) {
                             sb.append(toSixel(x, y, cellsToDraw));
+                        } else {
+                            sb.append(toUnicodeGlyph(x, y, cellsToDraw));
                         }
                     } else {
                         // Multi-threaded: experimental and likely borken
@@ -1957,8 +1959,10 @@ public class ECMA48Terminal extends LogicalScreen
                             public String call() {
                                 if (jexerImageOption != JexerImageOption.DISABLED) {
                                     return toJexerImage(callX, callY, callCells);
-                                } else {
+                                } else if (sixel) {
                                     return toSixel(callX, callY, callCells);
+                                } else {
+                                    return toUnicodeGlyph(callX, callY, callCells);
                                 }
                             }
                         }));
@@ -4003,6 +4007,61 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         return (gotoXY(x, y) + sb.toString());
+    }
+
+    /**
+     * Compute the average RGB color of all pixels in an image cell.
+     *
+     * @param img the image
+     * @return the average color as a 24-bit RGB value
+     */
+    private int averageCellColor(final ImageRGB img) {
+        long r = 0, g = 0, b = 0;
+        int w = img.getWidth();
+        int h = img.getHeight();
+        for (int px = 0; px < w; px++) {
+            for (int py = 0; py < h; py++) {
+                int rgb = img.getRGB(px, py);
+                r += (rgb >>> 16) & 0xFF;
+                g += (rgb >>> 8) & 0xFF;
+                b += rgb & 0xFF;
+            }
+        }
+        int count = w * h;
+        if (count == 0) {
+            return 0;
+        }
+        return (int) (r / count) << 16 | (int) (g / count) << 8 | (int) (b / count);
+    }
+
+    /**
+     * Create a string representing a row of image cells as unicode block
+     * characters, for terminals that do not support sixel or jexer images.
+     * Each cell's image is replaced by a full block character (&#x2588;) colored
+     * with the average color of the cell's pixels.
+     *
+     * @param x     column coordinate.  0 is the left-most column.
+     * @param y     row coordinate.  0 is the top-most row.
+     * @param cells the cells containing the bitmap data
+     * @return the string to emit to an ANSI / ECMA-style terminal
+     */
+    private String toUnicodeGlyph(final int x, final int y,
+                                  final ArrayList<Cell> cells) {
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(gotoXY(x, y));
+        for (Cell cell : cells) {
+            ImageRGB img = cell.getImage();
+            if (img == null) {
+                sb.append(' ');
+                continue;
+            }
+            int avgColor = averageCellColor(img);
+            sb.append(colorRGB(avgColor, avgColor));
+            sb.append('\u2588');
+        }
+        sb.append(defaultColor());
+        return sb.toString();
     }
 
     // ------------------------------------------------------------------------
