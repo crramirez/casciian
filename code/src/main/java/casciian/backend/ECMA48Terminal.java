@@ -97,6 +97,16 @@ public class ECMA48Terminal extends LogicalScreen
     private static final String POINTER_SHAPE_DEFAULT = "default";
 
     /**
+     * String that XTVERSION should contain if the terminal is Konsole
+     */
+    public static final String XTVERSION_FOR_KONSOLE = "Konsole";
+
+    /**
+     * String that XTVERSION should contain if the terminal is XTerm
+     */
+    public static final String XTVERSION_FOR_XTERM = "XTerm";
+
+    /**
      * States in the input parser.
      */
     private enum ParseState {
@@ -922,7 +932,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         if (output != null) {
             if (hasSynchronizedOutput) {
-                if (sb.length() > 0) {
+                if (!sb.isEmpty()) {
                     // Begin Synchronized Update (BSU)
                     output.write("\033[?2026h");
                     if (debugToStderr) {
@@ -938,7 +948,7 @@ public class ECMA48Terminal extends LogicalScreen
                         sb.toString());
                 }
             } else {
-                if (sb.length() > 0) {
+                if (!sb.isEmpty()) {
                     if (debugToStderr) {
                         System.err.printf("Writing %d bytes to terminal\n",
                             sb.length());
@@ -2565,7 +2575,7 @@ public class ECMA48Terminal extends LogicalScreen
             terminalVersion = text.substring(1);
         }
 
-        if (text.contains("XTerm")) {
+        if (text.contains(XTVERSION_FOR_XTERM)) {
             if (debugToStderr) {
                 System.err.println("  -- Genuine(tm) XTerm! -- ");
             }
@@ -2582,7 +2592,7 @@ public class ECMA48Terminal extends LogicalScreen
         // erasing text will re-expose the image.  We need to
         // explicitly destroy any images being overwritten by text for
         // that case.
-        if (text.contains("Konsole")) {
+        if (text.contains(XTVERSION_FOR_KONSOLE)) {
             String str = System.getProperty("casciian.ECMA48.explicitlyDestroyImages");
             if ((str != null) && (str.equals("false"))) {
                 if (debugToStderr) {
@@ -2597,6 +2607,11 @@ public class ECMA48Terminal extends LogicalScreen
                 //explicitlyDestroyImages = true;
             }
 
+            // Konsole doesn't support changing the palette, and the contrast between regular and bright colors
+            // is too low in the default profile. So, we force sending full rgb colors.
+            if (!SystemProperties.isUseTerminalPalette()) {
+                SystemProperties.setRgbColor(true);
+            }
         }
 
         setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
@@ -3331,23 +3346,23 @@ public class ECMA48Terminal extends LogicalScreen
                                 }
                                 // DECRPM response
                                 if (params.size() == 2) {
-                                    String Pd = params.getFirst();
-                                    String Ps = params.get(1);
-                                    if (Ps.equals("1")          // Set
-                                        || Ps.equals("2")       // Reset
-                                        || Ps.equals("3")       // Permanently set
-                                        || Ps.equals("4")       // Permanently reset
+                                    String pd = params.getFirst();
+                                    String ps = params.get(1);
+                                    if (ps.equals("1")          // Set
+                                        || ps.equals("2")       // Reset
+                                        || ps.equals("3")       // Permanently set
+                                        || ps.equals("4")       // Permanently reset
                                     ) {
                                         // This option was recognized, and is in some
                                         // state.
-                                        if (Pd.equals("2026")) {
+                                        if (pd.equals("2026")) {
                                             if (debugToStderr) {
                                                 System.err.println("DECRPM: " +
                                                     "has Synchronized Output support");
                                             }
                                             hasSynchronizedOutput = true;
                                         }
-                                        if (Pd.equals("8452")) {
+                                        if (pd.equals("8452")) {
                                             if (debugToStderr) {
                                                 System.err.println("DECRPM: " +
                                                     "has sixelCursorOnRight support");
@@ -3381,7 +3396,7 @@ public class ECMA48Terminal extends LogicalScreen
 
             case XTVERSION:
                 if ((ch == '\\') &&
-                    (xtversionResponse.length() > 0) &&
+                    (!xtversionResponse.isEmpty()) &&
                     (xtversionResponse.charAt(xtversionResponse.length() - 1)
                         == 0x1B)
                 ) {
@@ -3965,15 +3980,6 @@ public class ECMA48Terminal extends LogicalScreen
         return (gotoXY(x, y) + sb.toString());
     }
 
-    /**
-     * Get the Casciian images support flag.
-     *
-     * @return true if this terminal is emitting Casciian images
-     */
-    public boolean hasJexerImages() {
-        return (jexerImageOption != JexerImageOption.DISABLED);
-    }
-
     // ------------------------------------------------------------------------
     // End Casciian image output support -----------------------------------------
     // ------------------------------------------------------------------------
@@ -4366,22 +4372,6 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Create a SGR parameter sequence for both foreground and background
-     * color change.
-     *
-     * @param bold      if true, set bold
-     * @param foreColor one of the Color.WHITE, Color.BLUE, etc. constants
-     * @param backColor one of the Color.WHITE, Color.BLUE, etc. constants
-     * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[31;42m"
-     */
-    private String color(final boolean bold, final Color foreColor,
-                         final Color backColor) {
-        return color(foreColor, backColor, true) +
-            rgbColor(bold, foreColor, backColor);
-    }
-
-    /**
      * Create a SGR parameter sequence for both foreground and
      * background color change.
      *
@@ -4407,113 +4397,6 @@ public class ECMA48Terminal extends LogicalScreen
         } else {
             return String.format("%d;%d;", ecmaForeColor, ecmaBackColor);
         }
-    }
-
-    /**
-     * Build the SGR attribute prefix string based on reverse, blink, and underline flags.
-     * The returned string includes the ESC[ and ends with either 'm' (if terminated)
-     * or a trailing separator for additional parameters.
-     *
-     * @param reverse    if true, include reverse attribute (7)
-     * @param blink      if true, include blink attribute (5)
-     * @param underline  if true, include underline attribute (4)
-     * @param terminated if true, end with 'm'; otherwise end with ';' for more params
-     * @return the SGR prefix string
-     */
-    private static String buildAttributePrefix(final boolean reverse, final boolean blink,
-                                               final boolean underline, final boolean terminated) {
-        StringBuilder sb = new StringBuilder("\033[0");
-        if (reverse) sb.append(";7");
-        if (blink) sb.append(";5");
-        if (underline) sb.append(";4");
-        sb.append(terminated ? "m" : ";");
-        return sb.toString();
-    }
-
-    /**
-     * Create a SGR parameter sequence for foreground, background, and
-     * several attributes.  This sequence first resets all attributes to
-     * default, then sets attributes as per the parameters.
-     * <p>
-     * Note: SGR 1 (bold) is NOT emitted because casciian uses bright colors
-     * (90-97) to indicate bold instead. This avoids showing bold/thick text
-     * on terminals that support it.
-     *
-     * @param foreColor one of the Color.WHITE, Color.BLUE, etc. constants
-     * @param backColor one of the Color.WHITE, Color.BLUE, etc. constants
-     * @param bold      if true, set bold
-     * @param reverse   if true, set reverse
-     * @param blink     if true, set blink
-     * @param underline if true, set underline
-     * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[0;31;42m"
-     */
-    private String color(final Color foreColor, final Color backColor,
-                         final boolean bold, final boolean reverse, final boolean blink,
-                         final boolean underline) {
-
-        int ecmaForeColor = foreColor.getValue() + 30;
-        int ecmaBackColor = backColor.getValue() + 40;
-
-        return buildAttributePrefix(reverse, blink, underline, false)
-            + String.format("%d;%dm", ecmaForeColor, ecmaBackColor)
-            + rgbColor(bold, foreColor, backColor);
-    }
-
-    /**
-     * Create a SGR parameter sequence for several attributes.  This sequence
-     * first resets all attributes to default, then sets attributes as per
-     * the parameters.
-     * <p>
-     * Note: SGR 1 (bold) is NOT emitted because casciian uses bright colors
-     * (90-97) to indicate bold instead. This avoids showing bold/thick text
-     * on terminals that support it.
-     *
-     * @param bold      if true, set bold
-     * @param reverse   if true, set reverse
-     * @param blink     if true, set blink
-     * @param underline if true, set underline
-     * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[0;5m"
-     */
-    private String attributes(final boolean bold, final boolean reverse,
-                              final boolean blink, final boolean underline) {
-        return buildAttributePrefix(reverse, blink, underline, true);
-    }
-
-    /**
-     * Create a SGR parameter sequence for foreground, background, and
-     * several attributes.  This sequence first resets all attributes to
-     * default, then sets attributes as per the parameters.
-     * <p>
-     * Note: SGR 1 (bold) is NOT emitted because casciian uses bright colors
-     * (90-97) to indicate bold instead. This avoids showing bold/thick text
-     * on terminals that support it.
-     *
-     * @param foreColorRGB a 24-bit RGB value for foreground color
-     * @param backColorRGB a 24-bit RGB value for foreground color
-     * @param bold         if true, set bold
-     * @param reverse      if true, set reverse
-     * @param blink        if true, set blink
-     * @param underline    if true, set underline
-     * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[0;31;42m"
-     */
-    private String colorRGB(final int foreColorRGB, final int backColorRGB,
-                            final boolean bold, final boolean reverse, final boolean blink,
-                            final boolean underline) {
-
-        int foreColorRed = (foreColorRGB >>> 16) & 0xFF;
-        int foreColorGreen = (foreColorRGB >>> 8) & 0xFF;
-        int foreColorBlue = foreColorRGB & 0xFF;
-        int backColorRed = (backColorRGB >>> 16) & 0xFF;
-        int backColorGreen = (backColorRGB >>> 8) & 0xFF;
-        int backColorBlue = backColorRGB & 0xFF;
-
-        return buildAttributePrefix(reverse, blink, underline, false)
-            + String.format("m\033[38;2;%d;%d;%dm\033[48;2;%d;%d;%dm",
-                foreColorRed, foreColorGreen, foreColorBlue,
-                backColorRed, backColorGreen, backColorBlue);
     }
 
     /**

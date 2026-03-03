@@ -759,12 +759,13 @@ public class TEditColorThemeWindow extends TWindow {
         );
         foreground = new ForegroundPicker(this, 42, 1, 14, 8);
         background = new BackgroundPicker(this, 42, 9, 14, 6);
-        refreshFromTheme(colors.get(0));
+        refreshFromTheme(colors.getFirst());
         colorNames.setSelectedIndex(0);
 
         TText tText = addText(i18n.getString("casciianrcHint"), 2, getHeight() - 7, getWidth() - 4, 3,
             "twindow.background.modal");
         tText.getHorizontalScroller().setVisible(false);
+        tText.getVerticalScroller().setVisible(false);
         tText.setEnabled(false);
 
         addButton(i18n.getString("okButton"), getWidth() - 53, getHeight() - 4,
