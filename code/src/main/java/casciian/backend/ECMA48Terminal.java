@@ -1873,8 +1873,10 @@ public class ECMA48Terminal extends LogicalScreen
                 }
                 if (jexerImageOption != JexerImageOption.DISABLED) {
                     sb.append(toJexerImage(0, y, blankImageRow));
-                } else {
+                } else if (sixel) {
                     sb.append(toSixel(0, y, blankImageRow));
+                } else {
+                    sb.append(toPseudoImage(0, y, blankImageRow));
                 }
             }
 
@@ -1943,6 +1945,8 @@ public class ECMA48Terminal extends LogicalScreen
                             sb.append(toJexerImage(x, y, cellsToDraw));
                         } else if (sixel) {
                             sb.append(toSixel(x, y, cellsToDraw));
+                        } else {
+                            sb.append(toPseudoImage(x, y, cellsToDraw));
                         }
                     } else {
                         // Multi-threaded: experimental and likely borken
@@ -1957,8 +1961,10 @@ public class ECMA48Terminal extends LogicalScreen
                             public String call() {
                                 if (jexerImageOption != JexerImageOption.DISABLED) {
                                     return toJexerImage(callX, callY, callCells);
-                                } else {
+                                } else if (sixel) {
                                     return toSixel(callX, callY, callCells);
+                                } else {
+                                    return toPseudoImage(callX, callY, callCells);
                                 }
                             }
                         }));
@@ -4007,6 +4013,134 @@ public class ECMA48Terminal extends LogicalScreen
 
     // ------------------------------------------------------------------------
     // End Casciian image output support -----------------------------------------
+    // ------------------------------------------------------------------------
+
+    // ------------------------------------------------------------------------
+    // Pseudo image (Unicode half-block) output support -----------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Create a pseudo image string representing a row of several cells
+     * containing bitmap data, using Unicode half-block characters and RGB
+     * colors to approximate the image.  Each cell is rendered as the lower
+     * half block character (▄, U+2584) with the foreground color set to the
+     * average color of the bottom half of the cell's image and the
+     * background color set to the average color of the top half.
+     *
+     * @param x     column coordinate.  0 is the left-most column.
+     * @param y     row coordinate.  0 is the top-most row.
+     * @param cells the cells containing the bitmap data
+     * @return the string to emit to an ANSI / ECMA-style terminal
+     */
+    private String toPseudoImage(final int x, final int y,
+                                 final ArrayList<Cell> cells) {
+
+        StringBuilder sb = new StringBuilder();
+
+        assert (cells != null);
+        assert (!cells.isEmpty());
+        assert (cells.getFirst().getImage() != null);
+
+        // Check cache first.
+        final ImageCache cache = unicodeGlyphCache;
+        boolean saveInCache = true;
+        for (Cell cell : cells) {
+            if (cell.isInvertedImage()) {
+                saveInCache = false;
+                break;
+            }
+            cell.hashCode();
+        }
+        if (saveInCache && cache != null) {
+            String cachedResult = cache.get(cells);
+            if (cachedResult != null) {
+                sb.append(gotoXY(x, y));
+                sb.append(cachedResult);
+                return sb.toString();
+            }
+        }
+
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < cells.size(); i++) {
+            ImageRGB cellImage = cells.get(i).getImage();
+            int imgWidth = cellImage.getWidth();
+            int imgHeight = cellImage.getHeight();
+
+            int topHalf = imgHeight / 2;
+            if (topHalf < 1) {
+                topHalf = 1;
+            }
+            int bottomHalf = imgHeight - topHalf;
+            if (bottomHalf < 1) {
+                bottomHalf = 1;
+            }
+
+            int topColor = averageColor(cellImage, 0, 0, imgWidth, topHalf);
+            int bottomColor = averageColor(cellImage, 0, topHalf, imgWidth,
+                bottomHalf);
+
+            // ▄ (U+2584): foreground = bottom half, background = top half
+            result.append(String.format("\033[38;2;%d;%d;%d;48;2;%d;%d;%dm\u2584",
+                (bottomColor >>> 16) & 0xFF,
+                (bottomColor >>> 8) & 0xFF,
+                bottomColor & 0xFF,
+                (topColor >>> 16) & 0xFF,
+                (topColor >>> 8) & 0xFF,
+                topColor & 0xFF));
+        }
+
+        if (saveInCache && cache != null) {
+            cache.put(cells, result.toString());
+        }
+
+        sb.append(gotoXY(x, y));
+        sb.append(result);
+        return sb.toString();
+    }
+
+    /**
+     * Compute the average RGB color of a rectangular region of an image.
+     *
+     * @param image  the source image
+     * @param startX left column of the region
+     * @param startY top row of the region
+     * @param w      width of the region
+     * @param h      height of the region
+     * @return the average RGB color as a 24-bit integer
+     */
+    static int averageColor(final ImageRGB image, final int startX,
+                            final int startY, final int w, final int h) {
+
+        long rSum = 0;
+        long gSum = 0;
+        long bSum = 0;
+        int count = 0;
+
+        int endX = Math.min(startX + w, image.getWidth());
+        int endY = Math.min(startY + h, image.getHeight());
+
+        for (int px = startX; px < endX; px++) {
+            for (int py = startY; py < endY; py++) {
+                int rgb = image.getRGB(px, py);
+                rSum += (rgb >>> 16) & 0xFF;
+                gSum += (rgb >>> 8) & 0xFF;
+                bSum += rgb & 0xFF;
+                count++;
+            }
+        }
+
+        if (count == 0) {
+            return 0;
+        }
+
+        int r = (int) (rSum / count);
+        int g = (int) (gSum / count);
+        int b = (int) (bSum / count);
+        return (r << 16) | (g << 8) | b;
+    }
+
+    // ------------------------------------------------------------------------
+    // End pseudo image output support ----------------------------------------
     // ------------------------------------------------------------------------
 
     /**
