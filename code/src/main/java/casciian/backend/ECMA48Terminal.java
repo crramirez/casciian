@@ -2494,6 +2494,20 @@ public class ECMA48Terminal extends LogicalScreen
                 || (newHeight != windowResize.getHeight())
             ) {
 
+                // If the terminal hasn't reported cell size via
+                // CSI 16t, latch the current estimated cell size
+                // so that future widthPixels / heightPixels changes
+                // (from CSI 14t responses) don't alter getTextWidth()
+                // / getTextHeight().  This keeps the cell size stable
+                // across resizes for terminals that only report window
+                // pixel dimensions, not cell pixel dimensions.
+                if (textWidthPixels <= 0) {
+                    textWidthPixels = oldTextWidth;
+                }
+                if (textHeightPixels <= 0) {
+                    textHeightPixels = oldTextHeight;
+                }
+
                 // Request xterm report window dimensions in pixels
                 // again.  Between now and then, ensure that the reported
                 // text cell size is the same by setting widthPixels and

@@ -291,18 +291,6 @@ public class TImage extends TWidget implements EditMenuUser {
         int textWidth = getScreen().getTextWidth();
         int textHeight = getScreen().getTextHeight();
 
-        // For non-BITMAP modes the cells contain text characters
-        // (colored block/half-block glyphs), not pixel sub-images.
-        // Once rendered they display correctly regardless of cell
-        // size, so skip re-rendering when the estimated cell size
-        // changes on terminal resize.  Only re-render when
-        // explicitly requested (always == true), e.g. on initial
-        // load, setImage(), or setDisplayMode().
-        if (!always && effectiveMode != DisplayMode.BITMAP
-            && lastTextWidth > 0 && lastTextHeight > 0) {
-            return;
-        }
-
         if (always || (textWidth > 0
             && (textWidth != lastTextWidth)
             && (textHeight > 0)
