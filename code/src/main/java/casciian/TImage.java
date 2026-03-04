@@ -18,6 +18,7 @@ import casciian.backend.ECMA48Terminal;
 import casciian.bits.Cell;
 import casciian.bits.ImageRGB;
 import casciian.bits.ImageUtils;
+import casciian.bits.UnicodeGlyphImage;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
@@ -32,8 +33,59 @@ import static casciian.TKeypress.*;
 public class TImage extends TWidget implements EditMenuUser {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Selections for approximating the image as text cells.
+     */
+    public enum DisplayMode {
+        /**
+         * Bitmap image.
+         */
+        BITMAP,
+
+        /**
+         * Converted to solid space (' ') character blocks.
+         */
+        BLOCKS,
+
+        /**
+         * Converted to Unicode half-block glyphs.
+         */
+        UNICODE_HALVES,
+
+        /**
+         * Converted to Unicode sextant glyphs.
+         */
+        UNICODE_SEXTANTS,
+
+        /**
+         * Converted to Unicode quadrant-block glyphs.
+         */
+        UNICODE_QUADRANTS,
+
+        /**
+         * Converted to Unicode 6-dot Braille glyphs on this window's
+         * background color.
+         */
+        UNICODE_SIXDOT,
+
+        /**
+         * Converted to Unicode 6-dot Braille glyphs with
+         * foreground/background color.
+         */
+        UNICODE_SIXDOTSOLID,
+    }
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Display mode to use.
+     */
+    private DisplayMode displayMode = DisplayMode.BITMAP;
 
     /**
      * The action to perform when the user clicks on the image.
@@ -277,7 +329,75 @@ public class TImage extends TWidget implements EditMenuUser {
                         y * textHeight, width, height);
 
                     cell.setImage(subImage);
-                    newCells[x][y] = cell;
+
+                    switch (displayMode) {
+                    case BITMAP:
+                        newCells[x][y] = cell;
+                        break;
+                    case BLOCKS:
+                        if (cell.isImage()) {
+                            int rgb = ImageUtils.rgbAverage(cell.getImage(),
+                                0, 0, cell.getImage().getWidth(),
+                                cell.getImage().getHeight());
+                            Cell newCell = new Cell(' ');
+                            newCell.setForeColorRGB(rgb);
+                            newCell.setBackColorRGB(rgb);
+                            newCells[x][y] = newCell;
+                        } else {
+                            newCells[x][y] = cell;
+                        }
+                        break;
+                    case UNICODE_HALVES:
+                        if (cell.isImage()) {
+                            UnicodeGlyphImage ch =
+                                new UnicodeGlyphImage(cell);
+                            newCells[x][y] = ch.toHalfBlockGlyph();
+                        } else {
+                            newCells[x][y] = cell;
+                        }
+                        break;
+                    case UNICODE_SEXTANTS:
+                        if (cell.isImage()) {
+                            UnicodeGlyphImage ch =
+                                new UnicodeGlyphImage(cell);
+                            newCells[x][y] = ch.toSextantBlockGlyph();
+                        } else {
+                            newCells[x][y] = cell;
+                        }
+                        break;
+                    case UNICODE_QUADRANTS:
+                        if (cell.isImage()) {
+                            UnicodeGlyphImage ch =
+                                new UnicodeGlyphImage(cell);
+                            newCells[x][y] = ch.toQuadrantBlockGlyph();
+                        } else {
+                            newCells[x][y] = cell;
+                        }
+                        break;
+                    case UNICODE_SIXDOT:
+                        if (cell.isImage()) {
+                            UnicodeGlyphImage ch =
+                                new UnicodeGlyphImage(cell);
+                            Cell sixDotCell = ch.toSixDotGlyph();
+                            sixDotCell.setBackColorRGB(
+                                getApplication().getBackend()
+                                    .attrToBackgroundColor(
+                                        getWindow().getBackground()));
+                            newCells[x][y] = sixDotCell;
+                        } else {
+                            newCells[x][y] = cell;
+                        }
+                        break;
+                    case UNICODE_SIXDOTSOLID:
+                        if (cell.isImage()) {
+                            UnicodeGlyphImage ch =
+                                new UnicodeGlyphImage(cell);
+                            newCells[x][y] = ch.toSixDotSolidGlyph();
+                        } else {
+                            newCells[x][y] = cell;
+                        }
+                        break;
+                    }
                 }
             }
 
@@ -405,6 +525,27 @@ public class TImage extends TWidget implements EditMenuUser {
      */
     public ImageRGB getVisibleImage() {
         return image;
+    }
+
+    /**
+     * Get the image display mode.
+     *
+     * @return DisplayMode.BITMAP, DisplayMode.UNICODE_HALVES, etc.
+     */
+    public DisplayMode getDisplayMode() {
+        return displayMode;
+    }
+
+    /**
+     * Set the image display mode.
+     *
+     * @param displayMode DisplayMode.BITMAP, DisplayMode.UNICODE_HALVES, etc.
+     */
+    public void setDisplayMode(final DisplayMode displayMode) {
+        this.displayMode = displayMode;
+        lastTextWidth = -1;
+        lastTextHeight = -1;
+        sizeToImage(true);
     }
 
     // ------------------------------------------------------------------------
