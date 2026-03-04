@@ -724,7 +724,7 @@ public class UnicodeGlyphImage {
             0x258c,     // 0x05 - Full left half - ▌
             0x259e,     // 0x06 - Upper right + lower left - ▞
             0x259b,     // 0x07 - Upper half + left half - ▛
-            0x2584,     // 0x08 - Bottom right quadrant - ▗
+            0x2597,     // 0x08 - Bottom right quadrant - ▗
             0x259a,     // 0x09 - Upper left + lower right - ▚
             0x2590,     // 0x0a - Full right half - ▐
             0x2588,     // 0x0b - Upper half + right half

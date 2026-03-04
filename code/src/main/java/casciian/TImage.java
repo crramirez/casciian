@@ -349,36 +349,36 @@ public class TImage extends TWidget implements EditMenuUser {
                         break;
                     case UNICODE_HALVES:
                         if (cell.isImage()) {
-                            UnicodeGlyphImage ch =
+                            UnicodeGlyphImage glyphImage =
                                 new UnicodeGlyphImage(cell);
-                            newCells[x][y] = ch.toHalfBlockGlyph();
+                            newCells[x][y] = glyphImage.toHalfBlockGlyph();
                         } else {
                             newCells[x][y] = cell;
                         }
                         break;
                     case UNICODE_SEXTANTS:
                         if (cell.isImage()) {
-                            UnicodeGlyphImage ch =
+                            UnicodeGlyphImage glyphImage =
                                 new UnicodeGlyphImage(cell);
-                            newCells[x][y] = ch.toSextantBlockGlyph();
+                            newCells[x][y] = glyphImage.toSextantBlockGlyph();
                         } else {
                             newCells[x][y] = cell;
                         }
                         break;
                     case UNICODE_QUADRANTS:
                         if (cell.isImage()) {
-                            UnicodeGlyphImage ch =
+                            UnicodeGlyphImage glyphImage =
                                 new UnicodeGlyphImage(cell);
-                            newCells[x][y] = ch.toQuadrantBlockGlyph();
+                            newCells[x][y] = glyphImage.toQuadrantBlockGlyph();
                         } else {
                             newCells[x][y] = cell;
                         }
                         break;
                     case UNICODE_SIXDOT:
                         if (cell.isImage()) {
-                            UnicodeGlyphImage ch =
+                            UnicodeGlyphImage glyphImage =
                                 new UnicodeGlyphImage(cell);
-                            Cell sixDotCell = ch.toSixDotGlyph();
+                            Cell sixDotCell = glyphImage.toSixDotGlyph();
                             sixDotCell.setBackColorRGB(
                                 getApplication().getBackend()
                                     .attrToBackgroundColor(
@@ -390,9 +390,9 @@ public class TImage extends TWidget implements EditMenuUser {
                         break;
                     case UNICODE_SIXDOTSOLID:
                         if (cell.isImage()) {
-                            UnicodeGlyphImage ch =
+                            UnicodeGlyphImage glyphImage =
                                 new UnicodeGlyphImage(cell);
-                            newCells[x][y] = ch.toSixDotSolidGlyph();
+                            newCells[x][y] = glyphImage.toSixDotSolidGlyph();
                         } else {
                             newCells[x][y] = cell;
                         }
