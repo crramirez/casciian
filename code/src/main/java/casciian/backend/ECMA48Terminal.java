@@ -2013,6 +2013,16 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Check if the terminal supports an image protocol (sixel or Casciian
+     * image protocol) that can render bitmap image cells.
+     *
+     * @return true if bitmap image cells can be rendered natively
+     */
+    public boolean isImageProtocolSupported() {
+        return sixel || (jexerImageOption != JexerImageOption.DISABLED);
+    }
+
+    /**
      * Get window/terminal system focus.
      *
      * @return true if this terminal has the mouse/keyboard focus

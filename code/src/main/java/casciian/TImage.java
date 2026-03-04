@@ -330,7 +330,18 @@ public class TImage extends TWidget implements EditMenuUser {
 
                     cell.setImage(subImage);
 
-                    switch (displayMode) {
+                    // Determine the effective display mode.  When the user
+                    // requested BITMAP but the backend cannot render bitmap
+                    // image cells (no sixel / Casciian image protocol),
+                    // fall back to UNICODE_HALVES automatically.
+                    DisplayMode effectiveMode = displayMode;
+                    if (effectiveMode == DisplayMode.BITMAP
+                        && !getApplication().getBackend()
+                            .isImageProtocolSupported()) {
+                        effectiveMode = DisplayMode.UNICODE_HALVES;
+                    }
+
+                    switch (effectiveMode) {
                     case BITMAP:
                         newCells[x][y] = cell;
                         break;

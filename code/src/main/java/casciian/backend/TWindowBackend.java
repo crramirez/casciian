@@ -580,6 +580,16 @@ public class TWindowBackend extends TWindow implements Backend {
     }
 
     /**
+     * Check if the backend supports an image protocol (e.g. sixel or
+     * Casciian/Jexer image protocol) that can render bitmap image cells.
+     *
+     * @return true if bitmap image cells can be rendered natively
+     */
+    public boolean isImageProtocolSupported() {
+        return getApplication().getBackend().isImageProtocolSupported();
+    }
+
+    /**
      * Convert a CellAttributes foreground color to an RGB color.
      *
      * @param attr the text attributes

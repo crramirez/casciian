@@ -111,6 +111,14 @@ public interface Backend {
     public boolean isImagesOverText();
 
     /**
+     * Check if the backend supports an image protocol (e.g. sixel or
+     * Casciian/Jexer image protocol) that can render bitmap image cells.
+     *
+     * @return true if bitmap image cells can be rendered natively
+     */
+    public boolean isImageProtocolSupported();
+
+    /**
      * Set the mouse pointer (cursor) style.
      *
      * @param mouseStyle the pointer style string, one of: "default", "none",
