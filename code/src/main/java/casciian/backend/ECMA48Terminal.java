@@ -4049,6 +4049,8 @@ public class ECMA48Terminal extends LogicalScreen
                 saveInCache = false;
                 break;
             }
+            // Compute the hashcode so that the cell image hash is available
+            // for looking up in the image cache.
             cell.hashCode();
         }
         if (saveInCache && cache != null) {
