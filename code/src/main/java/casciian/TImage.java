@@ -15,6 +15,7 @@
 package casciian;
 
 import casciian.backend.ECMA48Terminal;
+import casciian.backend.SystemProperties;
 import casciian.bits.Cell;
 import casciian.bits.ImageRGB;
 import casciian.bits.ImageUtils;
@@ -312,12 +313,19 @@ public class TImage extends TWidget implements EditMenuUser {
                     // Determine the effective display mode.  When the user
                     // requested BITMAP but the backend cannot render bitmap
                     // image cells (no sixel / Casciian image protocol),
-                    // fall back to UNICODE_HALVES automatically.
+                    // fall back automatically based on the system property
+                    // casciian.ECMA48.imageFallbackDisplayMode.
                     DisplayMode effectiveMode = displayMode;
                     if (effectiveMode == DisplayMode.BITMAP
                         && !getApplication().getBackend()
                             .isImageProtocolSupported()) {
-                        effectiveMode = DisplayMode.UNICODE_HALVES;
+                        String fallback = SystemProperties
+                            .getImageFallbackDisplayMode();
+                        if ("solid".equals(fallback)) {
+                            effectiveMode = DisplayMode.BLOCKS;
+                        } else {
+                            effectiveMode = DisplayMode.UNICODE_HALVES;
+                        }
                     }
 
                     switch (effectiveMode) {

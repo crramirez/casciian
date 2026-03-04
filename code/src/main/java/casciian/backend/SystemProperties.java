@@ -158,6 +158,15 @@ public class SystemProperties {
     public static final String CASCIIAN_ECMA48_RGB_COLOR = "casciian.ECMA48.rgbColor";
 
     /**
+     * System property key for the image fallback display mode used when the
+     * terminal does not support sixel or Casciian image protocol.
+     * Valid values: "halves" or "solid"
+     * Default: "halves"
+     */
+    public static final String CASCIIAN_ECMA48_IMAGE_FALLBACK_DISPLAY_MODE =
+        "casciian.ECMA48.imageFallbackDisplayMode";
+
+    /**
      * Environment variable name for the Casciian configuration file path.
      * If this environment variable is set, it should point to a properties file
      * that will be loaded at class initialization. Properties from this file
@@ -325,6 +334,13 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> ecma48RgbColor = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the image fallback display mode.
+     * Valid values are "halves" and "solid"; defaults to "halves".
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<String> imageFallbackDisplayMode = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the current working directory.
@@ -797,6 +813,38 @@ public class SystemProperties {
     }
 
     /**
+     * Get the image fallback display mode from system properties.
+     *
+     * @return "halves" or "solid". Default is "halves".
+     */
+    public static String getImageFallbackDisplayMode() {
+        if (imageFallbackDisplayMode.get() == null) {
+            String value = System.getProperty(
+                CASCIIAN_ECMA48_IMAGE_FALLBACK_DISPLAY_MODE, "halves");
+            if (!"halves".equals(value) && !"solid".equals(value)) {
+                value = "halves";
+            }
+            imageFallbackDisplayMode.set(value);
+        }
+        return imageFallbackDisplayMode.get();
+    }
+
+    /**
+     * Set the image fallback display mode in system properties.
+     *
+     * @param value "halves" or "solid"
+     */
+    public static void setImageFallbackDisplayMode(final String value) {
+        String validated = value;
+        if (!"halves".equals(validated) && !"solid".equals(validated)) {
+            validated = "halves";
+        }
+        System.setProperty(CASCIIAN_ECMA48_IMAGE_FALLBACK_DISPLAY_MODE,
+            validated);
+        imageFallbackDisplayMode.set(validated);
+    }
+
+    /**
      * Get the current working directory.
      * This returns the cached value which may differ from
      * {@code System.getProperty("user.dir")} after a call to
@@ -841,6 +889,7 @@ public class SystemProperties {
         disablePostTransform.set(null);
         useJline.set(null);
         ecma48RgbColor.set(null);
+        imageFallbackDisplayMode.set(null);
         userDir.set(System.getProperty("user.dir"));
     }
 }
