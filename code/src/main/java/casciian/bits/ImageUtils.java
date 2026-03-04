@@ -97,6 +97,58 @@ public class ImageUtils {
     }
 
     /**
+     * Compute the average RGB color over a rectangular region of an image.
+     *
+     * @param image the image to average
+     * @param startX the starting X-coordinate of the region
+     * @param startY the starting Y-coordinate of the region
+     * @param w the width of the region
+     * @param h the height of the region
+     * @return the average RGB color as a packed integer
+     */
+    public static int rgbAverage(final ImageRGB image, final int startX,
+        final int startY, final int w, final int h) {
+
+        if (w <= 0 || h <= 0) {
+            return 0;
+        }
+
+        long totalRed = 0;
+        long totalGreen = 0;
+        long totalBlue = 0;
+        long count = 0;
+
+        int clampedStartX = Math.max(0, startX);
+        int clampedStartY = Math.max(0, startY);
+        int endX = Math.min(startX + w, image.getWidth());
+        int endY = Math.min(startY + h, image.getHeight());
+
+        if (clampedStartX >= endX || clampedStartY >= endY) {
+            return 0;
+        }
+
+        for (int y = clampedStartY; y < endY; y++) {
+            for (int x = clampedStartX; x < endX; x++) {
+                int rgb = image.getRGB(x, y);
+                totalRed   += (rgb >>> 16) & 0xFF;
+                totalGreen += (rgb >>>  8) & 0xFF;
+                totalBlue  +=  rgb         & 0xFF;
+                count++;
+            }
+        }
+
+        if (count == 0) {
+            return 0;
+        }
+
+        int avgRed   = (int) (totalRed   / count);
+        int avgGreen = (int) (totalGreen / count);
+        int avgBlue  = (int) (totalBlue  / count);
+
+        return (0xFF << 24) | (avgRed << 16) | (avgGreen << 8) | avgBlue;
+    }
+
+    /**
      * Combine RGB components into a single integer.
      *
      * @param red the red component (0-255)

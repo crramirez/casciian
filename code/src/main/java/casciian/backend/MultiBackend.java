@@ -232,6 +232,22 @@ public class MultiBackend implements Backend {
         return false;
     }
 
+    /**
+     * Check if the backend supports an image protocol (e.g. sixel or
+     * Casciian/Jexer image protocol) that can render bitmap image cells.
+     *
+     * @return true if bitmap image cells can be rendered natively
+     */
+    public boolean isImageProtocolSupported() {
+        // If any connected backend supports it, then this one can too.
+        for (Backend backend: backends) {
+            if (backend.isImageProtocolSupported()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // ------------------------------------------------------------------------
     // MultiBackend -----------------------------------------------------------
     // ------------------------------------------------------------------------

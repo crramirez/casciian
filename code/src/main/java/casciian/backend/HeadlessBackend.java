@@ -174,6 +174,16 @@ public class HeadlessBackend extends LogicalScreen implements Backend {
     }
 
     /**
+     * Check if the backend supports an image protocol (e.g. sixel or
+     * Casciian/Jexer image protocol) that can render bitmap image cells.
+     *
+     * @return true if bitmap image cells can be rendered natively
+     */
+    public boolean isImageProtocolSupported() {
+        return false;
+    }
+
+    /**
      * Check if backend is reporting pixel-based mouse position.
      *
      * @return true if single-pixel mouse movements are reported

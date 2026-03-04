@@ -49,6 +49,11 @@ class GenericBackendTest {
         }
 
         @Override
+        public boolean isImageProtocolSupported() {
+            return false;
+        }
+
+        @Override
         public int attrToForegroundColor(CellAttributes attr) {
             return 0xFFFFFF;
         }

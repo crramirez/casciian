@@ -14,10 +14,14 @@
  */
 package casciian;
 
+import java.util.Objects;
+
 import casciian.backend.ECMA48Terminal;
+import casciian.backend.SystemProperties;
 import casciian.bits.Cell;
 import casciian.bits.ImageRGB;
 import casciian.bits.ImageUtils;
+import casciian.bits.UnicodeGlyphImage;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
@@ -32,8 +36,38 @@ import static casciian.TKeypress.*;
 public class TImage extends TWidget implements EditMenuUser {
 
     // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Selections for approximating the image as text cells.
+     */
+    public enum DisplayMode {
+        /**
+         * Bitmap image.
+         */
+        BITMAP,
+
+        /**
+         * Converted to solid space (' ') character blocks.
+         */
+        BLOCKS,
+
+        /**
+         * Converted to Unicode half-block glyphs.
+         */
+        UNICODE_HALVES,
+
+    }
+
+    // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Display mode to use.
+     */
+    private DisplayMode displayMode = DisplayMode.BITMAP;
 
     /**
      * The action to perform when the user clicks on the image.
@@ -238,6 +272,24 @@ public class TImage extends TWidget implements EditMenuUser {
             return;
         }
 
+        // Determine the effective display mode.  When the user
+        // requested BITMAP but the backend cannot render bitmap
+        // image cells (no sixel / Casciian image protocol),
+        // fall back automatically based on the system property
+        // casciian.ECMA48.imageFallbackDisplayMode.
+        DisplayMode effectiveMode = displayMode;
+        if (effectiveMode == DisplayMode.BITMAP
+            && !getApplication().getBackend()
+                .isImageProtocolSupported()) {
+            String fallback = SystemProperties
+                .getImageFallbackDisplayMode();
+            if ("solid".equals(fallback)) {
+                effectiveMode = DisplayMode.BLOCKS;
+            } else {
+                effectiveMode = DisplayMode.UNICODE_HALVES;
+            }
+        }
+
         int textWidth = getScreen().getTextWidth();
         int textHeight = getScreen().getTextHeight();
 
@@ -277,7 +329,34 @@ public class TImage extends TWidget implements EditMenuUser {
                         y * textHeight, width, height);
 
                     cell.setImage(subImage);
-                    newCells[x][y] = cell;
+
+                    switch (effectiveMode) {
+                    case BITMAP:
+                        newCells[x][y] = cell;
+                        break;
+                    case BLOCKS:
+                        if (cell.isImage()) {
+                            int rgb = ImageUtils.rgbAverage(cell.getImage(),
+                                0, 0, cell.getImage().getWidth(),
+                                cell.getImage().getHeight());
+                            Cell newCell = new Cell(' ');
+                            newCell.setForeColorRGB(rgb);
+                            newCell.setBackColorRGB(rgb);
+                            newCells[x][y] = newCell;
+                        } else {
+                            newCells[x][y] = cell;
+                        }
+                        break;
+                    case UNICODE_HALVES:
+                        if (cell.isImage()) {
+                            UnicodeGlyphImage glyphImage =
+                                new UnicodeGlyphImage(cell);
+                            newCells[x][y] = glyphImage.toHalfBlockGlyph();
+                        } else {
+                            newCells[x][y] = cell;
+                        }
+                        break;
+                    }
                 }
             }
 
@@ -405,6 +484,28 @@ public class TImage extends TWidget implements EditMenuUser {
      */
     public ImageRGB getVisibleImage() {
         return image;
+    }
+
+    /**
+     * Get the image display mode.
+     *
+     * @return DisplayMode.BITMAP, DisplayMode.UNICODE_HALVES, etc.
+     */
+    public DisplayMode getDisplayMode() {
+        return displayMode;
+    }
+
+    /**
+     * Set the image display mode.
+     *
+     * @param displayMode DisplayMode.BITMAP, DisplayMode.UNICODE_HALVES, etc.
+     */
+    public void setDisplayMode(final DisplayMode displayMode) {
+        this.displayMode = Objects.requireNonNull(displayMode,
+            "displayMode must not be null");
+        lastTextWidth = -1;
+        lastTextHeight = -1;
+        sizeToImage(true);
     }
 
     // ------------------------------------------------------------------------

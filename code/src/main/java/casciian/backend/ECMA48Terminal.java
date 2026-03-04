@@ -249,6 +249,19 @@ public class ECMA48Terminal extends LogicalScreen
     private int textHeightPixels = -1;
 
     /**
+     * Cached estimated text cell width in pixels.  Computed once from
+     * widthPixels / windowWidth and only updated when a fresh CSI 14t
+     * response (CSI 4;h;w t) arrives.  This keeps the cell size stable
+     * across terminal resizes.
+     */
+    private int cachedEstimatedTextWidth = -1;
+
+    /**
+     * Cached estimated text cell height in pixels.
+     */
+    private int cachedEstimatedTextHeight = -1;
+
+    /**
      * Text blink option.
      */
     private TextBlinkOption textBlinkOption = TextBlinkOption.AUTO;
@@ -1442,11 +1455,19 @@ public class ECMA48Terminal extends LogicalScreen
         if (textWidthPixels > 0) {
             return textWidthPixels;
         }
-        int windowWidth = sessionInfo.getWindowWidth();
-        if (windowWidth > 0) {
-            return widthPixels / windowWidth;
+        // Use the cached estimate.  It is computed once at startup from
+        // widthPixels / windowWidth and then only updated when a fresh
+        // CSI 14t response (CSI 4;h;w t) arrives.  This avoids the
+        // race between widthPixels (updated asynchronously by CSI
+        // responses) and windowWidth (updated by SIGWINCH / stty) that
+        // caused the cell size to fluctuate wildly on terminal resize.
+        if (cachedEstimatedTextWidth <= 0) {
+            int windowWidth = sessionInfo.getWindowWidth();
+            if (windowWidth > 0) {
+                cachedEstimatedTextWidth = widthPixels / windowWidth;
+            }
         }
-        return 10;
+        return cachedEstimatedTextWidth > 0 ? cachedEstimatedTextWidth : 10;
     }
 
     /**
@@ -1459,11 +1480,13 @@ public class ECMA48Terminal extends LogicalScreen
         if (textHeightPixels > 0) {
             return textHeightPixels;
         }
-        int windowHeight = sessionInfo.getWindowHeight();
-        if (windowHeight > 0) {
-            return heightPixels / windowHeight;
+        if (cachedEstimatedTextHeight <= 0) {
+            int windowHeight = sessionInfo.getWindowHeight();
+            if (windowHeight > 0) {
+                cachedEstimatedTextHeight = heightPixels / windowHeight;
+            }
         }
-        return 20;
+        return cachedEstimatedTextHeight > 0 ? cachedEstimatedTextHeight : 20;
     }
 
     /**
@@ -2013,6 +2036,16 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Check if the terminal supports an image protocol (sixel or Casciian
+     * image protocol) that can render bitmap image cells.
+     *
+     * @return true if bitmap image cells can be rendered natively
+     */
+    public boolean isImageProtocolSupported() {
+        return sixel || (jexerImageOption != JexerImageOption.DISABLED);
+    }
+
+    /**
      * Get window/terminal system focus.
      *
      * @return true if this terminal has the mouse/keyboard focus
@@ -2466,8 +2499,6 @@ public class ECMA48Terminal extends LogicalScreen
         // Check for new window size
         long windowSizeDelay = nowTime - windowSizeTime;
         if (windowSizeDelay > 1000) {
-            int oldTextWidth = getTextWidth();
-            int oldTextHeight = getTextHeight();
 
             // Always query the window size via the terminal/stty path.
             // This handles SIGWINCH-based resizes when running inside
@@ -2484,21 +2515,12 @@ public class ECMA48Terminal extends LogicalScreen
                 || (newHeight != windowResize.getHeight())
             ) {
 
-                // Request xterm report window dimensions in pixels
-                // again.  Between now and then, ensure that the reported
-                // text cell size is the same by setting widthPixels and
-                // heightPixels to match the new dimensions.
-                widthPixels = oldTextWidth * newWidth;
-                heightPixels = oldTextHeight * newHeight;
-
                 if (debugToStderr) {
                     System.err.println("Screen size changed, old size " +
                         windowResize);
                     System.err.println("                     new size " +
                         newWidth + " x " + newHeight);
-                    System.err.println("                old cell size " +
-                        oldTextWidth + " x " + oldTextHeight);
-                    System.err.println("                new cell size " +
+                    System.err.println("                cell size " +
                         getTextWidth() + " x " + getTextHeight());
                 }
 
@@ -3280,6 +3302,17 @@ public class ECMA48Terminal extends LogicalScreen
                                 }
                                 if (heightPixels <= 0) {
                                     heightPixels = 400;
+                                }
+                                // Recompute the cached cell size estimate
+                                // using the freshly reported pixel
+                                // dimensions and current window size.
+                                int w = sessionInfo.getWindowWidth();
+                                int h = sessionInfo.getWindowHeight();
+                                if (w > 0) {
+                                    cachedEstimatedTextWidth = widthPixels / w;
+                                }
+                                if (h > 0) {
+                                    cachedEstimatedTextHeight = heightPixels / h;
                                 }
                                 if (debugToStderr) {
                                     System.err.printf("   screen pixels: %d x %d",
