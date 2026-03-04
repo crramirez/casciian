@@ -2633,7 +2633,7 @@ public class ECMA48Terminal extends LogicalScreen
      * user has not explicitly configured the system property.
      */
     private void setRgbColorIfNotConfigured() {
-        if (!SystemProperties.isUseTerminalPalette()) {
+        if (!SystemProperties.isUseTerminalPalette() || SystemProperties.isTranslucence()) {
             String rgbColorProperty = System.getProperty(
                     SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
             if (rgbColorProperty == null) {
