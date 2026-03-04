@@ -55,27 +55,6 @@ public class TImage extends TWidget implements EditMenuUser {
          */
         UNICODE_HALVES,
 
-        /**
-         * Converted to Unicode sextant glyphs.
-         */
-        UNICODE_SEXTANTS,
-
-        /**
-         * Converted to Unicode quadrant-block glyphs.
-         */
-        UNICODE_QUADRANTS,
-
-        /**
-         * Converted to Unicode 6-dot Braille glyphs on this window's
-         * background color.
-         */
-        UNICODE_SIXDOT,
-
-        /**
-         * Converted to Unicode 6-dot Braille glyphs with
-         * foreground/background color.
-         */
-        UNICODE_SIXDOTSOLID,
     }
 
     // ------------------------------------------------------------------------
@@ -363,47 +342,6 @@ public class TImage extends TWidget implements EditMenuUser {
                             UnicodeGlyphImage glyphImage =
                                 new UnicodeGlyphImage(cell);
                             newCells[x][y] = glyphImage.toHalfBlockGlyph();
-                        } else {
-                            newCells[x][y] = cell;
-                        }
-                        break;
-                    case UNICODE_SEXTANTS:
-                        if (cell.isImage()) {
-                            UnicodeGlyphImage glyphImage =
-                                new UnicodeGlyphImage(cell);
-                            newCells[x][y] = glyphImage.toSextantBlockGlyph();
-                        } else {
-                            newCells[x][y] = cell;
-                        }
-                        break;
-                    case UNICODE_QUADRANTS:
-                        if (cell.isImage()) {
-                            UnicodeGlyphImage glyphImage =
-                                new UnicodeGlyphImage(cell);
-                            newCells[x][y] = glyphImage.toQuadrantBlockGlyph();
-                        } else {
-                            newCells[x][y] = cell;
-                        }
-                        break;
-                    case UNICODE_SIXDOT:
-                        if (cell.isImage()) {
-                            UnicodeGlyphImage glyphImage =
-                                new UnicodeGlyphImage(cell);
-                            Cell sixDotCell = glyphImage.toSixDotGlyph();
-                            sixDotCell.setBackColorRGB(
-                                getApplication().getBackend()
-                                    .attrToBackgroundColor(
-                                        getWindow().getBackground()));
-                            newCells[x][y] = sixDotCell;
-                        } else {
-                            newCells[x][y] = cell;
-                        }
-                        break;
-                    case UNICODE_SIXDOTSOLID:
-                        if (cell.isImage()) {
-                            UnicodeGlyphImage glyphImage =
-                                new UnicodeGlyphImage(cell);
-                            newCells[x][y] = glyphImage.toSixDotSolidGlyph();
                         } else {
                             newCells[x][y] = cell;
                         }
