@@ -14,6 +14,8 @@
  */
 package casciian;
 
+import java.util.Objects;
+
 import casciian.backend.ECMA48Terminal;
 import casciian.backend.SystemProperties;
 import casciian.bits.Cell;
@@ -499,7 +501,8 @@ public class TImage extends TWidget implements EditMenuUser {
      * @param displayMode DisplayMode.BITMAP, DisplayMode.UNICODE_HALVES, etc.
      */
     public void setDisplayMode(final DisplayMode displayMode) {
-        this.displayMode = displayMode;
+        this.displayMode = Objects.requireNonNull(displayMode,
+            "displayMode must not be null");
         lastTextWidth = -1;
         lastTextHeight = -1;
         sizeToImage(true);

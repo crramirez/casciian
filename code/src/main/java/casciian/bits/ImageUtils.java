@@ -118,10 +118,17 @@ public class ImageUtils {
         long totalBlue = 0;
         long count = 0;
 
+        int clampedStartX = Math.max(0, startX);
+        int clampedStartY = Math.max(0, startY);
         int endX = Math.min(startX + w, image.getWidth());
         int endY = Math.min(startY + h, image.getHeight());
-        for (int y = startY; y < endY; y++) {
-            for (int x = startX; x < endX; x++) {
+
+        if (clampedStartX >= endX || clampedStartY >= endY) {
+            return 0;
+        }
+
+        for (int y = clampedStartY; y < endY; y++) {
+            for (int x = clampedStartX; x < endX; x++) {
                 int rgb = image.getRGB(x, y);
                 totalRed   += (rgb >>> 16) & 0xFF;
                 totalGreen += (rgb >>>  8) & 0xFF;
