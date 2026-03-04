@@ -270,8 +270,38 @@ public class TImage extends TWidget implements EditMenuUser {
             return;
         }
 
+        // Determine the effective display mode.  When the user
+        // requested BITMAP but the backend cannot render bitmap
+        // image cells (no sixel / Casciian image protocol),
+        // fall back automatically based on the system property
+        // casciian.ECMA48.imageFallbackDisplayMode.
+        DisplayMode effectiveMode = displayMode;
+        if (effectiveMode == DisplayMode.BITMAP
+            && !getApplication().getBackend()
+                .isImageProtocolSupported()) {
+            String fallback = SystemProperties
+                .getImageFallbackDisplayMode();
+            if ("solid".equals(fallback)) {
+                effectiveMode = DisplayMode.BLOCKS;
+            } else {
+                effectiveMode = DisplayMode.UNICODE_HALVES;
+            }
+        }
+
         int textWidth = getScreen().getTextWidth();
         int textHeight = getScreen().getTextHeight();
+
+        // For non-BITMAP modes the cells contain text characters
+        // (colored block/half-block glyphs), not pixel sub-images.
+        // Once rendered they display correctly regardless of cell
+        // size, so skip re-rendering when the estimated cell size
+        // changes on terminal resize.  Only re-render when
+        // explicitly requested (always == true), e.g. on initial
+        // load, setImage(), or setDisplayMode().
+        if (!always && effectiveMode != DisplayMode.BITMAP
+            && lastTextWidth > 0 && lastTextHeight > 0) {
+            return;
+        }
 
         if (always || (textWidth > 0
             && (textWidth != lastTextWidth)
@@ -309,24 +339,6 @@ public class TImage extends TWidget implements EditMenuUser {
                         y * textHeight, width, height);
 
                     cell.setImage(subImage);
-
-                    // Determine the effective display mode.  When the user
-                    // requested BITMAP but the backend cannot render bitmap
-                    // image cells (no sixel / Casciian image protocol),
-                    // fall back automatically based on the system property
-                    // casciian.ECMA48.imageFallbackDisplayMode.
-                    DisplayMode effectiveMode = displayMode;
-                    if (effectiveMode == DisplayMode.BITMAP
-                        && !getApplication().getBackend()
-                            .isImageProtocolSupported()) {
-                        String fallback = SystemProperties
-                            .getImageFallbackDisplayMode();
-                        if ("solid".equals(fallback)) {
-                            effectiveMode = DisplayMode.BLOCKS;
-                        } else {
-                            effectiveMode = DisplayMode.UNICODE_HALVES;
-                        }
-                    }
 
                     switch (effectiveMode) {
                     case BITMAP:
