@@ -255,4 +255,78 @@ class UnicodeGlyphImageTest {
         assertTrue(sextant.getForeColorRGB() >= 0);
         assertTrue(sextant.getBackColorRGB() >= 0);
     }
+
+    // ------------------------------------------------------------------------
+    // Tests with RGB values without alpha byte (as SixelDecoder stores)
+    // ------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("toQuadrantBlockGlyph works with RGB values lacking alpha byte")
+    void testQuadrantWithoutAlpha() {
+        // SixelDecoder stores colors like 0xFF0000, not 0xFFFF0000
+        ImageRGB image = createLeftRightImage(10, 10,
+            0xFF0000, 0x0000FF);
+        UnicodeGlyphImage glyph = new UnicodeGlyphImage(image);
+
+        Cell result = glyph.toQuadrantBlockGlyph();
+        int ch = result.getChar();
+        // With two distinct colors, we should NOT get an empty space
+        assertTrue(ch != ' ',
+            "Quadrant glyph should not be empty for two-color image without alpha");
+        // Palette colors should not be black
+        assertTrue(result.getForeColorRGB() != 0
+            || result.getBackColorRGB() != 0,
+            "Colors should not both be black for red/blue image");
+    }
+
+    @Test
+    @DisplayName("toSextantBlockGlyph works with RGB values lacking alpha byte")
+    void testSextantWithoutAlpha() {
+        ImageRGB image = createLeftRightImage(10, 12,
+            0xFFFFFF, 0x000000);
+        UnicodeGlyphImage glyph = new UnicodeGlyphImage(image);
+
+        Cell result = glyph.toSextantBlockGlyph();
+        int ch = result.getChar();
+        assertTrue(ch == 0x258c || ch == 0x2590
+            || (ch >= 0x1FB00 && ch <= 0x1FB3B),
+            "Sextant glyph should show a pattern for white/black split, got: 0x"
+                + Integer.toHexString(ch));
+    }
+
+    @Test
+    @DisplayName("toSixDotGlyph works with RGB values lacking alpha byte")
+    void testSixDotWithoutAlpha() {
+        ImageRGB image = createTopBottomImage(10, 12,
+            0xFFFFFF, 0x000000);
+        UnicodeGlyphImage glyph = new UnicodeGlyphImage(image);
+
+        Cell result = glyph.toSixDotGlyph();
+        int ch = result.getChar();
+        // Should show dots for the white region, not be empty
+        assertTrue(ch > 0x2800,
+            "Six-dot Braille should have dots for white/black split, got: 0x"
+                + Integer.toHexString(ch));
+    }
+
+    @Test
+    @DisplayName("toSixDotSolidGlyph works with RGB values lacking alpha byte")
+    void testSixDotSolidWithoutAlpha() {
+        ImageRGB image = createLeftRightImage(10, 12,
+            0xFF0000, 0x00FF00);
+        UnicodeGlyphImage glyph = new UnicodeGlyphImage(image);
+
+        Cell result = glyph.toSixDotSolidGlyph();
+        int ch = result.getChar();
+        assertTrue(ch >= 0x2800 && ch <= 0x283F,
+            "Expected a Braille character, got: 0x"
+                + Integer.toHexString(ch));
+        // Colors should reflect the input, not all be black
+        int foreR = (result.getForeColorRGB() >>> 16) & 0xFF;
+        int foreG = (result.getForeColorRGB() >>> 8) & 0xFF;
+        int backR = (result.getBackColorRGB() >>> 16) & 0xFF;
+        int backG = (result.getBackColorRGB() >>> 8) & 0xFF;
+        assertTrue(foreR > 0 || foreG > 0 || backR > 0 || backG > 0,
+            "Colors should not all be black for red/green image");
+    }
 }

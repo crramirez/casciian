@@ -319,11 +319,9 @@ public class UnicodeGlyphImage {
             rawImage = rgbArray;
             colorMap = new HashMap<>(rawImageWidth * rawImageHeight);
             for (int i = 0; i < rgbArray.length; i++) {
-                int colorRGB = rgbArray[i];
-                if ((colorRGB & 0xFF000000) != 0xFF000000) {
-                    rgbArray[i] = 0xFF000000;
-                    colorRGB = 0xFF000000;
-                }
+                // ImageRGB does not use alpha; force all pixels opaque.
+                int colorRGB = rgbArray[i] | 0xFF000000;
+                rgbArray[i] = colorRGB;
 
                 ColorIdx colorIdx = colorMap.get(colorRGB);
                 if (colorIdx == null) {
