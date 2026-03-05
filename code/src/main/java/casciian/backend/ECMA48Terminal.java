@@ -3953,6 +3953,12 @@ public class ECMA48Terminal extends LogicalScreen
             image.fillRect(startX, 0, remainingWidth, tileHeight, MYBLACK);
         }
 
+        if ((image.getWidth() != cells.size() * getTextWidth())
+            || (image.getHeight() != getTextHeight())
+        ) {
+            image = image.scale(cells.size() * getTextWidth(), getTextHeight());
+        }
+
         return image;
     }
 
