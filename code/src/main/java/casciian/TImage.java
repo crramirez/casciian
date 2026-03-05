@@ -72,7 +72,7 @@ public class TImage extends TWidget implements EditMenuUser {
     /**
      * The action to perform when the user clicks on the image.
      */
-    private TAction clickAction;
+    private final TAction clickAction;
 
     /**
      * The image to display.

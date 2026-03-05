@@ -40,6 +40,7 @@ import casciian.bits.Color;
 import casciian.bits.ComplexCell;
 import casciian.bits.ImageRGB;
 import casciian.bits.StringUtils;
+import casciian.bits.UnicodeGlyphImage;
 import casciian.event.TCommandEvent;
 import casciian.event.TInputEvent;
 import casciian.event.TKeypressEvent;
@@ -1896,8 +1897,10 @@ public class ECMA48Terminal extends LogicalScreen
                 }
                 if (jexerImageOption != JexerImageOption.DISABLED) {
                     sb.append(toJexerImage(0, y, blankImageRow));
-                } else {
+                } else if (sixel) {
                     sb.append(toSixel(0, y, blankImageRow));
+                } else {
+                    sb.append(toPseudoImage(0, y, blankImageRow));
                 }
             }
 
@@ -1966,6 +1969,8 @@ public class ECMA48Terminal extends LogicalScreen
                             sb.append(toJexerImage(x, y, cellsToDraw));
                         } else if (sixel) {
                             sb.append(toSixel(x, y, cellsToDraw));
+                        } else {
+                            sb.append(toPseudoImage(x, y, cellsToDraw));
                         }
                     } else {
                         // Multi-threaded: experimental and likely borken
@@ -1980,8 +1985,10 @@ public class ECMA48Terminal extends LogicalScreen
                             public String call() {
                                 if (jexerImageOption != JexerImageOption.DISABLED) {
                                     return toJexerImage(callX, callY, callCells);
-                                } else {
+                                } else if (sixel) {
                                     return toSixel(callX, callY, callCells);
+                                } else {
+                                    return toPseudoImage(callX, callY, callCells);
                                 }
                             }
                         }));
@@ -4040,6 +4047,82 @@ public class ECMA48Terminal extends LogicalScreen
 
     // ------------------------------------------------------------------------
     // End Casciian image output support -----------------------------------------
+    // ------------------------------------------------------------------------
+
+    // ------------------------------------------------------------------------
+    // Pseudo image (Unicode half-block) output support -----------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Converts a list of {@code Cell} objects into a pseudo image representation
+     * using ANSI escape codes for color and formatting. The resulting pseudo image
+     * will be positioned at the specified coordinates.
+     *
+     * @param x the x-coordinate where the pseudo image will be rendered
+     * @param y the y-coordinate where the pseudo image will be rendered
+     * @param cells the list of {@code Cell} objects representing the image data; should not be null or empty
+     * @return a {@code String} containing the ANSI escape codes and textual representation of the pseudo image
+     */
+    private String toPseudoImage(final int x, final int y,
+                                 final ArrayList<Cell> cells) {
+
+        StringBuilder sb = new StringBuilder();
+
+        assert (cells != null);
+        assert (!cells.isEmpty());
+        assert (cells.getFirst().getImage() != null);
+
+        // Check cache first.
+        final ImageCache cache = unicodeGlyphCache;
+        boolean saveInCache = true;
+        for (Cell cell : cells) {
+            if (cell.isInvertedImage()) {
+                saveInCache = false;
+                break;
+            }
+            // Compute the hashcode so that the cell image hash is available
+            // for looking up in the image cache.
+            //noinspection ResultOfMethodCallIgnored
+            cell.hashCode();
+        }
+        if (saveInCache && cache != null) {
+            String cachedResult = cache.get(cells);
+            if (cachedResult != null) {
+                sb.append(gotoXY(x, y));
+                sb.append(cachedResult);
+                return sb.toString();
+            }
+        }
+
+        StringBuilder result = new StringBuilder();
+        for (Cell cell : cells) {
+            UnicodeGlyphImage glyphImage =
+                new UnicodeGlyphImage(cell);
+            Cell c = glyphImage.toHalfBlockGlyph();
+
+            int foreColor = c.getForeColorRGB();
+            int backColor = c.getBackColorRGB();
+            result.append("\033[38;2;%d;%d;%d;48;2;%d;%d;%dm%c".formatted(
+                (foreColor >>> 16) & 0xFF,
+                (foreColor >>> 8) & 0xFF,
+                foreColor & 0xFF,
+                (backColor >>> 16) & 0xFF,
+                (backColor >>> 8) & 0xFF,
+                backColor & 0xFF,
+                c.getChar()));
+        }
+
+        if (saveInCache && cache != null) {
+            cache.put(cells, result.toString());
+        }
+
+        sb.append(gotoXY(x, y));
+        sb.append(result);
+        return sb.toString();
+    }
+
+    // ------------------------------------------------------------------------
+    // End pseudo image output support ----------------------------------------
     // ------------------------------------------------------------------------
 
     /**
