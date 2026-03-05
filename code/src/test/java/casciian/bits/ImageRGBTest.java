@@ -720,7 +720,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("scale: large image uses parallel path")
     void testScaleLargeImage() {
-        // Image larger than PARALLEL_THRESHOLD (10,000 pixels)
+        // 200*200 = 40,000 pixels exceeds PARALLEL_THRESHOLD (10,000)
         ImageRGB image = new ImageRGB(200, 200);
         image.fillRect(0, 0, 200, 200, 0x445566);
 
