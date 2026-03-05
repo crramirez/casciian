@@ -279,6 +279,148 @@ public class ImageRGB {
     }
 
     /**
+     * Evaluates the Mitchell–Netravali kernel with B = C = 1/3.
+     * Support radius is 2: the kernel is zero for |x| &gt;= 2.
+     *
+     * @param x the distance from the filter center
+     * @return the filter weight
+     */
+    private static double mitchellNetravali(double x) {
+        double ax = Math.abs(x);
+        if (ax >= 2.0) {
+            return 0.0;
+        }
+        double ax2 = ax * ax;
+        double ax3 = ax2 * ax;
+        if (ax < 1.0) {
+            return (7.0 / 6.0) * ax3 - 2.0 * ax2 + (8.0 / 9.0);
+        }
+        return (-7.0 / 18.0) * ax3 + 2.0 * ax2 - (10.0 / 3.0) * ax + (16.0 / 9.0);
+    }
+
+    /**
+     * Clamps a floating-point value to the [0, 255] byte range and rounds it.
+     */
+    private static int clampByte(double value) {
+        int v = (int) Math.round(value);
+        return Math.max(0, Math.min(255, v));
+    }
+
+    /**
+     * Scales this image to the specified dimensions using Mitchell–Netravali
+     * bicubic interpolation (B = C = 1/3) with a support radius of 2.
+     * Uses separable convolution: a horizontal pass followed by a vertical
+     * pass. Border pixels are handled by clamping coordinates at the edges.
+     *
+     * @param newWidth  the target width in pixels
+     * @param newHeight the target height in pixels
+     * @return a new ImageRGB with the specified dimensions
+     * @throws IllegalArgumentException if dimensions are not positive
+     */
+    public ImageRGB scale(int newWidth, int newHeight) {
+        if (newWidth <= 0 || newHeight <= 0) {
+            throw new IllegalArgumentException("New dimensions must be positive");
+        }
+
+        // Horizontal pass: width changes, height unchanged
+        int[][] temp = new int[height][newWidth];
+        resampleHorizontal(this.rgb, temp, width, newWidth, height);
+
+        // Vertical pass: height changes, width unchanged
+        ImageRGB result = new ImageRGB(newWidth, newHeight);
+        resampleVertical(temp, result.rgb, height, newHeight, newWidth);
+
+        return result;
+    }
+
+    /**
+     * Resamples each row from {@code srcWidth} to {@code dstWidth} pixels
+     * using the Mitchell–Netravali filter.
+     */
+    private static void resampleHorizontal(int[][] src, int[][] dst,
+                                           int srcWidth, int dstWidth,
+                                           int rows) {
+        double ratio = (double) srcWidth / dstWidth;
+        double filterScale = Math.max(1.0, ratio);
+        double support = 2.0 * filterScale;
+
+        IntStream rowStream = IntStream.range(0, rows);
+        if ((long) dstWidth * rows > PARALLEL_THRESHOLD) {
+            rowStream = rowStream.parallel();
+        }
+
+        rowStream.forEach(y -> {
+            int[] srcRow = src[y];
+            int[] dstRow = dst[y];
+            for (int x = 0; x < dstWidth; x++) {
+                double center = (x + 0.5) * ratio - 0.5;
+                int left = (int) Math.floor(center - support);
+                int right = (int) Math.ceil(center + support);
+
+                double sumR = 0, sumG = 0, sumB = 0, sumW = 0;
+                for (int i = left; i <= right; i++) {
+                    double weight = mitchellNetravali(
+                            (i - center) / filterScale);
+                    int clamped = Math.max(0, Math.min(i, srcWidth - 1));
+                    int pixel = srcRow[clamped];
+                    sumR += ((pixel >>> 16) & 0xFF) * weight;
+                    sumG += ((pixel >>> 8) & 0xFF) * weight;
+                    sumB += (pixel & 0xFF) * weight;
+                    sumW += weight;
+                }
+
+                int r = clampByte(sumR / sumW);
+                int g = clampByte(sumG / sumW);
+                int b = clampByte(sumB / sumW);
+                dstRow[x] = (r << 16) | (g << 8) | b;
+            }
+        });
+    }
+
+    /**
+     * Resamples each column from {@code srcHeight} to {@code dstHeight}
+     * pixels using the Mitchell–Netravali filter.
+     */
+    private static void resampleVertical(int[][] src, int[][] dst,
+                                         int srcHeight, int dstHeight,
+                                         int cols) {
+        double ratio = (double) srcHeight / dstHeight;
+        double filterScale = Math.max(1.0, ratio);
+        double support = 2.0 * filterScale;
+
+        IntStream rowStream = IntStream.range(0, dstHeight);
+        if ((long) cols * dstHeight > PARALLEL_THRESHOLD) {
+            rowStream = rowStream.parallel();
+        }
+
+        rowStream.forEach(y -> {
+            double center = (y + 0.5) * ratio - 0.5;
+            int top = (int) Math.floor(center - support);
+            int bottom = (int) Math.ceil(center + support);
+
+            int[] dstRow = dst[y];
+            for (int x = 0; x < cols; x++) {
+                double sumR = 0, sumG = 0, sumB = 0, sumW = 0;
+                for (int i = top; i <= bottom; i++) {
+                    double weight = mitchellNetravali(
+                            (i - center) / filterScale);
+                    int clamped = Math.max(0, Math.min(i, srcHeight - 1));
+                    int pixel = src[clamped][x];
+                    sumR += ((pixel >>> 16) & 0xFF) * weight;
+                    sumG += ((pixel >>> 8) & 0xFF) * weight;
+                    sumB += (pixel & 0xFF) * weight;
+                    sumW += weight;
+                }
+
+                int r = clampByte(sumR / sumW);
+                int g = clampByte(sumG / sumW);
+                int b = clampByte(sumB / sumW);
+                dstRow[x] = (r << 16) | (g << 8) | b;
+            }
+        });
+    }
+
+    /**
      * Resizes the canvas to the specified dimensions. If the new dimensions are smaller
      * than the current image, it will crop the image. If the new dimensions are larger,
      * it will fill the extra space with the specified background color.

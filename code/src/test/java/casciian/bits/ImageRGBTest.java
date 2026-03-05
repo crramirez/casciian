@@ -594,4 +594,160 @@ class ImageRGBTest {
         image.setRGB(0, 0, 1, 1, data, 0, 1);
         assertEquals(0x123456, image.getRGB(0, 0));
     }
+
+    // --- scale() tests ---
+
+    @Test
+    @DisplayName("scale: invalid dimensions throw IllegalArgumentException")
+    void testScaleInvalidDimensions() {
+        ImageRGB image = new ImageRGB(10, 10);
+        assertThrows(IllegalArgumentException.class, () -> image.scale(0, 10));
+        assertThrows(IllegalArgumentException.class, () -> image.scale(10, 0));
+        assertThrows(IllegalArgumentException.class, () -> image.scale(-1, 10));
+        assertThrows(IllegalArgumentException.class, () -> image.scale(10, -5));
+    }
+
+    @Test
+    @DisplayName("scale: result has correct dimensions")
+    void testScaleDimensions() {
+        ImageRGB image = new ImageRGB(20, 30);
+        ImageRGB scaled = image.scale(40, 60);
+        assertEquals(40, scaled.getWidth());
+        assertEquals(60, scaled.getHeight());
+    }
+
+    @Test
+    @DisplayName("scale: uniform color is preserved")
+    void testScaleUniformColor() {
+        int color = 0x336699;
+        ImageRGB image = new ImageRGB(10, 10);
+        image.fillRect(0, 0, 10, 10, color);
+
+        ImageRGB up = image.scale(20, 20);
+        for (int y = 0; y < up.getHeight(); y++) {
+            for (int x = 0; x < up.getWidth(); x++) {
+                assertEquals(color, up.getRGB(x, y),
+                        "Pixel (" + x + "," + y + ") should match uniform color");
+            }
+        }
+
+        ImageRGB down = image.scale(5, 5);
+        for (int y = 0; y < down.getHeight(); y++) {
+            for (int x = 0; x < down.getWidth(); x++) {
+                assertEquals(color, down.getRGB(x, y),
+                        "Pixel (" + x + "," + y + ") should match uniform color");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("scale: 1x1 image scales to uniform output")
+    void testScale1x1() {
+        ImageRGB image = new ImageRGB(1, 1);
+        image.setRGB(0, 0, 0xAABBCC);
+
+        ImageRGB scaled = image.scale(5, 5);
+        assertEquals(5, scaled.getWidth());
+        assertEquals(5, scaled.getHeight());
+        for (int y = 0; y < 5; y++) {
+            for (int x = 0; x < 5; x++) {
+                assertEquals(0xAABBCC, scaled.getRGB(x, y));
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("scale: to same size preserves interior pixels of linear gradient")
+    void testScaleSameSize() {
+        // Mitchell-Netravali reproduces linear functions exactly at
+        // interior pixels in theory, but two-pass floating-point
+        // arithmetic may introduce ±1 rounding per channel.
+        int w = 20, h = 20;
+        ImageRGB image = new ImageRGB(w, h);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                // Keep values safely within [0, 255]: max = 19*5 + 19*3 = 152
+                int g = x * 5 + y * 3;
+                image.setRGB(x, y, g << 8);
+            }
+        }
+
+        ImageRGB scaled = image.scale(w, h);
+        // Check only interior pixels (skip 2-pixel border = support radius)
+        for (int y = 2; y < h - 2; y++) {
+            for (int x = 2; x < w - 2; x++) {
+                int expected = (image.getRGB(x, y) >>> 8) & 0xFF;
+                int actual = (scaled.getRGB(x, y) >>> 8) & 0xFF;
+                assertTrue(Math.abs(expected - actual) <= 1,
+                        "Interior pixel (" + x + "," + y + ") green channel "
+                        + "expected ~" + expected + " but was " + actual);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("scale: scale down reduces dimensions correctly")
+    void testScaleDown() {
+        ImageRGB image = new ImageRGB(100, 100);
+        image.fillRect(0, 0, 100, 100, 0x112233);
+
+        ImageRGB scaled = image.scale(25, 25);
+        assertEquals(25, scaled.getWidth());
+        assertEquals(25, scaled.getHeight());
+        for (int y = 0; y < 25; y++) {
+            for (int x = 0; x < 25; x++) {
+                assertEquals(0x112233, scaled.getRGB(x, y));
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("scale: non-square scaling")
+    void testScaleNonSquare() {
+        ImageRGB image = new ImageRGB(20, 10);
+        image.fillRect(0, 0, 20, 10, 0xFFFFFF);
+
+        ImageRGB scaled = image.scale(40, 5);
+        assertEquals(40, scaled.getWidth());
+        assertEquals(5, scaled.getHeight());
+        for (int y = 0; y < 5; y++) {
+            for (int x = 0; x < 40; x++) {
+                assertEquals(0xFFFFFF, scaled.getRGB(x, y));
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("scale: large image uses parallel path")
+    void testScaleLargeImage() {
+        // Image larger than PARALLEL_THRESHOLD (10,000 pixels)
+        ImageRGB image = new ImageRGB(200, 200);
+        image.fillRect(0, 0, 200, 200, 0x445566);
+
+        ImageRGB scaled = image.scale(100, 100);
+        assertEquals(100, scaled.getWidth());
+        assertEquals(100, scaled.getHeight());
+        for (int y = 0; y < 100; y++) {
+            for (int x = 0; x < 100; x++) {
+                assertEquals(0x445566, scaled.getRGB(x, y));
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("scale: preserves channel independence")
+    void testScaleChannelIndependence() {
+        // Pure red image
+        ImageRGB red = new ImageRGB(10, 10);
+        red.fillRect(0, 0, 10, 10, 0xFF0000);
+        ImageRGB scaledRed = red.scale(5, 5);
+        for (int y = 0; y < 5; y++) {
+            for (int x = 0; x < 5; x++) {
+                int pixel = scaledRed.getRGB(x, y);
+                assertEquals(0xFF, (pixel >>> 16) & 0xFF, "Red channel");
+                assertEquals(0, (pixel >>> 8) & 0xFF, "Green channel");
+                assertEquals(0, pixel & 0xFF, "Blue channel");
+            }
+        }
+    }
 }
