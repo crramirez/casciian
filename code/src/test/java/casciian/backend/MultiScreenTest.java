@@ -18,6 +18,40 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("MultiScreen Tests")
 class MultiScreenTest {
 
+    /**
+     * Minimal Backend stub for testing image-protocol priority in
+     * MultiScreen.  Only {@code isImageProtocolSupported()} is
+     * meaningful; everything else is a no-op.
+     */
+    private static class StubBackend implements Backend {
+        private final boolean imageSupported;
+
+        StubBackend(boolean imageSupported) {
+            this.imageSupported = imageSupported;
+        }
+
+        @Override public boolean isImageProtocolSupported() { return imageSupported; }
+        @Override public boolean isImagesOverText() { return false; }
+        @Override public SessionInfo getSessionInfo() { return null; }
+        @Override public Screen getScreen() { return null; }
+        @Override public void flushScreen() {}
+        @Override public boolean hasEvents() { return false; }
+        @Override public void getEvents(java.util.List<casciian.event.TInputEvent> q) {}
+        @Override public void shutdown() {}
+        @Override public void setTitle(String t) {}
+        @Override public void setListener(Object l) {}
+        @Override public void reloadOptions() {}
+        @Override public boolean isReadOnly() { return false; }
+        @Override public void setReadOnly(boolean r) {}
+        @Override public void setMouseStyle(String s) {}
+        @Override public int attrToForegroundColor(CellAttributes a) { return 0; }
+        @Override public int attrToBackgroundColor(CellAttributes a) { return 0; }
+        @Override public void copyClipboardText(String t) {}
+        @Override public boolean isFocused() { return false; }
+        @Override public int getDefaultForeColorRGB() { return 0; }
+        @Override public int getDefaultBackColorRGB() { return 0; }
+    }
+
     private static class TestScreen extends LogicalScreen {
         private int flushCount = 0;
         private int copyCount = 0;
@@ -629,5 +663,125 @@ class MultiScreenTest {
         // not the old LogicalScreen defaults (16x20)
         assertEquals(20, multi.getTextWidth());
         assertEquals(30, multi.getTextHeight());
+    }
+
+    // Image-supporting backend priority tests
+
+    @Test
+    @DisplayName("Image-supporting backend dimensions take priority over non-image backend")
+    void testImageBackendDimensionsPriority() {
+        // Screen without image support (e.g. GNOME Terminal) with 10x15 cell
+        TestScreen noImageScreen = new TestScreen(80, 24, 10, 15);
+        noImageScreen.setBackend(new StubBackend(false));
+
+        MultiScreen multi = new MultiScreen(noImageScreen);
+
+        // Screen with image support (e.g. WezTerm) with 12x20 cell
+        TestScreen imageScreen = new TestScreen(80, 24, 12, 20);
+        imageScreen.setBackend(new StubBackend(true));
+        multi.addScreen(imageScreen);
+
+        // Image-capable screen dimensions should prevail (12x20),
+        // ignoring the non-image screen's smaller 10x15
+        assertEquals(12, multi.getTextWidth());
+        assertEquals(20, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Smallest image-supporting backend wins when multiple image backends exist")
+    void testMultipleImageBackendsUseMinimum() {
+        TestScreen imageScreen1 = new TestScreen(80, 24, 14, 22);
+        imageScreen1.setBackend(new StubBackend(true));
+
+        MultiScreen multi = new MultiScreen(imageScreen1);
+
+        TestScreen imageScreen2 = new TestScreen(80, 24, 10, 18);
+        imageScreen2.setBackend(new StubBackend(true));
+        multi.addScreen(imageScreen2);
+
+        // Minimum across image-capable screens
+        assertEquals(10, multi.getTextWidth());
+        assertEquals(18, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Falls back to minimum of all screens when no backend supports images")
+    void testFallbackToMinimumWithoutImageBackends() {
+        TestScreen screenA = new TestScreen(80, 24, 14, 22);
+        screenA.setBackend(new StubBackend(false));
+
+        MultiScreen multi = new MultiScreen(screenA);
+
+        TestScreen screenB = new TestScreen(80, 24, 10, 18);
+        screenB.setBackend(new StubBackend(false));
+        multi.addScreen(screenB);
+
+        // No image support anywhere → classic minimum behavior
+        assertEquals(10, multi.getTextWidth());
+        assertEquals(18, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Image backend added after non-image backend overrides dimensions")
+    void testImageBackendAddedLaterOverrides() {
+        // Start with a non-image terminal
+        TestScreen noImageScreen = new TestScreen(80, 24, 8, 14);
+        noImageScreen.setBackend(new StubBackend(false));
+        MultiScreen multi = new MultiScreen(noImageScreen);
+
+        assertEquals(8, multi.getTextWidth());
+        assertEquals(14, multi.getTextHeight());
+
+        // Now add an image-capable terminal with larger cell size
+        TestScreen imageScreen = new TestScreen(80, 24, 12, 20);
+        imageScreen.setBackend(new StubBackend(true));
+        multi.addScreen(imageScreen);
+
+        // Image backend should take priority
+        assertEquals(12, multi.getTextWidth());
+        assertEquals(20, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Removing image backend reverts to non-image minimum")
+    void testRemovingImageBackendRevertsToNonImageMin() {
+        TestScreen noImageScreen = new TestScreen(80, 24, 10, 16);
+        noImageScreen.setBackend(new StubBackend(false));
+        MultiScreen multi = new MultiScreen(noImageScreen);
+
+        TestScreen imageScreen = new TestScreen(80, 24, 14, 22);
+        imageScreen.setBackend(new StubBackend(true));
+        multi.addScreen(imageScreen);
+
+        // Image screen dimensions prevail
+        assertEquals(14, multi.getTextWidth());
+        assertEquals(22, multi.getTextHeight());
+
+        // Remove the image screen
+        multi.removeScreen(imageScreen);
+
+        // Should fall back to the remaining non-image screen
+        assertEquals(10, multi.getTextWidth());
+        assertEquals(16, multi.getTextHeight());
+    }
+
+    @Test
+    @DisplayName("Screens without a backend are treated as non-image screens")
+    void testScreensWithNullBackendTreatedAsNonImage() {
+        // No backend set at all (null)
+        TestScreen plainScreen = new TestScreen(80, 24, 10, 16);
+        MultiScreen multi = new MultiScreen(plainScreen);
+
+        // Should behave like old code: minimum of all
+        assertEquals(10, multi.getTextWidth());
+        assertEquals(16, multi.getTextHeight());
+
+        // Adding an image backend should still override
+        TestScreen imageScreen = new TestScreen(80, 24, 14, 22);
+        imageScreen.setBackend(new StubBackend(true));
+        multi.addScreen(imageScreen);
+
+        assertEquals(14, multi.getTextWidth());
+        assertEquals(22, multi.getTextHeight());
     }
 }

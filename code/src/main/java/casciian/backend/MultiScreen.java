@@ -64,6 +64,12 @@ public class MultiScreen extends LogicalScreen implements Screen {
     /**
      * Get the width of a character cell in pixels.
      *
+     * If any screen's backend supports an image protocol, the minimum
+     * width among those image-capable screens is returned.  This
+     * ensures that pixel dimensions from terminals that actually
+     * support sixel / CSI 16t take priority over terminals that only
+     * report default values.
+     *
      * @return the width in pixels of a character cell
      */
     @Override
@@ -72,16 +78,31 @@ public class MultiScreen extends LogicalScreen implements Screen {
             if (screens.isEmpty()) {
                 return super.getTextWidth();
             }
-            int min = Integer.MAX_VALUE;
+            int imageMin = Integer.MAX_VALUE;
+            int allMin = Integer.MAX_VALUE;
             for (Screen screen : screens) {
-                min = Math.min(min, screen.getTextWidth());
+                int w = screen.getTextWidth();
+                allMin = Math.min(allMin, w);
+                Backend b = screen.getBackend();
+                if (b != null && b.isImageProtocolSupported()) {
+                    imageMin = Math.min(imageMin, w);
+                }
             }
-            return min < Integer.MAX_VALUE ? min : super.getTextWidth();
+            if (imageMin < Integer.MAX_VALUE) {
+                return imageMin;
+            }
+            return allMin < Integer.MAX_VALUE ? allMin : super.getTextWidth();
         }
     }
 
     /**
      * Get the height of a character cell in pixels.
+     *
+     * If any screen's backend supports an image protocol, the minimum
+     * height among those image-capable screens is returned.  This
+     * ensures that pixel dimensions from terminals that actually
+     * support sixel / CSI 16t take priority over terminals that only
+     * report default values.
      *
      * @return the height in pixels of a character cell
      */
@@ -91,11 +112,20 @@ public class MultiScreen extends LogicalScreen implements Screen {
             if (screens.isEmpty()) {
                 return super.getTextHeight();
             }
-            int min = Integer.MAX_VALUE;
+            int imageMin = Integer.MAX_VALUE;
+            int allMin = Integer.MAX_VALUE;
             for (Screen screen : screens) {
-                min = Math.min(min, screen.getTextHeight());
+                int h = screen.getTextHeight();
+                allMin = Math.min(allMin, h);
+                Backend b = screen.getBackend();
+                if (b != null && b.isImageProtocolSupported()) {
+                    imageMin = Math.min(imageMin, h);
+                }
             }
-            return min < Integer.MAX_VALUE ? min : super.getTextHeight();
+            if (imageMin < Integer.MAX_VALUE) {
+                return imageMin;
+            }
+            return allMin < Integer.MAX_VALUE ? allMin : super.getTextHeight();
         }
     }
 
