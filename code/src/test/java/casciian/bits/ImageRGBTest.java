@@ -469,4 +469,59 @@ class ImageRGBTest {
         assertEquals(0x00FF00, resized.getRGB(99, 99));
         assertEquals(0x0000FF, resized.getRGB(50, 50));
     }
+
+    @Test
+    @DisplayName("getRGB region with large image (parallel path)")
+    void testGetRGBRegionLargeImage() {
+        // 200x100 = 20,000 pixels, exceeds PARALLEL_THRESHOLD of 10,000
+        ImageRGB image = new ImageRGB(200, 100);
+
+        // Set pixels at known positions within the region to extract
+        image.setRGB(10, 10, 0xFF0000);
+        image.setRGB(150, 50, 0x00FF00);
+        image.setRGB(190, 90, 0x0000FF);
+
+        // Extract a large region: 180x80 = 14,400 pixels
+        int[] rgbArray = image.getRGB(10, 10, 180, 80, null, 0, 180);
+
+        assertNotNull(rgbArray);
+        // (10,10) maps to row=0, col=0
+        assertEquals(0xFF0000, rgbArray[0]);
+        // (150,50) maps to row=40, col=140
+        assertEquals(0x00FF00, rgbArray[40 * 180 + 140]);
+        // Verify the last pixel in the region at position (189,89)
+        int lastRow = 79;
+        int lastCol = 179;
+        image.setRGB(189, 89, 0xABCDEF);
+        rgbArray = image.getRGB(10, 10, 180, 80, null, 0, 180);
+        assertEquals(0xABCDEF, rgbArray[lastRow * 180 + lastCol]);
+    }
+
+    @Test
+    @DisplayName("setRGB region with large image (parallel path)")
+    void testSetRGBRegionLargeImage() {
+        // 200x100 = 20,000 pixels, exceeds PARALLEL_THRESHOLD of 10,000
+        ImageRGB image = new ImageRGB(200, 100);
+
+        // Create a large RGB data array: 150x80 = 12,000 pixels
+        int w = 150;
+        int h = 80;
+        int[] rgbData = new int[w * h];
+        for (int row = 0; row < h; row++) {
+            for (int col = 0; col < w; col++) {
+                rgbData[row * w + col] = 0x010000 * (row % 256) + col % 256;
+            }
+        }
+
+        image.setRGB(10, 5, w, h, rgbData, 0, w);
+
+        // Verify pixels at various positions to check for race conditions
+        assertEquals(rgbData[0], image.getRGB(10, 5));           // first pixel
+        assertEquals(rgbData[79 * w + 149], image.getRGB(159, 84)); // last pixel
+        assertEquals(rgbData[40 * w + 75], image.getRGB(85, 45));   // center pixel
+
+        // Verify pixels outside the set region are unchanged
+        assertEquals(0, image.getRGB(0, 0));
+        assertEquals(0, image.getRGB(199, 99));
+    }
 }

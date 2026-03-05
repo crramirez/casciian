@@ -128,13 +128,20 @@ public class ImageRGB {
             rgbArray = new int[offset + h * scansize];
         }
 
-        @SuppressWarnings("UnnecessaryLocalVariable") // Used a local variable for performance
         int[][] thisRgb = this.rgb;
-        for (int row = 0; row < h; row++) {
-            for (int col = 0; col < w; col++) {
-                rgbArray[offset + row * scansize + col] = thisRgb[startX + col][startY + row];
-            }
+        final int[] finalRgbArray = rgbArray;
+
+        IntStream colStream = IntStream.range(0, w);
+        if ((long) w * h > PARALLEL_THRESHOLD) {
+            colStream = colStream.parallel();
         }
+
+        colStream.forEach(col -> {
+            int[] colData = thisRgb[startX + col];
+            for (int row = 0; row < h; row++) {
+                finalRgbArray[offset + row * scansize + col] = colData[startY + row];
+            }
+        });
 
         return rgbArray;
     }
@@ -158,13 +165,19 @@ public class ImageRGB {
             throw new IllegalArgumentException("Invalid region dimensions");
         }
 
-        @SuppressWarnings("UnnecessaryLocalVariable") // Used a local variable for performance
         int[][] thisRgb = this.rgb;
-        for (int row = 0; row < h; row++) {
-            for (int col = 0; col < w; col++) {
-                thisRgb[startX + col][startY + row] = rgbArray[offset + row * scanSize + col];
-            }
+
+        IntStream colStream = IntStream.range(0, w);
+        if ((long) w * h > PARALLEL_THRESHOLD) {
+            colStream = colStream.parallel();
         }
+
+        colStream.forEach(col -> {
+            int[] colData = thisRgb[startX + col];
+            for (int row = 0; row < h; row++) {
+                colData[startY + row] = rgbArray[offset + row * scanSize + col];
+            }
+        });
     }
     /**
      * Alpha-blend another image over this one.
