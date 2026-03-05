@@ -198,9 +198,10 @@ public class ImageRGB {
             for (int x = 0; x < width; x++) {
                 int under = thisRow[x];
                 int over = overRow[x];
-                int red   = ((under >>> 16 & 0xFF) * oneMinusA + (over >>> 16 & 0xFF) * a) >> 8;
-                int green = ((under >>>  8 & 0xFF) * oneMinusA + (over >>>  8 & 0xFF) * a) >> 8;
-                int blue  = (( under       & 0xFF) * oneMinusA + ( over       & 0xFF) * a) >> 8;
+                // Max intermediate per component: 255*256 = 65 280 (no int overflow)
+                int red   = (((under >>> 16) & 0xFF) * oneMinusA + ((over >>> 16) & 0xFF) * a) >> 8;
+                int green = (((under >>>  8) & 0xFF) * oneMinusA + ((over >>>  8) & 0xFF) * a) >> 8;
+                int blue  = ((under          & 0xFF) * oneMinusA + ( over         & 0xFF) * a) >> 8;
                 thisRow[x] = 0xFF000000 | (red << 16) | (green << 8) | blue;
             }
         });
