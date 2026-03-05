@@ -23,7 +23,8 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 
 /**
- * A simple 2D RGB array.
+ * A simple 2D RGB array stored in row-major order for efficient
+ * bulk copy operations via {@link System#arraycopy}.
  */
 public class ImageRGB {
 
@@ -36,7 +37,7 @@ public class ImageRGB {
     private static final int PARALLEL_THRESHOLD = 10_000;
 
     /**
-     * The 24-bit RGB data.
+     * The 24-bit RGB data stored in row-major order: rgb[row][col].
      */
     private final int[][] rgb;
 
@@ -59,7 +60,7 @@ public class ImageRGB {
     public ImageRGB(final int width, final int height) {
         this.width = width;
         this.height = height;
-        rgb = new int[width][height];
+        rgb = new int[height][width];
     }
 
     /**
@@ -71,10 +72,10 @@ public class ImageRGB {
     public ImageRGB(final ImageRGB image) {
         width = image.width;
         height = image.height;
-        rgb = new int[width][height];
-        // Use System.arraycopy for efficient column-by-column copying
-        for (int x = 0; x < width; x++) {
-            System.arraycopy(image.rgb[x], 0, this.rgb[x], 0, height);
+        rgb = new int[height][width];
+        // Use System.arraycopy for efficient row-by-row copying
+        for (int y = 0; y < height; y++) {
+            System.arraycopy(image.rgb[y], 0, this.rgb[y], 0, width);
         }
     }
 
@@ -86,7 +87,7 @@ public class ImageRGB {
      * @return the RGB value
      */
     public int getRGB(final int x, final int y) {
-        return rgb[x][y];
+        return rgb[y][x];
     }
 
     /**
@@ -97,7 +98,7 @@ public class ImageRGB {
      * @param rgb the new RGB value
      */
     public void setRGB(final int x, final int y, final int rgb) {
-        this.rgb[x][y] = rgb;
+        this.rgb[y][x] = rgb;
     }
 
     /**
@@ -129,19 +130,9 @@ public class ImageRGB {
         }
 
         int[][] thisRgb = this.rgb;
-        final int[] finalRgbArray = rgbArray;
-
-        IntStream colStream = IntStream.range(0, w);
-        if ((long) w * h > PARALLEL_THRESHOLD) {
-            colStream = colStream.parallel();
+        for (int row = 0; row < h; row++) {
+            System.arraycopy(thisRgb[startY + row], startX, rgbArray, offset + row * scansize, w);
         }
-
-        colStream.forEach(col -> {
-            int[] colData = thisRgb[startX + col];
-            for (int row = 0; row < h; row++) {
-                finalRgbArray[offset + row * scansize + col] = colData[startY + row];
-            }
-        });
 
         return rgbArray;
     }
@@ -166,19 +157,11 @@ public class ImageRGB {
         }
 
         int[][] thisRgb = this.rgb;
-
-        IntStream colStream = IntStream.range(0, w);
-        if ((long) w * h > PARALLEL_THRESHOLD) {
-            colStream = colStream.parallel();
+        for (int row = 0; row < h; row++) {
+            System.arraycopy(rgbArray, offset + row * scanSize, thisRgb[startY + row], startX, w);
         }
-
-        colStream.forEach(col -> {
-            int[] colData = thisRgb[startX + col];
-            for (int row = 0; row < h; row++) {
-                colData[startY + row] = rgbArray[offset + row * scanSize + col];
-            }
-        });
     }
+
     /**
      * Alpha-blend another image over this one.
      *
@@ -196,18 +179,17 @@ public class ImageRGB {
         }
 
         // Use parallel streams for large images to improve performance
-        IntStream xStream = IntStream.range(0, width);
+        IntStream yStream = IntStream.range(0, height);
         if ((long) width * height > PARALLEL_THRESHOLD) {
             //noinspection DataFlowIssue
-            xStream = xStream.parallel();
+            yStream = yStream.parallel();
         }
-        
-        xStream.forEach(x -> {
-            for (int y = 0; y < height; y++) {
-                int underRGB = rgb[x][y];
-                int overRGB = image.rgb[x][y];
-                int newRgb = ImageUtils.blendColors(alpha, underRGB, overRGB);
-                this.rgb[x][y] = newRgb;
+
+        yStream.forEach(y -> {
+            int[] thisRow = rgb[y];
+            int[] overRow = image.rgb[y];
+            for (int x = 0; x < width; x++) {
+                thisRow[x] = ImageUtils.blendColors(alpha, thisRow[x], overRow[x]);
             }
         });
     }
@@ -227,21 +209,21 @@ public class ImageRGB {
             throw new IllegalArgumentException("Invalid subimage dimensions");
         }
         ImageRGB subimage = new ImageRGB(w, h);
-        
+
         // Calculate the actual copy bounds to avoid checking in the loop
         int copyWidth = Math.min(w, width - x);
         int copyHeight = Math.min(h, height - y);
-        
+
         if (copyWidth > 0 && copyHeight > 0) {
             // Use parallel streams for large subimages
-            IntStream colStream = IntStream.range(0, copyWidth);
+            IntStream rowStream = IntStream.range(0, copyHeight);
             if ((long) copyWidth * copyHeight > PARALLEL_THRESHOLD) {
                 //noinspection DataFlowIssue
-                colStream = colStream.parallel();
+                rowStream = rowStream.parallel();
             }
-            
-            colStream.forEach(col ->
-                System.arraycopy(this.rgb[x + col], y, subimage.rgb[col], 0, copyHeight)
+
+            rowStream.forEach(row ->
+                System.arraycopy(this.rgb[y + row], x, subimage.rgb[row], 0, copyWidth)
             );
         }
         return subimage;
@@ -278,16 +260,16 @@ public class ImageRGB {
         if (startX < 0 || startY < 0 || startX + width > this.width || startY + height > this.height) {
             throw new IllegalArgumentException("Invalid fill rectangle dimensions");
         }
-        
+
         // Use parallel streams for large fill operations
-        IntStream colStream = IntStream.range(startX, startX + width);
+        IntStream rowStream = IntStream.range(startY, startY + height);
         if ((long) width * height > PARALLEL_THRESHOLD) {
             //noinspection DataFlowIssue
-            colStream = colStream.parallel();
+            rowStream = rowStream.parallel();
         }
-        
-        colStream.forEach(col ->
-            Arrays.fill(this.rgb[col], startY, startY + height, color)
+
+        rowStream.forEach(row ->
+            Arrays.fill(this.rgb[row], startX, startX + width, color)
         );
     }
 
@@ -301,39 +283,36 @@ public class ImageRGB {
      * @param backgroundColor the RGB color to use for filling extra space
      * @return a new ImageRGB with the specified dimensions
      */
-    @SuppressWarnings("UnnecessaryLocalVariable")
     public ImageRGB resizeCanvas(int newWidth, int newHeight, int backgroundColor) {
         if (newWidth <= 0 || newHeight <= 0) {
             throw new IllegalArgumentException("New dimensions must be positive");
         }
 
         ImageRGB resized = new ImageRGB(newWidth, newHeight);
-        int oldWidth = this.width;
-        int oldHeight = this.height;
         int[][] oldRgb = this.rgb;
         int[][] newRgb = resized.rgb;
-        
-        int copyWidth = Math.min(oldWidth, newWidth);
-        int copyHeight = Math.min(oldHeight, newHeight);
+
+        int copyWidth = Math.min(this.width, newWidth);
+        int copyHeight = Math.min(this.height, newHeight);
 
         // Use parallel streams for large resize operations
-        IntStream xStream = IntStream.range(0, newWidth);
+        IntStream yStream = IntStream.range(0, newHeight);
         if ((long) newWidth * newHeight > PARALLEL_THRESHOLD) {
             //noinspection DataFlowIssue
-            xStream = xStream.parallel();
+            yStream = yStream.parallel();
         }
 
-        xStream.forEach(x -> {
-            if (x < copyWidth) {
+        yStream.forEach(y -> {
+            if (y < copyHeight) {
                 // Copy existing data
-                System.arraycopy(oldRgb[x], 0, newRgb[x], 0, copyHeight);
-                // Fill remaining height with background color
-                if (copyHeight < newHeight) {
-                    Arrays.fill(newRgb[x], copyHeight, newHeight, backgroundColor);
+                System.arraycopy(oldRgb[y], 0, newRgb[y], 0, copyWidth);
+                // Fill remaining width with background color
+                if (copyWidth < newWidth) {
+                    Arrays.fill(newRgb[y], copyWidth, newWidth, backgroundColor);
                 }
             } else {
-                // Fill entire column with background color
-                Arrays.fill(newRgb[x], 0, newHeight, backgroundColor);
+                // Fill entire row with background color
+                Arrays.fill(newRgb[y], 0, newWidth, backgroundColor);
             }
         });
 
