@@ -179,13 +179,13 @@ public class ImageRGB {
         }
 
         // Use parallel streams for large images to improve performance
-        IntStream yStream = IntStream.range(0, height);
+        IntStream rowStream = IntStream.range(0, height);
         if ((long) width * height > PARALLEL_THRESHOLD) {
             //noinspection DataFlowIssue
-            yStream = yStream.parallel();
+            rowStream = rowStream.parallel();
         }
 
-        yStream.forEach(y -> {
+        rowStream.forEach(y -> {
             int[] thisRow = rgb[y];
             int[] overRow = image.rgb[y];
             for (int x = 0; x < width; x++) {
@@ -296,13 +296,13 @@ public class ImageRGB {
         int copyHeight = Math.min(this.height, newHeight);
 
         // Use parallel streams for large resize operations
-        IntStream yStream = IntStream.range(0, newHeight);
+        IntStream rowStream = IntStream.range(0, newHeight);
         if ((long) newWidth * newHeight > PARALLEL_THRESHOLD) {
             //noinspection DataFlowIssue
-            yStream = yStream.parallel();
+            rowStream = rowStream.parallel();
         }
 
-        yStream.forEach(y -> {
+        rowStream.forEach(y -> {
             if (y < copyHeight) {
                 // Copy existing data
                 System.arraycopy(oldRgb[y], 0, newRgb[y], 0, copyWidth);
