@@ -279,6 +279,33 @@ public class ImageRGB {
     }
 
     /**
+     * Scales this image to the specified dimensions using Mitchell–Netravali
+     * bicubic interpolation (B = C = 1/3) with a support radius of 2.
+     * Uses separable convolution: a horizontal pass followed by a vertical
+     * pass. Border pixels are handled by clamping coordinates at the edges.
+     *
+     * @param newWidth  the target width in pixels
+     * @param newHeight the target height in pixels
+     * @return a new ImageRGB with the specified dimensions
+     * @throws IllegalArgumentException if dimensions are not positive
+     */
+    public ImageRGB scale(int newWidth, int newHeight) {
+        if (newWidth <= 0 || newHeight <= 0) {
+            throw new IllegalArgumentException("New dimensions must be positive");
+        }
+
+        // Horizontal pass: width changes, height unchanged
+        int[][] temp = new int[height][newWidth];
+        ScaleImageUtils.resampleHorizontal(this.rgb, temp, width, newWidth, height);
+
+        // Vertical pass: height changes, width unchanged
+        ImageRGB result = new ImageRGB(newWidth, newHeight);
+        ScaleImageUtils.resampleVertical(temp, result.rgb, height, newHeight, newWidth);
+
+        return result;
+    }
+
+    /**
      * Resizes the canvas to the specified dimensions. If the new dimensions are smaller
      * than the current image, it will crop the image. If the new dimensions are larger,
      * it will fill the extra space with the specified background color.
