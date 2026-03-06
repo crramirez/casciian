@@ -253,7 +253,7 @@ public class TChangeDirBox extends TWindow {
                 try {
                     dirComboBox.setText(
                         selectedDir.getCanonicalPath());
-                    if (keypress.equalsToKey(kbEnter)) {
+                    if (keypress.hasKey(kbEnter)) {
                         doOk();
                     }
                 } catch (IOException e) {

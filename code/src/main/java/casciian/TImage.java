@@ -16,18 +16,14 @@ package casciian;
 
 import java.util.Objects;
 
-import casciian.backend.ECMA48Terminal;
 import casciian.backend.SystemProperties;
 import casciian.bits.Cell;
 import casciian.bits.ImageRGB;
 import casciian.bits.ImageUtils;
 import casciian.bits.UnicodeGlyphImage;
-import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
-
-import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
 
 /**
@@ -38,6 +34,29 @@ public class TImage extends TWidget implements EditMenuUser {
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Selections for fitting the image to the text cells.
+     */
+    public enum Scale {
+        /**
+         * No scaling.
+         */
+        NONE,
+
+        /**
+         * Stretch/shrink the image in both directions to fully fill the text
+         * area width/height.
+         */
+        STRETCH,
+
+        /**
+         * Scale the image, preserving aspect ratio, to fill the text area
+         * width/height (like letterbox).  The background color for the
+         * letterboxed area is specified in scaleBackColor.
+         */
+        SCALE,
+    }
 
     /**
      * Selections for approximating the image as text cells.
@@ -65,6 +84,11 @@ public class TImage extends TWidget implements EditMenuUser {
     // ------------------------------------------------------------------------
 
     /**
+     * Scaling strategy to use.
+     */
+    private Scale scale = Scale.NONE;
+
+    /**
      * Display mode to use.
      */
     private DisplayMode displayMode = DisplayMode.BITMAP;
@@ -78,6 +102,27 @@ public class TImage extends TWidget implements EditMenuUser {
      * The image to display.
      */
     private ImageRGB image;
+
+    /**
+     * The original image from construction time.
+     */
+    private ImageRGB originalImage;
+
+    /**
+     * The current scaling factor for the image.
+     */
+    private double scaleFactor = 1.0;
+
+    /**
+     * The current clockwise rotation for the image.
+     */
+    private int clockwise = 0;
+
+    /**
+     * If true, this widget was resized and a new scaled image must be
+     * produced.
+     */
+    private boolean resized = false;
 
     /**
      * Left column of the image.  0 is the left-most column.
@@ -158,7 +203,7 @@ public class TImage extends TWidget implements EditMenuUser {
         // Set parent and window
         super(parent, x, y, width, height);
 
-        this.image = image;
+        this.originalImage = image;
         this.left = left;
         this.top = top;
         this.clickAction = clickAction;
@@ -227,6 +272,23 @@ public class TImage extends TWidget implements EditMenuUser {
         }
     }
 
+    /**
+     * Handle resize events.
+     *
+     * @param event resize event
+     */
+    @Override
+    public void onResize(final TResizeEvent event) {
+        // Get my width/height set correctly.
+        super.onResize(event);
+
+        if (scale == Scale.NONE) {
+            return;
+        }
+        image = null;
+        resized = true;
+    }
+
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -293,10 +355,18 @@ public class TImage extends TWidget implements EditMenuUser {
         int textWidth = getScreen().getTextWidth();
         int textHeight = getScreen().getTextHeight();
 
-        if (always || (textWidth > 0
+        if (image == null) {
+            image = rotateImage(originalImage, clockwise);
+            image = scaleImage(image, scaleFactor, getWidth(), getHeight(),
+                textWidth, textHeight);
+        }
+
+        if (always || resized || (textWidth > 0
             && (textWidth != lastTextWidth)
             && (textHeight > 0)
             && (textHeight != lastTextHeight))) {
+
+            resized = false;
 
             adjustImageSize(textWidth, textHeight);
 
@@ -309,6 +379,8 @@ public class TImage extends TWidget implements EditMenuUser {
             // Break the image up into an array of cells.
             var newCells = new Cell[cellColumns][cellRows];
 
+            int imageId = System.identityHashCode(this);
+            imageId ^= (int) System.currentTimeMillis();
             for (int x = 0; x < cellColumns; x++) {
                 for (int y = 0; y < cellRows; y++) {
 
@@ -330,6 +402,14 @@ public class TImage extends TWidget implements EditMenuUser {
 
                     cell.setImage(subImage);
 
+                    /*
+                    if ((displayMode != DisplayMode.BITMAP)
+                        || (!cell.checkForSingleColor(true))
+                    ) {
+                        imageId++;
+                        cell.setImageId(imageId & 0x7FFFFFFF);
+                    }
+*/
                     switch (effectiveMode) {
                     case BITMAP:
                         newCells[x][y] = cell;
@@ -487,6 +567,46 @@ public class TImage extends TWidget implements EditMenuUser {
     }
 
     /**
+     * Get the scaling strategy.
+     *
+     * @return Scale.NONE, Scale.STRETCH, etc.
+     */
+    public Scale getScaleType() {
+        return scale;
+    }
+
+    /**
+     * Set the scaling strategy.
+     *
+     * @param scale Scale.NONE, Scale.STRETCH, etc.
+     */
+    public void setScaleType(final Scale scale) {
+        this.scale = scale;
+        this.image = null;
+        sizeToImage(true);
+    }
+
+    /**
+     * Get the scale factor.
+     *
+     * @return the scale factor
+     */
+    public double getScaleFactor() {
+        return scaleFactor;
+    }
+
+    /**
+     * Set the scale factor.  1.0 means no scaling.
+     *
+     * @param scaleFactor the new scale factor
+     */
+    public void setScaleFactor(final double scaleFactor) {
+        this.scaleFactor = scaleFactor;
+        image = null;
+        sizeToImage(true);
+    }
+
+    /**
      * Get the image display mode.
      *
      * @return DisplayMode.BITMAP, DisplayMode.UNICODE_HALVES, etc.
@@ -503,11 +623,139 @@ public class TImage extends TWidget implements EditMenuUser {
     public void setDisplayMode(final DisplayMode displayMode) {
         this.displayMode = Objects.requireNonNull(displayMode,
             "displayMode must not be null");
+        this.image = null;
         lastTextWidth = -1;
         lastTextHeight = -1;
         sizeToImage(true);
     }
 
+    /**
+     * Get the rotation, as degrees.
+     *
+     * @return the rotation in degrees
+     */
+    public int getRotation() {
+        switch (clockwise) {
+            case 0:
+                return 0;
+            case 1:
+                return 90;
+            case 2:
+                return 180;
+            case 3:
+                return 270;
+            default:
+                // Don't know how this happened, but fix it.
+                clockwise = 0;
+                image = null;
+                sizeToImage(true);
+                return 0;
+        }
+    }
+
+    /**
+     * Set the rotation, as degrees clockwise.
+     *
+     * @param rotation 0, 90, 180, or 270
+     */
+    public void setRotation(final int rotation) {
+        switch (rotation) {
+            case 0:
+                clockwise = 0;
+                break;
+            case 90:
+                clockwise = 1;
+                break;
+            case 180:
+                clockwise = 2;
+                break;
+            case 270:
+                clockwise = 3;
+                break;
+            default:
+                // Don't know how this happened, but fix it.
+                clockwise = 0;
+                break;
+        }
+
+        image = null;
+        sizeToImage(true);
+    }
+
+    /**
+     * Scale an image to be scaleFactor size, OR stretch it.
+     *
+     * @param image the image to scale
+     * @param factor the scale to make the new image
+     * @param width the number of text cell columns for the destination image
+     * @param height the number of text cell rows for the destination image
+     * @param textWidth the width in pixels for one text cell
+     * @param textHeight the height in pixels for one text cell
+     */
+    private ImageRGB scaleImage(final ImageRGB image,
+                                     final double factor, final int width, final int height,
+                                     final int textWidth, final int textHeight) {
+
+        if ((scale == Scale.NONE) && (Math.abs(factor - 1.0) < 0.03)) {
+            // If we are within 3% of 1.0, just return the original image.
+            return image;
+        }
+
+        int destWidth = 0;
+        int destHeight = 0;
+        int x;
+        int y;
+
+        switch (scale) {
+            case NONE:
+                destWidth = (int) (image.getWidth() * factor);
+                destHeight = (int) (image.getHeight() * factor);
+                break;
+            case STRETCH:
+                destWidth = Math.max(1, width) * textWidth;
+                destHeight = Math.max(1, height) * textHeight;
+                break;
+            case SCALE:
+                double a = (double) image.getWidth() / image.getHeight();
+                double b = (double) (width * textWidth) / (height * textHeight);
+                assert (a > 0);
+                assert (b > 0);
+
+                if (a > b) {
+                    // Horizontal letterbox
+                    destWidth = Math.max(1, width) * textWidth;
+                    destHeight = (int) (destWidth / a);
+                    y = ((Math.max(1, height) * textHeight) - destHeight) / 2;
+                    assert (y >= 0);
+                } else {
+                    // Vertical letterbox
+                    destHeight = Math.max(1, height) * textHeight;
+                    destWidth = (int) (destHeight * a);
+                    x = ((Math.max(1, width) * textWidth) - destWidth) / 2;
+                    assert (x >= 0);
+                }
+                break;
+        }
+
+        return image.scale(destWidth, destHeight);
+    }
+
+    /**
+     * Rotate an image either clockwise or counterclockwise.
+     *
+     * @param image the image to scale
+     * @param clockwise number of turns clockwise
+     */
+    private ImageRGB rotateImage(final ImageRGB image,
+                                      final int clockwise) {
+
+        if (clockwise % 4 == 0) {
+            return image;
+        }
+
+        return image.rotate(clockwise);
+    }
+    
     // ------------------------------------------------------------------------
     // EditMenuUser -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -527,7 +775,7 @@ public class TImage extends TWidget implements EditMenuUser {
      * @return true if the copy menu item should be enabled
      */
     public boolean isEditMenuCopy() {
-        return true;
+        return false;
     }
 
     /**

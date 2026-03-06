@@ -757,7 +757,7 @@ class ImageRGBTest {
     @DisplayName("rotate: clockwise swaps dimensions")
     void testRotateClockwiseDimensions() {
         ImageRGB image = new ImageRGB(10, 20);
-        ImageRGB rotated = image.rotate(true);
+        ImageRGB rotated = image.rotate(1);
         assertEquals(20, rotated.getWidth());
         assertEquals(10, rotated.getHeight());
     }
@@ -766,7 +766,7 @@ class ImageRGBTest {
     @DisplayName("rotate: counter-clockwise swaps dimensions")
     void testRotateCounterClockwiseDimensions() {
         ImageRGB image = new ImageRGB(10, 20);
-        ImageRGB rotated = image.rotate(false);
+        ImageRGB rotated = image.rotate(3);
         assertEquals(20, rotated.getWidth());
         assertEquals(10, rotated.getHeight());
     }
@@ -789,7 +789,7 @@ class ImageRGBTest {
         // Row 0: 4  1
         // Row 1: 5  2
         // Row 2: 6  3
-        ImageRGB rotated = image.rotate(true);
+        ImageRGB rotated = image.rotate(1);
         assertEquals(2, rotated.getWidth());
         assertEquals(3, rotated.getHeight());
         assertEquals(4, rotated.getRGB(0, 0));
@@ -816,7 +816,7 @@ class ImageRGBTest {
         // Row 0: 3  6
         // Row 1: 2  5
         // Row 2: 1  4
-        ImageRGB rotated = image.rotate(false);
+        ImageRGB rotated = image.rotate(3);
         assertEquals(2, rotated.getWidth());
         assertEquals(3, rotated.getHeight());
         assertEquals(3, rotated.getRGB(0, 0));
@@ -839,7 +839,7 @@ class ImageRGBTest {
 
         ImageRGB result = image;
         for (int i = 0; i < 4; i++) {
-            result = result.rotate(true);
+            result = result.rotate(1);
         }
 
         assertEquals(image.getWidth(), result.getWidth());
@@ -862,7 +862,7 @@ class ImageRGBTest {
             }
         }
 
-        ImageRGB result = image.rotate(true).rotate(false);
+        ImageRGB result = image.rotate(1).rotate(3);
 
         assertEquals(image.getWidth(), result.getWidth());
         assertEquals(image.getHeight(), result.getHeight());
@@ -879,12 +879,12 @@ class ImageRGBTest {
         ImageRGB image = new ImageRGB(1, 1);
         image.setRGB(0, 0, 0xABCDEF);
 
-        ImageRGB cw = image.rotate(true);
+        ImageRGB cw = image.rotate(1);
         assertEquals(1, cw.getWidth());
         assertEquals(1, cw.getHeight());
         assertEquals(0xABCDEF, cw.getRGB(0, 0));
 
-        ImageRGB ccw = image.rotate(false);
+        ImageRGB ccw = image.rotate(3);
         assertEquals(1, ccw.getWidth());
         assertEquals(1, ccw.getHeight());
         assertEquals(0xABCDEF, ccw.getRGB(0, 0));
@@ -911,7 +911,7 @@ class ImageRGBTest {
         // 7 4 1
         // 8 5 2
         // 9 6 3
-        ImageRGB rotated = image.rotate(true);
+        ImageRGB rotated = image.rotate(1);
         assertEquals(3, rotated.getWidth());
         assertEquals(3, rotated.getHeight());
         assertEquals(7, rotated.getRGB(0, 0));
