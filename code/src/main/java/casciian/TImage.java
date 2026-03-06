@@ -549,8 +549,8 @@ public class TImage extends TWidget implements EditMenuUser {
      * @param image the new image
      */
     public void setImage(final ImageRGB image) {
-        this.image = image;
         this.originalImage = image;
+        this.image = null;
         lastTextWidth = -1;
         lastTextHeight = -1;
         sizeToImage(true);
@@ -707,8 +707,6 @@ public class TImage extends TWidget implements EditMenuUser {
 
         int destWidth = 0;
         int destHeight = 0;
-        int offsetX = 0;
-        int offsetY = 0;
 
         switch (scale) {
             case NONE:
@@ -725,27 +723,16 @@ public class TImage extends TWidget implements EditMenuUser {
                 assert (a > 0);
                 assert (b > 0);
 
-                int canvasWidth = Math.max(1, width) * textWidth;
-                int canvasHeight = Math.max(1, height) * textHeight;
-
                 if (a > b) {
                     // Horizontal letterbox
-                    destWidth = canvasWidth;
+                    destWidth = Math.max(1, width) * textWidth;
                     destHeight = (int) (destWidth / a);
-                    offsetY = (canvasHeight - destHeight) / 2;
                 } else {
                     // Vertical letterbox
-                    destHeight = canvasHeight;
+                    destHeight = Math.max(1, height) * textHeight;
                     destWidth = (int) (destHeight * a);
-                    offsetX = (canvasWidth - destWidth) / 2;
                 }
-
-                // Composite the scaled image onto a full-size canvas at the
-                // computed offset, leaving the surrounding area black.
-                ImageRGB scaled = image.scale(Math.max(1, destWidth),
-                    Math.max(1, destHeight));
-                return scaled.resizeCanvas(canvasWidth, canvasHeight,
-                    offsetX, offsetY);
+                break;
         }
 
         return image.scale(destWidth, destHeight);

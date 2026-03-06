@@ -355,43 +355,6 @@ public class ImageRGB {
     }
 
     /**
-     * Resizes the canvas to the specified dimensions, placing this image at
-     * the given offset. Any area not covered by this image is filled with
-     * black (0x000000).
-     *
-     * @param newWidth the new width in pixels
-     * @param newHeight the new height in pixels
-     * @param offsetX the x offset at which to place this image on the canvas
-     * @param offsetY the y offset at which to place this image on the canvas
-     * @return a new ImageRGB with the specified dimensions
-     */
-    public ImageRGB resizeCanvas(int newWidth, int newHeight,
-                                 int offsetX, int offsetY) {
-        if (newWidth <= 0 || newHeight <= 0) {
-            throw new IllegalArgumentException("New dimensions must be positive");
-        }
-
-        // New ImageRGB is zero-initialized (black) by default.
-        ImageRGB result = new ImageRGB(newWidth, newHeight);
-
-        // Copy rows from this image into the canvas at the given offset.
-        for (int y = 0; y < height; y++) {
-            int destY = y + offsetY;
-            if (destY < 0 || destY >= newHeight) {
-                continue;
-            }
-            int srcStart = Math.max(0, -offsetX);
-            int destStart = Math.max(0, offsetX);
-            int copyWidth = Math.min(width - srcStart, newWidth - destStart);
-            if (copyWidth > 0) {
-                System.arraycopy(rgb[y], srcStart, result.rgb[destY], destStart, copyWidth);
-            }
-        }
-
-        return result;
-    }
-
-    /**
      * Resizes the canvas to the specified dimensions. If the new dimensions are smaller
      * than the current image, it will crop the image. If the new dimensions are larger,
      * it will fill the extra space with the specified background color.
