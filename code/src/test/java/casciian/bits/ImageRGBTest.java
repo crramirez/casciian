@@ -778,8 +778,12 @@ class ImageRGBTest {
         ImageRGB image = new ImageRGB(3, 2);
         // Row 0: 1  2  3
         // Row 1: 4  5  6
-        image.setRGB(0, 0, 1); image.setRGB(1, 0, 2); image.setRGB(2, 0, 3);
-        image.setRGB(0, 1, 4); image.setRGB(1, 1, 5); image.setRGB(2, 1, 6);
+        image.setRGB(0, 0, 1);
+        image.setRGB(1, 0, 2);
+        image.setRGB(2, 0, 3);
+        image.setRGB(0, 1, 4);
+        image.setRGB(1, 1, 5);
+        image.setRGB(2, 1, 6);
 
         // After 90° clockwise (new W=2, H=3):
         // Row 0: 4  1
@@ -788,9 +792,12 @@ class ImageRGBTest {
         ImageRGB rotated = image.rotate(true);
         assertEquals(2, rotated.getWidth());
         assertEquals(3, rotated.getHeight());
-        assertEquals(4, rotated.getRGB(0, 0)); assertEquals(1, rotated.getRGB(1, 0));
-        assertEquals(5, rotated.getRGB(0, 1)); assertEquals(2, rotated.getRGB(1, 1));
-        assertEquals(6, rotated.getRGB(0, 2)); assertEquals(3, rotated.getRGB(1, 2));
+        assertEquals(4, rotated.getRGB(0, 0));
+        assertEquals(1, rotated.getRGB(1, 0));
+        assertEquals(5, rotated.getRGB(0, 1));
+        assertEquals(2, rotated.getRGB(1, 1));
+        assertEquals(6, rotated.getRGB(0, 2));
+        assertEquals(3, rotated.getRGB(1, 2));
     }
 
     @Test
@@ -798,8 +805,12 @@ class ImageRGBTest {
     void testRotateCounterClockwisePixels() {
         // 3x2 image (W=3, H=2)
         ImageRGB image = new ImageRGB(3, 2);
-        image.setRGB(0, 0, 1); image.setRGB(1, 0, 2); image.setRGB(2, 0, 3);
-        image.setRGB(0, 1, 4); image.setRGB(1, 1, 5); image.setRGB(2, 1, 6);
+        image.setRGB(0, 0, 1);
+        image.setRGB(1, 0, 2);
+        image.setRGB(2, 0, 3);
+        image.setRGB(0, 1, 4);
+        image.setRGB(1, 1, 5);
+        image.setRGB(2, 1, 6);
 
         // After 90° counter-clockwise (new W=2, H=3):
         // Row 0: 3  6
@@ -808,9 +819,12 @@ class ImageRGBTest {
         ImageRGB rotated = image.rotate(false);
         assertEquals(2, rotated.getWidth());
         assertEquals(3, rotated.getHeight());
-        assertEquals(3, rotated.getRGB(0, 0)); assertEquals(6, rotated.getRGB(1, 0));
-        assertEquals(2, rotated.getRGB(0, 1)); assertEquals(5, rotated.getRGB(1, 1));
-        assertEquals(1, rotated.getRGB(0, 2)); assertEquals(4, rotated.getRGB(1, 2));
+        assertEquals(3, rotated.getRGB(0, 0));
+        assertEquals(6, rotated.getRGB(1, 0));
+        assertEquals(2, rotated.getRGB(0, 1));
+        assertEquals(5, rotated.getRGB(1, 1));
+        assertEquals(1, rotated.getRGB(0, 2));
+        assertEquals(4, rotated.getRGB(1, 2));
     }
 
     @Test
@@ -883,9 +897,15 @@ class ImageRGBTest {
         // 1 2 3
         // 4 5 6
         // 7 8 9
-        image.setRGB(0, 0, 1); image.setRGB(1, 0, 2); image.setRGB(2, 0, 3);
-        image.setRGB(0, 1, 4); image.setRGB(1, 1, 5); image.setRGB(2, 1, 6);
-        image.setRGB(0, 2, 7); image.setRGB(1, 2, 8); image.setRGB(2, 2, 9);
+        image.setRGB(0, 0, 1);
+        image.setRGB(1, 0, 2);
+        image.setRGB(2, 0, 3);
+        image.setRGB(0, 1, 4);
+        image.setRGB(1, 1, 5);
+        image.setRGB(2, 1, 6);
+        image.setRGB(0, 2, 7);
+        image.setRGB(1, 2, 8);
+        image.setRGB(2, 2, 9);
 
         // After 90° CW:
         // 7 4 1
@@ -894,8 +914,14 @@ class ImageRGBTest {
         ImageRGB rotated = image.rotate(true);
         assertEquals(3, rotated.getWidth());
         assertEquals(3, rotated.getHeight());
-        assertEquals(7, rotated.getRGB(0, 0)); assertEquals(4, rotated.getRGB(1, 0)); assertEquals(1, rotated.getRGB(2, 0));
-        assertEquals(8, rotated.getRGB(0, 1)); assertEquals(5, rotated.getRGB(1, 1)); assertEquals(2, rotated.getRGB(2, 1));
-        assertEquals(9, rotated.getRGB(0, 2)); assertEquals(6, rotated.getRGB(1, 2)); assertEquals(3, rotated.getRGB(2, 2));
+        assertEquals(7, rotated.getRGB(0, 0));
+        assertEquals(4, rotated.getRGB(1, 0));
+        assertEquals(1, rotated.getRGB(2, 0));
+        assertEquals(8, rotated.getRGB(0, 1));
+        assertEquals(5, rotated.getRGB(1, 1));
+        assertEquals(2, rotated.getRGB(2, 1));
+        assertEquals(9, rotated.getRGB(0, 2));
+        assertEquals(6, rotated.getRGB(1, 2));
+        assertEquals(3, rotated.getRGB(2, 2));
     }
 }

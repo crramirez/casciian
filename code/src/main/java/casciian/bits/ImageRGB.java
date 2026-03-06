@@ -317,12 +317,17 @@ public class ImageRGB {
         // Pixel shuffling is memory-bandwidth-bound (no arithmetic per
         // pixel beyond index computation), so a sequential loop avoids
         // parallel-stream overhead while still saturating the memory bus.
-        for (int y = 0; y < height; y++) {
-            int[] srcRow = rgb[y];
-            for (int x = 0; x < width; x++) {
-                if (clockwise) {
+        if (clockwise) {
+            for (int y = 0; y < height; y++) {
+                int[] srcRow = rgb[y];
+                for (int x = 0; x < width; x++) {
                     rotated.rgb[x][height - 1 - y] = srcRow[x];
-                } else {
+                }
+            }
+        } else {
+            for (int y = 0; y < height; y++) {
+                int[] srcRow = rgb[y];
+                for (int x = 0; x < width; x++) {
                     rotated.rgb[width - 1 - x][y] = srcRow[x];
                 }
             }
