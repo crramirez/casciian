@@ -189,6 +189,7 @@ public class TImageWindow extends TScrollableWindow {
             imageField.setLeft(imageField.getLeft() - wheelScrollSize);
         } else if (mouse.isMouse1()
             && !inMovements()
+            && imageField.mouseWouldHit(mouse)
             && !mouseOnVerticalScroller(mouse)
             && !mouseOnHorizontalScroller(mouse)) {
 
