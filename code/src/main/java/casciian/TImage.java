@@ -402,14 +402,13 @@ public class TImage extends TWidget implements EditMenuUser {
 
                     cell.setImage(subImage);
 
-                    /*
                     if ((displayMode != DisplayMode.BITMAP)
                         || (!cell.checkForSingleColor(true))
                     ) {
                         imageId++;
                         cell.setImageId(imageId & 0x7FFFFFFF);
                     }
-*/
+
                     switch (effectiveMode) {
                     case BITMAP:
                         newCells[x][y] = cell;
