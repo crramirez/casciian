@@ -1696,9 +1696,7 @@ public class TApplication implements Runnable {
                 }
                 if (item != null) {
                     if (item.isEnabled()) {
-                        if (!modalWindowActive()
-                            || isEditMenuItem(item)) {
-
+                        if (isEditMenuItem(item) || !modalWindowActive()) {
                             // Let the menu item dispatch
                             item.dispatch(keypress.getBackend());
                             return;
