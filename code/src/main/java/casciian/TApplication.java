@@ -1688,7 +1688,7 @@ public class TApplication implements Runnable {
                 }
             }
 
-            if (!windowWillShortcut && !modalWindowActive()) {
+            if (!windowWillShortcut) {
                 TKeypress keypressLowercase = keypress.getKey().toLowerCase();
                 TMenuItem item = null;
                 synchronized (accelerators) {
@@ -1696,15 +1696,21 @@ public class TApplication implements Runnable {
                 }
                 if (item != null) {
                     if (item.isEnabled()) {
-                        // Let the menu item dispatch
-                        item.dispatch(keypress.getBackend());
-                        return;
+                        if (!modalWindowActive()
+                            || isEditMenuItem(item)) {
+
+                            // Let the menu item dispatch
+                            item.dispatch(keypress.getBackend());
+                            return;
+                        }
                     }
                 }
 
-                // Handle the keypress
-                if (onKeypress(keypress)) {
-                    return;
+                if (!modalWindowActive()) {
+                    // Handle the keypress
+                    if (onKeypress(keypress)) {
+                        return;
+                    }
                 }
             }
         }
@@ -3465,6 +3471,20 @@ public class TApplication implements Runnable {
 
             return false;
         }
+    }
+
+    /**
+     * Check if a menu item is an edit menu item (Cut, Copy, Paste, Clear).
+     *
+     * @param item the menu item to check
+     * @return true if the item is an edit menu item
+     */
+    private boolean isEditMenuItem(final TMenuItem item) {
+        int id = item.getId();
+        return id == TMenu.MID_CUT
+            || id == TMenu.MID_COPY
+            || id == TMenu.MID_PASTE
+            || id == TMenu.MID_CLEAR;
     }
 
     /**
