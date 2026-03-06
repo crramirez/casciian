@@ -1689,6 +1689,7 @@ public class TApplication implements Runnable {
             }
 
             if (!windowWillShortcut) {
+                final boolean modalActive = modalWindowActive();
                 TKeypress keypressLowercase = keypress.getKey().toLowerCase();
                 TMenuItem item = null;
                 synchronized (accelerators) {
@@ -1696,7 +1697,7 @@ public class TApplication implements Runnable {
                 }
                 if (item != null) {
                     if (item.isEnabled()) {
-                        if (isEditMenuItem(item) || !modalWindowActive()) {
+                        if (isEditMenuItem(item) || !modalActive) {
                             // Let the menu item dispatch
                             item.dispatch(keypress.getBackend());
                             return;
@@ -1704,7 +1705,7 @@ public class TApplication implements Runnable {
                     }
                 }
 
-                if (!modalWindowActive()) {
+                if (!modalActive) {
                     // Handle the keypress
                     if (onKeypress(keypress)) {
                         return;
