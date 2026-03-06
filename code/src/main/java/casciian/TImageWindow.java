@@ -59,6 +59,31 @@ public class TImageWindow extends TScrollableWindow {
      */
     private TImage imageField;
 
+    /**
+     * If true, the user is dragging to pan the image.
+     */
+    private boolean inImagePan = false;
+
+    /**
+     * Starting absolute X position of the mouse when panning began.
+     */
+    private int panMouseX;
+
+    /**
+     * Starting absolute Y position of the mouse when panning began.
+     */
+    private int panMouseY;
+
+    /**
+     * Image left offset when panning began.
+     */
+    private int panStartLeft;
+
+    /**
+     * Image top offset when panning began.
+     */
+    private int panStartTop;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -162,6 +187,17 @@ public class TImageWindow extends TScrollableWindow {
             imageField.setLeft(imageField.getLeft() + wheelScrollSize);
         } else if (mouse.isMouseWheelRight()) {
             imageField.setLeft(imageField.getLeft() - wheelScrollSize);
+        } else if (mouse.isMouse1()
+            && !inMovements()
+            && !mouseOnVerticalScroller(mouse)
+            && !mouseOnHorizontalScroller(mouse)) {
+
+            // Begin panning the image (hand/grab drag)
+            inImagePan = true;
+            panMouseX = mouse.getAbsoluteX();
+            panMouseY = mouse.getAbsoluteY();
+            panStartLeft = imageField.getLeft();
+            panStartTop = imageField.getTop();
         }
         setVerticalValue(imageField.getTop());
         setHorizontalValue(imageField.getLeft());
@@ -174,6 +210,8 @@ public class TImageWindow extends TScrollableWindow {
      */
     @Override
     public void onMouseUp(final TMouseEvent mouse) {
+        inImagePan = false;
+
         // Use TWidget's code to pass the event to the children.
         super.onMouseUp(mouse);
 
@@ -194,6 +232,20 @@ public class TImageWindow extends TScrollableWindow {
      */
     @Override
     public void onMouseMotion(final TMouseEvent mouse) {
+        if (inImagePan && mouse.isMouse1()) {
+            // Pan the image: drag direction moves the visible content
+            int deltaX = mouse.getAbsoluteX() - panMouseX;
+            int deltaY = mouse.getAbsoluteY() - panMouseY;
+            imageField.setLeft(panStartLeft - deltaX);
+            imageField.setTop(panStartTop - deltaY);
+            setVerticalValue(imageField.getTop());
+            setHorizontalValue(imageField.getLeft());
+            return;
+        }
+
+        // Not panning, stop any stale pan state
+        inImagePan = false;
+
         // Use TWidget's code to pass the event to the children.
         super.onMouseMotion(mouse);
 
