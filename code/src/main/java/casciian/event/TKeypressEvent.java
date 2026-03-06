@@ -109,7 +109,7 @@ public class TKeypressEvent extends TInputEvent {
         }
 
         TKeypress that = (TKeypress) rhs;
-        return hasKey(that);
+        return matchesKey(that);
     }
 
     /**
@@ -118,7 +118,7 @@ public class TKeypressEvent extends TInputEvent {
      * @param rhs another TKeypress instance
      * @return true if all fields are equal
      */
-    public boolean hasKey(final TKeypress rhs) {
+    public boolean matchesKey(final TKeypress rhs) {
         return (key.equals(rhs));
     }
 

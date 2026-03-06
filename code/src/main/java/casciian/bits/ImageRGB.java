@@ -312,14 +312,17 @@ public class ImageRGB {
      * @return a new ImageRGB containing the rotated image
      */
     public ImageRGB rotate(final int clockwise) {
-        if (clockwise % 4 == 0) {
+        // Normalize to [0, 3] so negative values and values >= 4 are handled.
+        int turns = ((clockwise % 4) + 4) % 4;
+
+        if (turns == 0) {
             return getSubimage(0, 0, width, height);
         }
 
         // Pixel shuffling is memory-bandwidth-bound (no arithmetic per
         // pixel beyond index computation), so a sequential loop avoids
         // parallel-stream overhead while still saturating the memory bus.
-        if (clockwise % 4 == 1) {
+        if (turns == 1) {
             //noinspection SuspiciousNameCombination
             ImageRGB rotated = new ImageRGB(height, width);
             for (int y = 0; y < height; y++) {
@@ -329,7 +332,7 @@ public class ImageRGB {
                 }
             }
             return rotated;
-        } else if (clockwise % 4 == 2) {
+        } else if (turns == 2) {
             ImageRGB rotated = new ImageRGB(width, height);
             for (int y = 0; y < height; y++) {
                 int[] srcRow = rgb[y];
@@ -338,7 +341,7 @@ public class ImageRGB {
                 }
             }
             return rotated;
-        } else if (clockwise % 4 == 3) {
+        } else {
             //noinspection SuspiciousNameCombination
             ImageRGB rotated = new ImageRGB(height, width);
             for (int y = 0; y < height; y++) {
@@ -349,7 +352,6 @@ public class ImageRGB {
             }
             return rotated;
         }
-        return getSubimage(0, 0, width, height);
     }
 
     /**

@@ -924,4 +924,57 @@ class ImageRGBTest {
         assertEquals(6, rotated.getRGB(1, 2));
         assertEquals(3, rotated.getRGB(2, 2));
     }
+
+    @Test
+    @DisplayName("rotate: 180 degrees preserves dimensions and maps pixels correctly")
+    void testRotate180Degrees() {
+        // 3x2 image (W=3, H=2)
+        ImageRGB image = new ImageRGB(3, 2);
+        // Row 0: 1  2  3
+        // Row 1: 4  5  6
+        image.setRGB(0, 0, 1);
+        image.setRGB(1, 0, 2);
+        image.setRGB(2, 0, 3);
+        image.setRGB(0, 1, 4);
+        image.setRGB(1, 1, 5);
+        image.setRGB(2, 1, 6);
+
+        // After 180° rotation (new W=3, H=2):
+        // Row 0: 6  5  4
+        // Row 1: 3  2  1
+        ImageRGB rotated = image.rotate(2);
+        assertEquals(3, rotated.getWidth());
+        assertEquals(2, rotated.getHeight());
+        assertEquals(6, rotated.getRGB(0, 0));
+        assertEquals(5, rotated.getRGB(1, 0));
+        assertEquals(4, rotated.getRGB(2, 0));
+        assertEquals(3, rotated.getRGB(0, 1));
+        assertEquals(2, rotated.getRGB(1, 1));
+        assertEquals(1, rotated.getRGB(2, 1));
+    }
+
+    @Test
+    @DisplayName("rotate: negative value is equivalent to counter-clockwise")
+    void testRotateNegativeValue() {
+        // A single 90° counter-clockwise rotation (rotate(3)) should equal rotate(-1)
+        ImageRGB image = new ImageRGB(3, 2);
+        image.setRGB(0, 0, 1);
+        image.setRGB(1, 0, 2);
+        image.setRGB(2, 0, 3);
+        image.setRGB(0, 1, 4);
+        image.setRGB(1, 1, 5);
+        image.setRGB(2, 1, 6);
+
+        ImageRGB expected = image.rotate(3);
+        ImageRGB actual = image.rotate(-1);
+
+        assertEquals(expected.getWidth(), actual.getWidth());
+        assertEquals(expected.getHeight(), actual.getHeight());
+        for (int y = 0; y < expected.getHeight(); y++) {
+            for (int x = 0; x < expected.getWidth(); x++) {
+                assertEquals(expected.getRGB(x, y), actual.getRGB(x, y),
+                        "Pixel (" + x + "," + y + ") should match");
+            }
+        }
+    }
 }

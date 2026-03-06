@@ -282,17 +282,17 @@ public class TImageWindow extends TScrollableWindow {
                 return;
             }
         }
-        if (keypress.hasKey(kbAltUp)) {
+        if (keypress.matchesKey(kbAltUp)) {
             // Make the image bigger.
             imageField.setScaleFactor(imageField.getScaleFactor() * 1.25);
             return;
         }
-        if (keypress.hasKey(kbAltDown)) {
+        if (keypress.matchesKey(kbAltDown)) {
             // Make the image smaller.
             imageField.setScaleFactor(imageField.getScaleFactor() * 0.80);
             return;
         }
-        if (keypress.hasKey(kbAltRight)) {
+        if (keypress.matchesKey(kbAltRight)) {
             // Rotate clockwise.
             int angle = imageField.getRotation() + 90;
             if (angle == 360) {
@@ -301,7 +301,7 @@ public class TImageWindow extends TScrollableWindow {
             imageField.setRotation(angle);
             return;
         }
-        if (keypress.hasKey(kbAltLeft)) {
+        if (keypress.matchesKey(kbAltLeft)) {
             // Rotate counter-clockwise.
             int angle = imageField.getRotation() - 90;
             if (angle < 0) {
@@ -311,7 +311,7 @@ public class TImageWindow extends TScrollableWindow {
             return;
         }
 
-        if (keypress.hasKey(kbShiftLeft)) {
+        if (keypress.matchesKey(kbShiftLeft)) {
             switch (imageField.getScaleType()) {
                 case NONE:
                     imageField.setScaleType(TImage.Scale.SCALE);
@@ -324,7 +324,7 @@ public class TImageWindow extends TScrollableWindow {
                     return;
             }
         }
-        if (keypress.hasKey(kbShiftRight)) {
+        if (keypress.matchesKey(kbShiftRight)) {
             switch (imageField.getScaleType()) {
                 case NONE:
                     imageField.setScaleType(TImage.Scale.STRETCH);
@@ -337,7 +337,7 @@ public class TImageWindow extends TScrollableWindow {
                     return;
             }
         }
-        if (keypress.hasKey(kbCtrlLeft)) {
+        if (keypress.matchesKey(kbCtrlLeft)) {
             switch (imageField.getDisplayMode()) {
                 case BITMAP:
                     imageField.setDisplayMode(TImage.DisplayMode.UNICODE_HALVES);
@@ -350,7 +350,7 @@ public class TImageWindow extends TScrollableWindow {
                     return;
             }
         }
-        if (keypress.hasKey(kbCtrlRight)) {
+        if (keypress.matchesKey(kbCtrlRight)) {
             switch (imageField.getDisplayMode()) {
                 case BITMAP:
                     imageField.setDisplayMode(TImage.DisplayMode.BLOCKS);
