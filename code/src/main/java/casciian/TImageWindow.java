@@ -243,8 +243,10 @@ public class TImageWindow extends TScrollableWindow {
             return;
         }
 
-        // Not panning, stop any stale pan state
-        inImagePan = false;
+        // If mouse button was released during motion, stop panning
+        if (inImagePan) {
+            inImagePan = false;
+        }
 
         // Use TWidget's code to pass the event to the children.
         super.onMouseMotion(mouse);
