@@ -27,6 +27,10 @@ import java.nio.file.Path;
  */
 public class SixelImageDecoder implements ImageDecoder {
 
+    public SixelImageDecoder() {
+        // Explicit no arg constructor
+    }
+
     @Override
     public ImageRGB decode(Path path) throws IOException {
         String content = Files.readString(path);

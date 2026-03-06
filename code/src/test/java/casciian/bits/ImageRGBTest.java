@@ -757,7 +757,7 @@ class ImageRGBTest {
     @DisplayName("rotate: clockwise swaps dimensions")
     void testRotateClockwiseDimensions() {
         ImageRGB image = new ImageRGB(10, 20);
-        ImageRGB rotated = image.rotate(true);
+        ImageRGB rotated = image.rotate(1);
         assertEquals(20, rotated.getWidth());
         assertEquals(10, rotated.getHeight());
     }
@@ -766,7 +766,7 @@ class ImageRGBTest {
     @DisplayName("rotate: counter-clockwise swaps dimensions")
     void testRotateCounterClockwiseDimensions() {
         ImageRGB image = new ImageRGB(10, 20);
-        ImageRGB rotated = image.rotate(false);
+        ImageRGB rotated = image.rotate(3);
         assertEquals(20, rotated.getWidth());
         assertEquals(10, rotated.getHeight());
     }
@@ -789,7 +789,7 @@ class ImageRGBTest {
         // Row 0: 4  1
         // Row 1: 5  2
         // Row 2: 6  3
-        ImageRGB rotated = image.rotate(true);
+        ImageRGB rotated = image.rotate(1);
         assertEquals(2, rotated.getWidth());
         assertEquals(3, rotated.getHeight());
         assertEquals(4, rotated.getRGB(0, 0));
@@ -816,7 +816,7 @@ class ImageRGBTest {
         // Row 0: 3  6
         // Row 1: 2  5
         // Row 2: 1  4
-        ImageRGB rotated = image.rotate(false);
+        ImageRGB rotated = image.rotate(3);
         assertEquals(2, rotated.getWidth());
         assertEquals(3, rotated.getHeight());
         assertEquals(3, rotated.getRGB(0, 0));
@@ -839,7 +839,7 @@ class ImageRGBTest {
 
         ImageRGB result = image;
         for (int i = 0; i < 4; i++) {
-            result = result.rotate(true);
+            result = result.rotate(1);
         }
 
         assertEquals(image.getWidth(), result.getWidth());
@@ -862,7 +862,7 @@ class ImageRGBTest {
             }
         }
 
-        ImageRGB result = image.rotate(true).rotate(false);
+        ImageRGB result = image.rotate(1).rotate(3);
 
         assertEquals(image.getWidth(), result.getWidth());
         assertEquals(image.getHeight(), result.getHeight());
@@ -879,12 +879,12 @@ class ImageRGBTest {
         ImageRGB image = new ImageRGB(1, 1);
         image.setRGB(0, 0, 0xABCDEF);
 
-        ImageRGB cw = image.rotate(true);
+        ImageRGB cw = image.rotate(1);
         assertEquals(1, cw.getWidth());
         assertEquals(1, cw.getHeight());
         assertEquals(0xABCDEF, cw.getRGB(0, 0));
 
-        ImageRGB ccw = image.rotate(false);
+        ImageRGB ccw = image.rotate(3);
         assertEquals(1, ccw.getWidth());
         assertEquals(1, ccw.getHeight());
         assertEquals(0xABCDEF, ccw.getRGB(0, 0));
@@ -911,7 +911,7 @@ class ImageRGBTest {
         // 7 4 1
         // 8 5 2
         // 9 6 3
-        ImageRGB rotated = image.rotate(true);
+        ImageRGB rotated = image.rotate(1);
         assertEquals(3, rotated.getWidth());
         assertEquals(3, rotated.getHeight());
         assertEquals(7, rotated.getRGB(0, 0));
@@ -923,5 +923,58 @@ class ImageRGBTest {
         assertEquals(9, rotated.getRGB(0, 2));
         assertEquals(6, rotated.getRGB(1, 2));
         assertEquals(3, rotated.getRGB(2, 2));
+    }
+
+    @Test
+    @DisplayName("rotate: 180 degrees preserves dimensions and maps pixels correctly")
+    void testRotate180Degrees() {
+        // 3x2 image (W=3, H=2)
+        ImageRGB image = new ImageRGB(3, 2);
+        // Row 0: 1  2  3
+        // Row 1: 4  5  6
+        image.setRGB(0, 0, 1);
+        image.setRGB(1, 0, 2);
+        image.setRGB(2, 0, 3);
+        image.setRGB(0, 1, 4);
+        image.setRGB(1, 1, 5);
+        image.setRGB(2, 1, 6);
+
+        // After 180° rotation (new W=3, H=2):
+        // Row 0: 6  5  4
+        // Row 1: 3  2  1
+        ImageRGB rotated = image.rotate(2);
+        assertEquals(3, rotated.getWidth());
+        assertEquals(2, rotated.getHeight());
+        assertEquals(6, rotated.getRGB(0, 0));
+        assertEquals(5, rotated.getRGB(1, 0));
+        assertEquals(4, rotated.getRGB(2, 0));
+        assertEquals(3, rotated.getRGB(0, 1));
+        assertEquals(2, rotated.getRGB(1, 1));
+        assertEquals(1, rotated.getRGB(2, 1));
+    }
+
+    @Test
+    @DisplayName("rotate: negative value is equivalent to counter-clockwise")
+    void testRotateNegativeValue() {
+        // A single 90° counter-clockwise rotation (rotate(3)) should equal rotate(-1)
+        ImageRGB image = new ImageRGB(3, 2);
+        image.setRGB(0, 0, 1);
+        image.setRGB(1, 0, 2);
+        image.setRGB(2, 0, 3);
+        image.setRGB(0, 1, 4);
+        image.setRGB(1, 1, 5);
+        image.setRGB(2, 1, 6);
+
+        ImageRGB expected = image.rotate(3);
+        ImageRGB actual = image.rotate(-1);
+
+        assertEquals(expected.getWidth(), actual.getWidth());
+        assertEquals(expected.getHeight(), actual.getHeight());
+        for (int y = 0; y < expected.getHeight(); y++) {
+            for (int x = 0; x < expected.getWidth(); x++) {
+                assertEquals(expected.getRGB(x, y), actual.getRGB(x, y),
+                        "Pixel (" + x + "," + y + ") should match");
+            }
+        }
     }
 }

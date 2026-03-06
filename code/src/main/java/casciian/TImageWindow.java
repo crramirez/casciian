@@ -270,6 +270,100 @@ public class TImageWindow extends TScrollableWindow {
             return;
         }
 
+        if (!keypress.getKey().isFnKey()) {
+            if (keypress.getKey().getChar() == '+') {
+                // Make the image bigger.
+                imageField.setScaleFactor(imageField.getScaleFactor() * 1.25);
+                return;
+            }
+            if (keypress.getKey().getChar() == '-') {
+                // Make the image smaller.
+                imageField.setScaleFactor(imageField.getScaleFactor() * 0.80);
+                return;
+            }
+        }
+        if (keypress.matchesKey(kbAltUp)) {
+            // Make the image bigger.
+            imageField.setScaleFactor(imageField.getScaleFactor() * 1.25);
+            return;
+        }
+        if (keypress.matchesKey(kbAltDown)) {
+            // Make the image smaller.
+            imageField.setScaleFactor(imageField.getScaleFactor() * 0.80);
+            return;
+        }
+        if (keypress.matchesKey(kbAltRight)) {
+            // Rotate clockwise.
+            int angle = imageField.getRotation() + 90;
+            if (angle == 360) {
+                angle = 0;
+            }
+            imageField.setRotation(angle);
+            return;
+        }
+        if (keypress.matchesKey(kbAltLeft)) {
+            // Rotate counter-clockwise.
+            int angle = imageField.getRotation() - 90;
+            if (angle < 0) {
+                angle += 360;
+            }
+            imageField.setRotation(angle);
+            return;
+        }
+
+        if (keypress.matchesKey(kbShiftLeft)) {
+            switch (imageField.getScaleType()) {
+                case NONE:
+                    imageField.setScaleType(TImage.Scale.SCALE);
+                    return;
+                case STRETCH:
+                    imageField.setScaleType(TImage.Scale.NONE);
+                    return;
+                case SCALE:
+                    imageField.setScaleType(TImage.Scale.STRETCH);
+                    return;
+            }
+        }
+        if (keypress.matchesKey(kbShiftRight)) {
+            switch (imageField.getScaleType()) {
+                case NONE:
+                    imageField.setScaleType(TImage.Scale.STRETCH);
+                    return;
+                case STRETCH:
+                    imageField.setScaleType(TImage.Scale.SCALE);
+                    return;
+                case SCALE:
+                    imageField.setScaleType(TImage.Scale.NONE);
+                    return;
+            }
+        }
+        if (keypress.matchesKey(kbCtrlLeft)) {
+            switch (imageField.getDisplayMode()) {
+                case BITMAP:
+                    imageField.setDisplayMode(TImage.DisplayMode.UNICODE_HALVES);
+                    return;
+                case BLOCKS:
+                    imageField.setDisplayMode(TImage.DisplayMode.BITMAP);
+                    return;
+                case UNICODE_HALVES:
+                    imageField.setDisplayMode(TImage.DisplayMode.BLOCKS);
+                    return;
+            }
+        }
+        if (keypress.matchesKey(kbCtrlRight)) {
+            switch (imageField.getDisplayMode()) {
+                case BITMAP:
+                    imageField.setDisplayMode(TImage.DisplayMode.BLOCKS);
+                    return;
+                case BLOCKS:
+                    imageField.setDisplayMode(TImage.DisplayMode.UNICODE_HALVES);
+                    return;
+                case UNICODE_HALVES:
+                    imageField.setDisplayMode(TImage.DisplayMode.BITMAP);
+                    return;
+            }
+        }
+
         // We did not take it, let the TImage instance see it.
         super.onKeypress(keypress);
 
