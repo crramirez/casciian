@@ -312,14 +312,17 @@ public class ImageRGB {
      * @return a new ImageRGB containing the rotated image
      */
     public ImageRGB rotate(final int clockwise) {
-        if (clockwise % 4 == 0) {
+        // Normalize to [0, 3] so negative values and values >= 4 are handled.
+        int turns = ((clockwise % 4) + 4) % 4;
+
+        if (turns == 0) {
             return getSubimage(0, 0, width, height);
         }
 
         // Pixel shuffling is memory-bandwidth-bound (no arithmetic per
         // pixel beyond index computation), so a sequential loop avoids
         // parallel-stream overhead while still saturating the memory bus.
-        if (clockwise % 4 == 1) {
+        if (turns == 1) {
             //noinspection SuspiciousNameCombination
             ImageRGB rotated = new ImageRGB(height, width);
             for (int y = 0; y < height; y++) {
@@ -329,7 +332,7 @@ public class ImageRGB {
                 }
             }
             return rotated;
-        } else if (clockwise % 4 == 2) {
+        } else if (turns == 2) {
             ImageRGB rotated = new ImageRGB(width, height);
             for (int y = 0; y < height; y++) {
                 int[] srcRow = rgb[y];
@@ -338,7 +341,7 @@ public class ImageRGB {
                 }
             }
             return rotated;
-        } else if (clockwise % 4 == 3) {
+        } else {
             //noinspection SuspiciousNameCombination
             ImageRGB rotated = new ImageRGB(height, width);
             for (int y = 0; y < height; y++) {
@@ -349,7 +352,43 @@ public class ImageRGB {
             }
             return rotated;
         }
-        return getSubimage(0, 0, width, height);
+    }
+
+    /**
+     * Resizes the canvas to the specified dimensions, placing this image at
+     * the given offset. Any area not covered by this image is filled with
+     * black (0x000000).
+     *
+     * @param newWidth the new width in pixels
+     * @param newHeight the new height in pixels
+     * @param offsetX the x offset at which to place this image on the canvas
+     * @param offsetY the y offset at which to place this image on the canvas
+     * @return a new ImageRGB with the specified dimensions
+     */
+    public ImageRGB resizeCanvas(int newWidth, int newHeight,
+                                 int offsetX, int offsetY) {
+        if (newWidth <= 0 || newHeight <= 0) {
+            throw new IllegalArgumentException("New dimensions must be positive");
+        }
+
+        // New ImageRGB is zero-initialized (black) by default.
+        ImageRGB result = new ImageRGB(newWidth, newHeight);
+
+        // Copy rows from this image into the canvas at the given offset.
+        for (int y = 0; y < height; y++) {
+            int destY = y + offsetY;
+            if (destY < 0 || destY >= newHeight) {
+                continue;
+            }
+            int srcStart = Math.max(0, -offsetX);
+            int destStart = Math.max(0, offsetX);
+            int copyWidth = Math.min(width - srcStart, newWidth - destStart);
+            if (copyWidth > 0) {
+                System.arraycopy(rgb[y], srcStart, result.rgb[destY], destStart, copyWidth);
+            }
+        }
+
+        return result;
     }
 
     /**

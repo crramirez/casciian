@@ -51,9 +51,8 @@ public class TImage extends TWidget implements EditMenuUser {
         STRETCH,
 
         /**
-         * Scale the image, preserving aspect ratio, to fill the text area
-         * width/height (like letterbox).  The background color for the
-         * letterboxed area is specified in scaleBackColor.
+         * Scale the image, preserving aspect ratio, to fit within the text
+         * area (letterbox-style).
          */
         SCALE,
     }
@@ -551,6 +550,7 @@ public class TImage extends TWidget implements EditMenuUser {
      */
     public void setImage(final ImageRGB image) {
         this.image = image;
+        this.originalImage = image;
         lastTextWidth = -1;
         lastTextHeight = -1;
         sizeToImage(true);
@@ -600,7 +600,12 @@ public class TImage extends TWidget implements EditMenuUser {
      * @param scaleFactor the new scale factor
      */
     public void setScaleFactor(final double scaleFactor) {
-        this.scaleFactor = scaleFactor;
+        double effectiveScaleFactor = scaleFactor;
+        if (!Double.isFinite(effectiveScaleFactor)) {
+            effectiveScaleFactor = 1.0d;
+        }
+        effectiveScaleFactor = Math.max(0.01d, effectiveScaleFactor);
+        this.scaleFactor = effectiveScaleFactor;
         image = null;
         sizeToImage(true);
     }
@@ -702,8 +707,8 @@ public class TImage extends TWidget implements EditMenuUser {
 
         int destWidth = 0;
         int destHeight = 0;
-        int x;
-        int y;
+        int offsetX = 0;
+        int offsetY = 0;
 
         switch (scale) {
             case NONE:
@@ -720,20 +725,27 @@ public class TImage extends TWidget implements EditMenuUser {
                 assert (a > 0);
                 assert (b > 0);
 
+                int canvasWidth = Math.max(1, width) * textWidth;
+                int canvasHeight = Math.max(1, height) * textHeight;
+
                 if (a > b) {
                     // Horizontal letterbox
-                    destWidth = Math.max(1, width) * textWidth;
+                    destWidth = canvasWidth;
                     destHeight = (int) (destWidth / a);
-                    y = ((Math.max(1, height) * textHeight) - destHeight) / 2;
-                    assert (y >= 0);
+                    offsetY = (canvasHeight - destHeight) / 2;
                 } else {
                     // Vertical letterbox
-                    destHeight = Math.max(1, height) * textHeight;
+                    destHeight = canvasHeight;
                     destWidth = (int) (destHeight * a);
-                    x = ((Math.max(1, width) * textWidth) - destWidth) / 2;
-                    assert (x >= 0);
+                    offsetX = (canvasWidth - destWidth) / 2;
                 }
-                break;
+
+                // Composite the scaled image onto a full-size canvas at the
+                // computed offset, leaving the surrounding area black.
+                ImageRGB scaled = image.scale(Math.max(1, destWidth),
+                    Math.max(1, destHeight));
+                return scaled.resizeCanvas(canvasWidth, canvasHeight,
+                    offsetX, offsetY);
         }
 
         return image.scale(destWidth, destHeight);
@@ -742,7 +754,7 @@ public class TImage extends TWidget implements EditMenuUser {
     /**
      * Rotate an image either clockwise or counterclockwise.
      *
-     * @param image the image to scale
+     * @param image the image to rotate
      * @param clockwise number of turns clockwise
      */
     private ImageRGB rotateImage(final ImageRGB image,
