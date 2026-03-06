@@ -306,6 +306,31 @@ public class ImageRGB {
     }
 
     /**
+     * Rotates the image 90 degrees clockwise or counter-clockwise.
+     *
+     * @param clockwise {@code true} for a 90° clockwise rotation,
+     *                  {@code false} for a 90° counter-clockwise rotation
+     * @return a new ImageRGB containing the rotated image
+     */
+    public ImageRGB rotate(boolean clockwise) {
+        ImageRGB rotated = new ImageRGB(height, width);
+        // Pixel shuffling is memory-bandwidth-bound (no arithmetic per
+        // pixel beyond index computation), so a sequential loop avoids
+        // parallel-stream overhead while still saturating the memory bus.
+        for (int y = 0; y < height; y++) {
+            int[] srcRow = rgb[y];
+            for (int x = 0; x < width; x++) {
+                if (clockwise) {
+                    rotated.rgb[x][height - 1 - y] = srcRow[x];
+                } else {
+                    rotated.rgb[width - 1 - x][y] = srcRow[x];
+                }
+            }
+        }
+        return rotated;
+    }
+
+    /**
      * Resizes the canvas to the specified dimensions. If the new dimensions are smaller
      * than the current image, it will crop the image. If the new dimensions are larger,
      * it will fill the extra space with the specified background color.
