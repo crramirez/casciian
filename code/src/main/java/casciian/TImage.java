@@ -15,6 +15,7 @@
 package casciian;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import casciian.backend.SystemProperties;
 import casciian.bits.Cell;
@@ -122,6 +123,12 @@ public class TImage extends TWidget implements EditMenuUser {
      * produced.
      */
     private boolean resized = false;
+
+    /**
+     * If true, a scaling/rotation operation is already in progress.
+     * Additional calls to sizeToImage() will be skipped.
+     */
+    private final AtomicBoolean scalingInProgress = new AtomicBoolean(false);
 
     /**
      * Left column of the image.  0 is the left-most column.
@@ -299,6 +306,10 @@ public class TImage extends TWidget implements EditMenuUser {
     public void draw() {
         sizeToImage(false);
 
+        if (image == null || cells == null) {
+            return;
+        }
+
         // We have already broken the image up, just draw the previously
         // created set of cells.
         for (int x = 0; (x < getWidth()) && (x + left < cellColumns); x++) {
@@ -329,9 +340,15 @@ public class TImage extends TWidget implements EditMenuUser {
      */
     private void sizeToImage(final boolean always) {
 
-        if (getApplication() == null || getApplication().getBackend() == null) {
+        if (!scalingInProgress.compareAndSet(false, true)) {
             return;
         }
+
+        try {
+
+            if (getApplication() == null || getApplication().getBackend() == null) {
+                return;
+            }
 
         // Determine the effective display mode.  When the user
         // requested BITMAP but the backend cannot render bitmap
@@ -455,6 +472,10 @@ public class TImage extends TWidget implements EditMenuUser {
         }
         if (top < 0) {
             top = 0;
+        }
+
+        } finally {
+            scalingInProgress.set(false);
         }
     }
 
