@@ -621,7 +621,9 @@ public class TImage extends TWidget implements EditMenuUser {
     }
 
     /**
-     * Set the scale factor.  1.0 means no scaling.
+     * Set the scale factor.  1.0 means no scaling.  If the resulting
+     * scaled image would exceed {@link #MAX_SCALED_PIXELS} total pixels,
+     * the new factor is silently rejected and the current factor is kept.
      *
      * @param scaleFactor the new scale factor
      */

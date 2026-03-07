@@ -185,8 +185,8 @@ public class TImageWindow extends TScrollableWindow {
             // Ctrl+Wheel: zoom keeping the point under the cursor fixed.
             double zoomFactor = mouse.isMouseWheelUp() ? 1.25 : 0.80;
 
-            int viewX = mouse.getX() - imageField.getX();
-            int viewY = mouse.getY() - imageField.getY();
+            int viewX = mouse.getAbsoluteX() - imageField.getAbsoluteX();
+            int viewY = mouse.getAbsoluteY() - imageField.getAbsoluteY();
 
             int oldLeft = imageField.getLeft();
             int oldTop = imageField.getTop();
