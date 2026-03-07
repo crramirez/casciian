@@ -15,16 +15,15 @@
 package casciian;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import casciian.backend.SystemProperties;
 import casciian.bits.Cell;
 import casciian.bits.ImageRGB;
 import casciian.bits.ImageUtils;
 import casciian.bits.UnicodeGlyphImage;
-import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
-import static casciian.TKeypress.*;
 
 /**
  * TImage renders a piece of a bitmap image or an animated image on screen.
@@ -78,6 +77,13 @@ public class TImage extends TWidget implements EditMenuUser {
 
     }
 
+    /**
+     * Maximum total pixel count (width × height) allowed after scaling.
+     * Scale factor changes that would exceed this limit are silently
+     * rejected.
+     */
+    private static final double MAX_SCALED_PIXELS = 18_000_000;
+
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -122,6 +128,12 @@ public class TImage extends TWidget implements EditMenuUser {
      * produced.
      */
     private boolean resized = false;
+
+    /**
+     * If true, a scaling/rotation operation is already in progress.
+     * Additional calls to sizeToImage() will be skipped.
+     */
+    private final AtomicBoolean scalingInProgress = new AtomicBoolean(false);
 
     /**
      * Left column of the image.  0 is the left-most column.
@@ -299,6 +311,10 @@ public class TImage extends TWidget implements EditMenuUser {
     public void draw() {
         sizeToImage(false);
 
+        if (image == null || cells == null) {
+            return;
+        }
+
         // We have already broken the image up, just draw the previously
         // created set of cells.
         for (int x = 0; (x < getWidth()) && (x + left < cellColumns); x++) {
@@ -329,132 +345,142 @@ public class TImage extends TWidget implements EditMenuUser {
      */
     private void sizeToImage(final boolean always) {
 
-        if (getApplication() == null || getApplication().getBackend() == null) {
+        if (!scalingInProgress.compareAndSet(false, true)) {
             return;
         }
 
-        // Determine the effective display mode.  When the user
-        // requested BITMAP but the backend cannot render bitmap
-        // image cells (no sixel / Casciian image protocol),
-        // fall back automatically based on the system property
-        // casciian.ECMA48.imageFallbackDisplayMode.
-        DisplayMode effectiveMode = displayMode;
-        if (effectiveMode == DisplayMode.BITMAP
-            && !getApplication().getBackend()
-                .isImageProtocolSupported()) {
-            String fallback = SystemProperties
-                .getImageFallbackDisplayMode();
-            if ("solid".equals(fallback)) {
-                effectiveMode = DisplayMode.BLOCKS;
-            } else {
-                effectiveMode = DisplayMode.UNICODE_HALVES;
+        try {
+
+            if (getApplication() == null || getApplication().getBackend() == null) {
+                return;
             }
-        }
 
-        int textWidth = getScreen().getTextWidth();
-        int textHeight = getScreen().getTextHeight();
-
-        if (image == null) {
-            image = rotateImage(originalImage, clockwise);
-            image = scaleImage(image, scaleFactor, getWidth(), getHeight(),
-                textWidth, textHeight);
-        }
-
-        if (always || resized || (textWidth > 0
-            && (textWidth != lastTextWidth)
-            && (textHeight > 0)
-            && (textHeight != lastTextHeight))) {
-
-            resized = false;
-
-            adjustImageSize(textWidth, textHeight);
-
-            int imageWidth = image.getWidth();
-            int imageHeight = image.getHeight();
-
-            cellColumns = imageWidth / textWidth;
-            cellRows = imageHeight / textHeight;
-
-            // Break the image up into an array of cells.
-            var newCells = new Cell[cellColumns][cellRows];
-
-            int imageId = System.identityHashCode(this);
-            imageId ^= (int) System.currentTimeMillis();
-            for (int x = 0; x < cellColumns; x++) {
-                for (int y = 0; y < cellRows; y++) {
-
-                    int width = textWidth;
-                    if ((x + 1) * textWidth > imageWidth) {
-                        width = imageWidth - (x * textWidth);
-                    }
-                    int height = textHeight;
-                    if ((y + 1) * textHeight > imageHeight) {
-                        height = imageHeight - (y * textHeight);
-                    }
-
-                    Cell cell = new Cell();
-                    cell.setTo(getWindow().getBackground());
-
-                    // Render over a full-cell-size image.
-                    ImageRGB subImage = image.getSubimage(x * textWidth,
-                        y * textHeight, width, height);
-
-                    cell.setImage(subImage);
-
-                    if ((displayMode != DisplayMode.BITMAP)
-                        || (!cell.checkForSingleColor(true))
-                    ) {
-                        imageId++;
-                        cell.setImageId(imageId & 0x7FFFFFFF);
-                    }
-
-                    switch (effectiveMode) {
-                    case BITMAP:
-                        newCells[x][y] = cell;
-                        break;
-                    case BLOCKS:
-                        if (cell.isImage()) {
-                            int rgb = ImageUtils.rgbAverage(cell.getImage(),
-                                0, 0, cell.getImage().getWidth(),
-                                cell.getImage().getHeight());
-                            Cell newCell = new Cell(' ');
-                            newCell.setForeColorRGB(rgb);
-                            newCell.setBackColorRGB(rgb);
-                            newCells[x][y] = newCell;
-                        } else {
-                            newCells[x][y] = cell;
-                        }
-                        break;
-                    case UNICODE_HALVES:
-                        if (cell.isImage()) {
-                            UnicodeGlyphImage glyphImage =
-                                new UnicodeGlyphImage(cell);
-                            newCells[x][y] = glyphImage.toHalfBlockGlyph();
-                        } else {
-                            newCells[x][y] = cell;
-                        }
-                        break;
-                    }
+            // Determine the effective display mode.  When the user
+            // requested BITMAP but the backend cannot render bitmap
+            // image cells (no sixel / Casciian image protocol),
+            // fall back automatically based on the system property
+            // casciian.ECMA48.imageFallbackDisplayMode.
+            DisplayMode effectiveMode = displayMode;
+            if (effectiveMode == DisplayMode.BITMAP
+                && !getApplication().getBackend()
+                .isImageProtocolSupported()) {
+                String fallback = SystemProperties
+                    .getImageFallbackDisplayMode();
+                if ("solid".equals(fallback)) {
+                    effectiveMode = DisplayMode.BLOCKS;
+                } else {
+                    effectiveMode = DisplayMode.UNICODE_HALVES;
                 }
             }
 
-            cells = newCells;
+            int textWidth = getScreen().getTextWidth();
+            int textHeight = getScreen().getTextHeight();
 
-            lastTextWidth = textWidth;
-            lastTextHeight = textHeight;
-        }
+            if (image == null) {
+                image = rotateImage(originalImage, clockwise);
+                image = scaleImage(image, scaleFactor, getWidth(), getHeight(),
+                    textWidth, textHeight);
+            }
 
-        if ((left + getWidth()) > cellColumns) {
-            left = cellColumns - getWidth();
-        }
-        if (left < 0) {
-            left = 0;
-        }
-        if ((top + getHeight()) > cellRows) {
-            top = cellRows - getHeight();
-        }
-        if (top < 0) {
-            top = 0;
+            if (always || resized || (textWidth > 0
+                && (textWidth != lastTextWidth)
+                && (textHeight > 0)
+                && (textHeight != lastTextHeight))) {
+
+                resized = false;
+
+                adjustImageSize(textWidth, textHeight);
+
+                int imageWidth = image.getWidth();
+                int imageHeight = image.getHeight();
+
+                cellColumns = imageWidth / textWidth;
+                cellRows = imageHeight / textHeight;
+
+                // Break the image up into an array of cells.
+                var newCells = new Cell[cellColumns][cellRows];
+
+                int imageId = System.identityHashCode(this);
+                imageId ^= (int) System.currentTimeMillis();
+                for (int x = 0; x < cellColumns; x++) {
+                    for (int y = 0; y < cellRows; y++) {
+
+                        int width = textWidth;
+                        if ((x + 1) * textWidth > imageWidth) {
+                            width = imageWidth - (x * textWidth);
+                        }
+                        int height = textHeight;
+                        if ((y + 1) * textHeight > imageHeight) {
+                            height = imageHeight - (y * textHeight);
+                        }
+
+                        Cell cell = new Cell();
+                        cell.setTo(getWindow().getBackground());
+
+                        // Render over a full-cell-size image.
+                        ImageRGB subImage = image.getSubimage(x * textWidth,
+                            y * textHeight, width, height);
+
+                        cell.setImage(subImage);
+
+                        if ((displayMode != DisplayMode.BITMAP)
+                            || (!cell.checkForSingleColor(true))
+                        ) {
+                            imageId++;
+                            cell.setImageId(imageId & 0x7FFFFFFF);
+                        }
+
+                        switch (effectiveMode) {
+                            case BITMAP:
+                                newCells[x][y] = cell;
+                                break;
+                            case BLOCKS:
+                                if (cell.isImage()) {
+                                    int rgb = ImageUtils.rgbAverage(cell.getImage(),
+                                        0, 0, cell.getImage().getWidth(),
+                                        cell.getImage().getHeight());
+                                    Cell newCell = new Cell(' ');
+                                    newCell.setForeColorRGB(rgb);
+                                    newCell.setBackColorRGB(rgb);
+                                    newCells[x][y] = newCell;
+                                } else {
+                                    newCells[x][y] = cell;
+                                }
+                                break;
+                            case UNICODE_HALVES:
+                                if (cell.isImage()) {
+                                    UnicodeGlyphImage glyphImage =
+                                        new UnicodeGlyphImage(cell);
+                                    newCells[x][y] = glyphImage.toHalfBlockGlyph();
+                                } else {
+                                    newCells[x][y] = cell;
+                                }
+                                break;
+                        }
+                    }
+                }
+
+                cells = newCells;
+
+                lastTextWidth = textWidth;
+                lastTextHeight = textHeight;
+            }
+
+            if ((left + getWidth()) > cellColumns) {
+                left = cellColumns - getWidth();
+            }
+            if (left < 0) {
+                left = 0;
+            }
+            if ((top + getHeight()) > cellRows) {
+                top = cellRows - getHeight();
+            }
+            if (top < 0) {
+                top = 0;
+            }
+
+        } finally {
+            scalingInProgress.set(false);
         }
     }
 
@@ -595,7 +621,9 @@ public class TImage extends TWidget implements EditMenuUser {
     }
 
     /**
-     * Set the scale factor.  1.0 means no scaling.
+     * Set the scale factor.  1.0 means no scaling.  If the resulting
+     * scaled image would exceed {@link #MAX_SCALED_PIXELS} total pixels,
+     * the new factor is silently rejected and the current factor is kept.
      *
      * @param scaleFactor the new scale factor
      */
@@ -605,6 +633,15 @@ public class TImage extends TWidget implements EditMenuUser {
             effectiveScaleFactor = 1.0d;
         }
         effectiveScaleFactor = Math.max(0.01d, effectiveScaleFactor);
+
+        if (originalImage != null) {
+            double scaledW = originalImage.getWidth() * effectiveScaleFactor;
+            double scaledH = originalImage.getHeight() * effectiveScaleFactor;
+            if (scaledW * scaledH > MAX_SCALED_PIXELS) {
+                return;
+            }
+        }
+
         this.scaleFactor = effectiveScaleFactor;
         image = null;
         sizeToImage(true);
@@ -689,16 +726,16 @@ public class TImage extends TWidget implements EditMenuUser {
     /**
      * Scale an image to be scaleFactor size, OR stretch it.
      *
-     * @param image the image to scale
-     * @param factor the scale to make the new image
-     * @param width the number of text cell columns for the destination image
-     * @param height the number of text cell rows for the destination image
-     * @param textWidth the width in pixels for one text cell
+     * @param image      the image to scale
+     * @param factor     the scale to make the new image
+     * @param width      the number of text cell columns for the destination image
+     * @param height     the number of text cell rows for the destination image
+     * @param textWidth  the width in pixels for one text cell
      * @param textHeight the height in pixels for one text cell
      */
     private ImageRGB scaleImage(final ImageRGB image,
-                                     final double factor, final int width, final int height,
-                                     final int textWidth, final int textHeight) {
+                                final double factor, final int width, final int height,
+                                final int textWidth, final int textHeight) {
 
         if ((scale == Scale.NONE) && (Math.abs(factor - 1.0) < 0.03)) {
             // If we are within 3% of 1.0, just return the original image.
@@ -741,11 +778,11 @@ public class TImage extends TWidget implements EditMenuUser {
     /**
      * Rotate an image either clockwise or counterclockwise.
      *
-     * @param image the image to rotate
+     * @param image     the image to rotate
      * @param clockwise number of turns clockwise
      */
     private ImageRGB rotateImage(final ImageRGB image,
-                                      final int clockwise) {
+                                 final int clockwise) {
 
         if (clockwise % 4 == 0) {
             return image;
@@ -753,7 +790,7 @@ public class TImage extends TWidget implements EditMenuUser {
 
         return image.rotate(clockwise);
     }
-    
+
     // ------------------------------------------------------------------------
     // EditMenuUser -----------------------------------------------------------
     // ------------------------------------------------------------------------

@@ -179,7 +179,35 @@ public class TImageWindow extends TScrollableWindow {
         // Use TWidget's code to pass the event to the children.
         super.onMouseDown(mouse);
 
-        if (mouse.isMouseWheelUp()) {
+        if (mouse.isCtrl()
+            && (mouse.isMouseWheelUp() || mouse.isMouseWheelDown())) {
+
+            // Ctrl+Wheel: zoom keeping the point under the cursor fixed.
+            double zoomFactor = mouse.isMouseWheelUp() ? 1.25 : 0.80;
+
+            int viewX = mouse.getAbsoluteX() - imageField.getAbsoluteX();
+            int viewY = mouse.getAbsoluteY() - imageField.getAbsoluteY();
+
+            int oldLeft = imageField.getLeft();
+            int oldTop = imageField.getTop();
+            int oldCols = imageField.getColumns();
+            int oldRows = imageField.getRows();
+
+            imageField.setScaleFactor(imageField.getScaleFactor()
+                * zoomFactor);
+
+            int newCols = imageField.getColumns();
+            int newRows = imageField.getRows();
+            double ratioX = (oldCols > 0)
+                ? (double) newCols / oldCols : zoomFactor;
+            double ratioY = (oldRows > 0)
+                ? (double) newRows / oldRows : zoomFactor;
+
+            imageField.setLeft((int) Math.round(
+                (oldLeft + viewX) * ratioX - viewX));
+            imageField.setTop((int) Math.round(
+                (oldTop + viewY) * ratioY - viewY));
+        } else if (mouse.isMouseWheelUp()) {
             imageField.setTop(imageField.getTop() - wheelScrollSize);
         } else if (mouse.isMouseWheelDown()) {
             imageField.setTop(imageField.getTop() + wheelScrollSize);
@@ -201,7 +229,9 @@ public class TImageWindow extends TScrollableWindow {
             panStartTop = imageField.getTop();
         }
         setVerticalValue(imageField.getTop());
+        setBottomValue(imageField.getRows() - imageField.getHeight());
         setHorizontalValue(imageField.getLeft());
+        setRightValue(imageField.getColumns() - imageField.getWidth());
     }
 
     /**
