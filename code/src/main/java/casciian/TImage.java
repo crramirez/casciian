@@ -77,6 +77,13 @@ public class TImage extends TWidget implements EditMenuUser {
 
     }
 
+    /**
+     * Maximum total pixel count (width × height) allowed after scaling.
+     * Scale factor changes that would exceed this limit are silently
+     * rejected.
+     */
+    private static final double MAX_SCALED_PIXELS = 18_000_000;
+
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -624,6 +631,15 @@ public class TImage extends TWidget implements EditMenuUser {
             effectiveScaleFactor = 1.0d;
         }
         effectiveScaleFactor = Math.max(0.01d, effectiveScaleFactor);
+
+        if (originalImage != null) {
+            double scaledW = originalImage.getWidth() * effectiveScaleFactor;
+            double scaledH = originalImage.getHeight() * effectiveScaleFactor;
+            if (scaledW * scaledH > MAX_SCALED_PIXELS) {
+                return;
+            }
+        }
+
         this.scaleFactor = effectiveScaleFactor;
         image = null;
         sizeToImage(true);
