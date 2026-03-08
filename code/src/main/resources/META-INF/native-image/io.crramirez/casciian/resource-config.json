@@ -18,6 +18,13 @@
       ]
     },
     {
+      "name": "casciian.TChangeDirBoxBundle",
+      "locales": [
+        "",
+        "es"
+      ]
+    },
+    {
       "name": "casciian.TEditColorThemeWindowBundle",
       "locales": [
         "",

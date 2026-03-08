@@ -35,6 +35,7 @@
         { "pattern": "\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E" },
         { "pattern": "\\Qhelp.xml\\E" },
         { "bundle": "casciian.TApplicationBundle" },
+        { "bundle": "casciian.TChangeDirBoxBundle" },
         { "bundle": "casciian.TEditColorThemeWindowBundle" },
         { "bundle": "casciian.TEditDesktopStyleWindowBundle" },
         { "bundle": "casciian.TEditorWindowBundle" },
