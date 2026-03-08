@@ -4321,21 +4321,6 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Create a SGR parameter sequence for a single color change.
-     *
-     * @param bold       if true, set bold
-     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
-     * @param foreground if true, this is a foreground color
-     * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[42m"
-     */
-    private String color(final boolean bold, final Color color,
-                         final boolean foreground) {
-        return color(color, foreground, true) +
-            rgbColor(bold, color, foreground);
-    }
-
-    /**
      * Create a T.416 RGB parameter sequence for a single color change.
      *
      * @param colorRGB   a 24-bit RGB value for foreground color
@@ -4356,31 +4341,6 @@ public class ECMA48Terminal extends LogicalScreen
             sb.append("\033[48;2;");
         }
         sb.append(String.format("%d;%d;%dm", colorRed, colorGreen, colorBlue));
-        return sb.toString();
-    }
-
-    /**
-     * Create a T.416 RGB parameter sequence for both foreground and
-     * background color change.
-     *
-     * @param foreColorRGB a 24-bit RGB value for foreground color
-     * @param backColorRGB a 24-bit RGB value for foreground color
-     * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[42m"
-     */
-    private String colorRGB(final int foreColorRGB, final int backColorRGB) {
-        int foreColorRed = (foreColorRGB >>> 16) & 0xFF;
-        int foreColorGreen = (foreColorRGB >>> 8) & 0xFF;
-        int foreColorBlue = foreColorRGB & 0xFF;
-        int backColorRed = (backColorRGB >>> 16) & 0xFF;
-        int backColorGreen = (backColorRGB >>> 8) & 0xFF;
-        int backColorBlue = backColorRGB & 0xFF;
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("\033[38;2;%d;%d;%dm",
-            foreColorRed, foreColorGreen, foreColorBlue));
-        sb.append(String.format("\033[48;2;%d;%d;%dm",
-            backColorRed, backColorGreen, backColorBlue));
         return sb.toString();
     }
 
@@ -4515,34 +4475,6 @@ public class ECMA48Terminal extends LogicalScreen
             return String.format("\033[%dm", ecmaColor);
         } else {
             return String.format("%d;", ecmaColor);
-        }
-    }
-
-    /**
-     * Create a SGR parameter sequence for both foreground and
-     * background color change.
-     *
-     * @param foreColor one of the Color.WHITE, Color.BLUE, etc. constants
-     * @param backColor one of the Color.WHITE, Color.BLUE, etc. constants
-     * @param header    if true, make the full header, otherwise just emit the
-     *                  color parameter e.g. "31;42;"
-     * @return the string to emit to an ANSI / ECMA-style terminal,
-     * e.g. "\033[31;42m"
-     */
-    private String color(final Color foreColor, final Color backColor,
-                         final boolean header) {
-
-        int ecmaForeColor = foreColor.getValue();
-        int ecmaBackColor = backColor.getValue();
-
-        // Convert Color.* values to SGR numerics
-        ecmaBackColor += 40;
-        ecmaForeColor += 30;
-
-        if (header) {
-            return String.format("\033[%d;%dm", ecmaForeColor, ecmaBackColor);
-        } else {
-            return String.format("%d;%d;", ecmaForeColor, ecmaBackColor);
         }
     }
 
