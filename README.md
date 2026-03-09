@@ -64,7 +64,9 @@ The demos can be run as follows:
 For example: `java --enable-native-access=ALL-UNNAMED -jar casciian-demo.jar`
 
   * `java -jar casciian-demo.jar` .  This will use
-    System.in/out with Xterm-like sequences.
+    System.in/out with Xterm-like sequences.  You can also append
+    `--defaults` to run with the default values applied when creating
+    a new Casciian application: `java -jar casciian-demo.jar --defaults`
 
   * `java -cp casciian-demo.jar demo.Demo2 PORT` (where PORT is a
     number to run the TCP daemon on).  This will use the Xterm backend
