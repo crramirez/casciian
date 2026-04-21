@@ -316,6 +316,28 @@ public class DemoApplication extends TApplication {
             return true;
         }
 
+        // Additional preset themes.  10020..10023 use the "classic" square
+        // border look (like "Switch to bland look"); 10024..10025 use the
+        // modern round-bordered custom look (like "Switch to custom look").
+        if (menu.getId() == 10020) {
+            return applyClassicThemeLook(() -> getTheme().setDarkDefault());
+        }
+        if (menu.getId() == 10021) {
+            return applyClassicThemeLook(() -> getTheme().setMidnightCommander());
+        }
+        if (menu.getId() == 10022) {
+            return applyClassicThemeLook(() -> getTheme().setDialog());
+        }
+        if (menu.getId() == 10023) {
+            return applyClassicThemeLook(() -> getTheme().setWhiptail());
+        }
+        if (menu.getId() == 10024) {
+            return applyModernThemeLook(() -> getTheme().setVSCodeDark());
+        }
+        if (menu.getId() == 10025) {
+            return applyModernThemeLook(() -> getTheme().setVSCodeLight());
+        }
+
         if (menu.getId() == 10004) {
             // Apply Casciian defaults: set all boolean properties to false,
             // disable gradients, and apply bland look
@@ -500,6 +522,100 @@ public class DemoApplication extends TApplication {
     }
 
     /**
+     * Apply a preset theme using the classic ("bland") look: square borders,
+     * no window translucency.  The supplied {@code themeSetter} is invoked in
+     * place of {@code setDefaultTheme()} so the caller controls the colour
+     * palette.
+     *
+     * @param themeSetter a Runnable that installs the desired theme on
+     * {@link #getTheme()}
+     * @return true (the menu event has been handled)
+     */
+    private boolean applyClassicThemeLook(final Runnable themeSetter) {
+        System.clearProperty("casciian.TWindow.borderStyleForeground");
+        System.clearProperty("casciian.TWindow.borderStyleModal");
+        System.clearProperty("casciian.TWindow.borderStyleMoving");
+        System.clearProperty("casciian.TWindow.borderStyleInactive");
+        System.clearProperty("casciian.TEditColorTheme.borderStyle");
+        System.clearProperty("casciian.TEditColorTheme.options.borderStyle");
+        System.clearProperty("casciian.TEditDesktopStyle.borderStyle");
+        System.clearProperty("casciian.TPanel.borderStyle");
+        System.clearProperty("casciian.TRadioGroup.borderStyle");
+        System.clearProperty("casciian.TScreenOptions.borderStyle");
+        System.clearProperty("casciian.TScreenOptions.grid.borderStyle");
+        System.clearProperty("casciian.TScreenOptions.options.borderStyle");
+        System.clearProperty("casciian.TWindow.opacity");
+        System.clearProperty("casciian.TImage.opacity");
+        System.clearProperty("casciian.TTerminal.opacity");
+        System.clearProperty("casciian.TButton.style");
+
+        themeSetter.run();
+        for (TWindow window: getAllWindows()) {
+            window.setBorderStyleForeground(null);
+            window.setBorderStyleModal(null);
+            window.setBorderStyleMoving(null);
+            window.setBorderStyleInactive(null);
+            window.setAlpha(90 * 255 / 100);
+
+            for (TWidget widget: window.getChildren()) {
+                if (widget instanceof TButton) {
+                    ((TButton) widget).setStyle(TButton.Style.SQUARE);
+                }
+            }
+        }
+        for (TMenu m: getAllMenus()) {
+            m.setBorderStyleForeground(null);
+            m.setBorderStyleModal(null);
+            m.setBorderStyleMoving(null);
+            m.setBorderStyleInactive(null);
+            m.setAlpha(90 * 255 / 100);
+        }
+        setDesktop(new TDesktop(this));
+        oldDesktop = getDesktop();
+        setHideStatusBar(false);
+        onMenu(new TMenuEvent(getBackend(), 10011));
+        return true;
+    }
+
+    /**
+     * Apply a preset theme using the modern ("custom") look: round borders
+     * and translucent windows.  The supplied {@code themeSetter} is invoked
+     * in place of {@code setQmodem5()} so the caller controls the colour
+     * palette.
+     *
+     * @param themeSetter a Runnable that installs the desired theme on
+     * {@link #getTheme()}
+     * @return true (the menu event has been handled)
+     */
+    private boolean applyModernThemeLook(final Runnable themeSetter) {
+        applyRoundBorders();
+        System.setProperty("casciian.TWindow.opacity", "90");
+        System.setProperty("casciian.TImage.opacity", "90");
+        System.setProperty("casciian.TTerminal.opacity", "90");
+
+        themeSetter.run();
+        for (TWindow window: getAllWindows()) {
+            window.setBorderStyleForeground("round");
+            window.setBorderStyleModal("round");
+            window.setBorderStyleMoving("round");
+            window.setBorderStyleInactive("round");
+            window.setAlpha(90 * 255 / 100);
+        }
+        for (TMenu m: getAllMenus()) {
+            m.setBorderStyleForeground("single");
+            m.setBorderStyleModal("single");
+            m.setBorderStyleMoving("single");
+            m.setBorderStyleInactive("single");
+            m.setAlpha(95 * 255 / 100);
+        }
+        setDesktop(new TDesktop(this));
+        oldDesktop = getDesktop();
+        setHideStatusBar(false);
+        onMenu(new TMenuEvent(getBackend(), 10011));
+        return true;
+    }
+
+    /**
      * Show FPS.
      */
     @Override
@@ -559,6 +675,15 @@ public class DemoApplication extends TApplication {
         demoMenu.addItem(10002, i18n.getString("lookBland"));
         demoMenu.addItem(10003, i18n.getString("lookCustom"));
         demoMenu.addItem(10004, i18n.getString("applyCasciianDefaults"));
+        demoMenu.addSeparator();
+        TSubMenu themesMenu = demoMenu.addSubMenu(i18n.getString("moreThemes"));
+        themesMenu.addItem(10020, i18n.getString("themeDarkDefault"));
+        themesMenu.addItem(10021, i18n.getString("themeMidnightCommander"));
+        themesMenu.addItem(10022, i18n.getString("themeDialog"));
+        themesMenu.addItem(10023, i18n.getString("themeWhiptail"));
+        themesMenu.addSeparator();
+        themesMenu.addItem(10024, i18n.getString("themeVSCodeDark"));
+        themesMenu.addItem(10025, i18n.getString("themeVSCodeLight"));
         TMenuItem gradients = demoMenu.addItem(10010,
             i18n.getString("useGradients"));
         gradients.setCheckable(true);
