@@ -2136,12 +2136,14 @@ public class ColorTheme {
         colors.put(TLABEL_MNEMONIC, rgb(accent, bgPanel));
         colors.put(TTEXT, rgb(fgText, bgPanel));
 
-        // Buttons use the VS Code primary button palette.
+        // Buttons use the VS Code primary button palette.  Mnemonics use a
+        // bright amber so the underlined character is distinguishable from
+        // the regular white button label.
         colors.put(TBUTTON_INACTIVE, rgb(0xffffff, buttonBg));
         colors.put(TBUTTON_ACTIVE, rgb(0xffffff, accentHot));
         colors.put(TBUTTON_DISABLED, rgb(fgMuted, bgInput));
-        colors.put(TBUTTON_MNEMONIC, rgb(0xffffff, buttonBg));
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgb(0xffffff, accentHot));
+        colors.put(TBUTTON_MNEMONIC, rgb(0xffcc00, buttonBg));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgb(0xffcc00, accentHot));
 
         // Inputs.
         colors.put(TFIELD_INACTIVE, rgb(fgChrome, bgInput));
@@ -2213,10 +2215,11 @@ public class ColorTheme {
         colors.put(TMENU_MNEMONIC_HIGHLIGHTED, rgb(0xffffff, bgListSel));
         colors.put(TMENU_DISABLED, rgb(fgMuted, bgPanel));
 
-        // Status bar (VS Code's signature accent blue).
+        // Status bar (VS Code's signature accent blue).  Shortcut-key labels
+        // use amber so they stand out against the white status text.
         colors.put(TSTATUSBAR_TEXT, rgb(0xffffff, accent));
-        colors.put(TSTATUSBAR_BUTTON, rgb(0xffffff, accent));
-        colors.put(TSTATUSBAR_SELECTED, rgb(0xffffff, accentHot));
+        colors.put(TSTATUSBAR_BUTTON, rgb(0xffcc00, accent));
+        colors.put(TSTATUSBAR_SELECTED, rgb(0xffcc00, accentHot));
 
         // Help window
         colors.put(THELPWINDOW_BACKGROUND, rgb(fgText, bgPanel));
@@ -2274,12 +2277,13 @@ public class ColorTheme {
         colors.put(TLABEL_MNEMONIC, rgb(accent, bgPanel));
         colors.put(TTEXT, rgb(fgText, bgPanel));
 
-        // Buttons.
+        // Buttons.  Mnemonics use a bright amber so the underlined character
+        // is distinguishable from the regular white button label.
         colors.put(TBUTTON_INACTIVE, rgb(0xffffff, buttonBg));
         colors.put(TBUTTON_ACTIVE, rgb(0xffffff, accentHot));
         colors.put(TBUTTON_DISABLED, rgb(fgMuted, borderDim));
-        colors.put(TBUTTON_MNEMONIC, rgb(0xffffff, buttonBg));
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgb(0xffffff, accentHot));
+        colors.put(TBUTTON_MNEMONIC, rgb(0xffcc00, buttonBg));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgb(0xffcc00, accentHot));
 
         // Inputs.
         colors.put(TFIELD_INACTIVE, rgb(fgChrome, bgInput));
@@ -2351,10 +2355,11 @@ public class ColorTheme {
         colors.put(TMENU_MNEMONIC_HIGHLIGHTED, rgb(0xffffff, bgListSel));
         colors.put(TMENU_DISABLED, rgb(fgMuted, bgPanel));
 
-        // Status bar (VS Code's signature accent blue).
+        // Status bar (VS Code's signature accent blue).  Shortcut-key labels
+        // use amber so they stand out against the white status text.
         colors.put(TSTATUSBAR_TEXT, rgb(0xffffff, accent));
-        colors.put(TSTATUSBAR_BUTTON, rgb(0xffffff, accent));
-        colors.put(TSTATUSBAR_SELECTED, rgb(0xffffff, accentHot));
+        colors.put(TSTATUSBAR_BUTTON, rgb(0xffcc00, accent));
+        colors.put(TSTATUSBAR_SELECTED, rgb(0xffcc00, accentHot));
 
         // Help window
         colors.put(THELPWINDOW_BACKGROUND, rgb(fgText, bgPanel));
