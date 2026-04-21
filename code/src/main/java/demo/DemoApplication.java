@@ -522,8 +522,10 @@ public class DemoApplication extends TApplication {
     }
 
     /**
-     * Apply a preset theme using the classic ("bland") look: square borders,
-     * no window translucency.  The supplied {@code themeSetter} is invoked in
+     * Apply a preset theme using the classic ("bland") look: square borders
+     * and square buttons, with the opacity-related system properties cleared
+     * (windows/menus are still painted at 90% alpha to match the existing
+     * bland-look behavior).  The supplied {@code themeSetter} is invoked in
      * place of {@code setDefaultTheme()} so the caller controls the colour
      * palette.
      *
