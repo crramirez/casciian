@@ -105,8 +105,38 @@ public class ColorTheme {
     /** Color key for TLabel. */
     public static final String TLABEL = "tlabel";
 
+    /** Color key for TLabel when active. */
+    public static final String TLABEL_ACTIVE = "tlabel.active";
+
+    /** Color key for TLabel when disabled. */
+    public static final String TLABEL_DISABLED = "tlabel.disabled";
+
     /** Color key for TLabel mnemonic character. */
     public static final String TLABEL_MNEMONIC = "tlabel.mnemonic";
+
+    /** Color key for TLabel mnemonic character when active. */
+    public static final String TLABEL_ACTIVE_MNEMONIC = "tlabel.active.mnemonic";
+
+    /** Color key for TLabel mnemonic character when disabled. */
+    public static final String TLABEL_DISABLED_MNEMONIC = "tlabel.disabled.mnemonic";
+
+    /** Color key for TLabel in modal mode. */
+    public static final String TLABEL_MODAL = "tlabel.modal";
+
+    /** Color key for TLabel when active in modal mode. */
+    public static final String TLABEL_ACTIVE_MODAL = "tlabel.active.modal";
+
+    /** Color key for TLabel when disabled in modal mode. */
+    public static final String TLABEL_DISABLED_MODAL = "tlabel.disabled.modal";
+
+    /** Color key for TLabel mnemonic character in modal mode. */
+    public static final String TLABEL_MNEMONIC_MODAL = "tlabel.mnemonic.modal";
+
+    /** Color key for TLabel mnemonic character when active in modal mode. */
+    public static final String TLABEL_ACTIVE_MNEMONIC_MODAL = "tlabel.active.mnemonic.modal";
+
+    /** Color key for TLabel mnemonic character when disabled in modal mode. */
+    public static final String TLABEL_DISABLED_MNEMONIC_MODAL = "tlabel.disabled.mnemonic.modal";
 
     /** Color key for TText. */
     public static final String TTEXT = "ttext";
@@ -668,11 +698,21 @@ public class ColorTheme {
         color.setBackColor(Color.BLUE);
         color.setBold(true);
         colors.put(TLABEL, color);
+        colors.put(TLABEL_ACTIVE, color);
+        colors.put(TLABEL_DISABLED, color);
+        colors.put(TLABEL_MODAL, color);
+        colors.put(TLABEL_ACTIVE_MODAL, color);
+        colors.put(TLABEL_DISABLED_MODAL, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
         colors.put(TLABEL_MNEMONIC, color);
+        colors.put(TLABEL_ACTIVE_MNEMONIC, color);
+        colors.put(TLABEL_DISABLED_MNEMONIC, color);
+        colors.put(TLABEL_MNEMONIC_MODAL, color);
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, color);
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, color);
 
         // TText text
         color = new CellAttributes();
@@ -1316,11 +1356,21 @@ public class ColorTheme {
         color.setBackColor(Color.BLUE);
         color.setBold(true);
         colors.put(TLABEL, color);
+        colors.put(TLABEL_ACTIVE, color);
+        colors.put(TLABEL_DISABLED, color);
+        colors.put(TLABEL_MODAL, color);
+        colors.put(TLABEL_ACTIVE_MODAL, color);
+        colors.put(TLABEL_DISABLED_MODAL, color);
         color = new CellAttributes();
         color.setForeColor(Color.YELLOW);
         color.setBackColor(Color.BLUE);
         color.setBold(true);
         colors.put(TLABEL_MNEMONIC, color);
+        colors.put(TLABEL_ACTIVE_MNEMONIC, color);
+        colors.put(TLABEL_DISABLED_MNEMONIC, color);
+        colors.put(TLABEL_MNEMONIC_MODAL, color);
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, color);
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, color);
 
         // TText text
         color = new CellAttributes();
