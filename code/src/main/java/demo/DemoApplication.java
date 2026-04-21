@@ -476,49 +476,7 @@ public class DemoApplication extends TApplication {
     }
 
     private boolean applyBlandLook() {
-        System.clearProperty("casciian.TWindow.borderStyleForeground");
-        System.clearProperty("casciian.TWindow.borderStyleModal");
-        System.clearProperty("casciian.TWindow.borderStyleMoving");
-        System.clearProperty("casciian.TWindow.borderStyleInactive");
-        System.clearProperty("casciian.TEditColorTheme.borderStyle");
-        System.clearProperty("casciian.TEditColorTheme.options.borderStyle");
-        System.clearProperty("casciian.TEditDesktopStyle.borderStyle");
-        System.clearProperty("casciian.TPanel.borderStyle");
-        System.clearProperty("casciian.TRadioGroup.borderStyle");
-        System.clearProperty("casciian.TScreenOptions.borderStyle");
-        System.clearProperty("casciian.TScreenOptions.grid.borderStyle");
-        System.clearProperty("casciian.TScreenOptions.options.borderStyle");
-        System.clearProperty("casciian.TWindow.opacity");
-        System.clearProperty("casciian.TImage.opacity");
-        System.clearProperty("casciian.TTerminal.opacity");
-        System.clearProperty("casciian.TButton.style");
-
-        getTheme().setDefaultTheme();
-        for (TWindow window: getAllWindows()) {
-            window.setBorderStyleForeground(null);
-            window.setBorderStyleModal(null);
-            window.setBorderStyleMoving(null);
-            window.setBorderStyleInactive(null);
-            window.setAlpha(90 * 255 / 100);
-
-            for (TWidget widget: window.getChildren()) {
-                if (widget instanceof TButton) {
-                    ((TButton) widget).setStyle(TButton.Style.SQUARE);
-                }
-            }
-        }
-        for (TMenu m: getAllMenus()) {
-            m.setBorderStyleForeground(null);
-            m.setBorderStyleModal(null);
-            m.setBorderStyleMoving(null);
-            m.setBorderStyleInactive(null);
-            m.setAlpha(90 * 255 / 100);
-        }
-        setDesktop(new TDesktop(this));
-        oldDesktop = getDesktop();
-        setHideStatusBar(false);
-        onMenu(new TMenuEvent(getBackend(), 10011));
-        return true;
+        return applyClassicThemeLook(() -> getTheme().setDefaultTheme());
     }
 
     /**
