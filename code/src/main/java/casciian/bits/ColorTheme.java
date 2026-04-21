@@ -1724,113 +1724,134 @@ public class ColorTheme {
     /**
      * A dark variant of the default Borland-style theme.  The structural
      * feel is preserved (bright borders, coloured buttons, yellow mnemonics)
-     * but the usual blue/white backgrounds are replaced with black and dark
-     * grey surfaces so the UI reads as a dark theme on a modern terminal.
+     * but the usual blue/white backgrounds are replaced with soft dark
+     * greys so the UI reads as a modern dark theme on a 24-bit terminal
+     * without the stark look of pure black surfaces.
      */
     public void setDarkDefault() {
         setDefaultTheme();
 
+        // Dark palette: softened greys with a navy desktop and Borland-style
+        // yellow mnemonics.  Full RGB so the look stays consistent regardless
+        // of the terminal's 16-colour palette.
+        final int bgDesktop  = 0x00004a; // deep navy desktop
+        final int bgWindow   = 0x1e1e1e; // main window surface (was pure black)
+        final int bgInactive = 0x2a2a2a; // inactive window (slightly lighter)
+        final int bgPanel    = 0x252526; // panel / menu surface
+        final int bgModal    = 0x1a3a66; // modal surface (muted blue)
+        final int bgField    = 0x0a3a6e; // input field idle
+        final int bgFieldHot = 0x0f5aa8; // input field / active selection
+        final int bgSelect   = 0x264f78; // list / editor selection
+        final int fgText     = 0xe0e0e0;
+        final int fgMuted    = 0x909090;
+        final int fgYellow   = 0xffcc33; // Borland yellow
+        final int fgGreen    = 0x5ef07a;
+        final int fgCyan     = 0x55ddee;
+        final int fgRed      = 0xff6b6b;
+        final int fgWhite    = 0xffffff;
+        final int borderDim  = 0x606060;
+
         // Desktop: solid dark background.
-        colors.put(TDESKTOP_BACKGROUND, attr(Color.BLUE, Color.BLACK, false));
+        colors.put(TDESKTOP_BACKGROUND, rgb(fgCyan, bgDesktop));
 
-        // Window borders and backgrounds: bright lines on black.
-        colors.put(TWINDOW_BORDER, attr(Color.WHITE, Color.BLACK, true));
-        colors.put(TWINDOW_BACKGROUND, attr(Color.YELLOW, Color.BLACK, true));
-        colors.put(TWINDOW_BORDER_INACTIVE, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TWINDOW_BACKGROUND_INACTIVE, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TWINDOW_BORDER_WINDOWMOVE, attr(Color.GREEN, Color.BLACK, true));
-        colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, attr(Color.YELLOW, Color.BLACK, false));
+        // Window borders and backgrounds: bright lines on dark grey.
+        colors.put(TWINDOW_BORDER, rgb(fgWhite, bgWindow));
+        colors.put(TWINDOW_BACKGROUND, rgb(fgYellow, bgWindow));
+        colors.put(TWINDOW_BORDER_INACTIVE, rgb(fgMuted, bgInactive));
+        colors.put(TWINDOW_BACKGROUND_INACTIVE, rgb(fgText, bgInactive));
+        colors.put(TWINDOW_BORDER_WINDOWMOVE, rgb(fgGreen, bgWindow));
+        colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, rgb(fgYellow, bgWindow));
 
-        // Modal windows: use blue surface to stand out from the dark desktop.
-        colors.put(TWINDOW_BORDER_MODAL, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TWINDOW_BACKGROUND_MODAL, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TWINDOW_BORDER_MODAL_INACTIVE, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, attr(Color.GREEN, Color.BLUE, true));
+        // Modal windows: use muted blue surface to stand out from the desktop.
+        colors.put(TWINDOW_BORDER_MODAL, rgb(fgWhite, bgModal));
+        colors.put(TWINDOW_BACKGROUND_MODAL, rgb(fgWhite, bgModal));
+        colors.put(TWINDOW_BORDER_MODAL_INACTIVE, rgb(fgText, bgModal));
+        colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, rgb(fgText, bgModal));
+        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, rgb(fgGreen, bgModal));
 
         // Labels / text on the dark window background.
-        colors.put(TLABEL, attr(Color.WHITE, Color.BLACK, true));
-        colors.put(TLABEL_MNEMONIC, attr(Color.YELLOW, Color.BLACK, true));
-        colors.put(TTEXT, attr(Color.WHITE, Color.BLACK, false));
+        colors.put(TLABEL, rgb(fgWhite, bgWindow));
+        colors.put(TLABEL_MNEMONIC, rgb(fgYellow, bgWindow));
+        colors.put(TTEXT, rgb(fgText, bgWindow));
 
         // Fields: dark input with a subtle highlight when active.
-        colors.put(TFIELD_INACTIVE, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TFIELD_ACTIVE, attr(Color.WHITE, Color.CYAN, true));
+        colors.put(TFIELD_INACTIVE, rgb(fgText, bgField));
+        colors.put(TFIELD_ACTIVE, rgb(fgWhite, bgFieldHot));
 
         // Check boxes / radio buttons / combos: match dark background.
-        colors.put(TCHECKBOX_INACTIVE, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TCHECKBOX_ACTIVE, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(TCHECKBOX_MNEMONIC, attr(Color.YELLOW, Color.BLACK, true));
-        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(TRADIOBUTTON_INACTIVE, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TRADIOBUTTON_ACTIVE, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(TRADIOBUTTON_MNEMONIC, attr(Color.YELLOW, Color.BLACK, true));
-        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(TRADIOGROUP_INACTIVE, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TRADIOGROUP_ACTIVE, attr(Color.YELLOW, Color.BLACK, true));
-        colors.put(TCOMBOBOX_INACTIVE, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TCOMBOBOX_ACTIVE, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(TSPINNER_INACTIVE, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TSPINNER_ACTIVE, attr(Color.YELLOW, Color.BLUE, true));
+        colors.put(TCHECKBOX_INACTIVE, rgb(fgText, bgWindow));
+        colors.put(TCHECKBOX_ACTIVE, rgb(fgYellow, bgSelect));
+        colors.put(TCHECKBOX_MNEMONIC, rgb(fgYellow, bgWindow));
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, rgb(fgYellow, bgSelect));
+        colors.put(TRADIOBUTTON_INACTIVE, rgb(fgText, bgWindow));
+        colors.put(TRADIOBUTTON_ACTIVE, rgb(fgYellow, bgSelect));
+        colors.put(TRADIOBUTTON_MNEMONIC, rgb(fgYellow, bgWindow));
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, rgb(fgYellow, bgSelect));
+        colors.put(TRADIOGROUP_INACTIVE, rgb(fgText, bgWindow));
+        colors.put(TRADIOGROUP_ACTIVE, rgb(fgYellow, bgWindow));
+        colors.put(TCOMBOBOX_INACTIVE, rgb(fgText, bgField));
+        colors.put(TCOMBOBOX_ACTIVE, rgb(fgYellow, bgSelect));
+        colors.put(TSPINNER_INACTIVE, rgb(fgText, bgField));
+        colors.put(TSPINNER_ACTIVE, rgb(fgYellow, bgSelect));
 
         // Panels / tables / editor / lists / tree: dark surfaces.
-        colors.put(TPANEL_BORDER, attr(Color.WHITE, Color.BLACK, true));
-        colors.put(TEDITOR, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TEDITOR_SELECTED, attr(Color.BLACK, Color.CYAN, false));
-        colors.put(TEDITOR_MARGIN, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TLIST, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TLIST_SELECTED, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(TLIST_UNREADABLE, attr(Color.RED, Color.BLACK, false));
-        colors.put(TLIST_INACTIVE, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TLIST_SELECTED_INACTIVE, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TTREEVIEW, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TTREEVIEW_EXPANDBUTTON, attr(Color.GREEN, Color.BLACK, true));
-        colors.put(TTREEVIEW_SELECTED, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(TTREEVIEW_UNREADABLE, attr(Color.RED, Color.BLACK, false));
-        colors.put(TTREEVIEW_INACTIVE, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TTREEVIEW_SELECTED_INACTIVE, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TTABLE_INACTIVE, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TTABLE_ACTIVE, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(TTABLE_SELECTED, attr(Color.BLACK, Color.CYAN, false));
-        colors.put(TTABLE_LABEL, attr(Color.CYAN, Color.BLACK, true));
-        colors.put(TTABLE_LABEL_SELECTED, attr(Color.YELLOW, Color.BLACK, true));
-        colors.put(TTABLE_BORDER, attr(Color.WHITE, Color.BLACK, true));
-        colors.put(TSPLITPANE, attr(Color.WHITE, Color.BLACK, false));
+        colors.put(TPANEL_BORDER, rgb(fgWhite, bgWindow));
+        colors.put(TEDITOR, rgb(fgText, bgWindow));
+        colors.put(TEDITOR_SELECTED, rgb(fgWhite, bgSelect));
+        colors.put(TEDITOR_MARGIN, rgb(fgMuted, bgField));
+        colors.put(TLIST, rgb(fgText, bgWindow));
+        colors.put(TLIST_SELECTED, rgb(fgYellow, bgSelect));
+        colors.put(TLIST_UNREADABLE, rgb(fgRed, bgWindow));
+        colors.put(TLIST_INACTIVE, rgb(fgMuted, bgWindow));
+        colors.put(TLIST_SELECTED_INACTIVE, rgb(fgText, bgField));
+        colors.put(TTREEVIEW, rgb(fgText, bgWindow));
+        colors.put(TTREEVIEW_EXPANDBUTTON, rgb(fgGreen, bgWindow));
+        colors.put(TTREEVIEW_SELECTED, rgb(fgYellow, bgSelect));
+        colors.put(TTREEVIEW_UNREADABLE, rgb(fgRed, bgWindow));
+        colors.put(TTREEVIEW_INACTIVE, rgb(fgMuted, bgWindow));
+        colors.put(TTREEVIEW_SELECTED_INACTIVE, rgb(fgText, bgField));
+        colors.put(TTABLE_INACTIVE, rgb(fgText, bgWindow));
+        colors.put(TTABLE_ACTIVE, rgb(fgYellow, bgSelect));
+        colors.put(TTABLE_SELECTED, rgb(fgWhite, bgSelect));
+        colors.put(TTABLE_LABEL, rgb(fgCyan, bgWindow));
+        colors.put(TTABLE_LABEL_SELECTED, rgb(fgYellow, bgWindow));
+        colors.put(TTABLE_BORDER, rgb(fgWhite, bgWindow));
+        colors.put(TSPLITPANE, rgb(fgText, bgWindow));
 
         // Calendar
-        colors.put(TCALENDAR_BACKGROUND, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TCALENDAR_DAY, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TCALENDAR_DAY_SELECTED, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(TCALENDAR_ARROW, attr(Color.GREEN, Color.BLACK, true));
-        colors.put(TCALENDAR_TITLE, attr(Color.YELLOW, Color.BLACK, true));
+        colors.put(TCALENDAR_BACKGROUND, rgb(fgText, bgWindow));
+        colors.put(TCALENDAR_DAY, rgb(fgText, bgWindow));
+        colors.put(TCALENDAR_DAY_SELECTED, rgb(fgYellow, bgSelect));
+        colors.put(TCALENDAR_ARROW, rgb(fgGreen, bgWindow));
+        colors.put(TCALENDAR_TITLE, rgb(fgYellow, bgWindow));
 
         // Scrollers
-        colors.put(TSCROLLER_BAR, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(TSCROLLER_ARROWS, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(TSCROLLER_BAR, rgb(fgMuted, bgWindow));
+        colors.put(TSCROLLER_ARROWS, rgb(fgWhite, bgField));
 
         // Progress bar
-        colors.put(TPROGRESSBAR_COMPLETE, attr(Color.GREEN, Color.GREEN, true));
-        colors.put(TPROGRESSBAR_INCOMPLETE, attr(Color.WHITE, Color.BLACK, false));
+        colors.put(TPROGRESSBAR_COMPLETE, rgb(fgGreen, fgGreen));
+        colors.put(TPROGRESSBAR_INCOMPLETE, rgb(fgMuted, bgWindow));
 
-        // Menu: dark grey surface with bright hotkeys.
-        colors.put(TMENU, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TMENU_HIGHLIGHTED, attr(Color.YELLOW, Color.CYAN, true));
-        colors.put(TMENU_MNEMONIC, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, attr(Color.RED, Color.CYAN, true));
-        colors.put(TMENU_DISABLED, attr(Color.BLACK, Color.BLUE, true));
+        // Menu: dark panel surface with bright hotkeys.
+        colors.put(TMENU, rgb(fgText, bgPanel));
+        colors.put(TMENU_HIGHLIGHTED, rgb(fgYellow, bgFieldHot));
+        colors.put(TMENU_MNEMONIC, rgb(fgYellow, bgPanel));
+        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, rgb(fgRed, bgFieldHot));
+        colors.put(TMENU_DISABLED, rgb(borderDim, bgPanel));
 
         // Status bar
-        colors.put(TSTATUSBAR_TEXT, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TSTATUSBAR_BUTTON, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(TSTATUSBAR_SELECTED, attr(Color.WHITE, Color.CYAN, true));
+        colors.put(TSTATUSBAR_TEXT, rgb(fgText, bgPanel));
+        colors.put(TSTATUSBAR_BUTTON, rgb(fgYellow, bgPanel));
+        colors.put(TSTATUSBAR_SELECTED, rgb(fgWhite, bgFieldHot));
 
         // Help window
-        colors.put(THELPWINDOW_BACKGROUND, attr(Color.WHITE, Color.BLACK, true));
-        colors.put(THELPWINDOW_BORDER, attr(Color.GREEN, Color.BLACK, true));
-        colors.put(THELPWINDOW_TEXT, attr(Color.WHITE, Color.BLACK, false));
-        colors.put(THELPWINDOW_LINK, attr(Color.YELLOW, Color.BLACK, true));
-        colors.put(THELPWINDOW_LINK_ACTIVE, attr(Color.YELLOW, Color.BLUE, true));
-        colors.put(THELPWINDOW_WINDOWMOVE, attr(Color.GREEN, Color.BLACK, true));
+        colors.put(THELPWINDOW_BACKGROUND, rgb(fgWhite, bgWindow));
+        colors.put(THELPWINDOW_BORDER, rgb(fgGreen, bgWindow));
+        colors.put(THELPWINDOW_TEXT, rgb(fgText, bgWindow));
+        colors.put(THELPWINDOW_LINK, rgb(fgYellow, bgWindow));
+        colors.put(THELPWINDOW_LINK_ACTIVE, rgb(fgYellow, bgSelect));
+        colors.put(THELPWINDOW_WINDOWMOVE, rgb(fgGreen, bgWindow));
     }
 
     /**
@@ -1937,94 +1958,110 @@ public class ColorTheme {
     public void setDialog() {
         setDefaultTheme();
 
+        // dialog(1) palette, softened with 24-bit RGB so the lightgray surface
+        // doesn't render as stark bright-white on modern terminals and the
+        // accent colours stay readable regardless of the 16-colour palette.
+        final int bgScreen    = 0x0000a0; // blue screen backdrop
+        final int bgDialog    = 0xc8c8c8; // lightgray dialog surface
+        final int bgDialogAlt = 0xb0b0b0; // slightly darker "inactive" surface
+        final int bgButton    = 0x0040a8; // active button blue
+        final int bgInput     = 0x0060c0; // active form field
+        final int bgInputIdle = 0x1e8aa8; // idle form field (cyan-ish)
+        final int fgWhite     = 0xffffff;
+        final int fgBlack     = 0x101010;
+        final int fgText      = 0x202020;
+        final int fgBlue      = 0x002080;
+        final int fgRed       = 0xa00000;
+        final int fgCyan      = 0x55ffff;
+
         // Screen / desktop: cyan-on-blue like dialog's "screen_color".
-        colors.put(TDESKTOP_BACKGROUND, attr(Color.CYAN, Color.BLUE, true));
+        colors.put(TDESKTOP_BACKGROUND, rgb(fgCyan, bgScreen));
 
         // Non-modal windows reuse dialog's screen palette.
-        colors.put(TWINDOW_BORDER, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TWINDOW_BACKGROUND, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TWINDOW_BORDER_INACTIVE, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TWINDOW_BACKGROUND_INACTIVE, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TWINDOW_BORDER_WINDOWMOVE, attr(Color.GREEN, Color.BLUE, true));
-        colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, attr(Color.WHITE, Color.BLUE, false));
+        colors.put(TWINDOW_BORDER, rgb(fgWhite, bgScreen));
+        colors.put(TWINDOW_BACKGROUND, rgb(fgWhite, bgScreen));
+        colors.put(TWINDOW_BORDER_INACTIVE, rgb(fgWhite, bgScreen));
+        colors.put(TWINDOW_BACKGROUND_INACTIVE, rgb(fgWhite, bgScreen));
+        colors.put(TWINDOW_BORDER_WINDOWMOVE, rgb(0x33ff66, bgScreen));
+        colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, rgb(fgWhite, bgScreen));
 
         // Modal dialogs: "dialog_color" = black on lightgray, "border" =
         // bright white on lightgray, "title_color" = bright blue on lightgray.
-        colors.put(TWINDOW_BORDER_MODAL, attr(Color.WHITE, Color.WHITE, true));
-        colors.put(TWINDOW_BACKGROUND_MODAL, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TWINDOW_BORDER_MODAL_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, attr(Color.BLUE, Color.WHITE, true));
+        colors.put(TWINDOW_BORDER_MODAL, rgb(fgWhite, bgDialog));
+        colors.put(TWINDOW_BACKGROUND_MODAL, rgb(fgBlack, bgDialog));
+        colors.put(TWINDOW_BORDER_MODAL_INACTIVE, rgb(fgText, bgDialogAlt));
+        colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, rgb(fgText, bgDialogAlt));
+        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, rgb(fgBlue, bgDialog));
 
         // Labels on the dialog body.
-        colors.put(TLABEL, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TLABEL_MNEMONIC, attr(Color.RED, Color.WHITE, false));
-        colors.put(TTEXT, attr(Color.BLACK, Color.WHITE, false));
+        colors.put(TLABEL, rgb(fgBlack, bgDialog));
+        colors.put(TLABEL_MNEMONIC, rgb(fgRed, bgDialog));
+        colors.put(TTEXT, rgb(fgBlack, bgDialog));
 
         // Buttons: inactive = "button_inactive" black on lightgray, active =
         // "button_active" bright white on blue, key_inactive = red, key_active
         // = bright white on blue.
-        colors.put(TBUTTON_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TBUTTON_ACTIVE, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TBUTTON_DISABLED, attr(Color.BLACK, Color.WHITE, true));
-        colors.put(TBUTTON_MNEMONIC, attr(Color.RED, Color.WHITE, false));
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(TBUTTON_INACTIVE, rgb(fgBlack, bgDialog));
+        colors.put(TBUTTON_ACTIVE, rgb(fgWhite, bgButton));
+        colors.put(TBUTTON_DISABLED, rgb(0x707070, bgDialog));
+        colors.put(TBUTTON_MNEMONIC, rgb(fgRed, bgDialog));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgb(fgWhite, bgButton));
 
         // Input form field: "form_active_text" bright white on blue,
         // "form_text" white on cyan.
-        colors.put(TFIELD_INACTIVE, attr(Color.WHITE, Color.CYAN, false));
-        colors.put(TFIELD_ACTIVE, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(TFIELD_INACTIVE, rgb(fgWhite, bgInputIdle));
+        colors.put(TFIELD_ACTIVE, rgb(fgWhite, bgInput));
 
         // Check boxes / radio buttons: black on lightgray, selected blue.
-        colors.put(TCHECKBOX_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TCHECKBOX_ACTIVE, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TCHECKBOX_MNEMONIC, attr(Color.RED, Color.WHITE, false));
-        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TRADIOBUTTON_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TRADIOBUTTON_ACTIVE, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TRADIOBUTTON_MNEMONIC, attr(Color.RED, Color.WHITE, false));
-        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TRADIOGROUP_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TRADIOGROUP_ACTIVE, attr(Color.BLUE, Color.WHITE, true));
-        colors.put(TCOMBOBOX_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TCOMBOBOX_ACTIVE, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(TCHECKBOX_INACTIVE, rgb(fgBlack, bgDialog));
+        colors.put(TCHECKBOX_ACTIVE, rgb(fgWhite, bgButton));
+        colors.put(TCHECKBOX_MNEMONIC, rgb(fgRed, bgDialog));
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, rgb(fgWhite, bgButton));
+        colors.put(TRADIOBUTTON_INACTIVE, rgb(fgBlack, bgDialog));
+        colors.put(TRADIOBUTTON_ACTIVE, rgb(fgWhite, bgButton));
+        colors.put(TRADIOBUTTON_MNEMONIC, rgb(fgRed, bgDialog));
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, rgb(fgWhite, bgButton));
+        colors.put(TRADIOGROUP_INACTIVE, rgb(fgBlack, bgDialog));
+        colors.put(TRADIOGROUP_ACTIVE, rgb(fgBlue, bgDialog));
+        colors.put(TCOMBOBOX_INACTIVE, rgb(fgBlack, bgDialog));
+        colors.put(TCOMBOBOX_ACTIVE, rgb(fgWhite, bgButton));
 
         // List / tree / menu_box: menubox = black on lightgray, menubox_border
         // = white on lightgray, selected = lightgray on blue.
-        colors.put(TLIST, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TLIST_SELECTED, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TLIST_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TLIST_SELECTED_INACTIVE, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TTREEVIEW, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TTREEVIEW_SELECTED, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TTREEVIEW_EXPANDBUTTON, attr(Color.BLUE, Color.WHITE, true));
+        colors.put(TLIST, rgb(fgBlack, bgDialog));
+        colors.put(TLIST_SELECTED, rgb(fgWhite, bgButton));
+        colors.put(TLIST_INACTIVE, rgb(fgBlack, bgDialog));
+        colors.put(TLIST_SELECTED_INACTIVE, rgb(fgWhite, bgButton));
+        colors.put(TTREEVIEW, rgb(fgBlack, bgDialog));
+        colors.put(TTREEVIEW_SELECTED, rgb(fgWhite, bgButton));
+        colors.put(TTREEVIEW_EXPANDBUTTON, rgb(fgBlue, bgDialog));
 
         // Editor (acts like a form text area).
-        colors.put(TEDITOR, attr(Color.WHITE, Color.CYAN, false));
-        colors.put(TEDITOR_SELECTED, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TEDITOR_MARGIN, attr(Color.BLACK, Color.WHITE, false));
+        colors.put(TEDITOR, rgb(fgWhite, bgInputIdle));
+        colors.put(TEDITOR_SELECTED, rgb(fgWhite, bgButton));
+        colors.put(TEDITOR_MARGIN, rgb(fgBlack, bgDialog));
 
         // Panel border.
-        colors.put(TPANEL_BORDER, attr(Color.BLUE, Color.WHITE, true));
+        colors.put(TPANEL_BORDER, rgb(fgBlue, bgDialog));
 
         // Menu bar: dialog's menubar uses bright white on blue.
-        colors.put(TMENU, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TMENU_HIGHLIGHTED, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TMENU_MNEMONIC, attr(Color.RED, Color.WHITE, false));
-        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, attr(Color.RED, Color.BLUE, true));
-        colors.put(TMENU_DISABLED, attr(Color.BLACK, Color.WHITE, true));
+        colors.put(TMENU, rgb(fgBlack, bgDialog));
+        colors.put(TMENU_HIGHLIGHTED, rgb(fgWhite, bgButton));
+        colors.put(TMENU_MNEMONIC, rgb(fgRed, bgDialog));
+        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, rgb(0xffb060, bgButton));
+        colors.put(TMENU_DISABLED, rgb(0x707070, bgDialog));
 
         // Status bar
-        colors.put(TSTATUSBAR_TEXT, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TSTATUSBAR_BUTTON, attr(Color.RED, Color.WHITE, false));
-        colors.put(TSTATUSBAR_SELECTED, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(TSTATUSBAR_TEXT, rgb(fgBlack, bgDialog));
+        colors.put(TSTATUSBAR_BUTTON, rgb(fgRed, bgDialog));
+        colors.put(TSTATUSBAR_SELECTED, rgb(fgWhite, bgButton));
 
         // Help
-        colors.put(THELPWINDOW_BACKGROUND, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(THELPWINDOW_BORDER, attr(Color.WHITE, Color.WHITE, true));
-        colors.put(THELPWINDOW_TEXT, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(THELPWINDOW_LINK, attr(Color.RED, Color.WHITE, false));
-        colors.put(THELPWINDOW_LINK_ACTIVE, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(THELPWINDOW_BACKGROUND, rgb(fgBlack, bgDialog));
+        colors.put(THELPWINDOW_BORDER, rgb(fgWhite, bgDialog));
+        colors.put(THELPWINDOW_TEXT, rgb(fgBlack, bgDialog));
+        colors.put(THELPWINDOW_LINK, rgb(fgRed, bgDialog));
+        colors.put(THELPWINDOW_LINK_ACTIVE, rgb(fgWhite, bgButton));
     }
 
     /**
@@ -2034,97 +2071,113 @@ public class ColorTheme {
     public void setWhiptail() {
         setDefaultTheme();
 
+        // newt/whiptail palette softened with 24-bit RGB: the classic
+        // "lightgray" window surface becomes an off-white that plays well
+        // with shadowed borderless controls, and the red "actbutton" accent
+        // is muted slightly so it doesn't fight the button shadows.
+        final int bgScreen   = 0x000090; // root blue
+        final int bgWindow   = 0xcfcfcf; // dialog lightgray
+        final int bgWinAlt   = 0xb8b8b8; // inactive surface
+        final int bgAccent   = 0xb02020; // newt red accent
+        final int bgAccentHi = 0xd03030; // brighter red for highlighted states
+        final int bgInput    = 0x103a80; // entry blue
+        final int fgBlack    = 0x101010;
+        final int fgWhite    = 0xffffff;
+        final int fgLightGry = 0xd0d0d0;
+        final int fgRed      = 0x900000;
+        final int fgYellow   = 0xffd84a;
+
         // Root / desktop: lightgray on blue (newt's "root" colour).
-        colors.put(TDESKTOP_BACKGROUND, attr(Color.WHITE, Color.BLUE, false));
+        colors.put(TDESKTOP_BACKGROUND, rgb(fgLightGry, bgScreen));
 
         // Windows (the newt "window" colour): black on lightgray.
-        colors.put(TWINDOW_BORDER, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TWINDOW_BACKGROUND, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TWINDOW_BORDER_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TWINDOW_BACKGROUND_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
+        colors.put(TWINDOW_BORDER, rgb(fgBlack, bgWindow));
+        colors.put(TWINDOW_BACKGROUND, rgb(fgBlack, bgWindow));
+        colors.put(TWINDOW_BORDER_INACTIVE, rgb(0x404040, bgWinAlt));
+        colors.put(TWINDOW_BACKGROUND_INACTIVE, rgb(0x404040, bgWinAlt));
         // Title / moving border uses newt's red-on-lightgray "title" colour.
-        colors.put(TWINDOW_BORDER_WINDOWMOVE, attr(Color.RED, Color.WHITE, true));
-        colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, attr(Color.BLACK, Color.WHITE, false));
+        colors.put(TWINDOW_BORDER_WINDOWMOVE, rgb(bgAccent, bgWindow));
+        colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, rgb(fgBlack, bgWindow));
 
         // Modal dialogs look the same (newt has one dialog style).
-        colors.put(TWINDOW_BORDER_MODAL, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TWINDOW_BACKGROUND_MODAL, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TWINDOW_BORDER_MODAL_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, attr(Color.RED, Color.WHITE, true));
+        colors.put(TWINDOW_BORDER_MODAL, rgb(fgBlack, bgWindow));
+        colors.put(TWINDOW_BACKGROUND_MODAL, rgb(fgBlack, bgWindow));
+        colors.put(TWINDOW_BORDER_MODAL_INACTIVE, rgb(0x404040, bgWinAlt));
+        colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, rgb(0x404040, bgWinAlt));
+        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, rgb(bgAccent, bgWindow));
 
         // Labels and text.
-        colors.put(TLABEL, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TLABEL_MNEMONIC, attr(Color.RED, Color.WHITE, true));
-        colors.put(TTEXT, attr(Color.BLACK, Color.WHITE, false));
+        colors.put(TLABEL, rgb(fgBlack, bgWindow));
+        colors.put(TLABEL_MNEMONIC, rgb(fgRed, bgWindow));
+        colors.put(TTEXT, rgb(fgBlack, bgWindow));
 
         // Buttons: inactive = "button" black on lightgray, active =
         // "actbutton" bright white on red.
-        colors.put(TBUTTON_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TBUTTON_ACTIVE, attr(Color.WHITE, Color.RED, true));
-        colors.put(TBUTTON_DISABLED, attr(Color.BLACK, Color.WHITE, true));
-        colors.put(TBUTTON_MNEMONIC, attr(Color.RED, Color.WHITE, true));
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, attr(Color.YELLOW, Color.RED, true));
+        colors.put(TBUTTON_INACTIVE, rgb(fgBlack, bgWindow));
+        colors.put(TBUTTON_ACTIVE, rgb(fgWhite, bgAccent));
+        colors.put(TBUTTON_DISABLED, rgb(0x707070, bgWindow));
+        colors.put(TBUTTON_MNEMONIC, rgb(fgRed, bgWindow));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgb(fgYellow, bgAccent));
 
         // Entry / text field: "entry" lightgray on blue, "selentry" white on
         // blue (bold).
-        colors.put(TFIELD_INACTIVE, attr(Color.WHITE, Color.BLUE, false));
-        colors.put(TFIELD_ACTIVE, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(TFIELD_INACTIVE, rgb(fgLightGry, bgInput));
+        colors.put(TFIELD_ACTIVE, rgb(fgWhite, bgInput));
 
         // Check boxes / radio buttons: "checkbox" black on lightgray,
         // "actcheckbox" bright white on red.
-        colors.put(TCHECKBOX_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TCHECKBOX_ACTIVE, attr(Color.WHITE, Color.RED, true));
-        colors.put(TCHECKBOX_MNEMONIC, attr(Color.RED, Color.WHITE, true));
-        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, attr(Color.YELLOW, Color.RED, true));
-        colors.put(TRADIOBUTTON_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TRADIOBUTTON_ACTIVE, attr(Color.WHITE, Color.RED, true));
-        colors.put(TRADIOBUTTON_MNEMONIC, attr(Color.RED, Color.WHITE, true));
-        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, attr(Color.YELLOW, Color.RED, true));
-        colors.put(TRADIOGROUP_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TRADIOGROUP_ACTIVE, attr(Color.RED, Color.WHITE, true));
-        colors.put(TCOMBOBOX_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TCOMBOBOX_ACTIVE, attr(Color.WHITE, Color.RED, true));
+        colors.put(TCHECKBOX_INACTIVE, rgb(fgBlack, bgWindow));
+        colors.put(TCHECKBOX_ACTIVE, rgb(fgWhite, bgAccent));
+        colors.put(TCHECKBOX_MNEMONIC, rgb(fgRed, bgWindow));
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, rgb(fgYellow, bgAccent));
+        colors.put(TRADIOBUTTON_INACTIVE, rgb(fgBlack, bgWindow));
+        colors.put(TRADIOBUTTON_ACTIVE, rgb(fgWhite, bgAccent));
+        colors.put(TRADIOBUTTON_MNEMONIC, rgb(fgRed, bgWindow));
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, rgb(fgYellow, bgAccent));
+        colors.put(TRADIOGROUP_INACTIVE, rgb(fgBlack, bgWindow));
+        colors.put(TRADIOGROUP_ACTIVE, rgb(fgRed, bgWindow));
+        colors.put(TCOMBOBOX_INACTIVE, rgb(fgBlack, bgWindow));
+        colors.put(TCOMBOBOX_ACTIVE, rgb(fgWhite, bgAccent));
 
         // Lists / tree: "listbox" black on lightgray, "actlistbox" yellow on
         // red (newt's selection accent).
-        colors.put(TLIST, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TLIST_SELECTED, attr(Color.YELLOW, Color.RED, true));
-        colors.put(TLIST_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TLIST_SELECTED_INACTIVE, attr(Color.WHITE, Color.BLUE, true));
-        colors.put(TTREEVIEW, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TTREEVIEW_SELECTED, attr(Color.YELLOW, Color.RED, true));
-        colors.put(TTREEVIEW_EXPANDBUTTON, attr(Color.RED, Color.WHITE, true));
+        colors.put(TLIST, rgb(fgBlack, bgWindow));
+        colors.put(TLIST_SELECTED, rgb(fgYellow, bgAccent));
+        colors.put(TLIST_INACTIVE, rgb(fgBlack, bgWindow));
+        colors.put(TLIST_SELECTED_INACTIVE, rgb(fgWhite, bgInput));
+        colors.put(TTREEVIEW, rgb(fgBlack, bgWindow));
+        colors.put(TTREEVIEW_SELECTED, rgb(fgYellow, bgAccent));
+        colors.put(TTREEVIEW_EXPANDBUTTON, rgb(fgRed, bgWindow));
 
         // Editor (acttextbox / textbox).
-        colors.put(TEDITOR, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TEDITOR_SELECTED, attr(Color.WHITE, Color.RED, true));
-        colors.put(TEDITOR_MARGIN, attr(Color.BLUE, Color.WHITE, false));
+        colors.put(TEDITOR, rgb(fgBlack, bgWindow));
+        colors.put(TEDITOR_SELECTED, rgb(fgWhite, bgAccent));
+        colors.put(TEDITOR_MARGIN, rgb(0x002080, bgWindow));
 
         // Panels / tables.
-        colors.put(TPANEL_BORDER, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TTABLE_INACTIVE, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TTABLE_ACTIVE, attr(Color.YELLOW, Color.RED, true));
-        colors.put(TTABLE_SELECTED, attr(Color.WHITE, Color.RED, true));
+        colors.put(TPANEL_BORDER, rgb(fgBlack, bgWindow));
+        colors.put(TTABLE_INACTIVE, rgb(fgBlack, bgWindow));
+        colors.put(TTABLE_ACTIVE, rgb(fgYellow, bgAccent));
+        colors.put(TTABLE_SELECTED, rgb(fgWhite, bgAccent));
 
         // Menu: similar to dialog look but with red accents.
-        colors.put(TMENU, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TMENU_HIGHLIGHTED, attr(Color.WHITE, Color.RED, true));
-        colors.put(TMENU_MNEMONIC, attr(Color.RED, Color.WHITE, true));
-        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, attr(Color.YELLOW, Color.RED, true));
-        colors.put(TMENU_DISABLED, attr(Color.BLACK, Color.WHITE, true));
+        colors.put(TMENU, rgb(fgBlack, bgWindow));
+        colors.put(TMENU_HIGHLIGHTED, rgb(fgWhite, bgAccent));
+        colors.put(TMENU_MNEMONIC, rgb(fgRed, bgWindow));
+        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, rgb(fgYellow, bgAccentHi));
+        colors.put(TMENU_DISABLED, rgb(0x707070, bgWindow));
 
         // Status bar.
-        colors.put(TSTATUSBAR_TEXT, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(TSTATUSBAR_BUTTON, attr(Color.RED, Color.WHITE, true));
-        colors.put(TSTATUSBAR_SELECTED, attr(Color.WHITE, Color.RED, true));
+        colors.put(TSTATUSBAR_TEXT, rgb(fgBlack, bgWindow));
+        colors.put(TSTATUSBAR_BUTTON, rgb(fgRed, bgWindow));
+        colors.put(TSTATUSBAR_SELECTED, rgb(fgWhite, bgAccent));
 
         // Help
-        colors.put(THELPWINDOW_BACKGROUND, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(THELPWINDOW_BORDER, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(THELPWINDOW_TEXT, attr(Color.BLACK, Color.WHITE, false));
-        colors.put(THELPWINDOW_LINK, attr(Color.RED, Color.WHITE, true));
-        colors.put(THELPWINDOW_LINK_ACTIVE, attr(Color.YELLOW, Color.RED, true));
+        colors.put(THELPWINDOW_BACKGROUND, rgb(fgBlack, bgWindow));
+        colors.put(THELPWINDOW_BORDER, rgb(fgBlack, bgWindow));
+        colors.put(THELPWINDOW_TEXT, rgb(fgBlack, bgWindow));
+        colors.put(THELPWINDOW_LINK, rgb(fgRed, bgWindow));
+        colors.put(THELPWINDOW_LINK_ACTIVE, rgb(fgYellow, bgAccent));
     }
 
     /**

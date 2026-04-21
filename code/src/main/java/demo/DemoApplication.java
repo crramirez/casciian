@@ -634,8 +634,6 @@ public class DemoApplication extends TApplication {
         demoMenu.addItem(10001, i18n.getString("lookCute"));
         demoMenu.addItem(10002, i18n.getString("lookBland"));
         demoMenu.addItem(10003, i18n.getString("lookCustom"));
-        demoMenu.addItem(10004, i18n.getString("applyCasciianDefaults"));
-        demoMenu.addSeparator();
         TSubMenu themesMenu = demoMenu.addSubMenu(i18n.getString("moreThemes"));
         themesMenu.addItem(10020, i18n.getString("themeDarkDefault"));
         themesMenu.addItem(10021, i18n.getString("themeMidnightCommander"));
@@ -644,6 +642,8 @@ public class DemoApplication extends TApplication {
         themesMenu.addSeparator();
         themesMenu.addItem(10024, i18n.getString("themeVSCodeDark"));
         themesMenu.addItem(10025, i18n.getString("themeVSCodeLight"));
+        demoMenu.addItem(10004, i18n.getString("applyCasciianDefaults"));
+        demoMenu.addSeparator();
         TMenuItem gradients = demoMenu.addItem(10010,
             i18n.getString("useGradients"));
         gradients.setCheckable(true);
