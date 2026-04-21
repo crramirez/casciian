@@ -316,7 +316,7 @@ public class DemoApplication extends TApplication {
             return true;
         }
 
-        // Additional preset themes.  10020..10023 use the "classic" square
+        // Additional preset themes.  10020..10022 use the "classic" square
         // border look (like "Switch to bland look"); 10024..10025 use the
         // modern round-bordered custom look (like "Switch to custom look").
         if (menu.getId() == 10020) {
@@ -326,10 +326,7 @@ public class DemoApplication extends TApplication {
             return applyClassicThemeLook(() -> getTheme().setMidnightCommander());
         }
         if (menu.getId() == 10022) {
-            return applyClassicThemeLook(() -> getTheme().setDialog());
-        }
-        if (menu.getId() == 10023) {
-            return applyClassicThemeLook(() -> getTheme().setWhiptail());
+            return applyClassicThemeLook(() -> getTheme().setFlatDark());
         }
         if (menu.getId() == 10024) {
             return applyModernThemeLook(() -> getTheme().setVSCodeDark());
@@ -637,8 +634,7 @@ public class DemoApplication extends TApplication {
         TSubMenu themesMenu = demoMenu.addSubMenu(i18n.getString("moreThemes"));
         themesMenu.addItem(10020, i18n.getString("themeDarkDefault"));
         themesMenu.addItem(10021, i18n.getString("themeMidnightCommander"));
-        themesMenu.addItem(10022, i18n.getString("themeDialog"));
-        themesMenu.addItem(10023, i18n.getString("themeWhiptail"));
+        themesMenu.addItem(10022, i18n.getString("themeFlatDark"));
         themesMenu.addSeparator();
         themesMenu.addItem(10024, i18n.getString("themeVSCodeDark"));
         themesMenu.addItem(10025, i18n.getString("themeVSCodeLight"));
