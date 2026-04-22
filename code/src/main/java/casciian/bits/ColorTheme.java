@@ -1821,7 +1821,17 @@ public class ColorTheme {
 
         // Labels / text on the dark window background.
         colors.put(TLABEL, rgb(fgWhite, bgWindow));
+        colors.put(TLABEL_ACTIVE, rgb(fgWhite, bgWindow));
+        colors.put(TLABEL_DISABLED, rgb(fgWhite, bgWindow));
+        colors.put(TLABEL_MODAL, rgb(fgWhite, bgWindow));
+        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgWhite, bgWindow));
+        colors.put(TLABEL_DISABLED_MODAL, rgb(fgWhite, bgWindow));
         colors.put(TLABEL_MNEMONIC, rgb(fgYellow, bgWindow));
+        colors.put(TLABEL_ACTIVE_MNEMONIC, rgb(fgYellow, bgWindow));
+        colors.put(TLABEL_DISABLED_MNEMONIC, rgb(fgYellow, bgWindow));
+        colors.put(TLABEL_MNEMONIC_MODAL, rgb(fgYellow, bgWindow));
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgb(fgYellow, bgWindow));
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgb(fgYellow, bgWindow));
         colors.put(TTEXT, rgb(fgText, bgWindow));
 
         // Fields: dark input with a subtle highlight when active.
@@ -1933,7 +1943,17 @@ public class ColorTheme {
 
         // Labels / text.
         colors.put(TLABEL, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(TLABEL_ACTIVE, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(TLABEL_DISABLED, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(TLABEL_MODAL, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(TLABEL_ACTIVE_MODAL, attr(Color.WHITE, Color.BLUE, true));
+        colors.put(TLABEL_DISABLED_MODAL, attr(Color.WHITE, Color.BLUE, true));
         colors.put(TLABEL_MNEMONIC, attr(Color.YELLOW, Color.BLUE, true));
+        colors.put(TLABEL_ACTIVE_MNEMONIC, attr(Color.YELLOW, Color.BLUE, true));
+        colors.put(TLABEL_DISABLED_MNEMONIC, attr(Color.YELLOW, Color.BLUE, true));
+        colors.put(TLABEL_MNEMONIC_MODAL, attr(Color.YELLOW, Color.BLUE, true));
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, attr(Color.YELLOW, Color.BLUE, true));
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, attr(Color.YELLOW, Color.BLUE, true));
         colors.put(TTEXT, attr(Color.WHITE, Color.BLUE, false));
 
         // Buttons: MC's "dfocus / dhotfocus" style - black/blue on cyan.
@@ -2048,7 +2068,17 @@ public class ColorTheme {
 
         // Labels / text.
         colors.put(TLABEL, rgb(fgText, bgBlack));
+        colors.put(TLABEL_ACTIVE, rgb(fgText, bgBlack));
+        colors.put(TLABEL_DISABLED, rgb(fgText, bgBlack));
+        colors.put(TLABEL_MODAL, rgb(fgText, bgBlack));
+        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgText, bgBlack));
+        colors.put(TLABEL_DISABLED_MODAL, rgb(fgText, bgBlack));
         colors.put(TLABEL_MNEMONIC, rgb(accentYellw, bgBlack));
+        colors.put(TLABEL_ACTIVE_MNEMONIC, rgb(accentYellw, bgBlack));
+        colors.put(TLABEL_DISABLED_MNEMONIC, rgb(accentYellw, bgBlack));
+        colors.put(TLABEL_MNEMONIC_MODAL, rgb(accentYellw, bgBlack));
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgb(accentYellw, bgBlack));
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgb(accentYellw, bgBlack));
         colors.put(TTEXT, rgb(fgText, bgBlack));
 
         // Buttons: flat look - accent text on black, selection-blue when
@@ -2183,7 +2213,17 @@ public class ColorTheme {
 
         // Labels / text.
         colors.put(TLABEL, rgb(fgText, bgPanel));
+        colors.put(TLABEL_ACTIVE, rgb(fgText, bgPanel));
+        colors.put(TLABEL_DISABLED, rgb(fgText, bgPanel));
+        colors.put(TLABEL_MODAL, rgb(fgText, bgPanel));
+        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgText, bgPanel));
+        colors.put(TLABEL_DISABLED_MODAL, rgb(fgText, bgPanel));
         colors.put(TLABEL_MNEMONIC, rgb(accent, bgPanel));
+        colors.put(TLABEL_ACTIVE_MNEMONIC, rgb(accent, bgPanel));
+        colors.put(TLABEL_DISABLED_MNEMONIC, rgb(accent, bgPanel));
+        colors.put(TLABEL_MNEMONIC_MODAL, rgb(accent, bgPanel));
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgb(accent, bgPanel));
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgb(accent, bgPanel));
         colors.put(TTEXT, rgb(fgText, bgPanel));
 
         // Buttons use the VS Code primary button palette.  Mnemonics use a
@@ -2324,7 +2364,17 @@ public class ColorTheme {
 
         // Labels / text.
         colors.put(TLABEL, rgb(fgChrome, bgPanel));
+        colors.put(TLABEL_ACTIVE, rgb(fgChrome, bgPanel));
+        colors.put(TLABEL_DISABLED, rgb(fgChrome, bgPanel));
+        colors.put(TLABEL_MODAL, rgb(fgChrome, bgPanel));
+        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgChrome, bgPanel));
+        colors.put(TLABEL_DISABLED_MODAL, rgb(fgChrome, bgPanel));
         colors.put(TLABEL_MNEMONIC, rgb(accent, bgPanel));
+        colors.put(TLABEL_ACTIVE_MNEMONIC, rgb(accent, bgPanel));
+        colors.put(TLABEL_DISABLED_MNEMONIC, rgb(accent, bgPanel));
+        colors.put(TLABEL_MNEMONIC_MODAL, rgb(accent, bgPanel));
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgb(accent, bgPanel));
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgb(accent, bgPanel));
         colors.put(TTEXT, rgb(fgText, bgPanel));
 
         // Buttons.  Mnemonics use a bright amber so the underlined character
