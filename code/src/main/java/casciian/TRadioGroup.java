@@ -19,6 +19,7 @@
  */
 package casciian;
 
+import casciian.backend.SystemProperties;
 import casciian.bits.BorderStyle;
 import casciian.bits.CellAttributes;
 import casciian.bits.StringUtils;
@@ -249,8 +250,9 @@ public class TRadioGroup extends TWidget {
         button.id = getChildren().size();
         String label = button.getMnemonic().getRawLabel();
 
-        if (StringUtils.width(label) + 4 > getWidth()) {
-            super.setWidth(StringUtils.width(label) + 7);
+        int extraPadding = SystemProperties.isApplyControlPadding() ? 2 : 0;
+        if (StringUtils.width(label) + 4 + extraPadding > getWidth()) {
+            super.setWidth(StringUtils.width(label) + 7 + extraPadding);
         }
 
         if (getParent().getLayoutManager() != null) {

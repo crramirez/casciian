@@ -47,6 +47,7 @@ class SystemPropertiesTest {
         System.clearProperty(SystemProperties.CASCIIAN_TEXT_BLINK);
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS);
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET);
+        System.clearProperty(SystemProperties.CASCIIAN_APPLY_CONTROL_PADDING);
         System.clearProperty(SystemProperties.CASCIIAN_USE_JLINE);
         System.clearProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
         SystemProperties.reset();
@@ -926,5 +927,52 @@ class SystemPropertiesTest {
 
         // After reset, should re-read from user.dir system property
         assertEquals(originalSystemProp, SystemProperties.getUserDir());
+    }
+
+    // -------------------------------------------------------------------------
+    // Apply Control Padding Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get applyControlPadding returns default value (true) when not set")
+    void testIsApplyControlPaddingDefault() {
+        assertTrue(SystemProperties.isApplyControlPadding());
+    }
+
+    @Test
+    @DisplayName("Get applyControlPadding returns false when set to 'false'")
+    void testIsApplyControlPaddingSetFalse() {
+        System.setProperty(SystemProperties.CASCIIAN_APPLY_CONTROL_PADDING,
+            "false");
+        assertFalse(SystemProperties.isApplyControlPadding());
+    }
+
+    @Test
+    @DisplayName("Get applyControlPadding returns true when set to 'true'")
+    void testIsApplyControlPaddingSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_APPLY_CONTROL_PADDING,
+            "true");
+        assertTrue(SystemProperties.isApplyControlPadding());
+    }
+
+    @Test
+    @DisplayName("Set applyControlPadding to true")
+    void testSetApplyControlPaddingTrue() {
+        SystemProperties.setApplyControlPadding(true);
+        assertTrue(SystemProperties.isApplyControlPadding());
+    }
+
+    @Test
+    @DisplayName("Set applyControlPadding to false")
+    void testSetApplyControlPaddingFalse() {
+        SystemProperties.setApplyControlPadding(false);
+        assertFalse(SystemProperties.isApplyControlPadding());
+    }
+
+    @Test
+    @DisplayName("applyControlPadding property key has the expected value")
+    void testApplyControlPaddingPropertyKey() {
+        assertEquals("casciian.applyControlPadding",
+            SystemProperties.CASCIIAN_APPLY_CONTROL_PADDING);
     }
 }

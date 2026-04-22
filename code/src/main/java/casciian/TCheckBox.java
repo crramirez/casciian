@@ -17,6 +17,7 @@ package casciian;
 import static casciian.TKeypress.kbEnter;
 import static casciian.TKeypress.kbEsc;
 import static casciian.TKeypress.kbSpace;
+import casciian.backend.SystemProperties;
 import casciian.bits.CellAttributes;
 import casciian.bits.GraphicsChars;
 import casciian.bits.MnemonicString;
@@ -53,6 +54,14 @@ public class TCheckBox extends TWidget {
      */
     private boolean matchWindowBackground = true;
 
+    /**
+     * Extra left/right padding applied to the control.  When
+     * {@code casciian.applyControlPadding} is enabled, this is 1; otherwise
+     * 0.  The content of the checkbox is drawn offset by this amount from
+     * the left edge of the widget.
+     */
+    private final int padding;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -87,14 +96,16 @@ public class TCheckBox extends TWidget {
         final String label, final boolean checked, final TAction action) {
 
         // Set parent and window
-        super(parent, x, y, StringUtils.width(label) + 4, 1);
+        super(parent, x, y, StringUtils.width(label) + 4
+            + (SystemProperties.isApplyControlPadding() ? 2 : 0), 1);
 
+        this.padding = SystemProperties.isApplyControlPadding() ? 1 : 0;
         mnemonic = new MnemonicString(label);
         this.checked = checked;
         this.action = action;
 
         setCursorVisible(true);
-        setCursorX(1);
+        setCursorX(padding + 1);
     }
 
     // ------------------------------------------------------------------------
@@ -109,8 +120,8 @@ public class TCheckBox extends TWidget {
      */
     private boolean mouseOnCheckBox(final TMouseEvent mouse) {
         if ((mouse.getY() == 0)
-            && (mouse.getX() >= 0)
-            && (mouse.getX() <= 2)
+            && (mouse.getX() >= padding)
+            && (mouse.getX() <= padding + 2)
         ) {
             return true;
         }
@@ -186,37 +197,57 @@ public class TCheckBox extends TWidget {
 
         }
 
+        if (padding > 0) {
+            // Paint the left and right padding cells with the checkbox
+            // background color so they blend with the control.
+            if (matchWindowBackground) {
+                for (int i = 0; i < padding; i++) {
+                    putForegroundCharXY(i, 0, ' ', checkboxColor);
+                    putForegroundCharXY(getWidth() - 1 - i, 0, ' ',
+                        checkboxColor);
+                }
+            } else {
+                for (int i = 0; i < padding; i++) {
+                    putCharXY(i, 0, ' ', checkboxColor);
+                    putCharXY(getWidth() - 1 - i, 0, ' ', checkboxColor);
+                }
+            }
+        }
+
         if (matchWindowBackground) {
-            putForegroundCharXY(0, 0, '[', checkboxColor);
+            putForegroundCharXY(padding, 0, '[', checkboxColor);
         } else {
-            putCharXY(0, 0, '[', checkboxColor);
+            putCharXY(padding, 0, '[', checkboxColor);
         }
         if (checked) {
             if (matchWindowBackground) {
-                putForegroundCharXY(1, 0, GraphicsChars.CHECK, checkboxColor);
+                putForegroundCharXY(padding + 1, 0, GraphicsChars.CHECK,
+                    checkboxColor);
             } else {
-                putCharXY(1, 0, GraphicsChars.CHECK, checkboxColor);
+                putCharXY(padding + 1, 0, GraphicsChars.CHECK, checkboxColor);
             }
         } else {
             if (matchWindowBackground) {
-                putForegroundCharXY(1, 0, ' ', checkboxColor);
+                putForegroundCharXY(padding + 1, 0, ' ', checkboxColor);
             } else {
-                putCharXY(1, 0, ' ', checkboxColor);
+                putCharXY(padding + 1, 0, ' ', checkboxColor);
             }
         }
         if (matchWindowBackground) {
-            putForegroundCharXY(2, 0, ']', checkboxColor);
-            putForegroundStringXY(4, 0, mnemonic.getRawLabel(), checkboxColor);
+            putForegroundCharXY(padding + 2, 0, ']', checkboxColor);
+            putForegroundStringXY(padding + 4, 0, mnemonic.getRawLabel(),
+                checkboxColor);
         } else {
-            putCharXY(2, 0, ']', checkboxColor);
-            putStringXY(4, 0, mnemonic.getRawLabel(), checkboxColor);
+            putCharXY(padding + 2, 0, ']', checkboxColor);
+            putStringXY(padding + 4, 0, mnemonic.getRawLabel(), checkboxColor);
         }
         if (mnemonic.getScreenShortcutIdx() >= 0) {
             if (matchWindowBackground) {
-                putForegroundCharXY(4 + mnemonic.getScreenShortcutIdx(), 0,
+                putForegroundCharXY(padding + 4
+                    + mnemonic.getScreenShortcutIdx(), 0,
                     mnemonic.getShortcut(), mnemonicColor);
             } else {
-                putCharXY(4 + mnemonic.getScreenShortcutIdx(), 0,
+                putCharXY(padding + 4 + mnemonic.getScreenShortcutIdx(), 0,
                     mnemonic.getShortcut(), mnemonicColor);
             }
         }

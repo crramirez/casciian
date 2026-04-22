@@ -14,6 +14,7 @@
  */
 package casciian;
 
+import casciian.backend.SystemProperties;
 import casciian.bits.CellAttributes;
 import casciian.bits.GraphicsChars;
 import casciian.bits.MnemonicString;
@@ -56,6 +57,14 @@ public class TRadioButton extends TWidget {
      */
     private boolean matchWindowBackground = true;
 
+    /**
+     * Extra left/right padding applied to the control.  When
+     * {@code casciian.applyControlPadding} is enabled, this is 1; otherwise
+     * 0.  The content of the radio button is drawn offset by this amount
+     * from the left edge of the widget.
+     */
+    private final int padding;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -73,13 +82,15 @@ public class TRadioButton extends TWidget {
         final String label, final int id) {
 
         // Set parent and window
-        super(parent, x, y, StringUtils.width(label) + 4, 1);
+        super(parent, x, y, StringUtils.width(label) + 4
+            + (SystemProperties.isApplyControlPadding() ? 2 : 0), 1);
 
+        this.padding = SystemProperties.isApplyControlPadding() ? 1 : 0;
         mnemonic = new MnemonicString(label);
         this.id = id;
 
         setCursorVisible(true);
-        setCursorX(1);
+        setCursorX(padding + 1);
 
         parent.addRadioButton(this);
     }
@@ -96,8 +107,8 @@ public class TRadioButton extends TWidget {
      */
     private boolean mouseOnRadioButton(final TMouseEvent mouse) {
         if ((mouse.getY() == 0)
-            && (mouse.getX() >= 0)
-            && (mouse.getX() <= 2)
+            && (mouse.getX() >= padding)
+            && (mouse.getX() <= padding + 2)
         ) {
             return true;
         }
@@ -194,40 +205,60 @@ public class TRadioButton extends TWidget {
                     "tradiobutton.pulse")));
         }
 
+        if (padding > 0) {
+            // Paint the left and right padding cells with the radio button
+            // background color so they blend with the control.
+            if (matchWindowBackground) {
+                for (int i = 0; i < padding; i++) {
+                    putForegroundCharXY(i, 0, ' ', radioButtonColor);
+                    putForegroundCharXY(getWidth() - 1 - i, 0, ' ',
+                        radioButtonColor);
+                }
+            } else {
+                for (int i = 0; i < padding; i++) {
+                    putCharXY(i, 0, ' ', radioButtonColor);
+                    putCharXY(getWidth() - 1 - i, 0, ' ', radioButtonColor);
+                }
+            }
+        }
+
         if (matchWindowBackground) {
-            putForegroundCharXY(0, 0, '(', radioButtonColor);
+            putForegroundCharXY(padding, 0, '(', radioButtonColor);
         } else {
-            putCharXY(0, 0, '(', radioButtonColor);
+            putCharXY(padding, 0, '(', radioButtonColor);
         }
         if (selected) {
             if (matchWindowBackground) {
-                putForegroundCharXY(1, 0, GraphicsChars.CP437[0x07],
+                putForegroundCharXY(padding + 1, 0, GraphicsChars.CP437[0x07],
                     radioButtonColor);
             } else {
-                putCharXY(1, 0, GraphicsChars.CP437[0x07], radioButtonColor);
+                putCharXY(padding + 1, 0, GraphicsChars.CP437[0x07],
+                    radioButtonColor);
             }
         } else {
             if (matchWindowBackground) {
-                putForegroundCharXY(1, 0, ' ', radioButtonColor);
+                putForegroundCharXY(padding + 1, 0, ' ', radioButtonColor);
             } else {
-                putCharXY(1, 0, ' ', radioButtonColor);
+                putCharXY(padding + 1, 0, ' ', radioButtonColor);
             }
         }
         if (matchWindowBackground) {
-            putForegroundCharXY(2, 0, ')', radioButtonColor);
-            putForegroundStringXY(4, 0, mnemonic.getRawLabel(),
+            putForegroundCharXY(padding + 2, 0, ')', radioButtonColor);
+            putForegroundStringXY(padding + 4, 0, mnemonic.getRawLabel(),
                 radioButtonColor);
         } else {
-            putCharXY(2, 0, ')', radioButtonColor);
-            putStringXY(4, 0, mnemonic.getRawLabel(), radioButtonColor);
+            putCharXY(padding + 2, 0, ')', radioButtonColor);
+            putStringXY(padding + 4, 0, mnemonic.getRawLabel(),
+                radioButtonColor);
         }
 
         if (mnemonic.getScreenShortcutIdx() >= 0) {
             if (matchWindowBackground) {
-                putForegroundCharXY(4 + mnemonic.getScreenShortcutIdx(), 0,
+                putForegroundCharXY(padding + 4
+                    + mnemonic.getScreenShortcutIdx(), 0,
                     mnemonic.getShortcut(), mnemonicColor);
             } else {
-                putCharXY(4 + mnemonic.getScreenShortcutIdx(), 0,
+                putCharXY(padding + 4 + mnemonic.getScreenShortcutIdx(), 0,
                     mnemonic.getShortcut(), mnemonicColor);
             }
         }

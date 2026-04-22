@@ -102,3 +102,18 @@ git clone https://github.com/crramirez/casciian.wiki.git
 
 Submit your changes there (or share patches with the maintainer) to update the
 published wiki pages.
+
+Configuration
+-------------
+
+Casciian's runtime behavior can be tuned through Java system properties (all
+prefixed with `casciian.`), either via `-D` JVM options or through a
+`CASCIIANRC` properties file.  A subset of commonly used properties:
+
+  * `casciian.applyControlPadding` (default: `true`) &mdash; when enabled,
+    reserves one blank cell on the left and right of controls such as
+    `TField`, `TPasswordField`, `TCheckBox`, `TRadioButton`, `TList`, and
+    their subclasses, matching the Turbo Vision visual style for better
+    readability.  Set to `false` to render controls without the extra
+    padding.  Push buttons (`TButton`), `TEditor`, `TLabel`, `TText`,
+    `TCalendar`, scrollbars, and `TProgressBar` are intentionally excluded.
