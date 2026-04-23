@@ -35,13 +35,14 @@ public enum ControlPadding {
 
     /**
      * No extra padding: controls are drawn flush against their left and
-     * right edges, preserving the classic Casciian look.
+     * right edges, preserving the classic Casciian look.  This is the
+     * default; individual themes may override it.
      */
     NONE(0, "none"),
 
     /**
      * One blank cell of padding on the left and right side of each
-     * control, matching the Turbo Vision style.  This is the default.
+     * control, matching the Turbo Vision style.
      */
     SINGLE(1, "single");
 
@@ -52,8 +53,9 @@ public enum ControlPadding {
 
     /**
      * Default style name used when the property is unset or invalid.
+     * Themes may set a different value.
      */
-    public static final String DEFAULT_STYLE_NAME = "single";
+    public static final String DEFAULT_STYLE_NAME = "none";
 
     /**
      * The number of blank cells reserved on each side of a padded
@@ -93,7 +95,7 @@ public enum ControlPadding {
 
     /**
      * Resolve a style name into a ControlPadding value.  Unknown or
-     * null values fall back to {@link #SINGLE}.
+     * null values fall back to {@link #NONE}.
      *
      * @param styleName the style name, e.g. "single", "none", or
      *                  "default"
@@ -101,18 +103,18 @@ public enum ControlPadding {
      */
     public static ControlPadding fromStyleName(final String styleName) {
         if (styleName == null) {
-            return SINGLE;
+            return NONE;
         }
         String key = styleName.toLowerCase();
         if (key.equals("default")) {
-            return SINGLE;
+            return NONE;
         }
         for (ControlPadding p : values()) {
             if (p.styleName.equals(key)) {
                 return p;
             }
         }
-        return SINGLE;
+        return NONE;
     }
 
     /**
@@ -135,6 +137,6 @@ public enum ControlPadding {
      */
     public static List<String> getStyleNames() {
         return Collections.unmodifiableList(
-            Arrays.asList(SINGLE.styleName, NONE.styleName));
+            Arrays.asList(NONE.styleName, SINGLE.styleName));
     }
 }
