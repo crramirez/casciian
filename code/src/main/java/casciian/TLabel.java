@@ -200,6 +200,7 @@ public class TLabel extends TWidget {
         String suffix = "";
         if ((getWindow() != null) && getWindow().isModal()
             && colorKey.startsWith("tlabel")
+            && !colorKey.endsWith(".modal")
         ) {
             suffix = ".modal";
         }
