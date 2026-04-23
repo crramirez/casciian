@@ -108,19 +108,6 @@ Configuration
 
 Casciian's runtime behavior can be tuned through Java system properties (all
 prefixed with `casciian.`), either via `-D` JVM options or through a
-`CASCIIANRC` properties file.  A subset of commonly used properties:
+`CASCIIANRC` properties file.
 
-  * `casciian.controls.padding` (default: `single`) &mdash; named style that
-    controls the extra left/right padding of text and selection controls.
-    Supported values:
-      * `single` &mdash; reserves one blank cell on the left and right of
-        `TField`, `TPasswordField`, `TCheckBox`, `TRadioButton`, `TList`
-        (and subclasses such as `TDirectoryList`), and `TTreeView`,
-        matching the Turbo Vision visual style.
-      * `none` &mdash; renders controls without the extra padding (classic
-        Casciian look).
-    Like the border styles and `casciian.TButton.style`, this property can
-    be changed at runtime from the Desktop Styles dialog under the
-    "Controls Padding" selector.  Push buttons (`TButton`), `TEditor`,
-    `TLabel`, `TText`, `TCalendar`, scrollbars, and `TProgressBar` are
-    intentionally excluded and never receive this padding.
+
