@@ -224,7 +224,7 @@ public class TSplitPane extends TWidget {
      */
     @Override
     public void draw() {
-        CellAttributes attr = getTheme().getColor("tsplitpane");
+        CellAttributes attr = getWidgetColor("tsplitpane");
         if (vertical) {
             vLineXY(split, 0, getHeight(), GraphicsChars.WINDOW_SIDE, attr);
 

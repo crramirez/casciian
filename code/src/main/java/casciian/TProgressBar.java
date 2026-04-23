@@ -137,8 +137,8 @@ public class TProgressBar extends TWidget {
             return;
         }
 
-        CellAttributes completeColor = getTheme().getColor("tprogressbar.complete");
-        CellAttributes incompleteColor = getTheme().getColor("tprogressbar.incomplete");
+        CellAttributes completeColor = getWidgetColor("tprogressbar.complete");
+        CellAttributes incompleteColor = getWidgetColor("tprogressbar.incomplete");
 
         float progress = ((float)value - minValue) / ((float)maxValue - minValue);
         int progressInt = (int)(progress * 100);

@@ -164,7 +164,7 @@ public class TEditor extends TWidget implements EditMenuUser {
         setCursorVisible(true);
         setMouseStyle("text");
 
-        defaultColor = getTheme().getColor("teditor");
+        defaultColor = getWidgetColor("teditor");
         document = new Document(text, defaultColor);
     }
 
@@ -645,8 +645,8 @@ public class TEditor extends TWidget implements EditMenuUser {
      */
     @Override
     public void draw() {
-        CellAttributes selectedColor = getTheme().getColor("teditor.selected");
-        CellAttributes marginColor = getTheme().getColor("teditor.margin");
+        CellAttributes selectedColor = getWidgetColor("teditor.selected");
+        CellAttributes marginColor = getWidgetColor("teditor.margin");
 
         boolean drawSelection = true;
 

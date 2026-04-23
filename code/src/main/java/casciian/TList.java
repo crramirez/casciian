@@ -413,14 +413,14 @@ public class TList extends TScrollable {
             }
             if (i == selectedString) {
                 if (isAbsoluteActive()) {
-                    color = getTheme().getColor("tlist.selected");
+                    color = getWidgetColor("tlist.selected");
                 } else {
-                    color = getTheme().getColor("tlist.selected.inactive");
+                    color = getWidgetColor("tlist.selected.inactive");
                 }
             } else if (isAbsoluteActive()) {
-                color = getTheme().getColor("tlist");
+                color = getWidgetColor("tlist");
             } else {
-                color = getTheme().getColor("tlist.inactive");
+                color = getWidgetColor("tlist.inactive");
             }
             String formatString = "%-" + Integer.toString(getWidth() - 1) + "s";
             putStringXY(0, topY, String.format(formatString, line), color);
@@ -431,9 +431,9 @@ public class TList extends TScrollable {
         }
 
         if (isAbsoluteActive()) {
-            color = getTheme().getColor("tlist");
+            color = getWidgetColor("tlist");
         } else {
-            color = getTheme().getColor("tlist.inactive");
+            color = getWidgetColor("tlist.inactive");
         }
 
         // Pad the rest with blank lines

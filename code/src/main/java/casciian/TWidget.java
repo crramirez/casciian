@@ -1435,6 +1435,27 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
+     * Retrieve a theme color, automatically preferring the {@code .modal}
+     * variant when this widget is painted inside a modal window.
+     * <p>
+     * This is a convenience wrapper around
+     * {@link ColorTheme#getColor(String, boolean)} that inspects the
+     * containing {@link TWindow}.  Widgets should use this method for their
+     * own color lookups so that theme designers can style them differently
+     * on modal vs. modeless windows.  If the {@code .modal} variant is not
+     * registered in the active theme, the base key is returned, so callers
+     * remain backwards-compatible with themes that don't define modal
+     * overrides.
+     *
+     * @param key theme color name, e.g. "tbutton.active"
+     * @return the color registered for {@code key} (or its modal variant)
+     */
+    public final CellAttributes getWidgetColor(final String key) {
+        TWindow w = getWindow();
+        return getTheme().getColor(key, (w != null) && w.isModal());
+    }
+
+    /**
      * See if this widget can be drawn onto a screen.
      *
      * @return true if this widget is part of the hierarchy that can draw to

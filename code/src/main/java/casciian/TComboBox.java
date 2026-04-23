@@ -273,9 +273,9 @@ public class TComboBox extends TWidget {
         }
 
         if (isAbsoluteActive()) {
-            comboBoxColor = getTheme().getColor("tcombobox.active");
+            comboBoxColor = getWidgetColor("tcombobox.active");
         } else {
-            comboBoxColor = getTheme().getColor("tcombobox.inactive");
+            comboBoxColor = getWidgetColor("tcombobox.inactive");
         }
 
         putCharXY(getWidth() - 3, 0, GraphicsChars.DOWNARROWLEFT,

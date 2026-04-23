@@ -794,9 +794,9 @@ public class TTable extends TWidget {
      */
     @Override
     public void draw() {
-        CellAttributes labelColor = getTheme().getColor("ttable.label");
-        CellAttributes labelColorSelected = getTheme().getColor("ttable.label.selected");
-        CellAttributes borderColor = getTheme().getColor("ttable.border");
+        CellAttributes labelColor = getWidgetColor("ttable.label");
+        CellAttributes labelColorSelected = getWidgetColor("ttable.label.selected");
+        CellAttributes borderColor = getWidgetColor("ttable.border");
 
         int myWidth = getWidth();
 

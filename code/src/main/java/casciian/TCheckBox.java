@@ -169,11 +169,11 @@ public class TCheckBox extends TWidget {
         CellAttributes mnemonicColor;
 
         if (isAbsoluteActive()) {
-            checkboxColor.setTo(getTheme().getColor("tcheckbox.active"));
-            mnemonicColor = getTheme().getColor("tcheckbox.mnemonic.highlighted");
+            checkboxColor.setTo(getWidgetColor("tcheckbox.active"));
+            mnemonicColor = getWidgetColor("tcheckbox.mnemonic.highlighted");
         } else {
-            checkboxColor.setTo(getTheme().getColor("tcheckbox.inactive"));
-            mnemonicColor = getTheme().getColor("tcheckbox.mnemonic");
+            checkboxColor.setTo(getWidgetColor("tcheckbox.inactive"));
+            mnemonicColor = getWidgetColor("tcheckbox.mnemonic");
         }
 
         // Pulse color.
@@ -182,7 +182,7 @@ public class TCheckBox extends TWidget {
         ) {
             checkboxColor.setPulse(true, false, 0);
             checkboxColor.setPulseColorRGB(getScreen().getBackend().
-                attrToForegroundColor(getTheme().getColor("tcheckbox.pulse")));
+                attrToForegroundColor(getWidgetColor("tcheckbox.pulse")));
 
         }
 

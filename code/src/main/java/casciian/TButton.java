@@ -267,14 +267,14 @@ public class TButton extends TWidget {
         CellAttributes mnemonicColor;
 
         if (!isEnabled()) {
-            buttonColor = getTheme().getColor("tbutton.disabled");
-            mnemonicColor = getTheme().getColor("tbutton.disabled");
+            buttonColor = getWidgetColor("tbutton.disabled");
+            mnemonicColor = getWidgetColor("tbutton.disabled");
         } else if (isAbsoluteActive()) {
-            buttonColor = getTheme().getColor("tbutton.active");
-            mnemonicColor = getTheme().getColor("tbutton.mnemonic.highlighted");
+            buttonColor = getWidgetColor("tbutton.active");
+            mnemonicColor = getWidgetColor("tbutton.mnemonic.highlighted");
         } else {
-            buttonColor = getTheme().getColor("tbutton.inactive");
-            mnemonicColor = getTheme().getColor("tbutton.mnemonic");
+            buttonColor = getWidgetColor("tbutton.inactive");
+            mnemonicColor = getWidgetColor("tbutton.mnemonic");
         }
 
         buttonColor = new CellAttributes(buttonColor);
@@ -290,10 +290,10 @@ public class TButton extends TWidget {
         ) {
             buttonColor.setPulse(true, false, 0);
             buttonColor.setPulseColorRGB(getScreen().getBackend().
-                attrToForegroundColor(getTheme().getColor("tbutton.pulse")));
+                attrToForegroundColor(getWidgetColor("tbutton.pulse")));
             mnemonicColor.setPulse(true, false, 0);
             mnemonicColor.setPulseColorRGB(getScreen().getBackend().
-                attrToForegroundColor(getTheme().getColor(
+                attrToForegroundColor(getWidgetColor(
                     "tbutton.mnemonic.pulse")));
         }
 
