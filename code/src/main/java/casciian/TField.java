@@ -14,8 +14,8 @@
  */
 package casciian;
 
-import casciian.backend.SystemProperties;
 import casciian.bits.CellAttributes;
+import casciian.bits.ControlPadding;
 import casciian.bits.GraphicsChars;
 import casciian.bits.StringUtils;
 import casciian.event.TCommandEvent;
@@ -95,22 +95,26 @@ public class TField extends TWidget implements EditMenuUser {
     private String inactiveColorKey = "tfield.inactive";
 
     /**
-     * Extra left/right padding applied to the control.  When
-     * {@code casciian.applyControlPadding} is enabled, this is 1; otherwise
-     * 0.  The editable text area is drawn offset by this amount from the
-     * left edge of the widget, and the widget reserves {@code padding}
-     * blank cells on both the left and right edges.
+     * Extra left/right padding applied to the control.  The value is
+     * resolved once at construction from the active
+     * {@link ControlPadding} style (system property
+     * {@code casciian.controls.padding}).  The editable text area is
+     * drawn offset by this amount from the left edge of the widget, and
+     * {@code padding} blank cells are reserved on both the left and
+     * right edges.
      */
     protected final int padding;
 
     /**
      * Get the width of the editable text area (excluding the left and
-     * right padding).
+     * right padding).  Clamped to zero in case the widget was
+     * constructed narrower than {@code 2 * padding}, so that
+     * substring/drawing math never goes negative.
      *
-     * @return the visible text area width
+     * @return the visible text area width, never negative
      */
     protected final int textAreaWidth() {
-        return getWidth() - 2 * padding;
+        return Math.max(0, getWidth() - 2 * padding);
     }
 
     // ------------------------------------------------------------------------
@@ -186,7 +190,7 @@ public class TField extends TWidget implements EditMenuUser {
         // Set parent and window
         super(parent, x, y, width, 1);
 
-        this.padding = SystemProperties.isApplyControlPadding() ? 1 : 0;
+        this.padding = ControlPadding.current().getCells();
 
         setCursorVisible(true);
         setMouseStyle("text");

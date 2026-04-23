@@ -130,7 +130,8 @@ public class TTreeItem extends TWidget {
      */
     @Override
     public void onMouseUp(final TMouseEvent mouse) {
-        if ((mouse.getX() == (getExpanderX() - view.getLeftColumn()))
+        if ((mouse.getX() == (getExpanderX() + view.padding
+                - view.getLeftColumn()))
             && (mouse.getY() == 0)
         ) {
             if (level == 0) {
@@ -217,7 +218,8 @@ public class TTreeItem extends TWidget {
             return;
         }
 
-        int offset = -view.getLeftColumn();
+        int padding = view.padding;
+        int offset = padding - view.getLeftColumn();
 
         CellAttributes color = getTheme().getColor("ttreeview");
         CellAttributes textColor = getTheme().getColor("ttreeview");
@@ -234,7 +236,7 @@ public class TTreeItem extends TWidget {
             textColor = getTheme().getColor("ttreeview.unreadable");
         }
 
-        // Blank out the background
+        // Blank out the background (including left/right padding cells)
         hLineXY(0, 0, getWidth(), ' ', color);
 
         String line = prefix;

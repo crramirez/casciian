@@ -106,17 +106,6 @@ public class SystemProperties {
     public static final String CASCIIAN_MENU_ICONS = "casciian.menuIcons";
 
     /**
-     * System property key for applying extra left/right padding to controls
-     * such as TField, TCheckBox, TRadioButton, and TList (and their
-     * subclasses).  When enabled, these controls reserve one blank cell on
-     * each side of their content for improved readability, matching the
-     * Turbo Vision visual style.
-     * Valid values: "true" or "false"
-     * Default: true
-     */
-    public static final String CASCIIAN_APPLY_CONTROL_PADDING = "casciian.applyControlPadding";
-
-    /**
      * System property key for menu icons offset.
      * Valid values: 0-5
      * Default: 3
@@ -297,15 +286,6 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> menuIcons = new AtomicReference<>(null);
-
-    /**
-     * Atomic reference representing the apply control padding setting.
-     * When true, apply extra left/right padding to TField, TCheckBox,
-     * TRadioButton, TList and related controls.
-     * The default value is true if not explicitly set.
-     * A null value signals the property has not been read yet.
-     */
-    private static final AtomicReference<Boolean> applyControlPadding = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the menu icons offset setting.
@@ -703,28 +683,6 @@ public class SystemProperties {
     }
 
     /**
-     * Get the apply control padding value from system properties.
-     *
-     * @return true if controls should be rendered with an extra 1-cell left
-     *         and right padding, false otherwise. Default is true.
-     */
-    public static boolean isApplyControlPadding() {
-        return getBooleanProperty(applyControlPadding,
-            CASCIIAN_APPLY_CONTROL_PADDING, true);
-    }
-
-    /**
-     * Set the apply control padding value in system properties.
-     *
-     * @param value true to enable extra left/right padding on controls,
-     *              false to disable
-     */
-    public static void setApplyControlPadding(boolean value) {
-        setBooleanProperty(applyControlPadding,
-            CASCIIAN_APPLY_CONTROL_PADDING, value);
-    }
-
-    /**
      * Get the menu icons offset value from system properties.
      *
      * @return menu icons offset between 0 and 5, or default value of 3
@@ -925,7 +883,6 @@ public class SystemProperties {
         blinkDimPercent.set(null);
         textBlink.set(null);
         menuIcons.set(null);
-        applyControlPadding.set(null);
         menuIconsOffset.set(null);
         useTerminalPalette.set(null);
         disablePreTransform.set(null);

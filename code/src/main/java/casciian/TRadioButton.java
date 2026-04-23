@@ -14,8 +14,8 @@
  */
 package casciian;
 
-import casciian.backend.SystemProperties;
 import casciian.bits.CellAttributes;
+import casciian.bits.ControlPadding;
 import casciian.bits.GraphicsChars;
 import casciian.bits.MnemonicString;
 import casciian.bits.StringUtils;
@@ -58,10 +58,11 @@ public class TRadioButton extends TWidget {
     private boolean matchWindowBackground = true;
 
     /**
-     * Extra left/right padding applied to the control.  When
-     * {@code casciian.applyControlPadding} is enabled, this is 1; otherwise
-     * 0.  The content of the radio button is drawn offset by this amount
-     * from the left edge of the widget.
+     * Extra left/right padding applied to the control.  The value is
+     * resolved once at construction from the active
+     * {@link ControlPadding} style (system property
+     * {@code casciian.controls.padding}).  The radio button content is
+     * drawn offset by this amount from the left edge of the widget.
      */
     private final int padding;
 
@@ -81,11 +82,26 @@ public class TRadioButton extends TWidget {
     TRadioButton(final TRadioGroup parent, final int x, final int y,
         final String label, final int id) {
 
-        // Set parent and window
-        super(parent, x, y, StringUtils.width(label) + 4
-            + (SystemProperties.isApplyControlPadding() ? 2 : 0), 1);
+        // Resolve padding once: ControlPadding.current() can be toggled
+        // at runtime, but the widget size is fixed at construction, so
+        // we only read the style a single time here to avoid any
+        // width/padding mismatch.
+        this(parent, x, y, label, id, ControlPadding.current().getCells());
+    }
 
-        this.padding = SystemProperties.isApplyControlPadding() ? 1 : 0;
+    /**
+     * Private delegate that receives the pre-resolved padding value so
+     * the super(...) width and the cached {@code padding} field are
+     * guaranteed to agree.
+     */
+    @SuppressWarnings("this-escape")
+    private TRadioButton(final TRadioGroup parent, final int x, final int y,
+        final String label, final int id, final int padding) {
+
+        // Set parent and window
+        super(parent, x, y, StringUtils.width(label) + 4 + 2 * padding, 1);
+
+        this.padding = padding;
         mnemonic = new MnemonicString(label);
         this.id = id;
 

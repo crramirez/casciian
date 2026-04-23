@@ -17,8 +17,8 @@ package casciian;
 import java.util.ArrayList;
 import java.util.List;
 
-import casciian.backend.SystemProperties;
 import casciian.bits.CellAttributes;
+import casciian.bits.ControlPadding;
 import casciian.bits.StringUtils;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
@@ -61,11 +61,12 @@ public class TList extends TScrollable {
     protected TAction moveAction = null;
 
     /**
-     * Extra left/right padding applied to each list row.  When
-     * {@code casciian.applyControlPadding} is enabled, this is 1; otherwise
-     * 0.  The row text is drawn offset by this amount from the left edge of
-     * the widget and 1 blank cell is reserved on the right (before the
-     * vertical scrollbar) as well.
+     * Extra left/right padding applied to each list row.  The value is
+     * resolved once at construction from the active
+     * {@link ControlPadding} style (system property
+     * {@code casciian.controls.padding}).  The row text is drawn offset
+     * by this amount from the left edge of the widget, and 1 blank cell
+     * is reserved on the right (before the vertical scrollbar) as well.
      */
     protected final int padding;
 
@@ -153,7 +154,7 @@ public class TList extends TScrollable {
         final TAction singleClickAction) {
 
         super(parent, x, y, width, height);
-        this.padding = SystemProperties.isApplyControlPadding() ? 1 : 0;
+        this.padding = ControlPadding.current().getCells();
         this.enterAction = enterAction;
         this.moveAction = moveAction;
         this.singleClickAction = singleClickAction;
