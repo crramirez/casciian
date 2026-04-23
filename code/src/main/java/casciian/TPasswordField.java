@@ -106,16 +106,24 @@ public class TPasswordField extends TField {
                     "tfield.pulse")));
         }
 
-        int end = windowStart + getWidth();
+        int end = windowStart + textAreaWidth();
         if (end > StringUtils.width(text)) {
             end = StringUtils.width(text);
         }
 
-        hLineXY(0, 0, getWidth(), backgroundChar, fieldColor);
+        if (padding > 0) {
+            // Paint the left and right padding cells in the field color.
+            for (int i = 0; i < padding; i++) {
+                putCharXY(i, 0, ' ', fieldColor);
+                putCharXY(getWidth() - 1 - i, 0, ' ', fieldColor);
+            }
+        }
+        hLineXY(padding, 0, textAreaWidth(), backgroundChar, fieldColor);
         if (showStars) {
-            hLineXY(0, 0, getWidth() - 2, '*', fieldColor);
+            hLineXY(padding, 0, Math.max(0, textAreaWidth() - 2), '*',
+                fieldColor);
         } else {
-            putStringXY(0, 0, text.substring(screenToTextPosition(windowStart),
+            putStringXY(padding, 0, text.substring(screenToTextPosition(windowStart),
                     screenToTextPosition(end)), fieldColor);
         }
 

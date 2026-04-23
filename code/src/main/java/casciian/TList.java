@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import casciian.bits.CellAttributes;
+import casciian.bits.ControlPadding;
 import casciian.bits.StringUtils;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
@@ -58,6 +59,16 @@ public class TList extends TScrollable {
      * The action to perform when the user navigates with keyboard.
      */
     protected TAction moveAction = null;
+
+    /**
+     * Extra left/right padding applied to each list row.  The value is
+     * resolved once at construction from the active
+     * {@link ControlPadding} style (system property
+     * {@code casciian.controls.padding}).  The row text is drawn offset
+     * by this amount from the left edge of the widget, and 1 blank cell
+     * is reserved on the right (before the vertical scrollbar) as well.
+     */
+    protected final int padding;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -143,6 +154,7 @@ public class TList extends TScrollable {
         final TAction singleClickAction) {
 
         super(parent, x, y, width, height);
+        this.padding = ControlPadding.current().getCells();
         this.enterAction = enterAction;
         this.moveAction = moveAction;
         this.singleClickAction = singleClickAction;
@@ -387,7 +399,7 @@ public class TList extends TScrollable {
             setBottomValue(0);
         }
 
-        setRightValue(Math.max(0, maxLineWidth - getWidth() + 1));
+        setRightValue(Math.max(0, maxLineWidth - getWidth() + 1 + 2 * padding));
         if (getHorizontalValue() > getRightValue()) {
             setHorizontalValue(getRightValue());
         }
@@ -401,6 +413,9 @@ public class TList extends TScrollable {
         CellAttributes color = null;
         int begin = getVerticalValue();
         int topY = 0;
+        // Visible row width excludes the vertical scrollbar (1 cell) and
+        // the optional left and right padding cells.
+        int rowWidth = Math.max(0, getWidth() - 1 - 2 * padding);
         for (int i = begin; i < strings.size(); i++) {
             String line = strings.get(i);
             if (line == null) {
@@ -422,8 +437,16 @@ public class TList extends TScrollable {
             } else {
                 color = getTheme().getColor("tlist.inactive");
             }
-            String formatString = "%-" + Integer.toString(getWidth() - 1) + "s";
-            putStringXY(0, topY, String.format(formatString, line), color);
+            if (padding > 0) {
+                // Paint left and right padding cells for this row.
+                for (int p = 0; p < padding; p++) {
+                    putCharXY(p, topY, ' ', color);
+                    putCharXY(getWidth() - 2 - p, topY, ' ', color);
+                }
+            }
+            String formatString = "%-" + Integer.toString(rowWidth) + "s";
+            putStringXY(padding, topY, String.format(formatString, line),
+                color);
             topY++;
             if (topY >= getHeight() - 1) {
                 break;

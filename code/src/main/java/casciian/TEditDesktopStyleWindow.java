@@ -30,6 +30,7 @@ import casciian.TButton;
 import casciian.TComboBox;
 import casciian.bits.BorderStyle;
 import casciian.bits.CellAttributes;
+import casciian.bits.ControlPadding;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import static casciian.TKeypress.*;
@@ -94,6 +95,11 @@ public class TEditDesktopStyleWindow extends TWindow {
      */
     private TButton button2;
 
+    /**
+     * The selected choice for the controls padding style.
+     */
+    private TComboBox controlsPadding;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -107,7 +113,7 @@ public class TEditDesktopStyleWindow extends TWindow {
     public TEditDesktopStyleWindow(final TApplication application) {
 
         // Register with the TApplication
-        super(application, "", 0, 0, 70, 22, MODAL);
+        super(application, "", 0, 0, 70, 25, MODAL);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -190,6 +196,15 @@ public class TEditDesktopStyleWindow extends TWindow {
         button1.setStyle(buttonStyleString);
         button2.setStyle(buttonStyleString);
 
+        // Controls padding combobox
+        List<String> paddingStyles = ControlPadding.getStyleNames();
+        String controlsPaddingString = System.getProperty(
+            ControlPadding.PROPERTY_KEY,
+            ControlPadding.DEFAULT_STYLE_NAME);
+        controlsPadding = addComboBox(2, 18, 18, paddingStyles, 0,
+            paddingStyles.size() + 2, (TAction) null);
+        controlsPadding.setText(controlsPaddingString);
+
         addButton(i18n.getString("okButton"), 6, getHeight() - 4,
             new TAction() {
                 public void DO() {
@@ -199,6 +214,9 @@ public class TEditDesktopStyleWindow extends TWindow {
                     }
                     String newButtonStyle = buttonStyle.getText();
                     System.setProperty("casciian.TButton.style", newButtonStyle);
+                    String newPadding = controlsPadding.getText();
+                    System.setProperty(ControlPadding.PROPERTY_KEY,
+                        newPadding);
                     getApplication().closeWindow(TEditDesktopStyleWindow.this);
                 }
             }
@@ -284,6 +302,14 @@ public class TEditDesktopStyleWindow extends TWindow {
             attr.setBold(getTheme().getColor("tlabel").isBold());
         }
         putStringXY(3, 11, i18n.getString("buttonStyle"), attr);
+
+        // Draw the label on controlsPadding
+        attr.setTo(getTheme().getColor("twindow.background.modal"));
+        if (controlsPadding.isActive()) {
+            attr.setForeColor(getTheme().getColor("tlabel").getForeColor());
+            attr.setBold(getTheme().getColor("tlabel").isBold());
+        }
+        putStringXY(3, 18, i18n.getString("controlsPadding"), attr);
 
     }
 

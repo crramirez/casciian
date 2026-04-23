@@ -102,3 +102,12 @@ git clone https://github.com/crramirez/casciian.wiki.git
 
 Submit your changes there (or share patches with the maintainer) to update the
 published wiki pages.
+
+Configuration
+-------------
+
+Casciian's runtime behavior can be tuned through Java system properties (all
+prefixed with `casciian.`), either via `-D` JVM options or through a
+`CASCIIANRC` properties file.
+
+

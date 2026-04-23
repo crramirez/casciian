@@ -15,6 +15,7 @@
 package casciian;
 
 import casciian.bits.CellAttributes;
+import casciian.bits.ControlPadding;
 import casciian.bits.GraphicsChars;
 import casciian.bits.StringUtils;
 import casciian.event.TCommandEvent;
@@ -93,6 +94,29 @@ public class TField extends TWidget implements EditMenuUser {
      */
     private String inactiveColorKey = "tfield.inactive";
 
+    /**
+     * Extra left/right padding applied to the control.  The value is
+     * resolved once at construction from the active
+     * {@link ControlPadding} style (system property
+     * {@code casciian.controls.padding}).  The editable text area is
+     * drawn offset by this amount from the left edge of the widget, and
+     * {@code padding} blank cells are reserved on both the left and
+     * right edges.
+     */
+    protected final int padding;
+
+    /**
+     * Get the width of the editable text area (excluding the left and
+     * right padding).  Clamped to zero in case the widget was
+     * constructed narrower than {@code 2 * padding}, so that
+     * substring/drawing math never goes negative.
+     *
+     * @return the visible text area width, never negative
+     */
+    protected final int textAreaWidth() {
+        return Math.max(0, getWidth() - 2 * padding);
+    }
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -166,6 +190,8 @@ public class TField extends TWidget implements EditMenuUser {
         // Set parent and window
         super(parent, x, y, width, 1);
 
+        this.padding = ControlPadding.current().getCells();
+
         setCursorVisible(true);
         setMouseStyle("text");
 
@@ -185,10 +211,10 @@ public class TField extends TWidget implements EditMenuUser {
      * @return if true the mouse is currently on the field
      */
     protected boolean mouseOnField() {
-        int rightEdge = getWidth() - 1;
+        int rightEdge = getWidth() - 1 - padding;
         if ((mouse != null)
             && (mouse.getY() == 0)
-            && (mouse.getX() >= 0)
+            && (mouse.getX() >= padding)
             && (mouse.getX() <= rightEdge)
         ) {
             return true;
@@ -247,14 +273,14 @@ public class TField extends TWidget implements EditMenuUser {
                 screenPosition += StringUtils.width(text.codePointAt(position));
                 position += Character.charCount(text.codePointAt(position));
                 if (fixed == true) {
-                    if (screenPosition == getWidth()) {
+                    if (screenPosition == textAreaWidth()) {
                         screenPosition--;
                         position -= Character.charCount(text.codePointAt(lastPosition));
                     }
                 } else {
                     while ((screenPosition - windowStart +
                             StringUtils.width(text.codePointAt(text.length() - 1)))
-                        > getWidth()
+                        > textAreaWidth()
                     ) {
                         windowStart += StringUtils.width(text.codePointAt(
                             screenToTextPosition(windowStart)));
@@ -320,12 +346,12 @@ public class TField extends TWidget implements EditMenuUser {
         ) {
             // Plain old keystroke, process it
             if ((position == text.length())
-                && (StringUtils.width(text) < getWidth())) {
+                && (StringUtils.width(text) < textAreaWidth())) {
 
                 // Append case
                 appendChar(keypress.getKey().getChar());
             } else if ((position < text.length())
-                && (StringUtils.width(text) < getWidth())) {
+                && (StringUtils.width(text) < textAreaWidth())) {
 
                 // Overwrite or insert a character
                 if (insertMode == false) {
@@ -340,7 +366,7 @@ public class TField extends TWidget implements EditMenuUser {
                     insertChar(keypress.getKey().getChar());
                 }
             } else if ((position < text.length())
-                && (StringUtils.width(text) >= getWidth())) {
+                && (StringUtils.width(text) >= textAreaWidth())) {
 
                 // Multiple cases here
                 if ((fixed == true) && (insertMode == true)) {
@@ -350,7 +376,7 @@ public class TField extends TWidget implements EditMenuUser {
                     text = text.substring(0, position)
                             + codePointString(keypress.getKey().getChar())
                             + text.substring(position + 1);
-                    if (screenPosition < getWidth() - 1) {
+                    if (screenPosition < textAreaWidth() - 1) {
                         screenPosition += StringUtils.width(text.codePointAt(position));
                         position += Character.charCount(keypress.getKey().getChar());
                     }
@@ -459,12 +485,19 @@ public class TField extends TWidget implements EditMenuUser {
                 attrToForegroundColor(getTheme().getColor("tfield.pulse")));
         }
 
-        int end = windowStart + getWidth();
+        int end = windowStart + textAreaWidth();
         if (end > StringUtils.width(text)) {
             end = StringUtils.width(text);
         }
-        hLineXY(0, 0, getWidth(), backgroundChar, fieldColor);
-        putStringXY(0, 0, text.substring(screenToTextPosition(windowStart),
+        if (padding > 0) {
+            // Paint the left and right padding cells in the field color.
+            for (int i = 0; i < padding; i++) {
+                putCharXY(i, 0, ' ', fieldColor);
+                putCharXY(getWidth() - 1 - i, 0, ' ', fieldColor);
+            }
+        }
+        hLineXY(padding, 0, textAreaWidth(), backgroundChar, fieldColor);
+        putStringXY(padding, 0, text.substring(screenToTextPosition(windowStart),
                 screenToTextPosition(end)), fieldColor);
 
         // Fix the cursor, it will be rendered by TApplication.drawAll().
@@ -526,8 +559,8 @@ public class TField extends TWidget implements EditMenuUser {
         position = 0;
         screenPosition = 0;
         windowStart = 0;
-        if ((fixed == true) && (this.text.length() > getWidth())) {
-            this.text = this.text.substring(0, getWidth());
+        if ((fixed == true) && (this.text.length() > textAreaWidth())) {
+            this.text = this.text.substring(0, textAreaWidth());
         }
     }
 
@@ -577,12 +610,12 @@ public class TField extends TWidget implements EditMenuUser {
      * and windowStart.
      */
     protected void updateCursor() {
-        if ((screenPosition > getWidth()) && fixed) {
-            setCursorX(getWidth());
-        } else if ((screenPosition - windowStart >= getWidth()) && !fixed) {
-            setCursorX(getWidth() - 1);
+        if ((screenPosition > textAreaWidth()) && fixed) {
+            setCursorX(padding + textAreaWidth());
+        } else if ((screenPosition - windowStart >= textAreaWidth()) && !fixed) {
+            setCursorX(padding + textAreaWidth() - 1);
         } else {
-            setCursorX(screenPosition - windowStart);
+            setCursorX(padding + screenPosition - windowStart);
         }
     }
 
@@ -595,7 +628,7 @@ public class TField extends TWidget implements EditMenuUser {
             assert (windowStart == 0);
             return;
         }
-        windowStart = screenPosition - (getWidth() - 1);
+        windowStart = screenPosition - (textAreaWidth() - 1);
         if (windowStart < 0) {
             windowStart = 0;
         }
@@ -617,12 +650,12 @@ public class TField extends TWidget implements EditMenuUser {
         assert (position == text.length());
 
         if (fixed) {
-            if (screenPosition >= getWidth()) {
+            if (screenPosition >= textAreaWidth()) {
                 position -= Character.charCount(ch);
                 screenPosition -= StringUtils.width(ch);
             }
         } else {
-            if ((screenPosition - windowStart) >= getWidth()) {
+            if ((screenPosition - windowStart) >= textAreaWidth()) {
                 windowStart++;
             }
         }
@@ -638,7 +671,7 @@ public class TField extends TWidget implements EditMenuUser {
                 + text.substring(position);
         position += Character.charCount(ch);
         screenPosition += StringUtils.width(ch);
-        if ((screenPosition - windowStart) == getWidth()) {
+        if ((screenPosition - windowStart) == textAreaWidth()) {
             assert (!fixed);
             windowStart++;
         }
@@ -662,12 +695,12 @@ public class TField extends TWidget implements EditMenuUser {
         position = text.length();
         screenPosition = StringUtils.width(text);
         if (fixed == true) {
-            if (screenPosition >= getWidth()) {
+            if (screenPosition >= textAreaWidth()) {
                 position -= Character.charCount(text.codePointBefore(position));
                 screenPosition = StringUtils.width(text) - 1;
              }
         } else {
-            windowStart = StringUtils.width(text) - getWidth() + 1;
+            windowStart = StringUtils.width(text) - textAreaWidth() + 1;
             if (windowStart < 0) {
                 windowStart = 0;
             }
