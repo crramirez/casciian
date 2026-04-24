@@ -262,15 +262,15 @@ public class TCalendar extends TWidget {
      */
     @Override
     public void draw() {
-        CellAttributes backgroundColor = getTheme().getColor(
+        CellAttributes backgroundColor = getWidgetColor(
                 "tcalendar.background");
-        CellAttributes dayColor = getTheme().getColor(
+        CellAttributes dayColor = getWidgetColor(
                 "tcalendar.day");
-        CellAttributes selectedDayColor = getTheme().getColor(
+        CellAttributes selectedDayColor = getWidgetColor(
                 "tcalendar.day.selected");
-        CellAttributes arrowColor = getTheme().getColor(
+        CellAttributes arrowColor = getWidgetColor(
                 "tcalendar.arrow");
-        CellAttributes titleColor = getTheme().getColor(
+        CellAttributes titleColor = getWidgetColor(
                 "tcalendar.title");
 
         // Fill in the interior background

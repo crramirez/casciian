@@ -197,8 +197,15 @@ public class TLabel extends TWidget {
         // Setup my color
         CellAttributes color = new CellAttributes();
         CellAttributes mnemonicColor = new CellAttributes();
-        color.setTo(getTheme().getColor(colorKey));
-        mnemonicColor.setTo(getTheme().getColor("tlabel.mnemonic"));
+        String suffix = "";
+        if ((getWindow() != null) && getWindow().isModal()
+            && colorKey.startsWith("tlabel")
+            && !colorKey.endsWith(".modal")
+        ) {
+            suffix = ".modal";
+        }
+        color.setTo(getTheme().getColor(colorKey + suffix));
+        mnemonicColor.setTo(getTheme().getColor("tlabel.mnemonic" + suffix));
 
         if (matchWindowBackground) {
             putForegroundStringXY(0, 0, mnemonic.getRawLabel(), color);

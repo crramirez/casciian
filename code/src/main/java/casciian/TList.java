@@ -428,14 +428,14 @@ public class TList extends TScrollable {
             }
             if (i == selectedString) {
                 if (isAbsoluteActive()) {
-                    color = getTheme().getColor("tlist.selected");
+                    color = getWidgetColor("tlist.selected");
                 } else {
-                    color = getTheme().getColor("tlist.selected.inactive");
+                    color = getWidgetColor("tlist.selected.inactive");
                 }
             } else if (isAbsoluteActive()) {
-                color = getTheme().getColor("tlist");
+                color = getWidgetColor("tlist");
             } else {
-                color = getTheme().getColor("tlist.inactive");
+                color = getWidgetColor("tlist.inactive");
             }
             if (padding > 0) {
                 // Paint left and right padding cells for this row.
@@ -454,9 +454,9 @@ public class TList extends TScrollable {
         }
 
         if (isAbsoluteActive()) {
-            color = getTheme().getColor("tlist");
+            color = getWidgetColor("tlist");
         } else {
-            color = getTheme().getColor("tlist.inactive");
+            color = getWidgetColor("tlist.inactive");
         }
 
         // Pad the rest with blank lines

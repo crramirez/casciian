@@ -126,9 +126,9 @@ public class TRadioGroup extends TWidget {
         CellAttributes radioGroupColor;
 
         if (isAbsoluteActive()) {
-            radioGroupColor = getTheme().getColor("tradiogroup.active");
+            radioGroupColor = getWidgetColor("tradiogroup.active");
         } else {
-            radioGroupColor = getTheme().getColor("tradiogroup.inactive");
+            radioGroupColor = getWidgetColor("tradiogroup.inactive");
         }
 
         BorderStyle borderStyle;

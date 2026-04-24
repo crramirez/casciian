@@ -472,9 +472,9 @@ public class TField extends TWidget implements EditMenuUser {
         final CellAttributes fieldColor = new CellAttributes();
 
         if (isAbsoluteActive()) {
-            fieldColor.setTo(getTheme().getColor(activeColorKey));
+            fieldColor.setTo(getWidgetColor(activeColorKey));
         } else {
-            fieldColor.setTo(getTheme().getColor(inactiveColorKey));
+            fieldColor.setTo(getWidgetColor(inactiveColorKey));
         }
         // Pulse color.
         if (isActive() && getWindow().isActive()
@@ -482,7 +482,7 @@ public class TField extends TWidget implements EditMenuUser {
         ) {
             fieldColor.setPulse(true, false, 0);
             fieldColor.setPulseColorRGB(getScreen().getBackend().
-                attrToForegroundColor(getTheme().getColor("tfield.pulse")));
+                attrToForegroundColor(getWidgetColor("tfield.pulse")));
         }
 
         int end = windowStart + textAreaWidth();

@@ -204,11 +204,11 @@ public class TRadioButton extends TWidget {
         CellAttributes mnemonicColor;
 
         if (isAbsoluteActive()) {
-            radioButtonColor.setTo(getTheme().getColor("tradiobutton.active"));
-            mnemonicColor = getTheme().getColor("tradiobutton.mnemonic.highlighted");
+            radioButtonColor.setTo(getWidgetColor("tradiobutton.active"));
+            mnemonicColor = getWidgetColor("tradiobutton.mnemonic.highlighted");
         } else {
-            radioButtonColor.setTo(getTheme().getColor("tradiobutton.inactive"));
-            mnemonicColor = getTheme().getColor("tradiobutton.mnemonic");
+            radioButtonColor.setTo(getWidgetColor("tradiobutton.inactive"));
+            mnemonicColor = getWidgetColor("tradiobutton.mnemonic");
         }
 
         // Pulse color.
@@ -217,7 +217,7 @@ public class TRadioButton extends TWidget {
         ) {
             radioButtonColor.setPulse(true, false, 0);
             radioButtonColor.setPulseColorRGB(getScreen().getBackend().
-                attrToForegroundColor(getTheme().getColor(
+                attrToForegroundColor(getWidgetColor(
                     "tradiobutton.pulse")));
         }
 

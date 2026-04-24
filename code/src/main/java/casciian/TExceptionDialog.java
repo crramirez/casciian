@@ -152,7 +152,7 @@ public class TExceptionDialog extends TWindow {
         // Draw window and border.
         super.draw();
 
-        CellAttributes boxColor = getTheme().getColor("ttext");
+        CellAttributes boxColor = getWidgetColor("ttext");
         hLineXY(exceptionString.getX() + 1, exceptionString.getY() + 1,
             stackTrace.getWidth(), ' ', boxColor);
     }

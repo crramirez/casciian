@@ -201,7 +201,7 @@ public class TText extends TScrollable {
     @Override
     public void draw() {
         // Setup my color
-        CellAttributes color = getTheme().getColor(colorKey);
+        CellAttributes color = getWidgetColor(colorKey);
 
         int begin = vScroller.getValue();
         int topY = 0;
