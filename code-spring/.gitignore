@@ -3,3 +3,6 @@
 /out
 /.idea
 *.iml
+**/build/
+**/.gradle/
+**/out/

@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: casciian-demo-shop
+  datasource:
+    url: jdbc:h2:mem:demoshop;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+server:
+  port: 8080
+
+# Casciian admin TUI exposed by the casciian-spring-boot-starter.
+# Connect with: ssh admin@localhost -p 2222   (password: admin)
+casciian:
+  ssh:
+    enabled: true
+    host: 0.0.0.0
+    port: 2222
+    username: admin
+    password: admin
+    banner: "Welcome to the Casciian Demo Shop admin TUI"
+
+logging:
+  level:
+    org.apache.sshd: WARN
