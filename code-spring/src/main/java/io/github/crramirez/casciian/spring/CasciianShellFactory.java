@@ -144,9 +144,10 @@ public class CasciianShellFactory implements ShellFactory {
             int columns = parseInt(envMap.get(Environment.ENV_COLUMNS));
             int rows = parseInt(envMap.get(Environment.ENV_LINES));
 
-            final String remote = channel == null || channel.getSession() == null
+            final Object clientAddress = channel == null || channel.getSession() == null
                     ? null
-                    : String.valueOf(channel.getSession().getClientAddress());
+                    : channel.getSession().getClientAddress();
+            final String remote = clientAddress == null ? null : clientAddress.toString();
 
             return new SshSessionContext(username, remote, termType, columns, rows);
         }

@@ -102,10 +102,11 @@ public class CasciianSshServer implements SmartLifecycle {
     }
 
     /**
-     * Start after the main web server (Boot's web server uses phase {@code
-     * Integer.MAX_VALUE}); we pick a slightly earlier phase so our server is
-     * stopped first on shutdown and a slightly later number than most
-     * application beans so we start after them.
+     * Start slightly before, and stop slightly after, the typical Spring Boot
+     * web server (which runs at phase {@link Integer#MAX_VALUE}). Per
+     * {@link SmartLifecycle} semantics, a lower phase is started earlier and
+     * stopped later — this keeps the SSH admin port reachable for the whole
+     * lifetime of the web application, including during web-server shutdown.
      */
     @Override
     public int getPhase() {
@@ -117,9 +118,10 @@ public class CasciianSshServer implements SmartLifecycle {
      * the user's home directory and ensuring parent directories exist.
      */
     Path resolveHostKeyPath() {
-        final String raw = properties.getHostKeyPath() == null
+        final String configured = properties.getHostKeyPath();
+        final String raw = (configured == null || configured.isBlank())
                 ? CasciianSshProperties.DEFAULT_HOST_KEY_PATH
-                : properties.getHostKeyPath();
+                : configured;
         final String expanded;
         if (raw.startsWith("~/") || raw.equals("~")) {
             expanded = System.getProperty("user.home")
