@@ -106,7 +106,7 @@ public class AdminTApplication extends TApplication {
         // (1, 1) all the way to the border, so the scrollers (which live
         // in the list's last column/row) land exactly on the frame.
         productList = window.addList(new ArrayList<>(), 1, 1,
-                window.getWidth() - 1, window.getHeight() - 1,
+                window.getWidth() - 2, window.getHeight() - 2,
                 new TAction() {
                     @Override
                     public void DO() {
@@ -304,7 +304,7 @@ public class AdminTApplication extends TApplication {
                 // so the TList scrollbars overlay the window frame.
                 final TResizeEvent listSize = new TResizeEvent(
                         event.getBackend(), TResizeEvent.Type.WIDGET,
-                        event.getWidth() - 1, event.getHeight() - 1);
+                        event.getWidth() - 2, event.getHeight() - 2);
                 list.onResize(listSize);
                 return;
             }

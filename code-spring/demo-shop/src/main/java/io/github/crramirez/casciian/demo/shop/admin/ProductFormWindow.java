@@ -16,8 +16,10 @@ import java.util.Locale;
 import casciian.TAction;
 import casciian.TApplication;
 import casciian.TField;
+import casciian.TKeypress;
 import casciian.TMessageBox;
 import casciian.TWindow;
+import casciian.event.TKeypressEvent;
 
 import io.github.crramirez.casciian.demo.shop.Product;
 
@@ -65,41 +67,50 @@ final class ProductFormWindow extends TWindow {
         this.target = target;
         this.onSave = onSave;
 
-        int row = 1;
-
-        addLabel("SKU:", 2, row);
-        skuField = addField(FIELD_COLUMN, row++, FIELD_WIDTH, false,
-                target.getSku() == null ? "" : target.getSku());
-
-        addLabel("Name:", 2, row);
-        nameField = addField(FIELD_COLUMN, row++, FIELD_WIDTH, false,
-                target.getName() == null ? "" : target.getName());
-
-        addLabel("Description:", 2, row);
-        descriptionField = addField(FIELD_COLUMN, row++, FIELD_WIDTH, false,
-                target.getDescription() == null ? "" : target.getDescription());
-
-        addLabel("Price:", 2, row);
-        priceField = addField(FIELD_COLUMN, row++, 12, false,
-                target.getPrice() == null
-                        ? "0.00" : target.getPrice().toPlainString());
-
-        addLabel("Stock:", 2, row);
-        stockField = addField(FIELD_COLUMN, row++, 8, false,
-                Integer.toString(target.getStock()));
-
-        // Buttons
-        final int buttonRow = getHeight() - 4;
-        addButton("&OK", getWidth() / 2 - 12, buttonRow, new TAction() {
+        // Pressing Enter inside any field submits the form, just like
+        // clicking the OK button.
+        final TAction submitAction = new TAction() {
             @Override
             public void DO() {
                 applyAndClose();
             }
-        });
+        };
+
+        int row = 1;
+
+        addLabel("SKU:", 2, row);
+        skuField = addField(FIELD_COLUMN, row++, FIELD_WIDTH, false,
+                target.getSku() == null ? "" : target.getSku(),
+                submitAction, null);
+
+        addLabel("Name:", 2, row);
+        nameField = addField(FIELD_COLUMN, row++, FIELD_WIDTH, false,
+                target.getName() == null ? "" : target.getName(),
+                submitAction, null);
+
+        addLabel("Description:", 2, row);
+        descriptionField = addField(FIELD_COLUMN, row++, FIELD_WIDTH, false,
+                target.getDescription() == null ? "" : target.getDescription(),
+                submitAction, null);
+
+        addLabel("Price:", 2, row);
+        priceField = addField(FIELD_COLUMN, row++, 12, false,
+                target.getPrice() == null
+                        ? "0.00" : target.getPrice().toPlainString(),
+                submitAction, null);
+
+        addLabel("Stock:", 2, row);
+        stockField = addField(FIELD_COLUMN, row++, 8, false,
+                Integer.toString(target.getStock()),
+                submitAction, null);
+
+        // Buttons
+        final int buttonRow = getHeight() - 4;
+        addButton("&OK", getWidth() / 2 - 12, buttonRow, submitAction);
         addButton("&Cancel", getWidth() / 2 + 2, buttonRow, new TAction() {
             @Override
             public void DO() {
-                getApplication().closeWindow(ProductFormWindow.this);
+                cancel();
             }
         });
 
@@ -169,5 +180,29 @@ final class ProductFormWindow extends TWindow {
         if (onSave != null) {
             onSave.DO();
         }
+    }
+
+    /**
+     * Dismiss the form without applying any changes. Used by the Cancel
+     * button and by pressing {@code Esc}.
+     */
+    private void cancel() {
+        getApplication().closeWindow(this);
+    }
+
+    /**
+     * Handle keystrokes at the window level. {@code Esc} cancels the
+     * form (same as clicking Cancel or closing the window via its
+     * close box).
+     *
+     * @param keypress keystroke event
+     */
+    @Override
+    public void onKeypress(final TKeypressEvent keypress) {
+        if (keypress.equals(TKeypress.kbEsc)) {
+            cancel();
+            return;
+        }
+        super.onKeypress(keypress);
     }
 }
