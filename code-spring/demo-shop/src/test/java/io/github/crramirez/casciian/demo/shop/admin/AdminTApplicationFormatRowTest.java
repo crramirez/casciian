@@ -67,4 +67,18 @@ class AdminTApplicationFormatRowTest {
 
         assertThat(row).contains("$0.00").contains("stock=0");
     }
+
+    @Test
+    void priceAlwaysRendersWithExactlyTwoDecimals() {
+        // BigDecimal scale varies depending on how a value was constructed;
+        // the row must normalize so columns align in the TUI.
+        final Product whole = new Product("S", "W", "", new BigDecimal("3"), 1);
+        final Product oneDecimal = new Product("S", "W", "", new BigDecimal("3.5"), 1);
+        final Product manyDecimals = new Product("S", "W", "", new BigDecimal("3.456"), 1);
+
+        assertThat(AdminTApplication.formatRow(whole)).contains("$3.00");
+        assertThat(AdminTApplication.formatRow(oneDecimal)).contains("$3.50");
+        // 3.456 rounds half-up to 3.46.
+        assertThat(AdminTApplication.formatRow(manyDecimals)).contains("$3.46");
+    }
 }

@@ -10,7 +10,6 @@
 package io.github.crramirez.casciian.demo.shop;
 
 import java.math.BigDecimal;
-import java.util.Objects;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -128,12 +127,20 @@ public class Product {
         if (!(o instanceof Product other)) {
             return false;
         }
-        return Objects.equals(id, other.id);
+        // Transient entities (id == null) are only equal to themselves to
+        // avoid collapsing distinct unsaved products into one Set/Map entry.
+        if (id == null || other.id == null) {
+            return false;
+        }
+        return id.equals(other.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        // Use a constant for transient entities so that adding an unsaved
+        // product to a collection and then persisting it (which mutates id)
+        // does not corrupt hash-based lookups.
+        return id == null ? 0 : id.hashCode();
     }
 
     @Override

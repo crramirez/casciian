@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -153,8 +154,22 @@ public class AdminTApplication extends TApplication {
     static String formatRow(final Product p) {
         final String sku = pad(p.getSku() == null ? "" : p.getSku(), 14);
         final String name = pad(p.getName() == null ? "" : p.getName(), 32);
-        final String price = "$" + (p.getPrice() == null ? "0.00" : p.getPrice().toPlainString());
+        final String price = "$" + formatPrice(p.getPrice());
         return sku + "  " + name + "  " + pad(price, 10) + "  stock=" + p.getStock();
+    }
+
+    /**
+     * Format a price as a fixed two-decimal string using a stable locale,
+     * so that TUI rows align and the rendering matches the web view.
+     *
+     * @param price the price; may be null (treated as zero)
+     * @return the formatted price (e.g. {@code "1.00"} or {@code "12.99"})
+     */
+    private static String formatPrice(final BigDecimal price) {
+        if (price == null) {
+            return "0.00";
+        }
+        return String.format(Locale.ROOT, "%.2f", price);
     }
 
     private static String pad(final String value, final int width) {
@@ -282,11 +297,17 @@ public class AdminTApplication extends TApplication {
         }
         final BigDecimal price;
         try {
-            price = new BigDecimal(priceBox.getText().trim());
+            price = new BigDecimal(priceBox.getText().trim())
+                    .setScale(2, RoundingMode.HALF_UP);
             if (price.signum() < 0) {
                 throw new NumberFormatException("price must be >= 0");
             }
         } catch (final NumberFormatException e) {
+            messageBox("Invalid price", "Could not parse price: " + e.getMessage());
+            return false;
+        } catch (final ArithmeticException e) {
+            // setScale with HALF_UP doesn't throw for normal inputs, but a
+            // pathological BigDecimal could; surface the same error path.
             messageBox("Invalid price", "Could not parse price: " + e.getMessage());
             return false;
         }
