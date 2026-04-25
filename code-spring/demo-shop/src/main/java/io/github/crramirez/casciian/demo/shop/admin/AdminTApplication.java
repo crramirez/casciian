@@ -13,7 +13,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -21,12 +20,14 @@ import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import casciian.TAction;
 import casciian.TApplication;
-import casciian.TInputBox;
 import casciian.TList;
 import casciian.TMessageBox;
+import casciian.TWidget;
 import casciian.TWindow;
 import casciian.event.TMenuEvent;
+import casciian.event.TResizeEvent;
 import casciian.menu.TMenu;
 
 import io.github.crramirez.casciian.demo.shop.Product;
@@ -98,9 +99,22 @@ public class AdminTApplication extends TApplication {
     }
 
     private void buildMainWindow() {
-        final TWindow window = new TWindow(this, "Product catalogue", 78, 20);
+        final ProductCatalogueWindow window = new ProductCatalogueWindow(this);
+        // Place the list so its right/bottom scrollbars are drawn on top of
+        // the window's right/bottom borders, matching the look of
+        // {@code TEditorWindow}. The list spans from interior position
+        // (1, 1) all the way to the border, so the scrollers (which live
+        // in the list's last column/row) land exactly on the frame.
         productList = window.addList(new ArrayList<>(), 1, 1,
-                window.getWidth() - 4, window.getHeight() - 4);
+                window.getWidth() - 2, window.getHeight() - 2,
+                new TAction() {
+                    @Override
+                    public void DO() {
+                        // Triggered on Enter and on double click.
+                        editSelectedProduct();
+                    }
+                });
+        window.setProductList(productList);
     }
 
     @Override
@@ -202,16 +216,21 @@ public class AdminTApplication extends TApplication {
         draft.setDescription("");
         draft.setPrice(BigDecimal.ZERO);
         draft.setStock(0);
-        if (promptProductFields("Create product", draft)) {
-            try {
-                products.save(draft);
-                refreshList();
-                messageBox("Product created", "Created \"" + draft.getName() + "\".");
-            } catch (final RuntimeException e) {
-                LOGGER.warn("Failed to create product", e);
-                messageBox("Error", "Could not create product:\n" + e.getMessage());
+        new ProductFormWindow(this, "Create product", draft, new TAction() {
+            @Override
+            public void DO() {
+                try {
+                    products.save(draft);
+                    refreshList();
+                    messageBox("Product created",
+                            "Created \"" + draft.getName() + "\".");
+                } catch (final RuntimeException e) {
+                    LOGGER.warn("Failed to create product", e);
+                    messageBox("Error",
+                            "Could not create product:\n" + e.getMessage());
+                }
             }
-        }
+        });
     }
 
     private void editSelectedProduct() {
@@ -220,16 +239,21 @@ public class AdminTApplication extends TApplication {
             messageBox("No selection", "Select a product in the list first.");
             return;
         }
-        if (promptProductFields("Edit product", target)) {
-            try {
-                products.save(target);
-                refreshList();
-                messageBox("Saved", "Updated \"" + target.getName() + "\".");
-            } catch (final RuntimeException e) {
-                LOGGER.warn("Failed to update product {}", target.getId(), e);
-                messageBox("Error", "Could not save product:\n" + e.getMessage());
+        new ProductFormWindow(this, "Edit product", target, new TAction() {
+            @Override
+            public void DO() {
+                try {
+                    products.save(target);
+                    refreshList();
+                    messageBox("Saved",
+                            "Updated \"" + target.getName() + "\".");
+                } catch (final RuntimeException e) {
+                    LOGGER.warn("Failed to update product {}", target.getId(), e);
+                    messageBox("Error",
+                            "Could not save product:\n" + e.getMessage());
+                }
             }
-        }
+        });
     }
 
     private void deleteSelectedProduct() {
@@ -254,85 +278,40 @@ public class AdminTApplication extends TApplication {
     }
 
     /**
-     * Walk the operator through SKU/name/description/price/stock prompts,
-     * mutating {@code target} in place. Returns {@code false} if the
-     * operator cancelled at any step or entered invalid data they declined
-     * to retry.
+     * Main catalogue window. A small {@link TWindow} subclass exists so
+     * that the embedded product list can be resized in lockstep with the
+     * window itself, keeping the scrollbars glued to the window border
+     * even after a resize.
      */
-    private boolean promptProductFields(final String title, final Product target) {
-        final TInputBox skuBox = inputBox(title, "SKU:",
-                target.getSku() == null ? "" : target.getSku(), TInputBox.Type.OKCANCEL);
-        if (!skuBox.isOk()) {
-            return false;
-        }
-        final String sku = skuBox.getText().trim();
-        if (sku.isEmpty()) {
-            messageBox("Invalid SKU", "SKU must not be empty.");
-            return false;
+    private static final class ProductCatalogueWindow extends TWindow {
+
+        /** The product list whose dimensions track this window's. */
+        private TList list;
+
+        ProductCatalogueWindow(final TApplication parent) {
+            super(parent, "Product catalogue", 78, 20, RESIZABLE);
         }
 
-        final TInputBox nameBox = inputBox(title, "Name:",
-                target.getName() == null ? "" : target.getName(), TInputBox.Type.OKCANCEL);
-        if (!nameBox.isOk()) {
-            return false;
-        }
-        final String name = nameBox.getText().trim();
-        if (name.isEmpty()) {
-            messageBox("Invalid name", "Name must not be empty.");
-            return false;
+        void setProductList(final TList productList) {
+            this.list = productList;
         }
 
-        final TInputBox descBox = inputBox(title, "Description:",
-                target.getDescription() == null ? "" : target.getDescription(),
-                TInputBox.Type.OKCANCEL);
-        if (!descBox.isOk()) {
-            return false;
-        }
-
-        final TInputBox priceBox = inputBox(title, "Price (e.g. 12.99):",
-                target.getPrice() == null ? "0.00" : target.getPrice().toPlainString(),
-                TInputBox.Type.OKCANCEL);
-        if (!priceBox.isOk()) {
-            return false;
-        }
-        final BigDecimal price;
-        try {
-            price = new BigDecimal(priceBox.getText().trim())
-                    .setScale(2, RoundingMode.HALF_UP);
-            if (price.signum() < 0) {
-                throw new NumberFormatException("price must be >= 0");
+        @Override
+        public void onResize(final TResizeEvent event) {
+            if (event.getType() == TResizeEvent.Type.WIDGET && list != null) {
+                // Resize the list to keep filling the window. The list
+                // origin stays at (1, 1) and it spans up to the border
+                // so the TList scrollbars overlay the window frame.
+                final TResizeEvent listSize = new TResizeEvent(
+                        event.getBackend(), TResizeEvent.Type.WIDGET,
+                        event.getWidth() - 2, event.getHeight() - 2);
+                list.onResize(listSize);
+                return;
             }
-        } catch (final NumberFormatException e) {
-            messageBox("Invalid price", "Could not parse price: " + e.getMessage());
-            return false;
-        } catch (final ArithmeticException e) {
-            // setScale with HALF_UP doesn't throw for normal inputs, but a
-            // pathological BigDecimal could; surface the same error path.
-            messageBox("Invalid price", "Could not parse price: " + e.getMessage());
-            return false;
-        }
-
-        final TInputBox stockBox = inputBox(title, "Stock (integer):",
-                Integer.toString(target.getStock()), TInputBox.Type.OKCANCEL);
-        if (!stockBox.isOk()) {
-            return false;
-        }
-        final int stock;
-        try {
-            stock = Integer.parseInt(stockBox.getText().trim());
-            if (stock < 0) {
-                throw new NumberFormatException("stock must be >= 0");
+            // Pass to children for SCREEN events.
+            for (final TWidget widget : getChildren()) {
+                widget.onResize(event);
             }
-        } catch (final NumberFormatException e) {
-            messageBox("Invalid stock", "Could not parse stock: " + e.getMessage());
-            return false;
         }
-
-        target.setSku(sku.toUpperCase(Locale.ROOT));
-        target.setName(name);
-        target.setDescription(descBox.getText());
-        target.setPrice(price);
-        target.setStock(stock);
-        return true;
     }
 }
