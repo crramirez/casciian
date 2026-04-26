@@ -13,18 +13,25 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.sshd.common.channel.Channel;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
+import org.apache.sshd.server.Signal;
+import org.apache.sshd.server.SignalListener;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 import org.junit.jupiter.api.Test;
 
 import casciian.TApplication;
+import casciian.backend.SessionInfo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -72,7 +79,16 @@ class CasciianShellFactoryTest {
 
         assertThat(exit.await(2, TimeUnit.SECONDS)).isTrue();
         assertThat(factory.created).isEqualTo(1);
-        assertThat(factory.lastInput).isSameAs(in);
+        // The factory receives the SSH input stream wrapped in an
+        // SshSessionInfoInputStream so Casciian's ECMA48 backend can read
+        // the PTY size as a SessionInfo. The wrapper must still delegate
+        // reads to the original SSH stream.
+        assertThat(factory.lastInput).isInstanceOf(SessionInfo.class);
+        assertThat(factory.lastInput).isNotSameAs(in);
+        final SessionInfo sessionInfo = (SessionInfo) factory.lastInput;
+        assertThat(sessionInfo.getWindowWidth()).isEqualTo(120);
+        assertThat(sessionInfo.getWindowHeight()).isEqualTo(40);
+        assertThat(sessionInfo.getUsername()).isEqualTo("alice");
         assertThat(factory.lastOutput).isSameAs(out);
         assertThat(factory.lastSession.username()).isEqualTo("alice");
         assertThat(factory.lastSession.terminalType()).isEqualTo("xterm-256color");
@@ -122,6 +138,92 @@ class CasciianShellFactoryTest {
         assertThat(factory.lastSession.rows()).isZero();
         assertThat(factory.lastSession.username()).isEmpty();
         assertThat(factory.lastSession.terminalType()).isNull();
+    }
+
+    @Test
+    void winchSignalUpdatesWrappedInputStreamSize() throws Exception {
+        final CountingFactory factory = new CountingFactory();
+        final CasciianShellFactory shellFactory = new CasciianShellFactory(factory);
+        final Command command = shellFactory.createShell(mock(ChannelSession.class));
+        final ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
+        command.setInputStream(in);
+        command.setOutputStream(new ByteArrayOutputStream());
+        command.setErrorStream(new ByteArrayOutputStream());
+        final RecordingExit exit = new RecordingExit();
+        command.setExitCallback(exit);
+
+        final Map<String, String> env = new HashMap<>();
+        env.put(Environment.ENV_USER, "bob");
+        env.put(Environment.ENV_COLUMNS, "80");
+        env.put(Environment.ENV_LINES, "24");
+        final RecordingStubEnvironment recording = new RecordingStubEnvironment(env);
+
+        command.start(mock(ChannelSession.class), recording);
+        assertThat(exit.await(2, TimeUnit.SECONDS)).isTrue();
+
+        // The shell registered exactly one listener for WINCH, and removed
+        // it again when the worker thread exited.
+        assertThat(recording.listeners).hasSize(1);
+        assertThat(recording.registeredSignals).singleElement()
+                .satisfies(s -> assertThat(s).containsExactly(Signal.WINCH));
+        assertThat(recording.removedCount).isEqualTo(1);
+        final SignalListener listener = recording.listeners.get(0);
+
+        // Wrapper started at the SSH-advertised geometry.
+        final SessionInfo sessionInfo = (SessionInfo) factory.lastInput;
+        assertThat(sessionInfo.getWindowWidth()).isEqualTo(80);
+        assertThat(sessionInfo.getWindowHeight()).isEqualTo(24);
+
+        // Simulate a window-change request: MINA updates ENV_COLUMNS /
+        // ENV_LINES first and then notifies the WINCH listener.
+        env.put(Environment.ENV_COLUMNS, "132");
+        env.put(Environment.ENV_LINES, "50");
+        listener.signal(mock(Channel.class), Signal.WINCH);
+
+        // The wrapped SessionInfo must now report the new size so
+        // Casciian's ECMA48 backend will pick it up on its next idle tick
+        // and emit a SCREEN-type TResizeEvent.
+        assertThat(sessionInfo.getWindowWidth()).isEqualTo(132);
+        assertThat(sessionInfo.getWindowHeight()).isEqualTo(50);
+
+        // Non-WINCH signals must not change the geometry.
+        env.put(Environment.ENV_COLUMNS, "1");
+        env.put(Environment.ENV_LINES, "1");
+        listener.signal(mock(Channel.class), Signal.INT);
+        assertThat(sessionInfo.getWindowWidth()).isEqualTo(132);
+        assertThat(sessionInfo.getWindowHeight()).isEqualTo(50);
+
+        // A WINCH carrying garbage values must be ignored, not collapse
+        // the screen.
+        env.put(Environment.ENV_COLUMNS, "not-a-number");
+        env.put(Environment.ENV_LINES, "0");
+        listener.signal(mock(Channel.class), Signal.WINCH);
+        assertThat(sessionInfo.getWindowWidth()).isEqualTo(132);
+        assertThat(sessionInfo.getWindowHeight()).isEqualTo(50);
+    }
+
+    @Test
+    void wrappedInputStreamDelegatesReadsToTheSshStream() throws Exception {
+        final CountingFactory factory = new CountingFactory();
+        final CasciianShellFactory shellFactory = new CasciianShellFactory(factory);
+        final Command command = shellFactory.createShell(mock(ChannelSession.class));
+        final byte[] payload = new byte[] { 'h', 'i' };
+        final ByteArrayInputStream in = new ByteArrayInputStream(payload);
+        command.setInputStream(in);
+        command.setOutputStream(new ByteArrayOutputStream());
+        command.setErrorStream(new ByteArrayOutputStream());
+        final RecordingExit exit = new RecordingExit();
+        command.setExitCallback(exit);
+
+        command.start(mock(ChannelSession.class), new StubEnvironment(Map.of()));
+        assertThat(exit.await(2, TimeUnit.SECONDS)).isTrue();
+
+        // Reading through the wrapper must observe the original stream's
+        // bytes; otherwise Casciian would never see SSH input.
+        final InputStream wrapped = factory.lastInput;
+        assertThat(wrapped.read()).isEqualTo((int) 'h');
+        assertThat(wrapped.read()).isEqualTo((int) 'i');
+        assertThat(wrapped.read()).isEqualTo(-1);
     }
 
     // ------------------------------------------------------------------
@@ -190,7 +292,7 @@ class CasciianShellFactoryTest {
      * Minimal {@link Environment} that returns a canned env map. Unused
      * methods throw so any accidental reliance on them is caught.
      */
-    private static final class StubEnvironment implements Environment {
+    private static class StubEnvironment implements Environment {
         private final Map<String, String> env;
 
         StubEnvironment(final Map<String, String> env) {
@@ -208,14 +310,46 @@ class CasciianShellFactoryTest {
         }
 
         @Override
-        public void addSignalListener(final org.apache.sshd.server.SignalListener listener,
-                                      final java.util.Collection<org.apache.sshd.server.Signal> signals) {
+        public void addSignalListener(final SignalListener listener,
+                                      final Collection<Signal> signals) {
             // no-op
         }
 
         @Override
-        public void removeSignalListener(final org.apache.sshd.server.SignalListener listener) {
+        public void removeSignalListener(final SignalListener listener) {
             // no-op
+        }
+    }
+
+    /**
+     * {@link StubEnvironment} that records every signal listener registered
+     * by the production code, so a test can drive the WINCH callback by
+     * hand without standing up a real SSH server.
+     *
+     * <p>The {@link #listeners} list is append-only and intentionally not
+     * pruned on {@link #removeSignalListener(SignalListener)}, because the
+     * shell command removes its listener as soon as the worker thread
+     * exits and the test still needs to invoke it afterwards.</p>
+     */
+    private static final class RecordingStubEnvironment extends StubEnvironment {
+        final List<SignalListener> listeners = new ArrayList<>();
+        final List<Collection<Signal>> registeredSignals = new ArrayList<>();
+        int removedCount;
+
+        RecordingStubEnvironment(final Map<String, String> env) {
+            super(env);
+        }
+
+        @Override
+        public void addSignalListener(final SignalListener listener,
+                                      final Collection<Signal> signals) {
+            listeners.add(listener);
+            registeredSignals.add(new ArrayList<>(signals));
+        }
+
+        @Override
+        public void removeSignalListener(final SignalListener listener) {
+            removedCount++;
         }
     }
 }
