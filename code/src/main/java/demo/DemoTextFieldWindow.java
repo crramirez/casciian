@@ -104,17 +104,17 @@ public class DemoTextFieldWindow extends TWindow {
 
         int row = 1;
 
-        addLabel(i18n.getString("textField1"), 1, row);
-        addField(35, row++, 15, false, i18n.getString("fieldText"));
-        addLabel(i18n.getString("textField2"), 1, row);
-        addField(35, row++, 15, true);
-        addLabel(i18n.getString("textField3"), 1, row);
-        addPasswordField(35, row++, 15, false);
-        addLabel(i18n.getString("textField4"), 1, row);
-        addPasswordField(35, row++, 15, true, "hunter2");
-        addLabel(i18n.getString("textField5"), 1, row);
-        TField selected = addField(35, row++, 40, false,
-            i18n.getString("textField6"));
+        addLabel(i18n.getString("textField1"), 1, row,
+            addField(35, row++, 15, false, i18n.getString("fieldText")));
+        addLabel(i18n.getString("textField2"), 1, row,
+            addField(35, row++, 15, true));
+        addLabel(i18n.getString("textField3"), 1, row,
+            addPasswordField(35, row++, 15, false));
+        addLabel(i18n.getString("textField4"), 1, row,
+            addPasswordField(35, row++, 15, true, "hunter2"));
+        TField selected = (TField) addLabel(i18n.getString("textField5"), 1, row,
+            addField(35, row++, 40, false, i18n.getString("textField6")))
+            .getLabelFor();
         row += 1;
 
         calendar = addCalendar(1, row++,

@@ -120,6 +120,15 @@ public class CellAttributes {
     // ------------------------------------------------------------------------
 
     /**
+     * Get a new Builder instance.
+     *
+     * @return the builder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
      * Public constructor sets default values of the cell to white-on-black,
      * no bold/blink/reverse/underline/protect.
      *
@@ -684,6 +693,92 @@ public class CellAttributes {
 
         foreColorRGB = ImageUtils.rgbMove(foreColorRGB, backRGB,
             (double) percent / 100.0);
+    }
+
+    /**
+     * Builder for CellAttributes.
+     */
+    public static class Builder {
+
+        private final CellAttributes attributes = new CellAttributes();
+
+        /**
+         * Public constructor.
+         */
+        public Builder() {
+            // NOP
+        }
+
+        public Builder bold(final boolean bold) {
+            attributes.setBold(bold);
+            return this;
+        }
+
+        public Builder blink(final boolean blink) {
+            attributes.setBlink(blink);
+            return this;
+        }
+
+        public Builder reverse(final boolean reverse) {
+            attributes.setReverse(reverse);
+            return this;
+        }
+
+        public Builder underline(final boolean underline) {
+            attributes.setUnderline(underline);
+            return this;
+        }
+
+        public Builder protect(final boolean protect) {
+            attributes.setProtect(protect);
+            return this;
+        }
+
+        public Builder foreColor(final Color foreColor) {
+            attributes.setForeColor(foreColor);
+            return this;
+        }
+
+        public Builder backColor(final Color backColor) {
+            attributes.setBackColor(backColor);
+            return this;
+        }
+
+        public Builder foreColorRGB(final int foreColorRGB) {
+            attributes.setForeColorRGB(foreColorRGB);
+            return this;
+        }
+
+        public Builder backColorRGB(final int backColorRGB) {
+            attributes.setBackColorRGB(backColorRGB);
+            return this;
+        }
+
+        public Builder defaultColor(final boolean foreground,
+            final boolean defaultColor) {
+            attributes.setDefaultColor(foreground, defaultColor);
+            return this;
+        }
+
+        public Builder animations(final int animationFlags) {
+            attributes.setAnimations(animationFlags);
+            return this;
+        }
+
+        public Builder pulse(final boolean pulse, final boolean fast,
+            final int offset) {
+            attributes.setPulse(pulse, fast, offset);
+            return this;
+        }
+
+        public Builder pulseColorRGB(final int pulseColorRGB) {
+            attributes.setPulseColorRGB(pulseColorRGB);
+            return this;
+        }
+
+        public CellAttributes build() {
+            return new CellAttributes(attributes);
+        }
     }
 
 

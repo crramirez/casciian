@@ -200,13 +200,13 @@ public class TMessageBox extends TWindow {
         // Now add my elements
         int lineI = 1;
         for (String line: lines) {
-            addLabel(line, 1, lineI, "twindow.background.modal");
+            addLabel(line, 1, lineI);
             lineI++;
         }
 
         // The button line
         lineI++;
-        buttons = new ArrayList<TButton>();
+        buttons = new ArrayList<>();
 
         int buttonX = 0;
 
