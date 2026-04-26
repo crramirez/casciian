@@ -43,8 +43,18 @@ final class SshSessionInfoInputStream extends FilterInputStream implements Sessi
 
     private volatile String username;
     private volatile String language = "en_US";
-    private volatile int windowWidth;
-    private volatile int windowHeight;
+
+    /**
+     * Window width and height packed into a single 64-bit value (width in
+     * the high 32 bits, height in the low 32 bits) so that updates from
+     * the SSH I/O thread and reads from Casciian's reader thread always
+     * observe a consistent (width, height) pair. Without this, two
+     * independent {@code volatile int}s could surface a half-updated size
+     * (new width, old height) on the next idle tick and trigger spurious
+     * intermediate resize events.
+     */
+    private volatile long windowSize;
+
     private volatile int idleTime = Integer.MAX_VALUE;
 
     /**
@@ -66,8 +76,9 @@ final class SshSessionInfoInputStream extends FilterInputStream implements Sessi
             throw new IllegalArgumentException("delegate must not be null");
         }
         this.username = username == null ? "" : username;
-        this.windowWidth = columns > 0 ? columns : DEFAULT_WINDOW_WIDTH;
-        this.windowHeight = rows > 0 ? rows : DEFAULT_WINDOW_HEIGHT;
+        final int initialWidth = columns > 0 ? columns : DEFAULT_WINDOW_WIDTH;
+        final int initialHeight = rows > 0 ? rows : DEFAULT_WINDOW_HEIGHT;
+        this.windowSize = pack(initialWidth, initialHeight);
     }
 
     /**
@@ -76,16 +87,32 @@ final class SshSessionInfoInputStream extends FilterInputStream implements Sessi
      * ignored so a malformed {@code window-change} request cannot collapse
      * the screen.
      *
+     * <p>Width and height are written together as a single {@code volatile}
+     * long, so concurrent readers always observe a consistent
+     * (width, height) pair.</p>
+     *
      * @param columns the new PTY width in character cells
      * @param rows    the new PTY height in character cells
      */
     void setWindowSize(final int columns, final int rows) {
-        if (columns > 0) {
-            this.windowWidth = columns;
+        synchronized (this) {
+            final long current = this.windowSize;
+            final int newWidth = columns > 0 ? columns : unpackWidth(current);
+            final int newHeight = rows > 0 ? rows : unpackHeight(current);
+            this.windowSize = pack(newWidth, newHeight);
         }
-        if (rows > 0) {
-            this.windowHeight = rows;
-        }
+    }
+
+    private static long pack(final int width, final int height) {
+        return ((long) width << 32) | ((long) height & 0xFFFFFFFFL);
+    }
+
+    private static int unpackWidth(final long packed) {
+        return (int) (packed >>> 32);
+    }
+
+    private static int unpackHeight(final long packed) {
+        return (int) packed;
     }
 
     // ------------------------------------------------------------------
@@ -129,12 +156,12 @@ final class SshSessionInfoInputStream extends FilterInputStream implements Sessi
 
     @Override
     public int getWindowWidth() {
-        return windowWidth;
+        return unpackWidth(windowSize);
     }
 
     @Override
     public int getWindowHeight() {
-        return windowHeight;
+        return unpackHeight(windowSize);
     }
 
     /**
