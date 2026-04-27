@@ -14,13 +14,10 @@
  */
 package casciian;
 
-import java.util.List;
-
 import casciian.bits.CellAttributes;
-import casciian.bits.ComplexCell;
+import casciian.bits.ColorTheme;
 import casciian.bits.MnemonicString;
 import casciian.bits.StringUtils;
-import casciian.event.TMouseEvent;
 
 /**
  * TLabel implements a simple label, with an optional mnemonic hotkey action
@@ -38,14 +35,9 @@ public class TLabel extends TWidget {
     private MnemonicString mnemonic;
 
     /**
-     * A mnemonic raw text as complex cells.
-     */
-    private List<ComplexCell> cells = null;
-
-    /**
      * The action to perform when the mnemonic shortcut is pressed.
      */
-    private TAction action;
+    private final TAction action;
 
     /**
      * Label color.
@@ -67,7 +59,7 @@ public class TLabel extends TWidget {
     // ------------------------------------------------------------------------
 
     /**
-     * Public constructor, using the default "tlabel" for colorKey.
+     * Public constructor, using the default ColorTheme.TLABEL for colorKey.
      *
      * @param parent parent widget
      * @param text label on the screen
@@ -77,11 +69,11 @@ public class TLabel extends TWidget {
     public TLabel(final TWidget parent, final String text, final int x,
         final int y) {
 
-        this(parent, text, x, y, "tlabel");
+        this(parent, text, x, y, ColorTheme.TLABEL);
     }
 
     /**
-     * Public constructor, using the default "tlabel" for colorKey.
+     * Public constructor, using the default ColorTheme.TLABEL for colorKey.
      *
      * @param parent parent widget
      * @param text label on the screen
@@ -92,17 +84,19 @@ public class TLabel extends TWidget {
     public TLabel(final TWidget parent, final String text, final int x,
         final int y, final TWidget labelFor) {
 
-        this(parent, text, x, y, "tlabel", true, new TAction() {
+        this(parent, text, x, y, ColorTheme.TLABEL, true, new TAction() {
 
             @Override
             public void DO() {
-                labelFor.activate();
+                if (labelFor != null) {
+                    labelFor.activate();
+                }
             }
         }, labelFor);
     }
 
     /**
-     * Public constructor, using the default "tlabel" for colorKey.
+     * Public constructor, using the default ColorTheme.TLABEL for colorKey.
      *
      * @param parent parent widget
      * @param text label on the screen
@@ -113,7 +107,7 @@ public class TLabel extends TWidget {
     public TLabel(final TWidget parent, final String text, final int x,
         final int y, final TAction action) {
 
-        this(parent, text, x, y, "tlabel", action);
+        this(parent, text, x, y, ColorTheme.TLABEL, action);
     }
 
     /**
@@ -227,17 +221,29 @@ public class TLabel extends TWidget {
         CellAttributes mnemonicColor = new CellAttributes();
 
         boolean active =  labelFor != null && labelFor.isAbsoluteActive();
-        var colorKeyToDraw = active ? colorKey + ".active" : colorKey;
+        String colorKeyToDraw = colorKey;
+        if (active) {
+            String activeColorKey = colorKey + ".active";
+            if (colorKey.startsWith("tlabel")
+                || getTheme().getColor(activeColorKey) != null
+            ) {
+                colorKeyToDraw = activeColorKey;
+            }
+        }
 
         String suffix = "";
         if ((getWindow() != null) && getWindow().isModal()
-            && colorKeyToDraw.startsWith("tlabel")
+            && colorKeyToDraw.startsWith(ColorTheme.TLABEL)
             && !colorKeyToDraw.endsWith(".modal")
         ) {
             suffix = ".modal";
         }
         color.setTo(getTheme().getColor(colorKeyToDraw + suffix));
-        mnemonicColor.setTo(getTheme().getColor(colorKeyToDraw + ".mnemonic" + suffix));
+        CellAttributes mnemonicAttr = getTheme().getColor(colorKeyToDraw + ".mnemonic" + suffix);
+        if (mnemonicAttr == null) {
+            mnemonicAttr = color;
+        }
+        mnemonicColor.setTo(mnemonicAttr);
 
         if (matchWindowBackground) {
             putForegroundStringXY(0, 0, mnemonic.getRawLabel(), color);
