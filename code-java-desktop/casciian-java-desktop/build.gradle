@@ -7,6 +7,7 @@
  * (e.g. when the user is not building a GraalVM native image).
  */
 plugins {
+    id 'java-library'
     id 'maven-publish'
     id 'signing'
 }
@@ -17,11 +18,11 @@ java {
 }
 
 dependencies {
-    // The add-on depends on the core casciian library. At runtime users must
-    // provide a compatible casciian on their classpath/module path. For local
-    // development, the composite build in settings.gradle substitutes this
-    // dependency with the sibling project under ../code.
-    implementation "io.github.crramirez:casciian:${project.casciianVersion}"
+    // The add-on's public API depends on casciian types (e.g. ImageDecoder,
+    // ImageRGB), so casciian is exposed as an `api` dependency. This makes
+    // it available to downstream consumers' compile/module path and is
+    // recorded with `compile` scope in the published POM.
+    api "io.github.crramirez:casciian:${project.casciianVersion}"
 
     testImplementation platform('org.junit:junit-bom:5.14.2')
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
