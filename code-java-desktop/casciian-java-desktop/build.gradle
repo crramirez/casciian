@@ -1,0 +1,107 @@
+/*
+ * Casciian Java Desktop add-on
+ *
+ * Optional add-on that enables Java Desktop (java.desktop) capabilities for
+ * Casciian-based applications. Publishable to Maven Central so applications
+ * can opt-in. Useful when running on a JVM that has access to java.desktop
+ * (e.g. when the user is not building a GraalVM native image).
+ */
+plugins {
+    id 'maven-publish'
+    id 'signing'
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+dependencies {
+    // The add-on depends on the core casciian library. At runtime users must
+    // provide a compatible casciian on their classpath/module path. For local
+    // development, the composite build in settings.gradle substitutes this
+    // dependency with the sibling project under ../code.
+    implementation "io.github.crramirez:casciian:${project.casciianVersion}"
+
+    testImplementation platform('org.junit:junit-bom:5.14.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.assertj:assertj-core:3.27.7'
+    testImplementation 'org.mockito:mockito-core:5.21.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.21.0'
+}
+
+tasks.jar {
+    manifest {
+        attributes(
+                'Implementation-Title': 'casciian-java-desktop',
+                'Implementation-Version': project.version
+        )
+    }
+}
+
+tasks.javadoc {
+    options.memberLevel = JavadocMemberLevel.PROTECTED
+    options.author = true
+    options.version = true
+    options.links('https://docs.oracle.com/en/java/javase/21/docs/api/')
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = 'casciian-java-desktop'
+
+            pom {
+                name = 'casciian-java-desktop'
+                description = 'Casciian Java Desktop add-on - optional ImageIO image ' +
+                        'decoders and other java.desktop integrations for Casciian.'
+                url = 'https://github.com/crramirez/casciian'
+
+                licenses {
+                    license {
+                        name = 'Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'crramirez'
+                        name = 'crramirez'
+                        url = 'https://github.com/crramirez'
+                    }
+                }
+                scm {
+                    url = 'https://github.com/crramirez/casciian'
+                    connection = 'scm:git:https://github.com/crramirez/casciian.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/crramirez/casciian.git'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "localStaging"
+            url = rootProject.layout.buildDirectory.dir("staging-repo")
+        }
+    }
+}
+
+def signingKeyId = (findProperty("signingKeyId") ?: System.getenv("SIGNING_KEY_ID"))?.toString()
+def signingKeyB64 = (findProperty("signingKeyB64") ?: System.getenv("SIGNING_KEY_B64"))?.toString()
+def signingPassword = (findProperty("signingPassword") ?: System.getenv("SIGNING_PASSWORD"))?.toString()
+
+def signingKey = null
+if (signingKeyB64) {
+    signingKey = new String(Base64.decoder.decode(signingKeyB64), "UTF-8")
+}
+
+signing {
+    if (signingKeyId && signingKey && signingPassword) {
+        useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+        sign publishing.publications
+    }
+}

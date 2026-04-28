@@ -1,0 +1,35 @@
+/*
+ * Common configuration shared by all subprojects of code-java-desktop.
+ */
+plugins {
+    id 'idea'
+}
+
+allprojects {
+    group = 'io.github.crramirez'
+    version = project.findProperty('version')
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.compilerArgs += ['-Xlint', '-Xdiags:verbose', '-Xlint:-requires-automatic']
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+}
