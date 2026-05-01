@@ -21,9 +21,11 @@ import casciian.image.decoders.ImageDecoder;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,88 +36,98 @@ import java.util.regex.Pattern;
  */
 public class XPMImageDecoder implements ImageDecoder {
 
-    private static final Pattern VALUES_PATTERN = Pattern.compile("\"(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+).*\"");
+    private static final Pattern VALUES_PATTERN = Pattern.compile("\"(\\d++)\\s++(\\d++)\\s++(\\d++)\\s++(\\d++)[^\"]*\"");
     private static final Pattern PIXEL_PATTERN = Pattern.compile("\"(.+?)\"");
 
     @Override
-    public ImageRGB decode(Path path) throws IOException {
-        try (BufferedReader reader = Files.newBufferedReader(path)) {
-            String line;
-
-            // Skip until we find the values line (width height ncolors charsPerPixel)
-            int width = 0, height = 0, ncolors = 0, charsPerPixel = 0;
-            boolean foundValues = false;
-
-            while ((line = reader.readLine()) != null) {
-                Matcher matcher = VALUES_PATTERN.matcher(line);
-                if (matcher.find()) {
-                    width = Integer.parseInt(matcher.group(1));
-                    height = Integer.parseInt(matcher.group(2));
-                    ncolors = Integer.parseInt(matcher.group(3));
-                    charsPerPixel = Integer.parseInt(matcher.group(4));
-                    foundValues = true;
-                    break;
-                }
-            }
-
-            if (!foundValues) {
-                throw new IOException("Invalid XPM format: values line not found");
-            }
-
-            // Read color map
-            Map<String, Integer> colorMap = new HashMap<>();
-            for (int i = 0; i < ncolors; i++) {
-                line = reader.readLine();
-                if (line == null) {
-                    throw new IOException("Unexpected end of file while reading colors");
-                }
-
-                Matcher matcher = PIXEL_PATTERN.matcher(line);
-                if (matcher.find()) {
-                    String content = matcher.group(1);
-                    String key = content.substring(0, charsPerPixel);
-                    String colorPart = content.substring(charsPerPixel).trim();
-
-                    // Extract color value after "c " or "c\t"
-                    int colorStart = colorPart.indexOf("c ");
-                    if (colorStart == -1) colorStart = colorPart.indexOf("c\t");
-                    if (colorStart != -1) {
-                        String colorValue = colorPart.substring(colorStart + 2).trim();
-                        int rgb = parseColor(colorValue);
-                        colorMap.put(key, rgb);
-                    }
-                }
-            }
-
-            // Read pixel data
-            ImageRGB image = new ArrayImageRGB(width, height);
-            for (int y = 0; y < height; y++) {
-                line = reader.readLine();
-                if (line == null) {
-                    throw new IOException("Unexpected end of file while reading pixels");
-                }
-
-                Matcher matcher = PIXEL_PATTERN.matcher(line);
-                if (matcher.find()) {
-                    String pixelLine = matcher.group(1);
-                    for (int x = 0; x < width; x++) {
-                        int start = x * charsPerPixel;
-                        int end = start + charsPerPixel;
-                        if (end > pixelLine.length()) {
-                            throw new IOException("Invalid pixel data at row " + y);
-                        }
-                        String key = pixelLine.substring(start, end);
-                        Integer rgb = colorMap.get(key);
-                        if (rgb == null) {
-                            rgb = 0x000000; // Default to black if color not found
-                        }
-                        image.setRGB(x, y, rgb);
-                    }
-                }
-            }
-
-            return image;
+    public ImageRGB decode(InputStream inputStream, String mimeType) throws IOException {
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            return decodeFromReader(reader);
         }
+    }
+
+    @Override
+    public List<String> getSupportedMimeTypes() {
+        return List.of("image/x-xpm");
+    }
+
+    private ImageRGB decodeFromReader(BufferedReader reader) throws IOException {
+        String line;
+
+        // Skip until we find the values line (width height ncolors charsPerPixel)
+        int width = 0, height = 0, ncolors = 0, charsPerPixel = 0;
+        boolean foundValues = false;
+
+        while ((line = reader.readLine()) != null) {
+            Matcher matcher = VALUES_PATTERN.matcher(line);
+            if (matcher.find()) {
+                width = Integer.parseInt(matcher.group(1));
+                height = Integer.parseInt(matcher.group(2));
+                ncolors = Integer.parseInt(matcher.group(3));
+                charsPerPixel = Integer.parseInt(matcher.group(4));
+                foundValues = true;
+                break;
+            }
+        }
+
+        if (!foundValues) {
+            throw new IOException("Invalid XPM format: values line not found");
+        }
+
+        // Read color map
+        Map<String, Integer> colorMap = new HashMap<>();
+        for (int i = 0; i < ncolors; i++) {
+            line = reader.readLine();
+            if (line == null) {
+                throw new IOException("Unexpected end of file while reading colors");
+            }
+
+            Matcher matcher = PIXEL_PATTERN.matcher(line);
+            if (matcher.find()) {
+                String content = matcher.group(1);
+                String key = content.substring(0, charsPerPixel);
+                String colorPart = content.substring(charsPerPixel).trim();
+
+                // Extract color value after "c " or "c\t"
+                int colorStart = colorPart.indexOf("c ");
+                if (colorStart == -1) colorStart = colorPart.indexOf("c\t");
+                if (colorStart != -1) {
+                    String colorValue = colorPart.substring(colorStart + 2).trim();
+                    int rgb = parseColor(colorValue);
+                    colorMap.put(key, rgb);
+                }
+            }
+        }
+
+        // Read pixel data
+        ImageRGB image = new ArrayImageRGB(width, height);
+        for (int y = 0; y < height; y++) {
+            line = reader.readLine();
+            if (line == null) {
+                throw new IOException("Unexpected end of file while reading pixels");
+            }
+
+            Matcher matcher = PIXEL_PATTERN.matcher(line);
+            if (matcher.find()) {
+                String pixelLine = matcher.group(1);
+                for (int x = 0; x < width; x++) {
+                    int start = x * charsPerPixel;
+                    int end = start + charsPerPixel;
+                    if (end > pixelLine.length()) {
+                        throw new IOException("Invalid pixel data at row " + y);
+                    }
+                    String key = pixelLine.substring(start, end);
+                    Integer rgb = colorMap.get(key);
+                    if (rgb == null) {
+                        rgb = 0x000000; // Default to black if color not found
+                    }
+                    image.setRGB(x, y, rgb);
+                }
+            }
+        }
+
+        return image;
     }
 
     /**

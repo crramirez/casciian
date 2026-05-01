@@ -19,6 +19,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -129,8 +130,13 @@ class ImageDecoderRegistryServiceLoaderTest {
      */
     static final class StubDecoder implements ImageDecoder {
         @Override
-        public ImageRGB decode(Path path) throws IOException {
+        public ImageRGB decode(InputStream inputStream, String mimeType) throws IOException {
             return new ArrayImageRGB(1, 1);
+        }
+
+        @Override
+        public List<String> getSupportedMimeTypes() {
+            return List.of("image/x-stub");
         }
 
         @Override
