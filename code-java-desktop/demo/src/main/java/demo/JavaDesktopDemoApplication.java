@@ -16,20 +16,24 @@
 package demo;
 
 import casciian.TApplication;
-import casciian.image.decoders.ImageDecoder;
-import casciian.image.decoders.ImageDecoderRegistry;
-import casciian.javadesktop.decoders.ImageIORGBDecoder;
 
 import java.io.UnsupportedEncodingException;
 
 /**
  * Demo TUI application showcasing the Casciian Java Desktop add-on.
  *
- * <p>The application registers an {@link ImageIORGBDecoder} so PNG and JPEG
- * files can be opened from File &gt; Open. This demonstrates how an
- * application running on a regular JVM (with full Java Desktop support) can
- * delegate image decoding to {@link javax.imageio.ImageIO} instead of the
- * pure-Java decoders bundled with core Casciian.</p>
+ * <p>The Java Desktop add-on registers an
+ * {@link casciian.javadesktop.decoders.ImageIORGBDecoder} as a
+ * {@link java.util.ServiceLoader} provider, so PNG and JPEG files can be
+ * opened from File &gt; Open without any explicit registration here:
+ * {@link TApplication}'s constructor auto-discovers it via
+ * {@link casciian.image.decoders.ImageDecoderRegistry#loadDecoders()}.</p>
+ *
+ * <p>This demonstrates how an application running on a regular JVM (with
+ * full Java Desktop support) can delegate image decoding to
+ * {@link javax.imageio.ImageIO} instead of the pure-Java decoders bundled
+ * with core Casciian, simply by putting the add-on on the classpath /
+ * module path.</p>
  */
 public final class JavaDesktopDemoApplication extends TApplication {
 
@@ -42,11 +46,10 @@ public final class JavaDesktopDemoApplication extends TApplication {
     public JavaDesktopDemoApplication(final BackendType backendType) throws UnsupportedEncodingException {
         super(backendType);
 
-        // Register the ImageIO-backed decoder so File > Open can handle PNG
-        // and JPEG files. This is the whole point of the demo: it's the only
-        // capability provided here that requires java.desktop.
-        ImageDecoder decoder = new ImageIORGBDecoder();
-        ImageDecoderRegistry.getInstance().registerDecoder(decoder);
+        // ImageIORGBDecoder is auto-discovered by the parent constructor's
+        // ImageDecoderRegistry.loadDecoders() call, since the
+        // casciian-java-desktop add-on declares it as a ServiceLoader
+        // provider in its module-info.java and META-INF/services file.
 
         addToolMenu();
         addFileMenu();

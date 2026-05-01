@@ -78,15 +78,25 @@ dependencies {
 }
 ```
 
-Then, register the decoder during application startup:
+Then, no further wiring is required: as of Casciian 1.4.2, the
+`ImageIORGBDecoder` is registered as a
+[`java.util.ServiceLoader`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ServiceLoader.html)
+provider (declared in the add-on's `module-info.java` and
+`META-INF/services/casciian.image.decoders.ImageDecoder`). It is
+automatically picked up by `TApplication`'s constructor via
+`ImageDecoderRegistry.getInstance().loadDecoders()`, so any
+`casciian.TImageWindow` (and any other code path going through
+`ImageDecoderRegistry`) can open PNG and JPEG files out of the box.
+
+If you need to customize the registered decoder (e.g. extend it to BMP or
+GIF), you can still register an instance manually, and it will coexist
+with the auto-discovered one:
 
 ```java
 ImageDecoderRegistry.getInstance()
-    .registerDecoder(new ImageIORGBDecoder());
+    .registerDecoder(new ImageIORGBDecoder(
+            "^.*\\.[gG][iI][fF]$", "GIF Image Files (*.gif)"));
 ```
-
-After that, any `casciian.TImageWindow` (and any other code path going
-through `ImageDecoderRegistry`) will be able to open PNG and JPEG files.
 
 Native image users
 ------------------

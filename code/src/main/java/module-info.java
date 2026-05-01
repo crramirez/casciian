@@ -43,4 +43,9 @@ module casciian {
     exports casciian.net;
     exports casciian.terminal;
     exports casciian.texteditor;
+
+    uses casciian.image.decoders.ImageDecoder;
+
+    provides casciian.image.decoders.ImageDecoder
+        with casciian.image.decoders.SixelImageDecoder;
 }
