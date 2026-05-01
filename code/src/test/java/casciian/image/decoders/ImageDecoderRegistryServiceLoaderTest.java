@@ -12,6 +12,7 @@
 package casciian.image.decoders;
 
 import casciian.bits.ImageRGB;
+import casciian.bits.ByteArrayImageRGB;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -129,7 +130,7 @@ class ImageDecoderRegistryServiceLoaderTest {
     static final class StubDecoder implements ImageDecoder {
         @Override
         public ImageRGB decode(Path path) throws IOException {
-            return new ImageRGB(1, 1);
+            return new ByteArrayImageRGB(1, 1);
         }
 
         @Override

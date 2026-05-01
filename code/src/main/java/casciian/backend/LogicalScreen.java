@@ -23,6 +23,7 @@ package casciian.backend;
 import casciian.TWidget;
 import casciian.bits.BorderStyle;
 import casciian.bits.ImageRGB;
+import casciian.bits.ByteArrayImageRGB;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.CellTransform;
@@ -1801,11 +1802,11 @@ public class LogicalScreen implements Screen {
          */
         synchronized (this) {
 
-            ImageRGB thisForeground = new ImageRGB(width, height);
-            ImageRGB thisBackground = new ImageRGB(width, height);
-            ImageRGB overForeground = new ImageRGB(width, height);
-            ImageRGB overBackground = new ImageRGB(width, height);
-            ImageRGB thisOldBackground = new ImageRGB(width, height);
+            ImageRGB thisForeground = new ByteArrayImageRGB(width, height);
+            ImageRGB thisBackground = new ByteArrayImageRGB(width, height);
+            ImageRGB overForeground = new ByteArrayImageRGB(width, height);
+            ImageRGB overBackground = new ByteArrayImageRGB(width, height);
+            ImageRGB thisOldBackground = new ByteArrayImageRGB(width, height);
 
             final int OPAQUE = 0xFF000000;
 
@@ -1878,7 +1879,7 @@ public class LogicalScreen implements Screen {
             float fAlpha = (float) (alpha / 255.0);
             thisForeground.alphaBlendOver(overBackground, fAlpha);
             thisBackground.alphaBlendOver(overBackground, fAlpha);
-            ImageRGB glyphForeground = new ImageRGB(thisBackground);
+            ImageRGB glyphForeground = new ByteArrayImageRGB(thisBackground);
             glyphForeground.alphaBlendOver(overForeground, fAlpha);
 
             for (int row = y; (row < y + height) && (row < this.height); row++) {

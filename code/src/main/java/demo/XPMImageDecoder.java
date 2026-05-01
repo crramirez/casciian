@@ -16,6 +16,7 @@
 package demo;
 
 import casciian.bits.ImageRGB;
+import casciian.bits.ByteArrayImageRGB;
 import casciian.image.decoders.ImageDecoder;
 
 import java.io.BufferedReader;
@@ -87,7 +88,7 @@ public class XPMImageDecoder implements ImageDecoder {
             }
 
             // Read pixel data
-            ImageRGB image = new ImageRGB(width, height);
+            ImageRGB image = new ByteArrayImageRGB(width, height);
             for (int y = 0; y < height; y++) {
                 line = reader.readLine();
                 if (line == null) {

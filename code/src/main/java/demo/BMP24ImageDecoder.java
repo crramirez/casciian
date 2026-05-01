@@ -16,6 +16,7 @@
 package demo;
 
 import casciian.bits.ImageRGB;
+import casciian.bits.ByteArrayImageRGB;
 import casciian.image.decoders.ImageDecoder;
 
 import java.io.IOException;
@@ -75,7 +76,7 @@ public class BMP24ImageDecoder implements ImageDecoder {
         boolean topDown = height < 0;
         int absHeight = Math.abs(height);
 
-        ImageRGB image = new ImageRGB(width, absHeight);
+        ImageRGB image = new ByteArrayImageRGB(width, absHeight);
 
         for (int y = 0; y < absHeight; y++) {
             int row = topDown ? y : (absHeight - 1 - y);
