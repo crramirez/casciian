@@ -1,4 +1,0 @@
-rootProject.name = 'casciian-spring'
-
-include 'casciian-spring-boot-starter'
-include 'demo-shop'

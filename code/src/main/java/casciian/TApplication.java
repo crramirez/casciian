@@ -70,7 +70,6 @@ import casciian.event.TResizeEvent;
 import casciian.help.HelpFile;
 import casciian.help.Topic;
 import casciian.image.decoders.ImageDecoderRegistry;
-import casciian.image.decoders.SixelImageDecoder;
 import casciian.menu.TMenu;
 import casciian.menu.TMenuItem;
 import casciian.menu.TSubMenu;
@@ -845,8 +844,13 @@ public class TApplication implements Runnable {
         menuItems       = new LinkedList<>();
         desktop         = new TDesktop(this);
 
-        // Register default image decoders
-        ImageDecoderRegistry.getInstance().registerDecoder(new SixelImageDecoder());
+        // Auto-discover image decoders via ServiceLoader. This picks up the
+        // built-in SixelImageDecoder and any third-party decoders provided on
+        // the classpath / module path (e.g. ImageIORGBDecoder from the
+        // casciian-java-desktop add-on). Applications that need additional
+        // decoders not exposed via ServiceLoader can still call
+        // ImageDecoderRegistry.getInstance().registerDecoder(...) explicitly.
+        ImageDecoderRegistry.getInstance().loadDecoders();
 
         animationsChanged();
 

@@ -28,6 +28,30 @@ If you want to start your own Casciian-based application, there is a
 [project template](https://github.com/crramirez/casciian-app-template)
 ready to use as a repository seed.
 
+## Spring Boot Integration
+
+For Spring Boot users, the
+[casciian-spring](https://github.com/crramirez/casciian-spring) project
+provides a Spring Boot 3.x auto-configuration starter that exposes a
+Casciian text user interface over SSH. This is useful when you want to
+ship an admin or operations TUI alongside a regular web application —
+for example, a customer-facing web shop served over HTTP plus an admin
+console that operates on the same backing database, accessible by
+simply `ssh`-ing into the running Spring Boot process. The repository
+also includes a runnable `demo-shop` showing this exact use case.
+
+## Java Desktop Add-on
+
+Casciian's core library deliberately avoids any dependency on the JDK's
+`java.desktop` module so that applications can be compiled with GraalVM
+`native-image`. If your application instead runs on a regular JVM and
+you want to opt into `java.desktop` capabilities (for example, decoding
+PNG/JPEG images via `javax.imageio.ImageIO`), use the optional
+[`casciian-java-desktop`](code-java-desktop/README.md) add-on. It is a
+separate Gradle multi-project under `code-java-desktop/` and is
+publishable to Maven Central, so users can simply add it as an extra
+dependency when they need it.
+
 ## License
 
 This project is distributed under the Apache License, Version 2.0.
