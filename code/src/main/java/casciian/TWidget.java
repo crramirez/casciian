@@ -382,9 +382,8 @@ public abstract class TWidget implements Comparable<TWidget> {
         // If I have any labels on me AND this is an Alt-key that matches
         // its mnemonic, call its action.
         for (TWidget widget: children) {
-            if (widget instanceof TLabel) {
-                TLabel label = (TLabel) widget;
-                if (!keypress.getKey().isFnKey()
+            if (widget instanceof TLabel label
+                    && !keypress.getKey().isFnKey()
                     && keypress.getKey().isAlt()
                     && !keypress.getKey().isCtrl()
                     && (Character.toLowerCase(label.getMnemonic().getShortcut())
@@ -394,7 +393,7 @@ public abstract class TWidget implements Comparable<TWidget> {
                     label.dispatch();
                     return;
                 }
-            }
+
         }
 
         // If I have any radiobuttons on me AND this is an Alt-key that
@@ -2444,6 +2443,20 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param text label
      * @param x column relative to parent
      * @param y row relative to parent
+     * @param labelFor the widget this label is for
+     * @return the new label
+     */
+    public final TLabel addLabel(final String text, final int x, final int y,
+        final TWidget labelFor) {
+        return new TLabel(this, text, x, y, labelFor);
+    }
+
+    /**
+     * Convenience function to add a label to this container/window.
+     *
+     * @param text label
+     * @param x column relative to parent
+     * @param y row relative to parent
      * @param action to call when shortcut is pressed
      * @return the new label
      */
@@ -2522,7 +2535,7 @@ public abstract class TWidget implements Comparable<TWidget> {
         final TAction action) {
 
         return new TLabel(this, text, x, y, colorKey, matchWindowBackground,
-            action);
+            action, null);
     }
 
     /**

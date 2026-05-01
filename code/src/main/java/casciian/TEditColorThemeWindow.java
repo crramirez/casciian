@@ -111,10 +111,9 @@ public class TEditColorThemeWindow extends TWindow {
 
             super(parent, x, y, width, height);
 
-            addLabel(i18n.getString("rgbHex"), 1, 6,
-                "twindow.background.modal");
-
-            rgb = addField(6, 6, 7, true, "");
+            rgb = (TField) addLabel(i18n.getString("rgbHex"), 1, 6,
+                addField(6, 6, 7, true, ""))
+                .getLabelFor();
         }
 
         /**
@@ -124,24 +123,7 @@ public class TEditColorThemeWindow extends TWindow {
          * @return the X coordinate
          */
         private int getXColorPosition(final Color color) {
-            if (color.equals(Color.BLACK)) {
-                return 2;
-            } else if (color.equals(Color.BLUE)) {
-                return 5;
-            } else if (color.equals(Color.GREEN)) {
-                return 8;
-            } else if (color.equals(Color.CYAN)) {
-                return 11;
-            } else if (color.equals(Color.RED)) {
-                return 2;
-            } else if (color.equals(Color.MAGENTA)) {
-                return 5;
-            } else if (color.equals(Color.YELLOW)) {
-                return 8;
-            } else if (color.equals(Color.WHITE)) {
-                return 11;
-            }
-            throw new IllegalArgumentException("Invalid color: " + color);
+            return TEditColorThemeWindow.getXColorPosition(color);
         }
 
         /**
@@ -447,9 +429,9 @@ public class TEditColorThemeWindow extends TWindow {
 
             super(parent, x, y, width, height);
 
-            addLabel(i18n.getString("rgbHex"), 1, 4,
-                "twindow.background.modal");
-            rgb = addField(6, 4, 7, true, "");
+            rgb = (TField) addLabel(i18n.getString("rgbHex"), 1, 4,
+                addField(6, 4, 7, true, ""))
+                .getLabelFor();
         }
 
         /**
@@ -459,24 +441,7 @@ public class TEditColorThemeWindow extends TWindow {
          * @return the X coordinate
          */
         private int getXColorPosition(final Color color) {
-            if (color.equals(Color.BLACK)) {
-                return 2;
-            } else if (color.equals(Color.BLUE)) {
-                return 5;
-            } else if (color.equals(Color.GREEN)) {
-                return 8;
-            } else if (color.equals(Color.CYAN)) {
-                return 11;
-            } else if (color.equals(Color.RED)) {
-                return 2;
-            } else if (color.equals(Color.MAGENTA)) {
-                return 5;
-            } else if (color.equals(Color.YELLOW)) {
-                return 8;
-            } else if (color.equals(Color.WHITE)) {
-                return 11;
-            }
-            throw new IllegalArgumentException("Invalid color: " + color);
+            return TEditColorThemeWindow.getXColorPosition(color);
         }
 
         /**
@@ -757,6 +722,7 @@ public class TEditColorThemeWindow extends TWindow {
                 }
             }
         );
+        addLabel(i18n.getString("colorName"), 2, 1, colorNames);
         foreground = new ForegroundPicker(this, 42, 1, 14, 8);
         background = new BackgroundPicker(this, 42, 9, 14, 6);
         refreshFromTheme(colors.getFirst());
@@ -866,14 +832,6 @@ public class TEditColorThemeWindow extends TWindow {
     public void draw() {
         super.draw();
         CellAttributes attr = new CellAttributes();
-
-        // Draw the label on colorNames
-        attr.setTo(getTheme().getColor("twindow.background.modal"));
-        if (colorNames.isActive()) {
-            attr.setForeColor(getTheme().getColor("tlabel").getForeColor());
-            attr.setBold(getTheme().getColor("tlabel").isBold());
-        }
-        putStringXY(3, 2, i18n.getString("colorName"), attr);
 
         // Draw the sample text box
         attr.reset();
@@ -1065,6 +1023,33 @@ public class TEditColorThemeWindow extends TWindow {
         } else {
             super.setBorderStyleMoving(borderStyle);
         }
+    }
+
+    /**
+     * Get the X grid coordinate for this color.
+     *
+     * @param color the Color value
+     * @return the X coordinate
+     */
+    private static int getXColorPosition(Color color) {
+        if (color.equals(Color.BLACK)) {
+            return 2;
+        } else if (color.equals(Color.BLUE)) {
+            return 5;
+        } else if (color.equals(Color.GREEN)) {
+            return 8;
+        } else if (color.equals(Color.CYAN)) {
+            return 11;
+        } else if (color.equals(Color.RED)) {
+            return 2;
+        } else if (color.equals(Color.MAGENTA)) {
+            return 5;
+        } else if (color.equals(Color.YELLOW)) {
+            return 8;
+        } else if (color.equals(Color.WHITE)) {
+            return 11;
+        }
+        throw new IllegalArgumentException("Invalid color: " + color);
     }
 
 }

@@ -27,6 +27,9 @@ import java.nio.file.Path;
  */
 public class SixelImageDecoder implements ImageDecoder {
 
+    /**
+     * Public constructor.
+     */
     public SixelImageDecoder() {
         // Explicit no arg constructor
     }
