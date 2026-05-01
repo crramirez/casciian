@@ -14,6 +14,7 @@ package casciian.javadesktop.decoders;
 import casciian.bits.ImageRGB;
 import casciian.image.decoders.ImageDecoder;
 import casciian.image.decoders.ImageDecoderRegistry;
+import casciian.javadesktop.bits.BufferedImageRGB;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -39,6 +40,9 @@ class ImageIORGBDecoderTest {
 
         ImageRGB image = new ImageIORGBDecoder().decode(png);
 
+        // The decoder returns a BufferedImageRGB so AWT-aware consumers
+        // can downcast and reach the underlying BufferedImage directly.
+        assertThat(image).isInstanceOf(BufferedImageRGB.class);
         assertThat(image.getWidth()).isEqualTo(2);
         assertThat(image.getHeight()).isEqualTo(2);
         // PNG is lossless: pixels are preserved exactly. ImageIO returns

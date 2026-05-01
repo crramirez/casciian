@@ -17,6 +17,7 @@ package casciian.javadesktop.decoders;
 
 import casciian.bits.ImageRGB;
 import casciian.image.decoders.ImageDecoder;
+import casciian.javadesktop.bits.BufferedImageRGB;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -27,6 +28,13 @@ import java.nio.file.Path;
  * Image decoder that uses {@link javax.imageio.ImageIO} from the
  * {@code java.desktop} module to decode common raster image formats
  * (PNG and JPEG by default) into Casciian's {@link ImageRGB}.
+ *
+ * <p>The decoder returns a {@link BufferedImageRGB}, an
+ * {@link ImageRGB} subclass that retains the underlying
+ * {@link BufferedImage}. AWT-aware consumers (for example a future
+ * AWT-based image encoder) can downcast the result to
+ * {@link BufferedImageRGB} and use {@link BufferedImageRGB#getBufferedImage()}
+ * to reach the AWT image directly without an extra conversion.</p>
  *
  * <p>This decoder is part of the optional Casciian Java Desktop add-on:
  * it is only available on JVMs that ship the {@code java.desktop} module.
@@ -99,17 +107,10 @@ public class ImageIORGBDecoder implements ImageDecoder {
             throw new IOException("ImageIO could not decode file: " + path);
         }
 
-        int width = buffered.getWidth();
-        int height = buffered.getHeight();
-
-        // Read the entire image into a single int[] in TYPE_INT_ARGB layout
-        // and then bulk-copy it into the ImageRGB. This is more efficient
-        // than per-pixel BufferedImage#getRGB calls.
-        int[] pixels = buffered.getRGB(0, 0, width, height, null, 0, width);
-
-        ImageRGB image = new ImageRGB(width, height);
-        image.setRGB(0, 0, width, height, pixels, 0, width);
-        return image;
+        // Wrap the AWT image in a BufferedImageRGB so AWT-aware consumers
+        // (e.g. an AWT-based image encoder) can downcast and access the
+        // underlying BufferedImage directly without an extra conversion.
+        return new BufferedImageRGB(buffered);
     }
 
     @Override
