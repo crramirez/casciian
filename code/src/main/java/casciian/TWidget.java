@@ -2446,7 +2446,8 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param labelFor the widget this label is for
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y, final TWidget labelFor) {
+    public final TLabel addLabel(final String text, final int x, final int y,
+        final TWidget labelFor) {
         return new TLabel(this, text, x, y, labelFor);
     }
 
