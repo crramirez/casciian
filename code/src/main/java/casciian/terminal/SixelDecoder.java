@@ -15,7 +15,7 @@
 package casciian.terminal;
 
 import casciian.bits.ImageRGB;
-import casciian.bits.ByteArrayImageRGB;
+import casciian.bits.ArrayImageRGB;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -287,7 +287,7 @@ public class SixelDecoder {
             if ((rasterWidth > width) || (rasterHeight > y + 1)) {
                 resizeImage(Math.max(width, rasterWidth),
                     Math.max(y + 1, rasterHeight));
-                return new ByteArrayImageRGB(image);
+                return new ArrayImageRGB(image);
             }
             return image.getSubimage(0, 0, width, y + 1);
         }
@@ -315,7 +315,7 @@ public class SixelDecoder {
         if (image != null) {
             newImage = image.getSubimage(0, 0, newWidth, newHeight);
         } else {
-            newImage = new ByteArrayImageRGB(newWidth, newHeight);
+            newImage = new ArrayImageRGB(newWidth, newHeight);
         }
         image = newImage;
     }

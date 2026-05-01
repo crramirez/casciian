@@ -14,7 +14,7 @@ class ImageUtilsTest {
     @Test
     @DisplayName("rgbAverage of uniform color image returns that color")
     void testRgbAverageUniformColor() {
-        ImageRGB image = new ByteArrayImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         int color = 0xFF804020;
         for (int x = 0; x < 10; x++) {
             for (int y = 0; y < 10; y++) {
@@ -32,7 +32,7 @@ class ImageUtilsTest {
     @Test
     @DisplayName("rgbAverage of two-color image returns midpoint")
     void testRgbAverageTwoColors() {
-        ImageRGB image = new ByteArrayImageRGB(2, 1);
+        ImageRGB image = new ArrayImageRGB(2, 1);
         image.setRGB(0, 0, 0xFF000000); // black
         image.setRGB(1, 0, 0xFFFFFFFF); // white
 
@@ -49,7 +49,7 @@ class ImageUtilsTest {
     @Test
     @DisplayName("rgbAverage with subregion returns average of subregion only")
     void testRgbAverageSubregion() {
-        ImageRGB image = new ByteArrayImageRGB(4, 4);
+        ImageRGB image = new ArrayImageRGB(4, 4);
         // Fill entire image with black
         for (int x = 0; x < 4; x++) {
             for (int y = 0; y < 4; y++) {
@@ -73,7 +73,7 @@ class ImageUtilsTest {
     @Test
     @DisplayName("rgbAverage with zero dimensions returns 0")
     void testRgbAverageZeroDimensions() {
-        ImageRGB image = new ByteArrayImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         assertEquals(0, ImageUtils.rgbAverage(image, 0, 0, 0, 5));
         assertEquals(0, ImageUtils.rgbAverage(image, 0, 0, 5, 0));
     }

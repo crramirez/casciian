@@ -25,7 +25,7 @@ package casciian.bits;
  * <p>Implementations expose pixel data as 24-bit (or 32-bit ARGB) integer
  * values via {@link #getRGB(int, int)} / {@link #setRGB(int, int, int)}
  * and bulk region accessors. The default implementation is
- * {@link ByteArrayImageRGB}, which stores the data in a row-major
+ * {@link ArrayImageRGB}, which stores the data in a row-major
  * {@code int[][]} array; alternative implementations may wrap a native
  * image type (for example a Java AWT {@code BufferedImage}) so that
  * decoders that already produce that type can avoid an intermediate copy.
@@ -142,7 +142,7 @@ public interface ImageRGB {
      *
      * <p>The default contract is to throw {@link UnsupportedOperationException}
      * for implementations that do not provide a scaling routine. The default
-     * implementation ({@link ByteArrayImageRGB}) uses Mitchell–Netravali
+     * implementation ({@link ArrayImageRGB}) uses Mitchell–Netravali
      * bicubic interpolation.
      *
      * @param newWidth  the target width in pixels
@@ -152,6 +152,9 @@ public interface ImageRGB {
      * @throws UnsupportedOperationException if the implementation does not support scaling
      */
     default ImageRGB scale(int newWidth, int newHeight) {
+        if (newWidth <= 0 || newHeight <= 0) {
+            throw new IllegalArgumentException("New dimensions must be positive");
+        }
         throw new UnsupportedOperationException(
             "scale is not supported by " + getClass().getName());
     }

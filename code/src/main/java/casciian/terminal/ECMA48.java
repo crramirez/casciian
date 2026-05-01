@@ -39,7 +39,7 @@ import casciian.backend.Backend;
 import casciian.backend.ECMA48Terminal;
 import casciian.backend.Screen;
 import casciian.bits.ImageRGB;
-import casciian.bits.ByteArrayImageRGB;
+import casciian.bits.ArrayImageRGB;
 import casciian.bits.Clipboard;
 import casciian.bits.Color;
 import casciian.bits.Cell;
@@ -8398,7 +8398,7 @@ public class ECMA48 implements Runnable {
             return;
         }
 
-        ImageRGB image = new ByteArrayImageRGB(imageWidth, imageHeight);
+        ImageRGB image = new ArrayImageRGB(imageWidth, imageHeight);
 
         for (int x = 0; x < imageWidth; x++) {
             for (int y = 0; y < imageHeight; y++) {

@@ -15,7 +15,7 @@ class UnicodeGlyphImageTest {
      * Create a solid-color ImageRGB of the given dimensions.
      */
     private ImageRGB createSolidImage(int width, int height, int rgb) {
-        ImageRGB image = new ByteArrayImageRGB(width, height);
+        ImageRGB image = new ArrayImageRGB(width, height);
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 image.setRGB(x, y, rgb);
@@ -29,7 +29,7 @@ class UnicodeGlyphImageTest {
      */
     private ImageRGB createLeftRightImage(int width, int height,
         int leftRgb, int rightRgb) {
-        ImageRGB image = new ByteArrayImageRGB(width, height);
+        ImageRGB image = new ArrayImageRGB(width, height);
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 if (x < width / 2) {
@@ -47,7 +47,7 @@ class UnicodeGlyphImageTest {
      */
     private ImageRGB createTopBottomImage(int width, int height,
         int topRgb, int bottomRgb) {
-        ImageRGB image = new ByteArrayImageRGB(width, height);
+        ImageRGB image = new ArrayImageRGB(width, height);
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 if (y < height / 2) {

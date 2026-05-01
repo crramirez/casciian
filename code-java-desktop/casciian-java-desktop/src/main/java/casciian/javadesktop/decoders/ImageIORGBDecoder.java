@@ -16,7 +16,7 @@
 package casciian.javadesktop.decoders;
 
 import casciian.bits.ImageRGB;
-import casciian.bits.ByteArrayImageRGB;
+import casciian.bits.ArrayImageRGB;
 import casciian.image.decoders.ImageDecoder;
 
 import javax.imageio.ImageIO;
@@ -108,7 +108,7 @@ public class ImageIORGBDecoder implements ImageDecoder {
         // than per-pixel BufferedImage#getRGB calls.
         int[] pixels = buffered.getRGB(0, 0, width, height, null, 0, width);
 
-        ImageRGB image = new ByteArrayImageRGB(width, height);
+        ImageRGB image = new ArrayImageRGB(width, height);
         image.setRGB(0, 0, width, height, pixels, 0, width);
         return image;
     }

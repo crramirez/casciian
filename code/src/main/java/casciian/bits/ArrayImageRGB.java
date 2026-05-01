@@ -27,7 +27,7 @@ import java.util.stream.IntStream;
  * array stored in row-major order for efficient bulk copy operations
  * via {@link System#arraycopy}.
  */
-public class ByteArrayImageRGB implements ImageRGB {
+public class ArrayImageRGB implements ImageRGB {
 
     /**
      * Threshold for using parallel streams. Only compute-bound operations
@@ -58,7 +58,7 @@ public class ByteArrayImageRGB implements ImageRGB {
      * @param width  the number of pixels in width
      * @param height the number of pixels in height
      */
-    public ByteArrayImageRGB(final int width, final int height) {
+    public ArrayImageRGB(final int width, final int height) {
         this.width = width;
         this.height = height;
         rgb = new int[height][width];
@@ -70,11 +70,11 @@ public class ByteArrayImageRGB implements ImageRGB {
      * @param image another ImageRGB that the RGB data will be
      *              copied from
      */
-    public ByteArrayImageRGB(final ImageRGB image) {
+    public ArrayImageRGB(final ImageRGB image) {
         width = image.getWidth();
         height = image.getHeight();
         rgb = new int[height][width];
-        if (image instanceof ByteArrayImageRGB other) {
+        if (image instanceof ArrayImageRGB other) {
             // Use System.arraycopy for efficient row-by-row copying
             for (int y = 0; y < height; y++) {
                 System.arraycopy(other.rgb[y], 0, this.rgb[y], 0, width);
@@ -205,10 +205,10 @@ public class ByteArrayImageRGB implements ImageRGB {
             rowStream = rowStream.parallel();
         }
 
-        // Fast path: if the other image is also a ByteArrayImageRGB,
+        // Fast path: if the other image is also an ArrayImageRGB,
         // access its raw int[][] buffer directly. Otherwise, fall back
         // to the public ImageRGB API per row.
-        if (image instanceof ByteArrayImageRGB other) {
+        if (image instanceof ArrayImageRGB other) {
             final int[][] otherRgb = other.rgb;
             rowStream.forEach(y -> {
                 int[] thisRow = rgb[y];
@@ -224,9 +224,13 @@ public class ByteArrayImageRGB implements ImageRGB {
                 }
             });
         } else {
+            // Reuse a per-thread row buffer to avoid allocating one int[width]
+            // for every row (which would create height*N allocations and add
+            // significant GC pressure on large images).
+            final ThreadLocal<int[]> rowBuffer = ThreadLocal.withInitial(() -> new int[width]);
             rowStream.forEach(y -> {
                 int[] thisRow = rgb[y];
-                int[] overRow = new int[width];
+                int[] overRow = rowBuffer.get();
                 image.getRGB(0, y, width, 1, overRow, 0, width);
                 for (int x = 0; x < width; x++) {
                     int under = thisRow[x];
@@ -255,7 +259,7 @@ public class ByteArrayImageRGB implements ImageRGB {
         if (x < 0 || y < 0 || w <= 0 || h <= 0) {
             throw new IllegalArgumentException("Invalid subimage dimensions");
         }
-        ByteArrayImageRGB subimage = new ByteArrayImageRGB(w, h);
+        ArrayImageRGB subimage = new ArrayImageRGB(w, h);
 
         // Calculate the actual copy bounds to avoid checking in the loop
         int copyWidth = Math.min(w, width - x);
@@ -337,7 +341,7 @@ public class ByteArrayImageRGB implements ImageRGB {
         ScaleImageUtils.resampleHorizontal(this.rgb, temp, width, newWidth, height);
 
         // Vertical pass: height changes, width unchanged
-        ByteArrayImageRGB result = new ByteArrayImageRGB(newWidth, newHeight);
+        ArrayImageRGB result = new ArrayImageRGB(newWidth, newHeight);
         ScaleImageUtils.resampleVertical(temp, result.rgb, height, newHeight, newWidth);
 
         return result;
@@ -363,7 +367,7 @@ public class ByteArrayImageRGB implements ImageRGB {
         // parallel-stream overhead while still saturating the memory bus.
         if (turns == 1) {
             //noinspection SuspiciousNameCombination
-            ByteArrayImageRGB rotated = new ByteArrayImageRGB(height, width);
+            ArrayImageRGB rotated = new ArrayImageRGB(height, width);
             for (int y = 0; y < height; y++) {
                 int[] srcRow = rgb[y];
                 for (int x = 0; x < width; x++) {
@@ -372,7 +376,7 @@ public class ByteArrayImageRGB implements ImageRGB {
             }
             return rotated;
         } else if (turns == 2) {
-            ByteArrayImageRGB rotated = new ByteArrayImageRGB(width, height);
+            ArrayImageRGB rotated = new ArrayImageRGB(width, height);
             for (int y = 0; y < height; y++) {
                 int[] srcRow = rgb[y];
                 for (int x = 0; x < width; x++) {
@@ -382,7 +386,7 @@ public class ByteArrayImageRGB implements ImageRGB {
             return rotated;
         } else {
             //noinspection SuspiciousNameCombination
-            ByteArrayImageRGB rotated = new ByteArrayImageRGB(height, width);
+            ArrayImageRGB rotated = new ArrayImageRGB(height, width);
             for (int y = 0; y < height; y++) {
                 int[] srcRow = rgb[y];
                 for (int x = 0; x < width; x++) {
@@ -409,7 +413,7 @@ public class ByteArrayImageRGB implements ImageRGB {
             throw new IllegalArgumentException("New dimensions must be positive");
         }
 
-        ByteArrayImageRGB resized = new ByteArrayImageRGB(newWidth, newHeight);
+        ArrayImageRGB resized = new ArrayImageRGB(newWidth, newHeight);
         int[][] oldRgb = this.rgb;
         int[][] newRgb = resized.rgb;
 

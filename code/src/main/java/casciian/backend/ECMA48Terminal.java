@@ -39,7 +39,7 @@ import casciian.bits.CellAttributes;
 import casciian.bits.Color;
 import casciian.bits.ComplexCell;
 import casciian.bits.ImageRGB;
-import casciian.bits.ByteArrayImageRGB;
+import casciian.bits.ArrayImageRGB;
 import casciian.bits.StringUtils;
 import casciian.bits.UnicodeGlyphImage;
 import casciian.event.TCommandEvent;
@@ -1887,7 +1887,7 @@ public class ECMA48Terminal extends LogicalScreen
                 ) {
                     blankImageRow = new ArrayList<Cell>(width);
                     Cell blank = new Cell();
-                    ImageRGB newImage = new ByteArrayImageRGB(textWidthPixels,
+                    ImageRGB newImage = new ArrayImageRGB(textWidthPixels,
                         textHeightPixels);
                     newImage.fillRect(0, 0, newImage.getWidth(),
                         newImage.getHeight(), 0x000000);
@@ -3901,7 +3901,7 @@ public class ECMA48Terminal extends LogicalScreen
             totalWidth += cell.getImage().getWidth();
         }
 
-        ImageRGB image = new ByteArrayImageRGB(fullWidth, tileHeight);
+        ImageRGB image = new ArrayImageRGB(fullWidth, tileHeight);
 
         int[] rgbArray;
         for (int i = 0; i < cells.size() - 1; i++) {

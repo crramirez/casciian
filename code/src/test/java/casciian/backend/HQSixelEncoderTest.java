@@ -1,7 +1,7 @@
 package casciian.backend;
 
 import casciian.bits.ImageRGB;
-import casciian.bits.ByteArrayImageRGB;
+import casciian.bits.ArrayImageRGB;
 import casciian.terminal.SixelDecoder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -152,7 +152,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel encodes a simple solid color image")
         void testToSixelSolidColorImage() {
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             fillImageWithColor(image, 0xFF0000); // Red
             
             String sixel = encoder.toSixel(image);
@@ -166,7 +166,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel encodes a 1x1 pixel image")
         void testToSixelSinglePixel() {
-            ImageRGB image = new ByteArrayImageRGB(1, 1);
+            ImageRGB image = new ArrayImageRGB(1, 1);
             image.setRGB(0, 0, 0x00FF00); // Green
             
             String sixel = encoder.toSixel(image);
@@ -178,7 +178,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel encodes a 1x6 pixel image (single sixel row)")
         void testToSixelSingleSixelRow() {
-            ImageRGB image = new ByteArrayImageRGB(1, 6);
+            ImageRGB image = new ArrayImageRGB(1, 6);
             fillImageWithColor(image, 0x0000FF); // Blue
             
             String sixel = encoder.toSixel(image);
@@ -191,7 +191,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel encodes image with multiple colors")
         void testToSixelMultipleColors() {
-            ImageRGB image = new ByteArrayImageRGB(20, 20);
+            ImageRGB image = new ArrayImageRGB(20, 20);
             
             // Create a simple pattern with different colors
             for (int y = 0; y < 20; y++) {
@@ -221,7 +221,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel handles black image")
         void testToSixelBlackImage() {
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             fillImageWithColor(image, 0x000000); // Black
             
             String sixel = encoder.toSixel(image);
@@ -233,7 +233,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel handles white image")
         void testToSixelWhiteImage() {
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             fillImageWithColor(image, 0xFFFFFF); // White
             
             String sixel = encoder.toSixel(image);
@@ -246,7 +246,7 @@ class HQSixelEncoderTest {
         @DisplayName("toSixel encodes image with dimensions matching sixel row boundaries")
         void testToSixelSixelRowBoundaries() {
             // 12 = 2 * 6 (exactly two sixel rows)
-            ImageRGB image = new ByteArrayImageRGB(10, 12);
+            ImageRGB image = new ArrayImageRGB(10, 12);
             fillImageWithColor(image, 0x808080); // Gray
             
             String sixel = encoder.toSixel(image);
@@ -259,7 +259,7 @@ class HQSixelEncoderTest {
         @DisplayName("toSixel encodes image with height not multiple of 6")
         void testToSixelNonMultipleOf6Height() {
             // 13 = 2*6 + 1 (partial last sixel row)
-            ImageRGB image = new ByteArrayImageRGB(10, 13);
+            ImageRGB image = new ArrayImageRGB(10, 13);
             fillImageWithColor(image, 0x808080); // Gray
             
             String sixel = encoder.toSixel(image);
@@ -280,7 +280,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel with transparency flag encodes transparent pixels")
         void testToSixelWithTransparency() {
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             
             // Fill with semi-transparent pixels
             for (int y = 0; y < 10; y++) {
@@ -298,7 +298,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel without transparency flag treats transparent pixels as opaque")
         void testToSixelWithoutTransparency() {
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             
             for (int y = 0; y < 10; y++) {
                 for (int x = 0; x < 10; x++) {
@@ -315,7 +315,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel handles fully transparent pixels")
         void testToSixelFullyTransparentPixels() {
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             
             // Alpha = 0 means fully transparent
             for (int y = 0; y < 10; y++) {
@@ -332,7 +332,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel handles mixed opaque and transparent pixels")
         void testToSixelMixedTransparency() {
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             
             for (int y = 0; y < 10; y++) {
                 for (int x = 0; x < 10; x++) {
@@ -367,7 +367,7 @@ class HQSixelEncoderTest {
                 System.setProperty(key, "vt340");
                 HQSixelEncoder encoderWithVT340 = new HQSixelEncoder();
                 
-                ImageRGB image = new ByteArrayImageRGB(10, 10);
+                ImageRGB image = new ArrayImageRGB(10, 10);
                 fillImageWithColor(image, 0x3333CC); // VT340 color 1 (blue)
                 
                 String sixel = encoderWithVT340.toSixel(image);
@@ -392,7 +392,7 @@ class HQSixelEncoderTest {
                 System.setProperty(key, "cga");
                 HQSixelEncoder encoderWithCGA = new HQSixelEncoder();
                 
-                ImageRGB image = new ByteArrayImageRGB(10, 10);
+                ImageRGB image = new ArrayImageRGB(10, 10);
                 fillImageWithColor(image, 0xA80000); // CGA color 1 (red)
                 
                 String sixel = encoderWithCGA.toSixel(image);
@@ -418,7 +418,7 @@ class HQSixelEncoderTest {
             customPalette.put(2, 0x0000FF); // Blue
             customPalette.put(3, 0xFFFFFF); // White
             
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             fillImageWithColor(image, 0xFF0000);
             
             // API accepts Map interface directly, no cast needed
@@ -511,7 +511,7 @@ class HQSixelEncoderTest {
                 HQSixelEncoder newEncoder = new HQSixelEncoder();
                 
                 // We can verify by encoding - a fast and dirty encoder should produce output
-                ImageRGB image = new ByteArrayImageRGB(10, 10);
+                ImageRGB image = new ArrayImageRGB(10, 10);
                 fillImageWithColor(image, 0xFF0000);
                 
                 String sixel = newEncoder.toSixel(image);
@@ -577,7 +577,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("clearPalette followed by encoding still works")
         void testClearPaletteThenEncode() {
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             fillImageWithColor(image, 0xFF0000);
             
             // First encode
@@ -602,7 +602,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("Encoded sixel can be decoded back to an image")
         void testRoundtripEncodeDecode() {
-            ImageRGB original = new ByteArrayImageRGB(20, 20);
+            ImageRGB original = new ArrayImageRGB(20, 20);
             fillImageWithColor(original, 0xFF0000);
             
             String sixel = encoder.toSixel(original);
@@ -619,7 +619,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("Encoded multicolor image can be decoded")
         void testRoundtripMulticolor() {
-            ImageRGB original = new ByteArrayImageRGB(20, 12);
+            ImageRGB original = new ArrayImageRGB(20, 12);
             
             // Create horizontal stripes
             for (int y = 0; y < 12; y++) {
@@ -651,7 +651,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel handles moderately large image")
         void testToSixelLargeImage() {
-            ImageRGB image = new ByteArrayImageRGB(100, 100);
+            ImageRGB image = new ArrayImageRGB(100, 100);
             fillImageWithGradient(image);
             
             String sixel = encoder.toSixel(image);
@@ -664,7 +664,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel handles wide image")
         void testToSixelWideImage() {
-            ImageRGB image = new ByteArrayImageRGB(200, 10);
+            ImageRGB image = new ArrayImageRGB(200, 10);
             fillImageWithColor(image, 0x808080);
             
             String sixel = encoder.toSixel(image);
@@ -676,7 +676,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel handles tall image")
         void testToSixelTallImage() {
-            ImageRGB image = new ByteArrayImageRGB(10, 200);
+            ImageRGB image = new ArrayImageRGB(10, 200);
             fillImageWithColor(image, 0x808080);
             
             String sixel = encoder.toSixel(image);
@@ -697,7 +697,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel with minimum size image (1x1)")
         void testToSixelMinimumSize() {
-            ImageRGB image = new ByteArrayImageRGB(1, 1);
+            ImageRGB image = new ArrayImageRGB(1, 1);
             image.setRGB(0, 0, 0xABCDEF);
             
             String sixel = encoder.toSixel(image);
@@ -710,7 +710,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel output contains valid sixel characters")
         void testToSixelValidCharacters() {
-            ImageRGB image = new ByteArrayImageRGB(10, 12);
+            ImageRGB image = new ArrayImageRGB(10, 12);
             fillImageWithColor(image, 0x123456);
             
             String sixel = encoder.toSixel(image);
@@ -727,7 +727,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel with high color count image triggers median cut")
         void testToSixelHighColorCount() {
-            ImageRGB image = new ByteArrayImageRGB(50, 50);
+            ImageRGB image = new ArrayImageRGB(50, 50);
             
             // Create a gradient that uses many different colors
             for (int y = 0; y < 50; y++) {
@@ -750,7 +750,7 @@ class HQSixelEncoderTest {
         void testToSixelLowColorCount() {
             encoder.setPaletteSize(256);
             
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             // Use only 4 colors
             int[] colors = {0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00};
             for (int y = 0; y < 10; y++) {
@@ -777,7 +777,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("toSixel with suppressEmitPalette does not emit palette definitions")
         void testToSixelSuppressPalette() {
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             fillImageWithColor(image, 0xFF0000);
             
             // With palette suppression
@@ -803,7 +803,7 @@ class HQSixelEncoderTest {
                 System.setProperty(key, "false");
                 HQSixelEncoder newEncoder = new HQSixelEncoder();
                 
-                ImageRGB image = new ByteArrayImageRGB(10, 10);
+                ImageRGB image = new ArrayImageRGB(10, 10);
                 fillImageWithColor(image, 0xFF0000);
                 
                 String sixel = newEncoder.toSixel(image);
@@ -831,7 +831,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("Sixel output starts with raster attributes")
         void testSixelOutputStartsWithRasterAttributes() {
-            ImageRGB image = new ByteArrayImageRGB(15, 18);
+            ImageRGB image = new ArrayImageRGB(15, 18);
             fillImageWithColor(image, 0x123456);
             
             String sixel = encoder.toSixel(image);
@@ -843,7 +843,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("Sixel output contains color selection")
         void testSixelOutputContainsColorSelection() {
-            ImageRGB image = new ByteArrayImageRGB(10, 10);
+            ImageRGB image = new ArrayImageRGB(10, 10);
             fillImageWithColor(image, 0xFF0000);
             
             String sixel = encoder.toSixel(image);
@@ -856,7 +856,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("Sixel output uses run-length encoding for repeated pixels")
         void testSixelOutputUsesRLE() {
-            ImageRGB image = new ByteArrayImageRGB(100, 6);
+            ImageRGB image = new ArrayImageRGB(100, 6);
             fillImageWithColor(image, 0xFF0000);
             
             String sixel = encoder.toSixel(image);
@@ -870,7 +870,7 @@ class HQSixelEncoderTest {
         @DisplayName("Sixel output uses line breaks for sixel rows")
         void testSixelOutputUsesLineBreaks() {
             // 12 pixels high = 2 sixel rows
-            ImageRGB image = new ByteArrayImageRGB(10, 12);
+            ImageRGB image = new ArrayImageRGB(10, 12);
             fillImageWithColor(image, 0xFF0000);
             
             String sixel = encoder.toSixel(image);
@@ -899,7 +899,7 @@ class HQSixelEncoderTest {
         @Test
         @DisplayName("All SixelEncoder methods are callable")
         void testAllInterfaceMethodsCallable() {
-            ImageRGB image = new ByteArrayImageRGB(5, 5);
+            ImageRGB image = new ArrayImageRGB(5, 5);
             fillImageWithColor(image, 0xFF0000);
             
             assertDoesNotThrow(() -> {
@@ -949,7 +949,7 @@ class HQSixelEncoderTest {
                             // - Red component varies by thread (0-200)
                             // - Green component varies by iteration (0-150)
                             // - Blue component varies by both (0-180)
-                            ImageRGB image = new ByteArrayImageRGB(20, 12);
+                            ImageRGB image = new ArrayImageRGB(20, 12);
                             int red = (threadIndex * 50) & 0xFF;
                             int green = (i * 30) & 0xFF;
                             int blue = ((threadIndex + i) * 20) & 0xFF;
@@ -1009,7 +1009,7 @@ class HQSixelEncoderTest {
                 
                 threads[t] = new Thread(() -> {
                     try {
-                        ImageRGB image = new ByteArrayImageRGB(width, height);
+                        ImageRGB image = new ArrayImageRGB(width, height);
                         fillImageWithGradient(image);
                         
                         results[threadIndex] = sharedEncoder.toSixel(image);
@@ -1063,7 +1063,7 @@ class HQSixelEncoderTest {
                     configVisible.set(sharedEncoder.getPaletteSize() == 256);
                     
                     // Encode with the new configuration
-                    ImageRGB image = new ByteArrayImageRGB(10, 10);
+                    ImageRGB image = new ArrayImageRGB(10, 10);
                     fillImageWithColor(image, 0xFF0000);
                     result.set(sharedEncoder.toSixel(image));
                 } catch (InterruptedException e) {
