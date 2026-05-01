@@ -1,0 +1,67 @@
+/*
+ * Casciian Java Desktop add-on - demo
+ *
+ * Demonstrates registering the ImageIO-backed decoder so that PNG and JPEG
+ * files can be opened in Casciian's TImageWindow. Produces a fat JAR via the
+ * `jarDemo` task.
+ */
+plugins {
+    id 'application'
+}
+
+application {
+    mainClass = 'demo.JavaDesktopDemo'
+}
+
+dependencies {
+    implementation project(':casciian-java-desktop')
+    implementation "io.github.crramirez:casciian:${project.casciianVersion}"
+
+    // Casciian declares jline as `implementation`, so it is available at
+    // runtime via its POM. Re-declare here so the demo fat JAR explicitly
+    // includes it without relying on transitive resolution quirks.
+    implementation "org.jline:jline-terminal:${jlineVersion}"
+    implementation "org.jline:jline-terminal-jni:${jlineVersion}"
+}
+
+tasks.jar {
+    manifest {
+        attributes(
+                'Main-Class': 'demo.JavaDesktopDemo',
+                'Implementation-Version': project.version
+        )
+    }
+}
+
+// Demo fat JAR: includes the demo classes, the add-on, casciian, and all
+// runtime dependencies (jline, etc.). Not published.
+tasks.register('jarDemo', Jar) {
+    group = 'build'
+    description = 'Assembles a fat JAR containing the demo, the add-on, casciian and all runtime dependencies.'
+
+    from(sourceSets.main.output)
+
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    archiveBaseName.set('casciian-java-desktop-demo')
+    manifest {
+        attributes(
+                'Main-Class': 'demo.JavaDesktopDemo',
+                'Implementation-Version': project.version
+        )
+    }
+
+    // Module descriptors from multiple modules conflict in a single fat JAR
+    // (the demo runs from the classpath, not the module path).
+    exclude 'module-info.class'
+    exclude '**/module-info.class'
+}
+
+tasks.assemble {
+    dependsOn tasks.named('jarDemo')
+}
