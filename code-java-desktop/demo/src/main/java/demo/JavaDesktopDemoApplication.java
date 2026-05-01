@@ -16,16 +16,11 @@
 package demo;
 
 import casciian.TApplication;
-import casciian.TFileOpenBox;
-import casciian.TImageWindow;
-import casciian.event.TMenuEvent;
 import casciian.image.decoders.ImageDecoder;
 import casciian.image.decoders.ImageDecoderRegistry;
 import casciian.javadesktop.decoders.ImageIORGBDecoder;
-import casciian.menu.TMenu;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 /**
  * Demo TUI application showcasing the Casciian Java Desktop add-on.
@@ -42,9 +37,9 @@ public final class JavaDesktopDemoApplication extends TApplication {
      * Public constructor.
      *
      * @param backendType the desired backend type
-     * @throws Exception on backend errors
+     * @throws UnsupportedEncodingException on backend errors
      */
-    public JavaDesktopDemoApplication(final BackendType backendType) throws Exception {
+    public JavaDesktopDemoApplication(final BackendType backendType) throws UnsupportedEncodingException {
         super(backendType);
 
         // Register the ImageIO-backed decoder so File > Open can handle PNG
@@ -53,26 +48,11 @@ public final class JavaDesktopDemoApplication extends TApplication {
         ImageDecoder decoder = new ImageIORGBDecoder();
         ImageDecoderRegistry.getInstance().registerDecoder(decoder);
 
+        addToolMenu();
         addFileMenu();
         addWindowMenu();
         addHelpMenu();
 
         getBackend().setTitle("Casciian Java Desktop Add-on Demo");
-    }
-
-    @Override
-    public boolean onMenu(final TMenuEvent menu) {
-        if (menu.getId() == TMenu.MID_OPEN_FILE) {
-            try {
-                String filename = fileOpenBox(".", TFileOpenBox.Type.OPEN);
-                if (filename != null) {
-                    new TImageWindow(this, new File(filename));
-                }
-            } catch (IOException e) {
-                messageBox("Error", "Could not open image: " + e.getMessage());
-            }
-            return true;
-        }
-        return super.onMenu(menu);
     }
 }

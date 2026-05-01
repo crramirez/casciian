@@ -12,6 +12,28 @@
           </set>
         </option>
       </GradleProjectSettings>
+      <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/code" name="casciian">
+                <projects>
+                  <project path="$PROJECT_DIR$/code" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/code-java-desktop" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/code" />
+            <option value="$PROJECT_DIR$/code-java-desktop" />
+            <option value="$PROJECT_DIR$/code-java-desktop/casciian-java-desktop" />
+            <option value="$PROJECT_DIR$/code-java-desktop/demo" />
+          </set>
+        </option>
+      </GradleProjectSettings>
     </option>
   </component>
 </project>

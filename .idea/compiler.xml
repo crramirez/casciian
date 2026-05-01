@@ -5,5 +5,8 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_STRING" value="-Xlint -Xdiags:verbose -Xlint:-requires-automatic" />
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="code-java-desktop" options="" />
+    </option>
   </component>
 </project>
