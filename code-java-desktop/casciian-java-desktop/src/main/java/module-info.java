@@ -30,4 +30,7 @@ module casciian.java.desktop {
     requires java.desktop;
 
     exports casciian.javadesktop.decoders;
+
+    provides casciian.image.decoders.ImageDecoder
+        with casciian.javadesktop.decoders.ImageIORGBDecoder;
 }

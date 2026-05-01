@@ -90,6 +90,13 @@ tasks.register('jarDemo', Jar) {
     group = 'build'
     description = 'Assembles a fat JAR containing casciian/**, demo/**, and all runtime dependencies.'
 
+    // Place demo-only resources first so they take precedence over the
+    // library's META-INF/services file under DuplicatesStrategy.EXCLUDE.
+    // The demo services file lists the bundled demo decoders
+    // (BMP24ImageDecoder and XPMImageDecoder) alongside SixelImageDecoder
+    // so they are all discoverable via ServiceLoader from the fat JAR.
+    from('src/main/demo-resources')
+
     from(sourceSets.main.output)
 
     // Include all runtime dependencies (including jline) for a fat JAR
