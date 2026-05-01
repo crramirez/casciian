@@ -30,6 +30,13 @@ import java.nio.file.Path;
  */
 public class BMP24ImageDecoder implements ImageDecoder {
 
+    /**
+     * Public constructor.
+     */
+    public BMP24ImageDecoder() {
+        // Explicit no arg constructor
+    }
+
     @Override
     public ImageRGB decode(Path path) throws IOException {
         byte[] data = Files.readAllBytes(path);

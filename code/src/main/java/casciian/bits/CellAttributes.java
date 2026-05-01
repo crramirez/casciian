@@ -181,7 +181,7 @@ public class CellAttributes {
      * @return blink value
      */
     public final boolean isBlink() {
-        return ((flags & BLINK) == 0 ? false : true);
+        return ((flags & BLINK) != 0);
     }
 
     /**
@@ -203,7 +203,7 @@ public class CellAttributes {
      * @return reverse value
      */
     public final boolean isReverse() {
-        return ((flags & REVERSE) == 0 ? false : true);
+        return ((flags & REVERSE) != 0);
     }
 
     /**
@@ -225,7 +225,7 @@ public class CellAttributes {
      * @return underline value
      */
     public final boolean isUnderline() {
-        return ((flags & UNDERLINE) == 0 ? false : true);
+        return ((flags & UNDERLINE) != 0);
     }
 
     /**
@@ -247,7 +247,7 @@ public class CellAttributes {
      * @return protect value
      */
     public final boolean isProtect() {
-        return ((flags & PROTECT) == 0 ? false : true);
+        return ((flags & PROTECT) != 0);
     }
 
     /**
@@ -295,9 +295,9 @@ public class CellAttributes {
      */
     public final boolean isDefaultColor(final boolean foreground) {
         if (foreground) {
-            return ((flags & DEFAULT_FORECOLOR) == 0 ? false : true);
+            return ((flags & DEFAULT_FORECOLOR) != 0);
         }
-        return ((flags & DEFAULT_BACKCOLOR) == 0 ? false : true);
+        return ((flags & DEFAULT_BACKCOLOR) != 0);
     }
 
     /**
@@ -378,9 +378,9 @@ public class CellAttributes {
         }
 
         int offsetSlice = (flags & ANIMATION_TIME_MASK) >>> 16;
-        int slice = 0;
+        int slice;
         int sliceN = 16;
-        int sliceI = 0;
+        int sliceI;
         if ((flags & ANIMATION_PULSE_FAST) == 0) {
             // This is a fast pulse: 32 steps / second
             sliceN = 32;
@@ -395,11 +395,9 @@ public class CellAttributes {
             sliceI = sliceN - sliceI;
         }
         int pulseColorRGB = getPulseColorRGB();
-        int foreColorRGB = backend.attrToForegroundColor(this);
-        double fraction = (double) sliceI * 2.0 / (sliceN - 1);
-        int finalColor = ImageUtils.rgbMove(foreColorRGB, pulseColorRGB,
-            fraction);
-        return finalColor;
+        int fgRGB = backend.attrToForegroundColor(this);
+        double fraction = sliceI * 2.0 / (sliceN - 1);
+        return ImageUtils.rgbMove(fgRGB, pulseColorRGB, fraction);
     }
 
     /**
@@ -471,11 +469,10 @@ public class CellAttributes {
      */
     @Override
     public boolean equals(final Object rhs) {
-        if (!(rhs instanceof CellAttributes)) {
+        if (!(rhs instanceof CellAttributes that)) {
             return false;
         }
 
-        CellAttributes that = (CellAttributes) rhs;
         return ((flags == that.flags)
             && (foreColor == that.foreColor)
             && (backColor == that.backColor)
@@ -490,14 +487,14 @@ public class CellAttributes {
      */
     @Override
     public int hashCode() {
-        int A = 13;
-        int B = 23;
-        int hash = A;
-        hash = (B * hash) + flags;
-        hash = (B * hash) + foreColor.hashCode();
-        hash = (B * hash) + backColor.hashCode();
-        hash = (B * hash) + foreColorRGB;
-        hash = (B * hash) + backColorRGB;
+        int a = 13;
+        int b = 23;
+        int hash = a;
+        hash = (b * hash) + flags;
+        hash = (b * hash) + foreColor.hashCode();
+        hash = (b * hash) + backColor.hashCode();
+        hash = (b * hash) + foreColorRGB;
+        hash = (b * hash) + backColorRGB;
         return hash;
     }
 
@@ -591,10 +588,7 @@ public class CellAttributes {
      * @return pulse value
      */
     public final boolean isPulse() {
-        if ((flags & (ANIMATION_PULSE | ANIMATION_PULSE_FAST)) != 0) {
-            return true;
-        }
-        return false;
+        return (flags & (ANIMATION_PULSE | ANIMATION_PULSE_FAST)) != 0;
     }
 
     /**
@@ -612,10 +606,8 @@ public class CellAttributes {
         if (!pulse && !fast) {
             return;
         }
-        int sliceN = 16;
         if (fast) {
             flags |= ANIMATION_PULSE_FAST;
-            sliceN = 32;
             offset &= 0x1F;
         } else {
             flags |= ANIMATION_PULSE;
@@ -632,11 +624,9 @@ public class CellAttributes {
      */
     public final int getPulseColorRGB() {
         int pulseColor = (flags >>> 24) & 0xFF;
-        int colorRGB = ((pulseColor & 0xE0) << 16)
+        return ((pulseColor & 0xE0) << 16)
                 | ((pulseColor & 0x1C) << 11)
                 | ((pulseColor & 0x03) << 6);
-
-        return colorRGB;
     }
 
     /**
@@ -652,7 +642,6 @@ public class CellAttributes {
         flags &= ~ANIMATION_COLOR_MASK;
         flags |= color << 24;
 
-        // System.err.printf("setPulseColorRGB(): %08x\n", getPulseColorRGB());
     }
 
     /**
@@ -692,7 +681,7 @@ public class CellAttributes {
         }
 
         foreColorRGB = ImageUtils.rgbMove(foreColorRGB, backRGB,
-            (double) percent / 100.0);
+            percent / 100.0);
     }
 
     /**
@@ -709,73 +698,160 @@ public class CellAttributes {
             // NOP
         }
 
+        /**
+         * Set the bold flag.
+         *
+         * @param bold new bold flag
+         * @return this builder
+         */
         public Builder bold(final boolean bold) {
             attributes.setBold(bold);
             return this;
         }
 
+        /**
+         * Set the blink flag.
+         *
+         * @param blink new blink flag
+         * @return this builder
+         */
         public Builder blink(final boolean blink) {
             attributes.setBlink(blink);
             return this;
         }
 
+        /**
+         * Set the reverse flag.
+         *
+         * @param reverse new reverse flag
+         * @return this builder
+         */
         public Builder reverse(final boolean reverse) {
             attributes.setReverse(reverse);
             return this;
         }
 
+        /**
+         * Set the underline flag.
+         *
+         * @param underline new underline flag
+         * @return this builder
+         */
         public Builder underline(final boolean underline) {
             attributes.setUnderline(underline);
             return this;
         }
 
+        /**
+         * Set the protect flag.
+         *
+         * @param protect new protect flag
+         * @return this builder
+         */
         public Builder protect(final boolean protect) {
             attributes.setProtect(protect);
             return this;
         }
 
+        /**
+         * Set the foreground color.
+         *
+         * @param foreColor new foreground color
+         * @return this builder
+         */
         public Builder foreColor(final Color foreColor) {
             attributes.setForeColor(foreColor);
             return this;
         }
 
+        /**
+         * Set the background color.
+         *
+         * @param backColor new background color
+         * @return this builder
+         */
         public Builder backColor(final Color backColor) {
             attributes.setBackColor(backColor);
             return this;
         }
 
+        /**
+         * Set the foreground RGB color.
+         *
+         * @param foreColorRGB new foreground RGB color
+         * @return this builder
+         */
         public Builder foreColorRGB(final int foreColorRGB) {
             attributes.setForeColorRGB(foreColorRGB);
             return this;
         }
 
+        /**
+         * Set the background RGB color.
+         *
+         * @param backColorRGB new background RGB color
+         * @return this builder
+         */
         public Builder backColorRGB(final int backColorRGB) {
             attributes.setBackColorRGB(backColorRGB);
             return this;
         }
 
+        /**
+         * Set whether the foreground or background uses its default color.
+         *
+         * @param foreground if true, update the foreground default color flag;
+         * otherwise update the background default color flag
+         * @param defaultColor new default color flag
+         * @return this builder
+         */
         public Builder defaultColor(final boolean foreground,
             final boolean defaultColor) {
             attributes.setDefaultColor(foreground, defaultColor);
             return this;
         }
 
+        /**
+         * Set the animation flags.
+         *
+         * @param animationFlags new animation flags
+         * @return this builder
+         */
         public Builder animations(final int animationFlags) {
             attributes.setAnimations(animationFlags);
             return this;
         }
 
+        /**
+         * Set the pulse animation state.
+         *
+         * @param pulse new pulse flag
+         * @param fast new fast pulse flag
+         * @param offset new pulse offset
+         * @return this builder
+         */
         public Builder pulse(final boolean pulse, final boolean fast,
             final int offset) {
             attributes.setPulse(pulse, fast, offset);
             return this;
         }
 
+        /**
+         * Set the pulse color RGB value.
+         *
+         * @param pulseColorRGB new pulse color RGB value
+         * @return this builder
+         */
         public Builder pulseColorRGB(final int pulseColorRGB) {
             attributes.setPulseColorRGB(pulseColorRGB);
             return this;
         }
 
+        /**
+         * Build a new CellAttributes instance.
+         *
+         * @return new CellAttributes instance
+         */
         public CellAttributes build() {
             return new CellAttributes(attributes);
         }
