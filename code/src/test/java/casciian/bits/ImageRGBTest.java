@@ -13,17 +13,17 @@ class ImageRGBTest {
 
     @Test
     void testConstructorWithDimensions() {
-        ImageRGB image = new ImageRGB(10, 20);
+        ImageRGB image = new ArrayImageRGB(10, 20);
         assertEquals(10, image.getWidth());
         assertEquals(20, image.getHeight());
     }
 
     @Test
     void testConstructorCopy() {
-        ImageRGB original = new ImageRGB(5, 5);
+        ImageRGB original = new ArrayImageRGB(5, 5);
         original.setRGB(2, 3, 0xFF0000);
         
-        ImageRGB copy = new ImageRGB(original);
+        ImageRGB copy = new ArrayImageRGB(original);
         
         assertEquals(original.getWidth(), copy.getWidth());
         assertEquals(original.getHeight(), copy.getHeight());
@@ -37,7 +37,7 @@ class ImageRGBTest {
 
     @Test
     void testGetAndSetRGB() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         
         image.setRGB(5, 7, 0x123456);
         assertEquals(0x123456, image.getRGB(5, 7));
@@ -48,7 +48,7 @@ class ImageRGBTest {
 
     @Test
     void testGetRGBRegion() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         
         // Fill a 3x3 region with red
         for (int y = 2; y < 5; y++) {
@@ -70,7 +70,7 @@ class ImageRGBTest {
 
     @Test
     void testGetRGBRegionWithExistingArray() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         image.setRGB(1, 1, 0x00FF00);
         image.setRGB(2, 1, 0x0000FF);
         
@@ -84,7 +84,7 @@ class ImageRGBTest {
 
     @Test
     void testGetRGBRegionInvalidDimensions() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         
         Exception e1 = assertThrows(IllegalArgumentException.class, 
             () -> image.getRGB(-1, 0, 5, 5, null, 0, 5));
@@ -101,7 +101,7 @@ class ImageRGBTest {
 
     @Test
     void testSetRGBRegion() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         
         int[] rgbData = new int[9];
         for (int i = 0; i < 9; i++) {
@@ -120,7 +120,7 @@ class ImageRGBTest {
 
     @Test
     void testSetRGBRegionInvalidDimensions() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         int[] rgbData = new int[25];
         
         Exception e1 = assertThrows(IllegalArgumentException.class, 
@@ -134,8 +134,8 @@ class ImageRGBTest {
 
     @Test
     void testAlphaBlendOver() {
-        ImageRGB under = new ImageRGB(5, 5);
-        ImageRGB over = new ImageRGB(5, 5);
+        ImageRGB under = new ArrayImageRGB(5, 5);
+        ImageRGB over = new ArrayImageRGB(5, 5);
         
         // Fill under with red
         for (int y = 0; y < 5; y++) {
@@ -165,7 +165,7 @@ class ImageRGBTest {
 
     @Test
     void testAlphaBlendOverNullImage() {
-        ImageRGB image = new ImageRGB(5, 5);
+        ImageRGB image = new ArrayImageRGB(5, 5);
         
         Exception e = assertThrows(IllegalArgumentException.class, 
             () -> image.alphaBlendOver(null, 0.5));
@@ -174,8 +174,8 @@ class ImageRGBTest {
 
     @Test
     void testAlphaBlendOverMismatchedDimensions() {
-        ImageRGB image1 = new ImageRGB(5, 5);
-        ImageRGB image2 = new ImageRGB(10, 10);
+        ImageRGB image1 = new ArrayImageRGB(5, 5);
+        ImageRGB image2 = new ArrayImageRGB(10, 10);
         
         Exception e = assertThrows(IllegalArgumentException.class, 
             () -> image1.alphaBlendOver(image2, 0.5));
@@ -184,7 +184,7 @@ class ImageRGBTest {
 
     @Test
     void testGetSubimage() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         
         // Set some pixels
         image.setRGB(2, 3, 0xFF0000);
@@ -202,7 +202,7 @@ class ImageRGBTest {
 
     @Test
     void testGetSubimageInvalidDimensions() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         
         Exception e1 = assertThrows(IllegalArgumentException.class, 
             () -> image.getSubimage(-1, 0, 5, 5));
@@ -215,7 +215,7 @@ class ImageRGBTest {
 
     @Test
     void testGetSubimageBeyondBounds() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         image.setRGB(5, 5, 0xFF0000);
         
         // Request subimage that goes beyond bounds
@@ -229,7 +229,7 @@ class ImageRGBTest {
 
     @Test
     void testFillRect() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         
         image.fillRect(2, 3, 4, 3, 0xFF0000);
         
@@ -247,7 +247,7 @@ class ImageRGBTest {
 
     @Test
     void testFillRectInvalidDimensions() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         
         Exception e1 = assertThrows(IllegalArgumentException.class, 
             () -> image.fillRect(-1, 0, 5, 5, 0xFF0000));
@@ -260,7 +260,7 @@ class ImageRGBTest {
 
     @Test
     void testResizeCanvasLarger() {
-        ImageRGB image = new ImageRGB(5, 5);
+        ImageRGB image = new ArrayImageRGB(5, 5);
         image.setRGB(2, 2, 0xFF0000);
         
         ImageRGB resized = image.resizeCanvas(10, 10, 0x0000FF);
@@ -278,7 +278,7 @@ class ImageRGBTest {
 
     @Test
     void testResizeCanvasSmaller() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         image.setRGB(2, 2, 0xFF0000);
         image.setRGB(8, 8, 0x00FF00);
         
@@ -293,7 +293,7 @@ class ImageRGBTest {
 
     @Test
     void testResizeCanvasInvalidDimensions() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         
         Exception e1 = assertThrows(IllegalArgumentException.class, 
             () -> image.resizeCanvas(0, 10, 0));
@@ -306,7 +306,7 @@ class ImageRGBTest {
 
     @Test
     void testGetWidthAndHeight() {
-        ImageRGB image = new ImageRGB(123, 456);
+        ImageRGB image = new ArrayImageRGB(123, 456);
         
         assertEquals(123, image.getWidth());
         assertEquals(456, image.getHeight());
@@ -322,7 +322,7 @@ class ImageRGBTest {
     @DisplayName("Copy constructor with large image (parallel path)")
     void testConstructorCopyLargeImage() {
         // 200x100 = 20,000 pixels, exceeds PARALLEL_THRESHOLD of 10,000
-        ImageRGB original = new ImageRGB(200, 100);
+        ImageRGB original = new ArrayImageRGB(200, 100);
         
         // Set pixels at various locations to verify correct copying
         original.setRGB(0, 0, 0xFF0000);      // top-left corner
@@ -330,7 +330,7 @@ class ImageRGBTest {
         original.setRGB(100, 50, 0x0000FF);   // center
         original.setRGB(50, 25, 0xFFFF00);    // quarter point
         
-        ImageRGB copy = new ImageRGB(original);
+        ImageRGB copy = new ArrayImageRGB(original);
         
         assertEquals(original.getWidth(), copy.getWidth());
         assertEquals(original.getHeight(), copy.getHeight());
@@ -351,8 +351,8 @@ class ImageRGBTest {
     @DisplayName("alphaBlendOver with large image (parallel path)")
     void testAlphaBlendOverLargeImage() {
         // 150x100 = 15,000 pixels, exceeds PARALLEL_THRESHOLD
-        ImageRGB under = new ImageRGB(150, 100);
-        ImageRGB over = new ImageRGB(150, 100);
+        ImageRGB under = new ArrayImageRGB(150, 100);
+        ImageRGB over = new ArrayImageRGB(150, 100);
         
         // Fill under with red, over with blue
         for (int y = 0; y < 100; y++) {
@@ -382,7 +382,7 @@ class ImageRGBTest {
     @DisplayName("getSubimage with large image (parallel path)")
     void testGetSubimageLargeImage() {
         // 200x100 = 20,000 pixels source, extracting 150x100 = 15,000 pixels
-        ImageRGB image = new ImageRGB(200, 100);
+        ImageRGB image = new ArrayImageRGB(200, 100);
         
         // Set pixels at specific positions
         image.setRGB(10, 10, 0xFF0000);
@@ -404,7 +404,7 @@ class ImageRGBTest {
     @DisplayName("fillRect with large area (parallel path)")
     void testFillRectLargeImage() {
         // 200x100 = 20,000 pixels
-        ImageRGB image = new ImageRGB(200, 100);
+        ImageRGB image = new ArrayImageRGB(200, 100);
         
         // Fill a large rectangle: 150x80 = 12,000 pixels
         image.fillRect(10, 10, 150, 80, 0xFF0000);
@@ -425,7 +425,7 @@ class ImageRGBTest {
     @DisplayName("resizeCanvas larger with large image (parallel path)")
     void testResizeCanvasLargerLargeImage() {
         // Original: 100x100 = 10,000 pixels
-        ImageRGB image = new ImageRGB(100, 100);
+        ImageRGB image = new ArrayImageRGB(100, 100);
         image.setRGB(0, 0, 0xFF0000);
         image.setRGB(99, 99, 0x00FF00);
         image.setRGB(50, 50, 0x0000FF);
@@ -452,7 +452,7 @@ class ImageRGBTest {
     @DisplayName("resizeCanvas smaller with large image (parallel path)")
     void testResizeCanvasSmallerLargeImage() {
         // Original: 200x150 = 30,000 pixels
-        ImageRGB image = new ImageRGB(200, 150);
+        ImageRGB image = new ArrayImageRGB(200, 150);
         image.setRGB(0, 0, 0xFF0000);
         image.setRGB(99, 99, 0x00FF00);
         image.setRGB(50, 50, 0x0000FF);
@@ -474,7 +474,7 @@ class ImageRGBTest {
     @DisplayName("getRGB region with large image (parallel path)")
     void testGetRGBRegionLargeImage() {
         // 200x100 = 20,000 pixels, exceeds PARALLEL_THRESHOLD of 10,000
-        ImageRGB image = new ImageRGB(200, 100);
+        ImageRGB image = new ArrayImageRGB(200, 100);
 
         // Set pixels at known positions within the region to extract
         image.setRGB(10, 10, 0xFF0000);
@@ -501,7 +501,7 @@ class ImageRGBTest {
     @DisplayName("setRGB region with large image (parallel path)")
     void testSetRGBRegionLargeImage() {
         // 200x100 = 20,000 pixels, exceeds PARALLEL_THRESHOLD of 10,000
-        ImageRGB image = new ImageRGB(200, 100);
+        ImageRGB image = new ArrayImageRGB(200, 100);
 
         // Create a large RGB data array: 150x80 = 12,000 pixels
         int w = 150;
@@ -528,7 +528,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("getRGB with offset and scansize larger than width")
     void testGetRGBRegionWithOffsetAndScansize() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         for (int y = 0; y < 3; y++) {
             for (int x = 0; x < 4; x++) {
                 image.setRGB(x + 2, y + 3, 0x100 * y + x + 1);
@@ -554,7 +554,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("setRGB with offset and scansize larger than width")
     void testSetRGBRegionWithOffsetAndScansize() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
 
         // Source array with offset=3, scansize=5 (larger than w=3)
         int[] rgbData = new int[20];
@@ -582,7 +582,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("getRGB and setRGB with single-pixel region boundary")
     void testGetSetRGBSinglePixelRegion() {
-        ImageRGB image = new ImageRGB(5, 5);
+        ImageRGB image = new ArrayImageRGB(5, 5);
         image.setRGB(4, 4, 0xABCDEF);
 
         // Single pixel at corner
@@ -600,7 +600,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("scale: invalid dimensions throw IllegalArgumentException")
     void testScaleInvalidDimensions() {
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         assertThrows(IllegalArgumentException.class, () -> image.scale(0, 10));
         assertThrows(IllegalArgumentException.class, () -> image.scale(10, 0));
         assertThrows(IllegalArgumentException.class, () -> image.scale(-1, 10));
@@ -610,7 +610,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("scale: result has correct dimensions")
     void testScaleDimensions() {
-        ImageRGB image = new ImageRGB(20, 30);
+        ImageRGB image = new ArrayImageRGB(20, 30);
         ImageRGB scaled = image.scale(40, 60);
         assertEquals(40, scaled.getWidth());
         assertEquals(60, scaled.getHeight());
@@ -620,7 +620,7 @@ class ImageRGBTest {
     @DisplayName("scale: uniform color is preserved")
     void testScaleUniformColor() {
         int color = 0x336699;
-        ImageRGB image = new ImageRGB(10, 10);
+        ImageRGB image = new ArrayImageRGB(10, 10);
         image.fillRect(0, 0, 10, 10, color);
 
         ImageRGB up = image.scale(20, 20);
@@ -643,7 +643,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("scale: 1x1 image scales to uniform output")
     void testScale1x1() {
-        ImageRGB image = new ImageRGB(1, 1);
+        ImageRGB image = new ArrayImageRGB(1, 1);
         image.setRGB(0, 0, 0xAABBCC);
 
         ImageRGB scaled = image.scale(5, 5);
@@ -663,7 +663,7 @@ class ImageRGBTest {
         // interior pixels in theory, but two-pass floating-point
         // arithmetic may introduce ±1 rounding per channel.
         int w = 20, h = 20;
-        ImageRGB image = new ImageRGB(w, h);
+        ImageRGB image = new ArrayImageRGB(w, h);
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 // Keep values safely within [0, 255]: max = 19*5 + 19*3 = 152
@@ -688,7 +688,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("scale: scale down reduces dimensions correctly")
     void testScaleDown() {
-        ImageRGB image = new ImageRGB(100, 100);
+        ImageRGB image = new ArrayImageRGB(100, 100);
         image.fillRect(0, 0, 100, 100, 0x112233);
 
         ImageRGB scaled = image.scale(25, 25);
@@ -704,7 +704,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("scale: non-square scaling")
     void testScaleNonSquare() {
-        ImageRGB image = new ImageRGB(20, 10);
+        ImageRGB image = new ArrayImageRGB(20, 10);
         image.fillRect(0, 0, 20, 10, 0xFFFFFF);
 
         ImageRGB scaled = image.scale(40, 5);
@@ -721,7 +721,7 @@ class ImageRGBTest {
     @DisplayName("scale: large image uses parallel path")
     void testScaleLargeImage() {
         // 200*200 = 40,000 pixels exceeds PARALLEL_THRESHOLD (10,000)
-        ImageRGB image = new ImageRGB(200, 200);
+        ImageRGB image = new ArrayImageRGB(200, 200);
         image.fillRect(0, 0, 200, 200, 0x445566);
 
         ImageRGB scaled = image.scale(100, 100);
@@ -738,7 +738,7 @@ class ImageRGBTest {
     @DisplayName("scale: preserves channel independence")
     void testScaleChannelIndependence() {
         // Pure red image
-        ImageRGB red = new ImageRGB(10, 10);
+        ImageRGB red = new ArrayImageRGB(10, 10);
         red.fillRect(0, 0, 10, 10, 0xFF0000);
         ImageRGB scaledRed = red.scale(5, 5);
         for (int y = 0; y < 5; y++) {
@@ -756,7 +756,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("rotate: clockwise swaps dimensions")
     void testRotateClockwiseDimensions() {
-        ImageRGB image = new ImageRGB(10, 20);
+        ImageRGB image = new ArrayImageRGB(10, 20);
         ImageRGB rotated = image.rotate(1);
         assertEquals(20, rotated.getWidth());
         assertEquals(10, rotated.getHeight());
@@ -765,7 +765,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("rotate: counter-clockwise swaps dimensions")
     void testRotateCounterClockwiseDimensions() {
-        ImageRGB image = new ImageRGB(10, 20);
+        ImageRGB image = new ArrayImageRGB(10, 20);
         ImageRGB rotated = image.rotate(3);
         assertEquals(20, rotated.getWidth());
         assertEquals(10, rotated.getHeight());
@@ -775,7 +775,7 @@ class ImageRGBTest {
     @DisplayName("rotate: clockwise pixel mapping is correct")
     void testRotateClockwisePixels() {
         // 3x2 image (W=3, H=2)
-        ImageRGB image = new ImageRGB(3, 2);
+        ImageRGB image = new ArrayImageRGB(3, 2);
         // Row 0: 1  2  3
         // Row 1: 4  5  6
         image.setRGB(0, 0, 1);
@@ -804,7 +804,7 @@ class ImageRGBTest {
     @DisplayName("rotate: counter-clockwise pixel mapping is correct")
     void testRotateCounterClockwisePixels() {
         // 3x2 image (W=3, H=2)
-        ImageRGB image = new ImageRGB(3, 2);
+        ImageRGB image = new ArrayImageRGB(3, 2);
         image.setRGB(0, 0, 1);
         image.setRGB(1, 0, 2);
         image.setRGB(2, 0, 3);
@@ -830,7 +830,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("rotate: four clockwise rotations return to original")
     void testRotateFourTimesIdentity() {
-        ImageRGB image = new ImageRGB(4, 3);
+        ImageRGB image = new ArrayImageRGB(4, 3);
         for (int y = 0; y < 3; y++) {
             for (int x = 0; x < 4; x++) {
                 image.setRGB(x, y, x * 100 + y);
@@ -855,7 +855,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("rotate: clockwise then counter-clockwise is identity")
     void testRotateClockwiseThenCounterClockwise() {
-        ImageRGB image = new ImageRGB(5, 3);
+        ImageRGB image = new ArrayImageRGB(5, 3);
         for (int y = 0; y < 3; y++) {
             for (int x = 0; x < 5; x++) {
                 image.setRGB(x, y, x + y * 10);
@@ -876,7 +876,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("rotate: 1x1 image stays the same")
     void testRotate1x1() {
-        ImageRGB image = new ImageRGB(1, 1);
+        ImageRGB image = new ArrayImageRGB(1, 1);
         image.setRGB(0, 0, 0xABCDEF);
 
         ImageRGB cw = image.rotate(1);
@@ -893,7 +893,7 @@ class ImageRGBTest {
     @Test
     @DisplayName("rotate: square image clockwise")
     void testRotateSquareClockwise() {
-        ImageRGB image = new ImageRGB(3, 3);
+        ImageRGB image = new ArrayImageRGB(3, 3);
         // 1 2 3
         // 4 5 6
         // 7 8 9
@@ -929,7 +929,7 @@ class ImageRGBTest {
     @DisplayName("rotate: 180 degrees preserves dimensions and maps pixels correctly")
     void testRotate180Degrees() {
         // 3x2 image (W=3, H=2)
-        ImageRGB image = new ImageRGB(3, 2);
+        ImageRGB image = new ArrayImageRGB(3, 2);
         // Row 0: 1  2  3
         // Row 1: 4  5  6
         image.setRGB(0, 0, 1);
@@ -957,7 +957,7 @@ class ImageRGBTest {
     @DisplayName("rotate: negative value is equivalent to counter-clockwise")
     void testRotateNegativeValue() {
         // A single 90° counter-clockwise rotation (rotate(3)) should equal rotate(-1)
-        ImageRGB image = new ImageRGB(3, 2);
+        ImageRGB image = new ArrayImageRGB(3, 2);
         image.setRGB(0, 0, 1);
         image.setRGB(1, 0, 2);
         image.setRGB(2, 0, 3);

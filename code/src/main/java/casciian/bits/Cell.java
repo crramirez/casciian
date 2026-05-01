@@ -200,9 +200,9 @@ public class Cell extends CellAttributes {
         }
 
         if (invertedImage != null) {
-            return new ImageRGB(invertedImage);
+            return new ArrayImageRGB(invertedImage);
         } else {
-            return new ImageRGB(image);
+            return new ArrayImageRGB(image);
         }
     }
 
@@ -293,7 +293,7 @@ public class Cell extends CellAttributes {
             return;
         }
         if (invertedImage == null) {
-            invertedImage = new ImageRGB(image.getWidth(), image.getHeight());
+            invertedImage = new ArrayImageRGB(image.getWidth(), image.getHeight());
 
             int [] rgbArray = image.getRGB(0, 0,
                 image.getWidth(), image.getHeight(), null, 0, image.getWidth());
