@@ -36,6 +36,8 @@ import java.util.regex.Pattern;
  */
 public class XPMImageDecoder implements ImageDecoder {
 
+    // Possessive quantifiers (\\d++ and \\s++) prevent catastrophic backtracking
+    // (ReDoS) when matching lines from user-controlled XPM files.
     private static final Pattern VALUES_PATTERN = Pattern.compile("\"(\\d++)\\s++(\\d++)\\s++(\\d++)\\s++(\\d++)[^\"]*\"");
     private static final Pattern PIXEL_PATTERN = Pattern.compile("\"(.+?)\"");
 

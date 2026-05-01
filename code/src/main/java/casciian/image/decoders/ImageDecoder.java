@@ -81,7 +81,12 @@ public interface ImageDecoder {
      */
     default ImageRGB decode(URL url) throws IOException {
         URLConnection connection = url.openConnection();
-        String mimeType = connection.getContentType();
+        // Extract only the base MIME type, stripping any parameters such as
+        // "charset=utf-8" (e.g., "image/png; charset=utf-8" -> "image/png").
+        String rawContentType = connection.getContentType();
+        String mimeType = rawContentType != null
+            ? rawContentType.split(";")[0].trim()
+            : null;
         try (InputStream is = connection.getInputStream()) {
             return decode(is, mimeType);
         }
