@@ -139,6 +139,12 @@ public class ImageDecoderRegistry {
     /**
      * Find a decoder that can handle the given MIME type.
      *
+     * <p>The lookup is case-insensitive and strips any parameters from the supplied
+     * MIME type (e.g., {@code "image/png; charset=utf-8"} is treated as
+     * {@code "image/png"}) before matching against the values returned by
+     * {@link ImageDecoder#getSupportedMimeTypes()}. Supported MIME types declared by
+     * decoders are also normalized to lower-case for comparison.</p>
+     *
      * @param mimeType the MIME type of the image (e.g., {@code "image/png"})
      * @return a matching decoder, or empty if none found
      */
@@ -146,9 +152,13 @@ public class ImageDecoderRegistry {
         if (mimeType == null) {
             return Optional.empty();
         }
+        // Normalize: strip parameters (e.g. "; charset=utf-8") and lower-case.
+        String normalizedMimeType = mimeType.split(";")[0].trim().toLowerCase(java.util.Locale.ROOT);
         for (ImageDecoder decoder : decoders) {
-            if (decoder.getSupportedMimeTypes().contains(mimeType)) {
-                return Optional.of(decoder);
+            for (String supported : decoder.getSupportedMimeTypes()) {
+                if (supported.toLowerCase(java.util.Locale.ROOT).equals(normalizedMimeType)) {
+                    return Optional.of(decoder);
+                }
             }
         }
         return Optional.empty();

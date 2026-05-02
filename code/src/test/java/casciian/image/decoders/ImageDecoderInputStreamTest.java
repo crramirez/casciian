@@ -115,6 +115,19 @@ class ImageDecoderInputStreamTest {
     }
 
     @Test
+    @DisplayName("findDecoder(mimeType) is case-insensitive")
+    void findDecoderByMimeTypeIsCaseInsensitive() {
+        assertTrue(registry.findDecoder("IMAGE/X-STUB").isPresent());
+        assertTrue(registry.findDecoder("Image/X-Stub").isPresent());
+    }
+
+    @Test
+    @DisplayName("findDecoder(mimeType) strips parameters before matching")
+    void findDecoderByMimeTypeStripsParameters() {
+        assertTrue(registry.findDecoder("image/x-stub; charset=utf-8").isPresent());
+    }
+
+    @Test
     @DisplayName("findDecoder(mimeType) returns empty when no decoder matches")
     void findDecoderByMimeTypeReturnsEmptyForUnknown() {
         assertTrue(registry.findDecoder("image/unknown-format").isEmpty());

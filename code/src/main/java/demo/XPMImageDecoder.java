@@ -88,6 +88,11 @@ public class XPMImageDecoder implements ImageDecoder {
             Matcher matcher = PIXEL_PATTERN.matcher(line);
             if (matcher.find()) {
                 String content = matcher.group(1);
+                if (content.length() < charsPerPixel) {
+                    throw new IOException(
+                        "Invalid XPM color entry: expected at least " + charsPerPixel
+                            + " character(s) per pixel, got " + content.length());
+                }
                 String key = content.substring(0, charsPerPixel);
                 String colorPart = content.substring(charsPerPixel).trim();
 
