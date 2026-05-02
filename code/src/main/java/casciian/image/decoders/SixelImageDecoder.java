@@ -19,8 +19,9 @@ import casciian.bits.ImageRGB;
 import casciian.terminal.SixelDecoder;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * Image decoder for Sixel format files.
@@ -32,10 +33,15 @@ public class SixelImageDecoder implements ImageDecoder {
     }
 
     @Override
-    public ImageRGB decode(Path path) throws IOException {
-        String content = Files.readString(path);
+    public ImageRGB decode(InputStream inputStream, String mimeType) throws IOException {
+        String content = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         SixelDecoder decoder = new SixelDecoder(content, null, 0xFFFFFF, false);
         return decoder.getImage();
+    }
+
+    @Override
+    public List<String> getSupportedMimeTypes() {
+        return List.of("image/x-sixel");
     }
 
     @Override

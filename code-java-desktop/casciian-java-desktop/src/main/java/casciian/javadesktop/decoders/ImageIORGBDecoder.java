@@ -22,7 +22,8 @@ import casciian.image.decoders.ImageDecoder;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.io.InputStream;
+import java.util.List;
 
 /**
  * Image decoder that uses {@link javax.imageio.ImageIO} from the
@@ -91,13 +92,14 @@ public class ImageIORGBDecoder implements ImageDecoder {
     }
 
     @Override
-    public ImageRGB decode(final Path path) throws IOException {
-        if (path == null) {
-            throw new IllegalArgumentException("path must not be null");
+    public ImageRGB decode(final InputStream inputStream, final String mimeType) throws IOException {
+        if (inputStream == null) {
+            throw new IllegalArgumentException("inputStream must not be null");
         }
-        BufferedImage buffered = ImageIO.read(path.toFile());
+        BufferedImage buffered = ImageIO.read(inputStream);
         if (buffered == null) {
-            throw new IOException("ImageIO could not decode file: " + path);
+            throw new IOException("ImageIO could not decode stream"
+                + (mimeType != null ? " (MIME type: " + mimeType + ")" : ""));
         }
 
         int width = buffered.getWidth();
@@ -111,6 +113,11 @@ public class ImageIORGBDecoder implements ImageDecoder {
         ImageRGB image = new ArrayImageRGB(width, height);
         image.setRGB(0, 0, width, height, pixels, 0, width);
         return image;
+    }
+
+    @Override
+    public List<String> getSupportedMimeTypes() {
+        return List.of("image/png", "image/jpeg");
     }
 
     @Override
