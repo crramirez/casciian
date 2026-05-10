@@ -70,7 +70,7 @@ public class BufferedImageRGB implements ImageRGB {
 
     /**
      * Creates a new {@code TYPE_INT_ARGB} image of the given dimensions. All
-     * pixels are initialised to {@code 0x00000000} (fully transparent black),
+     * pixels are initialized to {@code 0x00000000} (fully transparent black),
      * which is the {@link BufferedImage} default for {@code TYPE_INT_ARGB}.
      *
      * @param width  the number of pixels in width (must be positive)
@@ -261,7 +261,7 @@ public class BufferedImageRGB implements ImageRGB {
         }
 
         // Mirror ArrayImageRGB#getSubimage semantics: clamp to source bounds
-        // and leave any out-of-bounds region zero-initialised.
+        // and leave any out-of-bounds region zero-initialized.
         int copyWidth = Math.min(w, width - x);
         int copyHeight = Math.min(h, height - y);
 
@@ -382,7 +382,7 @@ public class BufferedImageRGB implements ImageRGB {
                 transform.rotate(-Math.PI / 2);
             }
             default -> {
-                // Unreachable: turns has been normalised to [0, 3] above.
+                // Unreachable: turns has been normalized to [0, 3] above.
             }
         }
 
