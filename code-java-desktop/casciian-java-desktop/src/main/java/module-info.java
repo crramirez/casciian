@@ -27,9 +27,10 @@
  */
 module casciian.java.desktop {
     requires transitive casciian;
-    requires java.desktop;
+    requires transitive java.desktop;
 
     exports casciian.javadesktop.decoders;
+    exports casciian.javadesktop.image;
 
     provides casciian.image.decoders.ImageDecoder
         with casciian.javadesktop.decoders.ImageIORGBDecoder;

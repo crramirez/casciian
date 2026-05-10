@@ -16,8 +16,8 @@
 package casciian.javadesktop.decoders;
 
 import casciian.bits.ImageRGB;
-import casciian.bits.ArrayImageRGB;
 import casciian.image.decoders.ImageDecoder;
+import casciian.javadesktop.image.BufferedImageRGB;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -102,17 +102,12 @@ public class ImageIORGBDecoder implements ImageDecoder {
                 + (mimeType != null ? " (MIME type: " + mimeType + ")" : ""));
         }
 
-        int width = buffered.getWidth();
-        int height = buffered.getHeight();
-
-        // Read the entire image into a single int[] in TYPE_INT_ARGB layout
-        // and then bulk-copy it into the ImageRGB. This is more efficient
-        // than per-pixel BufferedImage#getRGB calls.
-        int[] pixels = buffered.getRGB(0, 0, width, height, null, 0, width);
-
-        ImageRGB image = new ArrayImageRGB(width, height);
-        image.setRGB(0, 0, width, height, pixels, 0, width);
-        return image;
+        // Wrap the decoded BufferedImage directly in a BufferedImageRGB.
+        // This avoids the intermediate int[] copy that would be required
+        // to populate a separate ArrayImageRGB and lets downstream code
+        // continue to operate on the data through Java 2D's accelerated
+        // Graphics2D pipeline.
+        return new BufferedImageRGB(buffered);
     }
 
     @Override
