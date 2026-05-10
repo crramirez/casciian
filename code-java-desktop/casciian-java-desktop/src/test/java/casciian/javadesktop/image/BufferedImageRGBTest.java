@@ -78,6 +78,34 @@ class BufferedImageRGBTest {
     }
 
     @Test
+    void wrapsBufferedImageWithDifferentTypeByConverting() {
+        // TYPE_INT_RGB has no alpha channel; the wrapping constructor must
+        // convert it into a TYPE_INT_ARGB backing image so the rest of the
+        // class can rely on the 0xAARRGGBB raster layout.
+        BufferedImage backing = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB);
+        backing.setRGB(0, 0, RED);
+        backing.setRGB(1, 0, GREEN);
+        backing.setRGB(0, 1, BLUE);
+        backing.setRGB(1, 1, WHITE);
+
+        BufferedImageRGB image = new BufferedImageRGB(backing);
+
+        assertThat(image.getBufferedImage().getType())
+                .isEqualTo(BufferedImage.TYPE_INT_ARGB);
+        // Conversion produces an independent image: the original is not
+        // referenced and changes to it must not affect the wrapper.
+        assertThat(image.getBufferedImage()).isNotSameAs(backing);
+
+        assertThat(image.getRGB(0, 0)).isEqualTo(RED);
+        assertThat(image.getRGB(1, 0)).isEqualTo(GREEN);
+        assertThat(image.getRGB(0, 1)).isEqualTo(BLUE);
+        assertThat(image.getRGB(1, 1)).isEqualTo(WHITE);
+
+        backing.setRGB(0, 0, BLUE);
+        assertThat(image.getRGB(0, 0)).isEqualTo(RED);
+    }
+
+    @Test
     void getAndSetSinglePixelRoundTrip() {
         BufferedImageRGB image = new BufferedImageRGB(2, 2);
         image.setRGB(0, 0, RED);
@@ -165,10 +193,24 @@ class BufferedImageRGBTest {
 
         assertThatThrownBy(() -> image.fillRect(-1, 0, 1, 1, RED))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> image.fillRect(0, 0, 0, 1, RED))
-                .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> image.fillRect(2, 2, 5, 5, RED))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void fillRectWithZeroSizeIsNoOp() {
+        // Match ArrayImageRGB#fillRect, which silently ignores zero/negative
+        // sizes rather than throwing.
+        BufferedImageRGB image = solid(2, 2, RED);
+
+        image.fillRect(0, 0, 0, 1, BLUE);
+        image.fillRect(0, 0, 1, 0, BLUE);
+
+        for (int y = 0; y < 2; y++) {
+            for (int x = 0; x < 2; x++) {
+                assertThat(image.getRGB(x, y)).isEqualTo(RED);
+            }
+        }
     }
 
     @Test
@@ -311,7 +353,7 @@ class BufferedImageRGBTest {
 
     @Test
     void rotateNinetyClockwiseSwapsDimensionsAndPositions() {
-        // 2x3 image:
+        // 3x2 image:
         // R . .
         // . . B
         BufferedImageRGB image = new BufferedImageRGB(3, 2);

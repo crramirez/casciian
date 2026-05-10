@@ -69,8 +69,9 @@ public class BufferedImageRGB implements ImageRGB {
     private final int height;
 
     /**
-     * Creates a new opaque-black {@code TYPE_INT_ARGB} image of the given
-     * dimensions.
+     * Creates a new {@code TYPE_INT_ARGB} image of the given dimensions. All
+     * pixels are initialised to {@code 0x00000000} (fully transparent black),
+     * which is the {@link BufferedImage} default for {@code TYPE_INT_ARGB}.
      *
      * @param width  the number of pixels in width (must be positive)
      * @param height the number of pixels in height (must be positive)
@@ -89,10 +90,18 @@ public class BufferedImageRGB implements ImageRGB {
     /**
      * Wraps the supplied {@link BufferedImage} in an {@code ImageRGB} view.
      *
-     * <p>The supplied image is used as-is (no defensive copy): subsequent
-     * mutations through this {@code BufferedImageRGB} are reflected on the
-     * underlying {@code BufferedImage}, and vice versa. Callers that need
-     * isolation should pass a copy.
+     * <p>If the supplied image is already of type
+     * {@link BufferedImage#TYPE_INT_ARGB} it is used as-is (no defensive
+     * copy): subsequent mutations through this {@code BufferedImageRGB} are
+     * reflected on the underlying {@code BufferedImage}, and vice versa.
+     * Callers that need isolation in that case should pass a copy.
+     *
+     * <p>If the supplied image has a different type, the pixels are converted
+     * into a freshly allocated {@code TYPE_INT_ARGB} {@code BufferedImage}
+     * (via {@link Graphics2D#drawImage} under {@link AlphaComposite#Src}) so
+     * that the rest of this class can rely on the 0xAARRGGBB raster layout
+     * for fast bulk pixel operations. In that case the original image is not
+     * referenced and changes to it will not be reflected here.
      *
      * @param image the BufferedImage to wrap (must be non-{@code null})
      * @throws IllegalArgumentException if {@code image} is {@code null}
@@ -101,9 +110,25 @@ public class BufferedImageRGB implements ImageRGB {
         if (image == null) {
             throw new IllegalArgumentException("image must not be null");
         }
-        this.image = image;
-        this.width = image.getWidth();
-        this.height = image.getHeight();
+        if (image.getType() == BufferedImage.TYPE_INT_ARGB) {
+            this.image = image;
+        } else {
+            // Convert to TYPE_INT_ARGB so the rest of the class can rely on
+            // the 0xAARRGGBB raster layout used by Casciian's ImageRGB API.
+            BufferedImage converted = new BufferedImage(
+                    image.getWidth(), image.getHeight(),
+                    BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = converted.createGraphics();
+            try {
+                g.setComposite(AlphaComposite.Src);
+                g.drawImage(image, 0, 0, null);
+            } finally {
+                g.dispose();
+            }
+            this.image = converted;
+        }
+        this.width = this.image.getWidth();
+        this.height = this.image.getHeight();
     }
 
     /**
@@ -198,6 +223,16 @@ public class BufferedImageRGB implements ImageRGB {
         // Use AWT's accelerated SrcOver composite. This delegates to native
         // 2D rendering (often hardware-accelerated) and avoids per-pixel
         // arithmetic in Java.
+        //
+        // Note on semantics: SRC_OVER honours the per-pixel alpha channel of
+        // the overlay (and of the destination), so blending an overlay whose
+        // pixels have alpha < 0xFF can produce non-opaque output. The current
+        // ArrayImageRGB#alphaBlendOver implementation ignores per-pixel alpha
+        // and always writes opaque (0xFFxxxxxx) results. This implementation
+        // is intentionally aligned with the more general AWT semantics on the
+        // assumption that ArrayImageRGB will eventually support non-opaque
+        // outputs as well; until then, callers that need bit-exact equality
+        // with the core implementation should use ArrayImageRGB.
         BufferedImage overlay;
         if (other instanceof BufferedImageRGB b) {
             overlay = b.image;
@@ -261,7 +296,12 @@ public class BufferedImageRGB implements ImageRGB {
     public void fillRect(final int startX, final int startY,
                          final int rectWidth, final int rectHeight,
                          final int color) {
-        if (startX < 0 || startY < 0 || rectWidth <= 0 || rectHeight <= 0
+        if (rectWidth <= 0 || rectHeight <= 0) {
+            // Match ArrayImageRGB#fillRect, which silently treats zero/negative
+            // sizes as a no-op (its row loop simply does not execute).
+            return;
+        }
+        if (startX < 0 || startY < 0
                 || startX + rectWidth > width || startY + rectHeight > height) {
             throw new IllegalArgumentException("Invalid fill rectangle dimensions");
         }
