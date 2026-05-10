@@ -63,6 +63,10 @@ public interface ImageDecoder {
      * @throws IOException if an error occurs during decoding
      */
     default ImageRGB decode(Path path) throws IOException {
+        if (path == null) {
+            throw new IllegalArgumentException("Path cannot be null");
+        }
+
         String mimeType = Files.probeContentType(path);
         try (InputStream is = Files.newInputStream(path)) {
             return decode(is, mimeType);
@@ -100,7 +104,7 @@ public interface ImageDecoder {
      * and relies solely on file extension matching.</p>
      *
      * @return an immutable list of supported MIME type strings (e.g.,
-     *         {@code ["image/png", "image/jpeg"]}); never {@code null}
+     * {@code ["image/png", "image/jpeg"]}); never {@code null}
      */
     List<String> getSupportedMimeTypes();
 
