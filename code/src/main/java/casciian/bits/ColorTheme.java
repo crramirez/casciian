@@ -2639,6 +2639,7 @@ public class ColorTheme {
         final int bgFieldHot = 0x0f5aa8; // input field / active selection
         final int bgSelect   = 0x264f78; // list / editor selection
         final int fgText     = 0xe0e0e0;
+        final int fgInactiveText = 0xc0c0c0;
         final int fgMuted    = 0x909090;
         final int fgYellow   = 0xffcc33; // Borland yellow
         final int fgGreen    = 0x5ef07a;
@@ -2666,24 +2667,24 @@ public class ColorTheme {
         colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, rgb(fgGreen, bgModal));
 
         // Labels / text on the dark window background.
-        colors.put(TLABEL, rgb(fgWhite, bgWindow));
+        colors.put(TLABEL, rgb(fgInactiveText, bgWindow));
         colors.put(TLABEL_ACTIVE, rgb(fgWhite, bgWindow));
-        colors.put(TLABEL_DISABLED, rgb(fgWhite, bgWindow));
-        colors.put(TLABEL_MODAL, rgb(fgWhite, bgWindow));
-        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgWhite, bgWindow));
-        colors.put(TLABEL_DISABLED_MODAL, rgb(fgWhite, bgWindow));
+        colors.put(TLABEL_DISABLED, rgb(fgMuted, bgWindow));
+        colors.put(TLABEL_MODAL, rgb(fgInactiveText, bgModal));
+        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgWhite, bgModal));
+        colors.put(TLABEL_DISABLED_MODAL, rgb(fgMuted, bgModal));
         colors.put(TLABEL_MNEMONIC, rgb(fgYellow, bgWindow));
         colors.put(TLABEL_ACTIVE_MNEMONIC, rgb(fgYellow, bgWindow));
         colors.put(TLABEL_DISABLED_MNEMONIC, rgb(fgYellow, bgWindow));
-        colors.put(TLABEL_MNEMONIC_MODAL, rgb(fgYellow, bgWindow));
-        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgb(fgYellow, bgWindow));
-        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgb(fgYellow, bgWindow));
+        colors.put(TLABEL_MNEMONIC_MODAL, rgb(fgYellow, bgModal));
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgb(fgYellow, bgModal));
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgb(fgYellow, bgModal));
         colors.put(TTEXT, rgb(fgText, bgWindow));
-        colors.put(TTEXT_MODAL, rgb(fgText, bgWindow));
+        colors.put(TTEXT_MODAL, rgb(fgText, bgModal));
 
         // Fields: dark input with a subtle highlight when active.
-        colors.put(TFIELD_INACTIVE, rgb(fgText, bgField));
-        colors.put(TFIELD_INACTIVE_MODAL, rgb(fgText, bgField));
+        colors.put(TFIELD_INACTIVE, rgb(fgInactiveText, bgField));
+        colors.put(TFIELD_INACTIVE_MODAL, rgb(fgInactiveText, bgField));
         colors.put(TFIELD_ACTIVE, rgb(fgWhite, bgFieldHot));
         colors.put(TFIELD_ACTIVE_MODAL, rgb(fgWhite, bgFieldHot));
 
@@ -2838,18 +2839,18 @@ public class ColorTheme {
         // Labels / text.
         colors.put(TLABEL, attr(WHITE, BLUE, true));
         colors.put(TLABEL_ACTIVE, attr(WHITE, BLUE, true));
-        colors.put(TLABEL_DISABLED, attr(WHITE, BLUE, true));
-        colors.put(TLABEL_MODAL, attr(WHITE, BLUE, true));
-        colors.put(TLABEL_ACTIVE_MODAL, attr(WHITE, BLUE, true));
-        colors.put(TLABEL_DISABLED_MODAL, attr(WHITE, BLUE, true));
+        colors.put(TLABEL_DISABLED, attr(BLACK, BLUE, true));
+        colors.put(TLABEL_MODAL, attr(BLACK, WHITE, false));
+        colors.put(TLABEL_ACTIVE_MODAL, attr(BLACK, WHITE, false));
+        colors.put(TLABEL_DISABLED_MODAL, attr(BLACK, WHITE, true));
         colors.put(TLABEL_MNEMONIC, attr(YELLOW, BLUE, true));
         colors.put(TLABEL_ACTIVE_MNEMONIC, attr(YELLOW, BLUE, true));
-        colors.put(TLABEL_DISABLED_MNEMONIC, attr(YELLOW, BLUE, true));
-        colors.put(TLABEL_MNEMONIC_MODAL, attr(YELLOW, BLUE, true));
-        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, attr(YELLOW, BLUE, true));
-        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, attr(YELLOW, BLUE, true));
-        colors.put(TTEXT, attr(WHITE, BLUE, false));
-        colors.put(TTEXT_MODAL, attr(WHITE, BLUE, false));
+        colors.put(TLABEL_DISABLED_MNEMONIC, attr(BLACK, BLUE, true));
+        colors.put(TLABEL_MNEMONIC_MODAL, attr(BLUE, WHITE, false));
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, attr(BLUE, WHITE, false));
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, attr(BLACK, WHITE, true));
+        colors.put(TTEXT, attr(BLACK, BLUE, false));
+        colors.put(TTEXT_MODAL, attr(BLACK, WHITE, false));
 
         // Buttons: MC's "dfocus / dhotfocus" style - black/blue on cyan.
         colors.put(TBUTTON_INACTIVE, attr(BLACK, CYAN, false));
@@ -2865,31 +2866,31 @@ public class ColorTheme {
 
         // Fields / inputs: MC input is lightgray on blue.
         colors.put(TFIELD_INACTIVE, attr(WHITE, BLUE, false));
-        colors.put(TFIELD_INACTIVE_MODAL, attr(WHITE, BLUE, false));
+        colors.put(TFIELD_INACTIVE_MODAL, attr(BLACK, CYAN, true));
         colors.put(TFIELD_ACTIVE, attr(BLACK, CYAN, false));
         colors.put(TFIELD_ACTIVE_MODAL, attr(BLACK, CYAN, false));
 
         // Check / radio / combo.
         colors.put(TCHECKBOX_INACTIVE, attr(WHITE, BLUE, false));
-        colors.put(TCHECKBOX_INACTIVE_MODAL, attr(WHITE, BLUE, false));
+        colors.put(TCHECKBOX_INACTIVE_MODAL, attr(BLACK, WHITE, false));
         colors.put(TCHECKBOX_ACTIVE, attr(YELLOW, BLUE, true));
-        colors.put(TCHECKBOX_ACTIVE_MODAL, attr(YELLOW, BLUE, true));
+        colors.put(TCHECKBOX_ACTIVE_MODAL, attr(BLACK, CYAN, false));
         colors.put(TCHECKBOX_MNEMONIC, attr(YELLOW, BLUE, true));
-        colors.put(TCHECKBOX_MNEMONIC_MODAL, attr(YELLOW, BLUE, true));
+        colors.put(TCHECKBOX_MNEMONIC_MODAL, attr(BLUE, WHITE, false));
         colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, attr(YELLOW, CYAN, true));
-        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED_MODAL, attr(YELLOW, CYAN, true));
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED_MODAL, attr(BLUE, CYAN, false));
         colors.put(TRADIOBUTTON_INACTIVE, attr(WHITE, BLUE, false));
-        colors.put(TRADIOBUTTON_INACTIVE_MODAL, attr(WHITE, BLUE, false));
+        colors.put(TRADIOBUTTON_INACTIVE_MODAL, attr(BLACK, WHITE, false));
         colors.put(TRADIOBUTTON_ACTIVE, attr(YELLOW, BLUE, true));
-        colors.put(TRADIOBUTTON_ACTIVE_MODAL, attr(YELLOW, BLUE, true));
+        colors.put(TRADIOBUTTON_ACTIVE_MODAL, attr(BLACK, CYAN, false));
         colors.put(TRADIOBUTTON_MNEMONIC, attr(YELLOW, BLUE, true));
-        colors.put(TRADIOBUTTON_MNEMONIC_MODAL, attr(YELLOW, BLUE, true));
+        colors.put(TRADIOBUTTON_MNEMONIC_MODAL, attr(BLUE, WHITE, false));
         colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, attr(YELLOW, CYAN, true));
-        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(YELLOW, CYAN, true));
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(BLUE, CYAN, false));
         colors.put(TRADIOGROUP_INACTIVE, attr(WHITE, BLUE, false));
-        colors.put(TRADIOGROUP_INACTIVE_MODAL, attr(WHITE, BLUE, false));
+        colors.put(TRADIOGROUP_INACTIVE_MODAL, attr(BLACK, WHITE, false));
         colors.put(TRADIOGROUP_ACTIVE, attr(YELLOW, BLUE, true));
-        colors.put(TRADIOGROUP_ACTIVE_MODAL, attr(YELLOW, BLUE, true));
+        colors.put(TRADIOGROUP_ACTIVE_MODAL, attr(BLACK, WHITE, false));
         colors.put(TCOMBOBOX_INACTIVE, attr(WHITE, BLUE, false));
         colors.put(TCOMBOBOX_INACTIVE_MODAL, attr(WHITE, BLUE, false));
         colors.put(TCOMBOBOX_ACTIVE, attr(BLACK, CYAN, false));
