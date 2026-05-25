@@ -31,6 +31,13 @@ import java.util.List;
  */
 public class BMP24ImageDecoder implements ImageDecoder {
 
+    /**
+     * Public constructor.
+     */
+    public BMP24ImageDecoder() {
+        // Explicit no arg constructor
+    }
+
     @Override
     public ImageRGB decode(InputStream inputStream, String mimeType) throws IOException {
         byte[] data = inputStream.readAllBytes();

@@ -41,6 +41,13 @@ public class XPMImageDecoder implements ImageDecoder {
     private static final Pattern VALUES_PATTERN = Pattern.compile("\"(\\d++)\\s++(\\d++)\\s++(\\d++)\\s++(\\d++)[^\"]*\"");
     private static final Pattern PIXEL_PATTERN = Pattern.compile("\"(.+?)\"");
 
+    /**
+     * Public constructor.
+     */
+    public XPMImageDecoder() {
+        // Explicit no arg constructor
+    }
+
     @Override
     public ImageRGB decode(InputStream inputStream, String mimeType) throws IOException {
         try (BufferedReader reader = new BufferedReader(

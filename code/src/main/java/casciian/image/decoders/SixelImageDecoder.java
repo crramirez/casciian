@@ -28,6 +28,9 @@ import java.util.List;
  */
 public class SixelImageDecoder implements ImageDecoder {
 
+    /**
+     * Public constructor.
+     */
     public SixelImageDecoder() {
         // Explicit no arg constructor
     }
