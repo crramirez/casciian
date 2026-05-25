@@ -17,11 +17,13 @@ package casciian.javadesktop.decoders;
 
 import casciian.bits.ImageRGB;
 import casciian.image.decoders.ImageDecoder;
+import casciian.javadesktop.image.BufferedImageRGB;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.io.InputStream;
+import java.util.List;
 
 /**
  * Image decoder that uses {@link javax.imageio.ImageIO} from the
@@ -90,26 +92,27 @@ public class ImageIORGBDecoder implements ImageDecoder {
     }
 
     @Override
-    public ImageRGB decode(final Path path) throws IOException {
-        if (path == null) {
-            throw new IllegalArgumentException("path must not be null");
+    public ImageRGB decode(final InputStream inputStream, final String mimeType) throws IOException {
+        if (inputStream == null) {
+            throw new IllegalArgumentException("inputStream must not be null");
         }
-        BufferedImage buffered = ImageIO.read(path.toFile());
+        BufferedImage buffered = ImageIO.read(inputStream);
         if (buffered == null) {
-            throw new IOException("ImageIO could not decode file: " + path);
+            throw new IOException("ImageIO could not decode stream"
+                + (mimeType != null ? " (MIME type: " + mimeType + ")" : ""));
         }
 
-        int width = buffered.getWidth();
-        int height = buffered.getHeight();
+        // Wrap the decoded BufferedImage directly in a BufferedImageRGB.
+        // This avoids the intermediate int[] copy that would be required
+        // to populate a separate ArrayImageRGB and lets downstream code
+        // continue to operate on the data through Java 2D's accelerated
+        // Graphics2D pipeline.
+        return new BufferedImageRGB(buffered);
+    }
 
-        // Read the entire image into a single int[] in TYPE_INT_ARGB layout
-        // and then bulk-copy it into the ImageRGB. This is more efficient
-        // than per-pixel BufferedImage#getRGB calls.
-        int[] pixels = buffered.getRGB(0, 0, width, height, null, 0, width);
-
-        ImageRGB image = new ImageRGB(width, height);
-        image.setRGB(0, 0, width, height, pixels, 0, width);
-        return image;
+    @Override
+    public List<String> getSupportedMimeTypes() {
+        return List.of("image/png", "image/jpeg");
     }
 
     @Override

@@ -40,7 +40,7 @@ console that operates on the same backing database, accessible by
 simply `ssh`-ing into the running Spring Boot process. The repository
 also includes a runnable `demo-shop` showing this exact use case.
 
-## Java Desktop Add-on
+## Java Desktop Add-on (from Casciian 1.5)
 
 Casciian's core library deliberately avoids any dependency on the JDK's
 `java.desktop` module so that applications can be compiled with GraalVM
@@ -50,7 +50,8 @@ PNG/JPEG images via `javax.imageio.ImageIO`), use the optional
 [`casciian-java-desktop`](code-java-desktop/README.md) add-on. It is a
 separate Gradle multi-project under `code-java-desktop/` and is
 publishable to Maven Central, so users can simply add it as an extra
-dependency when they need it.
+dependency when they need it. This add-on will be released starting from
+Casciian version 1.5.
 
 ## License
 
@@ -133,5 +134,3 @@ Configuration
 Casciian's runtime behavior can be tuned through Java system properties (all
 prefixed with `casciian.`), either via `-D` JVM options or through a
 `CASCIIANRC` properties file.
-
-

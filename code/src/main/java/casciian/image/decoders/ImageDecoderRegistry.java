@@ -18,6 +18,8 @@ package casciian.image.decoders;
 import casciian.bits.ImageRGB;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -132,6 +134,90 @@ public class ImageDecoderRegistry {
         ImageDecoder decoder = findDecoder(path).orElseThrow(
             () -> new IllegalArgumentException("No decoder found for file: " + path.getFileName()));
         return decoder.decode(path);
+    }
+
+    /**
+     * Find a decoder that can handle the given MIME type.
+     *
+     * <p>The lookup is case-insensitive and strips any parameters from the supplied
+     * MIME type (e.g., {@code "image/png; charset=utf-8"} is treated as
+     * {@code "image/png"}) before matching against the values returned by
+     * {@link ImageDecoder#getSupportedMimeTypes()}. Supported MIME types declared by
+     * decoders are also normalized to lower-case for comparison.</p>
+     *
+     * @param mimeType the MIME type of the image (e.g., {@code "image/png"})
+     * @return a matching decoder, or empty if none found
+     */
+    public Optional<ImageDecoder> findDecoder(String mimeType) {
+        if (mimeType == null) {
+            return Optional.empty();
+        }
+        // Normalize: strip parameters (e.g. "; charset=utf-8") and lower-case.
+        String normalizedMimeType = mimeType.split(";")[0].trim().toLowerCase(java.util.Locale.ROOT);
+        for (ImageDecoder decoder : decoders) {
+            for (String supported : decoder.getSupportedMimeTypes()) {
+                if (supported.toLowerCase(java.util.Locale.ROOT).equals(normalizedMimeType)) {
+                    return Optional.of(decoder);
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Decode an image from an {@link InputStream} using the appropriate registered decoder.
+     *
+     * <p>The decoder is selected by matching the supplied {@code mimeType} against the
+     * MIME types declared by each registered decoder via
+     * {@link ImageDecoder#getSupportedMimeTypes()}. If no decoder claims the MIME type,
+     * an {@link IllegalArgumentException} is thrown.</p>
+     *
+     * @param inputStream the input stream containing image data; must not be {@code null}
+     * @param mimeType    the MIME type of the image (e.g., {@code "image/png"}); must not
+     *                    be {@code null}
+     * @return the decoded {@link ImageRGB} object
+     * @throws IOException              if an error occurs during decoding
+     * @throws IllegalArgumentException if no decoder is found for the given MIME type
+     * @throws NullPointerException     if {@code inputStream} or {@code mimeType} is
+     *                                  {@code null}
+     */
+    public ImageRGB decodeImage(InputStream inputStream, String mimeType) throws IOException {
+        Objects.requireNonNull(inputStream, "inputStream cannot be null");
+        Objects.requireNonNull(mimeType, "mimeType cannot be null");
+        ImageDecoder decoder = findDecoder(mimeType).orElseThrow(
+            () -> new IllegalArgumentException("No decoder found for MIME type: " + mimeType));
+        return decoder.decode(inputStream, mimeType);
+    }
+
+    /**
+     * Decode an image from a {@link URL} using the appropriate registered decoder.
+     *
+     * <p>The MIME type is determined from the URL connection's content type and used
+     * to select the appropriate decoder. If the content type cannot be determined or
+     * no decoder is registered for it, an {@link IllegalArgumentException} is thrown.</p>
+     *
+     * @param url the URL of the image resource; must not be {@code null}
+     * @return the decoded {@link ImageRGB} object
+     * @throws IOException              if an error occurs while opening the connection
+     *                                  or decoding
+     * @throws IllegalArgumentException if no decoder is found for the content type
+     * @throws NullPointerException     if {@code url} is {@code null}
+     */
+    public ImageRGB decodeImage(URL url) throws IOException {
+        Objects.requireNonNull(url, "url cannot be null");
+        java.net.URLConnection connection = url.openConnection();
+        // Extract only the base MIME type, stripping any parameters such as
+        // "charset=utf-8" (e.g., "image/png; charset=utf-8" -> "image/png").
+        String rawContentType = connection.getContentType();
+        String mimeType = rawContentType != null
+            ? rawContentType.split(";")[0].trim()
+            : null;
+        ImageDecoder decoder = findDecoder(mimeType).orElseThrow(
+            () -> new IllegalArgumentException(
+                "No decoder found for MIME type: " + mimeType + " (URL: " + url + ")"));
+        try (InputStream is = connection.getInputStream()) {
+            return decoder.decode(is, mimeType);
+        }
     }
 
     /**

@@ -105,7 +105,7 @@ class ImageIORGBDecoderTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new ImageIORGBDecoder("pat", null))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new ImageIORGBDecoder().decode(null))
+        assertThatThrownBy(() -> new ImageIORGBDecoder().decode((Path)null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

@@ -39,6 +39,16 @@ tasks.register('jarDemo', Jar) {
     group = 'build'
     description = 'Assembles a fat JAR containing the demo, the add-on, casciian and all runtime dependencies.'
 
+    // Place demo-only resources first so they take precedence over the
+    // per-module META-INF/services files under DuplicatesStrategy.EXCLUDE.
+    // Both casciian and casciian-java-desktop ship a service file named
+    // META-INF/services/casciian.image.decoders.ImageDecoder; without this
+    // merged copy, EXCLUDE keeps only the first jar's entry and the other
+    // decoder is silently dropped from ServiceLoader discovery. The merged
+    // file lists ImageIORGBDecoder alongside SixelImageDecoder so both are
+    // discoverable from the fat JAR.
+    from('src/main/demo-resources')
+
     from(sourceSets.main.output)
 
     dependsOn configurations.runtimeClasspath

@@ -16,13 +16,14 @@
 package demo;
 
 import casciian.bits.ImageRGB;
+import casciian.bits.ArrayImageRGB;
 import casciian.image.decoders.ImageDecoder;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Image decoder for 24-bit BMP (Windows Bitmap) format files.
@@ -38,8 +39,8 @@ public class BMP24ImageDecoder implements ImageDecoder {
     }
 
     @Override
-    public ImageRGB decode(Path path) throws IOException {
-        byte[] data = Files.readAllBytes(path);
+    public ImageRGB decode(InputStream inputStream, String mimeType) throws IOException {
+        byte[] data = inputStream.readAllBytes();
         ByteBuffer buffer = ByteBuffer.wrap(data);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -82,7 +83,7 @@ public class BMP24ImageDecoder implements ImageDecoder {
         boolean topDown = height < 0;
         int absHeight = Math.abs(height);
 
-        ImageRGB image = new ImageRGB(width, absHeight);
+        ImageRGB image = new ArrayImageRGB(width, absHeight);
 
         for (int y = 0; y < absHeight; y++) {
             int row = topDown ? y : (absHeight - 1 - y);
@@ -102,6 +103,11 @@ public class BMP24ImageDecoder implements ImageDecoder {
         }
 
         return image;
+    }
+
+    @Override
+    public List<String> getSupportedMimeTypes() {
+        return List.of("image/bmp");
     }
 
     @Override

@@ -12,12 +12,14 @@
 package casciian.image.decoders;
 
 import casciian.bits.ImageRGB;
+import casciian.bits.ArrayImageRGB;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -128,8 +130,13 @@ class ImageDecoderRegistryServiceLoaderTest {
      */
     static final class StubDecoder implements ImageDecoder {
         @Override
-        public ImageRGB decode(Path path) throws IOException {
-            return new ImageRGB(1, 1);
+        public ImageRGB decode(InputStream inputStream, String mimeType) throws IOException {
+            return new ArrayImageRGB(1, 1);
+        }
+
+        @Override
+        public List<String> getSupportedMimeTypes() {
+            return List.of("image/x-stub");
         }
 
         @Override
