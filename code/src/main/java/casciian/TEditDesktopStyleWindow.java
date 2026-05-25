@@ -33,6 +33,7 @@ import casciian.bits.CellAttributes;
 import casciian.bits.ControlPadding;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
+
 import static casciian.TKeypress.*;
 
 /**
@@ -63,12 +64,12 @@ public class TEditDesktopStyleWindow extends TWindow {
     /**
      * The left-side list of border names pane.
      */
-    private TList borderNames;
+    private final TList borderNames;
 
     /**
      * The selected choice for border style.
      */
-    private TComboBox borderStyle;
+    private final TComboBox borderStyle;
 
     /**
      * The style to show for the selected border name.
@@ -78,27 +79,27 @@ public class TEditDesktopStyleWindow extends TWindow {
     /**
      * The border styles being edited.
      */
-    private Properties editBorderStyles = new Properties();
+    private final Properties editBorderStyles = new Properties();
 
     /**
      * The selected choice for button style.
      */
-    private TComboBox buttonStyle;
+    private final TComboBox buttonStyle;
 
     /**
      * Example button 1.
      */
-    private TButton button1;
+    private final TButton button1;
 
     /**
      * Example button 2.
      */
-    private TButton button2;
+    private final TButton button2;
 
     /**
      * The selected choice for the controls padding style.
      */
-    private TComboBox controlsPadding;
+    private final TComboBox controlsPadding;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -135,58 +136,62 @@ public class TEditDesktopStyleWindow extends TWindow {
         borders.add("casciian.TWindow.borderStyleMoving");
         Collections.sort(borders);
         assert (borders.size() > 0);
-        for (String borderName: borders) {
+        for (String borderName : borders) {
             editBorderStyles.put(borderName, System.getProperty(borderName,
-                    "default"));
+                "default"));
         }
 
-        borderNames = addList(borders, 2, 2, 43, 7,
-            new TAction() {
-                // When the user presses Enter
-                public void DO() {
-                    updateShownBorderStyle();
+        borderNames = addLabelFor(i18n.getString("borderName"), 2, 1,
+            addList(borders, 2, 2, 43, 7,
+                new TAction() {
+                    // When the user presses Enter
+                    public void DO() {
+                        updateShownBorderStyle();
+                    }
+                },
+                new TAction() {
+                    // When the user navigates with keyboard
+                    public void DO() {
+                        updateShownBorderStyle();
+                    }
+                },
+                new TAction() {
+                    // When the user navigates with keyboard
+                    public void DO() {
+                        updateShownBorderStyle();
+                    }
                 }
-            },
-            new TAction() {
-                // When the user navigates with keyboard
-                public void DO() {
-                    updateShownBorderStyle();
-                }
-            },
-            new TAction() {
-                // When the user navigates with keyboard
-                public void DO() {
-                    updateShownBorderStyle();
-                }
-            }
-        );
+            ));
         borderNames.setSelectedIndex(0);
 
         List<String> borderStyles = BorderStyle.getStyleNames();
-        borderStyle = addComboBox(47, 2, 18, borderStyles, 0, 7,
-            new TAction() {
-                public void DO() {
-                    String borderName = borderNames.getSelected();
-                    assert (borderName != null);
-                    String newBorderStyle = borderStyle.getText();
+        borderStyle = addLabelFor(i18n.getString("borderStyle"), 47, 1,
+            addComboBox(47, 2, 18, borderStyles, 0, 7,
+                new TAction() {
+                    public void DO() {
+                        String borderName = borderNames.getSelected();
+                        assert (borderName != null);
+                        String newBorderStyle = borderStyle.getText();
 
-                    editBorderStyles.setProperty(borderName, newBorderStyle);
-                    updateShownBorderStyle();
-                }
-            });
+                        editBorderStyles.setProperty(borderName, newBorderStyle);
+                        updateShownBorderStyle();
+                    }
+                }));
 
         updateShownBorderStyle();
 
-        List<String> buttonStyles = new ArrayList<String>();
+        var buttonStyles = new ArrayList<String>();
         buttonStyles.add("square");
-        buttonStyle = addComboBox(2, 11, 18, buttonStyles, 0, 6,
-            new TAction() {
-                public void DO() {
-                    String newButtonStyle = buttonStyle.getText();
-                    button1.setStyle(newButtonStyle);
-                    button2.setStyle(newButtonStyle);
-                }
-            });
+
+        buttonStyle = addLabelFor(i18n.getString("buttonStyle"), 2, 10,
+            addComboBox(2, 11, 18, buttonStyles, 0, 6,
+                new TAction() {
+                    public void DO() {
+                        String newButtonStyle = buttonStyle.getText();
+                        button1.setStyle(newButtonStyle);
+                        button2.setStyle(newButtonStyle);
+                    }
+                }));
         String buttonStyleString = System.getProperty("casciian.TButton.style",
             "square");
         buttonStyle.setText(buttonStyleString);
@@ -201,14 +206,16 @@ public class TEditDesktopStyleWindow extends TWindow {
         String controlsPaddingString = System.getProperty(
             ControlPadding.PROPERTY_KEY,
             ControlPadding.DEFAULT_STYLE_NAME);
-        controlsPadding = addComboBox(2, 18, 18, paddingStyles, 0,
-            paddingStyles.size() + 2, (TAction) null);
+
+        controlsPadding = addLabelFor(i18n.getString("controlsPadding"), 2, 17,
+            addComboBox(2, 18, 18, paddingStyles, 0,
+                paddingStyles.size() + 2, (TAction) null));
         controlsPadding.setText(controlsPaddingString);
 
         addButton(i18n.getString("okButton"), 6, getHeight() - 4,
             new TAction() {
                 public void DO() {
-                    for (String name: editBorderStyles.stringPropertyNames()) {
+                    for (String name : editBorderStyles.stringPropertyNames()) {
                         String value = editBorderStyles.getProperty(name);
                         System.setProperty(name, value);
                     }
@@ -271,22 +278,6 @@ public class TEditDesktopStyleWindow extends TWindow {
         super.draw();
         CellAttributes attr = new CellAttributes();
 
-        // Draw the label on borderKeys
-        attr.setTo(getTheme().getColor("twindow.background.modal"));
-        if (borderNames.isActive()) {
-            attr.setForeColor(getTheme().getColor("tlabel").getForeColor());
-            attr.setBold(getTheme().getColor("tlabel").isBold());
-        }
-        putStringXY(3, 2, i18n.getString("borderName"), attr);
-
-        // Draw the label on borderStyles
-        attr.setTo(getTheme().getColor("twindow.background.modal"));
-        if (borderStyle.isActive()) {
-            attr.setForeColor(getTheme().getColor("tlabel").getForeColor());
-            attr.setBold(getTheme().getColor("tlabel").isBold());
-        }
-        putStringXY(48, 2, i18n.getString("borderStyle"), attr);
-
         // Draw the border style example box
         attr.setTo(getTheme().getColor("twindow.background"));
         CellAttributes border = new CellAttributes();
@@ -294,23 +285,6 @@ public class TEditDesktopStyleWindow extends TWindow {
         drawBox(borderNames.getX() + borderNames.getWidth() + 3,
             borderNames.getY() + 3, getWidth() - 3, borderNames.getY() + 8,
             border, attr, shownBorderStyle);
-
-        // Draw the label on buttonStyles
-        attr.setTo(getTheme().getColor("twindow.background.modal"));
-        if (buttonStyle.isActive()) {
-            attr.setForeColor(getTheme().getColor("tlabel").getForeColor());
-            attr.setBold(getTheme().getColor("tlabel").isBold());
-        }
-        putStringXY(3, 11, i18n.getString("buttonStyle"), attr);
-
-        // Draw the label on controlsPadding
-        attr.setTo(getTheme().getColor("twindow.background.modal"));
-        if (controlsPadding.isActive()) {
-            attr.setForeColor(getTheme().getColor("tlabel").getForeColor());
-            attr.setBold(getTheme().getColor("tlabel").isBold());
-        }
-        putStringXY(3, 18, i18n.getString("controlsPadding"), attr);
-
     }
 
     // ------------------------------------------------------------------------
@@ -395,8 +369,8 @@ public class TEditDesktopStyleWindow extends TWindow {
      * Set the border style for the window when it is the foreground window.
      *
      * @param borderStyle the border style string, one of: "default", "none",
-     * "single", "double", "singleVdoubleH", "singleHdoubleV", or "round"; or
-     * null to use the value from casciian.TEditDesktopStyle.borderStyle.
+     *                    "single", "double", "singleVdoubleH", "singleHdoubleV", or "round"; or
+     *                    null to use the value from casciian.TEditDesktopStyle.borderStyle.
      */
     @Override
     public void setBorderStyleForeground(final String borderStyle) {
@@ -413,8 +387,8 @@ public class TEditDesktopStyleWindow extends TWindow {
      * Set the border style for the window when it is the modal window.
      *
      * @param borderStyle the border style string, one of: "default", "none",
-     * "single", "double", "singleVdoubleH", "singleHdoubleV", or "round"; or
-     * null to use the value from casciian.TEditDesktopStyle.borderStyle.
+     *                    "single", "double", "singleVdoubleH", "singleHdoubleV", or "round"; or
+     *                    null to use the value from casciian.TEditDesktopStyle.borderStyle.
      */
     @Override
     public void setBorderStyleModal(final String borderStyle) {
@@ -432,8 +406,8 @@ public class TEditDesktopStyleWindow extends TWindow {
      * window.
      *
      * @param borderStyle the border style string, one of: "default", "none",
-     * "single", "double", "singleVdoubleH", "singleHdoubleV", or "round"; or
-     * null to use the value from casciian.TEditDesktopStyle.borderStyle.
+     *                    "single", "double", "singleVdoubleH", "singleHdoubleV", or "round"; or
+     *                    null to use the value from casciian.TEditDesktopStyle.borderStyle.
      */
     @Override
     public void setBorderStyleInactive(final String borderStyle) {
@@ -450,8 +424,8 @@ public class TEditDesktopStyleWindow extends TWindow {
      * Set the border style for the window when it is being dragged/resize.
      *
      * @param borderStyle the border style string, one of: "default", "none",
-     * "single", "double", "singleVdoubleH", "singleHdoubleV", or "round"; or
-     * null to use the value from casciian.TEditDesktopStyle.borderStyle.
+     *                    "single", "double", "singleVdoubleH", "singleHdoubleV", or "round"; or
+     *                    null to use the value from casciian.TEditDesktopStyle.borderStyle.
      */
     @Override
     public void setBorderStyleMoving(final String borderStyle) {

@@ -76,12 +76,12 @@ public class DemoMainWindow extends TWindow {
     /**
      * Timer that increments a number.
      */
-    private TTimer timer2;
+    private final TTimer timer2;
 
     /**
      * Timer label is updated with timer ticks.
      */
-    TLabel timerLabel;
+    TLabel<?> timerLabel;
 
     /**
      * Timer increment used by the timer loop.  Has to be at class scope so

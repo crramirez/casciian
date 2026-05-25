@@ -382,7 +382,7 @@ public abstract class TWidget implements Comparable<TWidget> {
         // If I have any labels on me AND this is an Alt-key that matches
         // its mnemonic, call its action.
         for (TWidget widget: children) {
-            if (widget instanceof TLabel label
+            if (widget instanceof TLabel<?> label
                     && !keypress.getKey().isFnKey()
                     && keypress.getKey().isAlt()
                     && !keypress.getKey().isCtrl()
@@ -2433,7 +2433,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param y row relative to parent
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y) {
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y) {
         return addLabel(text, x, y, "tlabel");
     }
 
@@ -2446,9 +2446,24 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param labelFor the widget this label is for
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y,
-        final TWidget labelFor) {
-        return new TLabel(this, text, x, y, labelFor);
+    public final <F extends TWidget> TLabel<F> addLabel(final String text, final int x, final int y,
+        final F labelFor) {
+        return new TLabel<>(this, text, x, y, labelFor);
+    }
+
+    /**
+     * Convenience function to add a label to this container/window, returning the widget for the label.
+     *
+     * @param text label
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param labelFor the widget this label is for
+     * @return the widget this label is for
+     */
+    public final <F extends TWidget> F addLabelFor(final String text, final int x, final int y,
+        final F labelFor) {
+        new TLabel<>(this, text, x, y, labelFor);
+        return labelFor;
     }
 
     /**
@@ -2460,7 +2475,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param action to call when shortcut is pressed
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y,
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y,
         final TAction action) {
 
         return addLabel(text, x, y, "tlabel", action);
@@ -2476,10 +2491,10 @@ public abstract class TWidget implements Comparable<TWidget> {
      * Default is "tlabel"
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y,
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y,
         final String colorKey) {
 
-        return new TLabel(this, text, x, y, colorKey);
+        return new TLabel<>(this, text, x, y, colorKey);
     }
 
     /**
@@ -2493,10 +2508,10 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param action to call when shortcut is pressed
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y,
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y,
         final String colorKey, final TAction action) {
 
-        return new TLabel(this, text, x, y, colorKey, action);
+        return new TLabel<>(this, text, x, y, colorKey, action);
     }
 
     /**
@@ -2511,10 +2526,10 @@ public abstract class TWidget implements Comparable<TWidget> {
      * color
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y,
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y,
         final String colorKey, final boolean matchWindowBackground) {
 
-        return new TLabel(this, text, x, y, colorKey, matchWindowBackground);
+        return new TLabel<>(this, text, x, y, colorKey, matchWindowBackground);
     }
 
     /**
@@ -2530,11 +2545,11 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param action to call when shortcut is pressed
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y,
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y,
         final String colorKey, final boolean matchWindowBackground,
         final TAction action) {
 
-        return new TLabel(this, text, x, y, colorKey, matchWindowBackground,
+        return new TLabel<>(this, text, x, y, colorKey, matchWindowBackground,
             action, null);
     }
 

@@ -23,7 +23,7 @@ import casciian.bits.StringUtils;
  * TLabel implements a simple label, with an optional mnemonic hotkey action
  * associated with it.
  */
-public class TLabel extends TWidget {
+public class TLabel<F extends TWidget> extends TWidget {
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -52,7 +52,7 @@ public class TLabel extends TWidget {
     /**
      * The widget this label is associated with.
      */
-    private TWidget labelFor;
+    private F labelFor;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -82,7 +82,7 @@ public class TLabel extends TWidget {
      * @param labelFor the widget this label is for
      */
     public TLabel(final TWidget parent, final String text, final int x,
-        final int y, final TWidget labelFor) {
+        final int y, final F labelFor) {
 
         this(parent, text, x, y, ColorTheme.TLABEL, true, new TAction() {
 
@@ -174,7 +174,7 @@ public class TLabel extends TWidget {
     @SuppressWarnings("this-escape")
     public TLabel(final TWidget parent, final String text, final int x,
         final int y, final String colorKey, final boolean matchWindowBackground,
-        final TAction action, final TWidget labelFor) {
+        final TAction action, final F labelFor) {
 
         // Set parent and window
         super(parent, false, x, y, 0, 1);
@@ -336,7 +336,7 @@ public class TLabel extends TWidget {
      *
      * @return the widget this label is for
      */
-    public TWidget getLabelFor() {
+    public F getLabelFor() {
         return labelFor;
     }
 
@@ -345,7 +345,7 @@ public class TLabel extends TWidget {
      *
      * @param labelFor the widget this label is for
      */
-    public void setLabelFor(final TWidget labelFor) {
+    public void setLabelFor(final F labelFor) {
         this.labelFor = labelFor;
     }
 

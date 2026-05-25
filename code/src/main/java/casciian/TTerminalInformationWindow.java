@@ -90,7 +90,7 @@ public class TTerminalInformationWindow extends TWindow {
         int labelColumn = 1;
         int infoColumn = 32;
         int row = 1;
-        TLabel label = addLabel(i18n.getString("backendType"), labelColumn, row);
+        TLabel<?> label = addLabel(i18n.getString("backendType"), labelColumn, row);
         copyText += label.getLabel() + " ";
         if (ecmaTerminal != null) {
             label = addLabel("ECMA48/Xterm", infoColumn, row, "ttext", false);

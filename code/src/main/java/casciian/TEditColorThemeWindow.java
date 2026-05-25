@@ -111,9 +111,8 @@ public class TEditColorThemeWindow extends TWindow {
 
             super(parent, x, y, width, height);
 
-            rgb = (TField) addLabel(i18n.getString("rgbHex"), 1, 6,
-                addField(6, 6, 7, true, ""))
-                .getLabelFor();
+            rgb = addLabelFor(i18n.getString("rgbHex"), 1, 6,
+                addField(6, 6, 7, true, ""));
         }
 
         /**
@@ -429,9 +428,8 @@ public class TEditColorThemeWindow extends TWindow {
 
             super(parent, x, y, width, height);
 
-            rgb = (TField) addLabel(i18n.getString("rgbHex"), 1, 4,
-                addField(6, 4, 7, true, ""))
-                .getLabelFor();
+            rgb = addLabelFor(i18n.getString("rgbHex"), 1, 4,
+                addField(6, 4, 7, true, ""));
         }
 
         /**

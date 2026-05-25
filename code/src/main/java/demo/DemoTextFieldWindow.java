@@ -112,9 +112,8 @@ public class DemoTextFieldWindow extends TWindow {
             addPasswordField(35, row++, 15, false));
         addLabel(i18n.getString("textField4"), 1, row,
             addPasswordField(35, row++, 15, true, "hunter2"));
-        TField selected = (TField) addLabel(i18n.getString("textField5"), 1, row,
-            addField(35, row++, 40, false, i18n.getString("textField6")))
-            .getLabelFor();
+        TField selected = addLabelFor(i18n.getString("textField5"), 1, row,
+            addField(35, row++, 40, false, i18n.getString("textField6")));
         row += 1;
 
         calendar = addCalendar(1, row++,

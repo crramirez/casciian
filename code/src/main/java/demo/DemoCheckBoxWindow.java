@@ -28,6 +28,7 @@ import casciian.TRadioGroup;
 import casciian.TWindow;
 import casciian.effect.GradientCellTransform;
 import casciian.layout.StretchLayoutManager;
+
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
 
@@ -96,7 +97,7 @@ public class DemoCheckBoxWindow extends TWindow {
      * Constructor.
      *
      * @param parent the main application
-     * @param flags bitmask of MODAL, CENTERED, or RESIZABLE
+     * @param flags  bitmask of MODAL, CENTERED, or RESIZABLE
      */
     DemoCheckBoxWindow(final TApplication parent, final int flags) {
         // Construct a demo window.  X and Y don't matter because it will be
@@ -107,17 +108,17 @@ public class DemoCheckBoxWindow extends TWindow {
         setTitle(i18n.getString("windowTitle"));
 
         setLayoutManager(new StretchLayoutManager(getWidth() - 2,
-                getHeight() - 2));
+            getHeight() - 2));
 
         int row = 1;
 
         // Add some widgets
-        addLabel(i18n.getString("checkBoxLabel1"), 1, row);
-        checkBox1 = addCheckBox(40, row++, i18n.getString("checkBoxText1"),
-            false);
-        addLabel(i18n.getString("checkBoxLabel2"), 1, row);
-        checkBox2 = addCheckBox(40, row++, i18n.getString("checkBoxText2"),
-            true);
+        checkBox1 = addLabelFor(i18n.getString("checkBoxLabel1"), 1, row,
+            addCheckBox(40, row++, i18n.getString("checkBoxText1"),
+                false));
+        checkBox2 = addLabelFor(i18n.getString("checkBoxLabel2"), 1, row,
+            addCheckBox(40, row++, i18n.getString("checkBoxText2"),
+                true));
         row += 2;
 
         radioGroup = addRadioGroup(1, row,
@@ -127,7 +128,7 @@ public class DemoCheckBoxWindow extends TWindow {
         radioGroup.addRadioButton(i18n.getString("radioOption3"));
         radioGroup.setRequiresSelection(true);
 
-        List<String> comboValues = new ArrayList<String>();
+        var comboValues = new ArrayList<String>();
         comboValues.add(i18n.getString("comboBoxString0"));
         comboValues.add(i18n.getString("comboBoxString1"));
         comboValues.add(i18n.getString("comboBoxString2"));
@@ -179,12 +180,12 @@ public class DemoCheckBoxWindow extends TWindow {
      */
     public void setUseGradient(final boolean useGradient) {
         if (useGradient) {
-            int PINK = 0xac7580;
-            int BLUE = 0x3b8fb0;
-            int YELLOW = 0x7c7c00;
+            int pink = 0xac7580;
+            int blue = 0x3b8fb0;
+            int yellow = 0x7c7c00;
             setDrawPreTransform(new GradientCellTransform(
-                GradientCellTransform.Layer.BACKGROUND, PINK,
-                BLUE, YELLOW, BLUE), true);
+                GradientCellTransform.Layer.BACKGROUND, pink,
+                blue, yellow, blue), true);
         } else {
             setDrawPreTransform(null);
         }
