@@ -2995,13 +2995,14 @@ public class ColorTheme {
         colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, rgb(fgMuted, bgBlack));
         colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, rgb(accentGreen, bgBlack));
 
-        // Labels / text.
+        // Labels / text: brighten when the associated widget is active, dim
+        // when disabled.  Mnemonics keep the accent yellow on the surface.
         colors.put(TLABEL, rgb(fgText, bgBlack));
-        colors.put(TLABEL_ACTIVE, rgb(fgText, bgBlack));
-        colors.put(TLABEL_DISABLED, rgb(fgText, bgBlack));
+        colors.put(TLABEL_ACTIVE, rgb(fgWhite, bgBlack));
+        colors.put(TLABEL_DISABLED, rgb(fgMuted, bgBlack));
         colors.put(TLABEL_MODAL, rgb(fgText, bgBlack));
-        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgText, bgBlack));
-        colors.put(TLABEL_DISABLED_MODAL, rgb(fgText, bgBlack));
+        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgWhite, bgBlack));
+        colors.put(TLABEL_DISABLED_MODAL, rgb(fgMuted, bgBlack));
         colors.put(TLABEL_MNEMONIC, rgb(accentYellw, bgBlack));
         colors.put(TLABEL_ACTIVE_MNEMONIC, rgb(accentYellw, bgBlack));
         colors.put(TLABEL_DISABLED_MNEMONIC, rgb(accentYellw, bgBlack));
@@ -3193,21 +3194,23 @@ public class ColorTheme {
         colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, rgb(fgChrome, bgChrome));
         colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, rgb(accentHot, bgChrome));
 
-        // Labels / text.
+        // Labels / text: brighten when the associated widget is active, dim
+        // when disabled.  Modal labels sit on the chrome surface to match
+        // the modal window background.
         colors.put(TLABEL, rgb(fgText, bgPanel));
-        colors.put(TLABEL_ACTIVE, rgb(fgText, bgPanel));
-        colors.put(TLABEL_DISABLED, rgb(fgText, bgPanel));
-        colors.put(TLABEL_MODAL, rgb(fgText, bgPanel));
-        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgText, bgPanel));
-        colors.put(TLABEL_DISABLED_MODAL, rgb(fgText, bgPanel));
+        colors.put(TLABEL_ACTIVE, rgb(0xffffff, bgPanel));
+        colors.put(TLABEL_DISABLED, rgb(fgMuted, bgPanel));
+        colors.put(TLABEL_MODAL, rgb(fgText, bgChrome));
+        colors.put(TLABEL_ACTIVE_MODAL, rgb(0xffffff, bgChrome));
+        colors.put(TLABEL_DISABLED_MODAL, rgb(fgMuted, bgChrome));
         colors.put(TLABEL_MNEMONIC, rgb(accent, bgPanel));
         colors.put(TLABEL_ACTIVE_MNEMONIC, rgb(accent, bgPanel));
         colors.put(TLABEL_DISABLED_MNEMONIC, rgb(accent, bgPanel));
-        colors.put(TLABEL_MNEMONIC_MODAL, rgb(accent, bgPanel));
-        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgb(accent, bgPanel));
-        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgb(accent, bgPanel));
+        colors.put(TLABEL_MNEMONIC_MODAL, rgb(accent, bgChrome));
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgb(accent, bgChrome));
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgb(accent, bgChrome));
         colors.put(TTEXT, rgb(fgText, bgPanel));
-        colors.put(TTEXT_MODAL, rgb(fgText, bgPanel));
+        colors.put(TTEXT_MODAL, rgb(fgText, bgChrome));
 
         // Buttons use the VS Code primary button palette.  Mnemonics use a
         // bright amber so the underlined character is distinguishable from
