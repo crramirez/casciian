@@ -2822,9 +2822,9 @@ public class ColorTheme {
         colors.put(TDESKTOP_BACKGROUND, attr(CYAN, BLUE, false));
 
         // Panels / windows: white on blue, cyan borders.
-        colors.put(TWINDOW_BORDER, attr(CYAN, BLUE, true));
+        colors.put(TWINDOW_BORDER, attr(WHITE, BLUE, false));
         colors.put(TWINDOW_BACKGROUND, attr(WHITE, BLUE, true));
-        colors.put(TWINDOW_BORDER_INACTIVE, attr(CYAN, BLUE, false));
+        colors.put(TWINDOW_BORDER_INACTIVE, attr(WHITE, BLUE, false));
         colors.put(TWINDOW_BACKGROUND_INACTIVE, attr(WHITE, BLUE, false));
         colors.put(TWINDOW_BORDER_WINDOWMOVE, attr(YELLOW, BLUE, true));
         colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, attr(WHITE, BLUE, false));

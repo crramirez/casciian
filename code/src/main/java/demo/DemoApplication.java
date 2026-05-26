@@ -267,10 +267,7 @@ public class DemoApplication extends TApplication {
                 m.setAlpha(90 * 255 / 100);
             }
 
-            oldDesktop = getDesktop();
-            TDesktop newDesktop = new TDesktop(this);
-            setDesktop(newDesktop);
-            newDesktop.setBackgroundCell(null);
+            exposeBackground();
             setHideStatusBar(true);
 
             TMenuItem menuItem = getMenuItem(10011);
@@ -322,10 +319,15 @@ public class DemoApplication extends TApplication {
             return applyClassicThemeLook(() -> getTheme().setDarkDefault());
         }
         if (menu.getId() == 10021) {
-            return applyClassicThemeLook(() -> getTheme().setMidnightCommander());
+            return applyCursesThemeLook(() -> getTheme().setMidnightCommander());
         }
         if (menu.getId() == 10022) {
-            return applyClassicThemeLook(() -> getTheme().setFlatDark());
+            applyClassicThemeLook(() -> getTheme().setFlatDark());
+            SystemProperties.setShadowOpacity(0);
+            // Disable gradients for all windows
+            setUseGradientAllSupportedWindows(false);
+            exposeBackground();
+            return true;
         }
         if (menu.getId() == 10024) {
             return applyModernThemeLook(() -> getTheme().setVSCodeDark());
@@ -426,10 +428,7 @@ public class DemoApplication extends TApplication {
             TMenuItem menuItem = getMenuItem(menu.getId());
             boolean exposeBackground = menuItem.isChecked();
             if (exposeBackground) {
-                oldDesktop = getDesktop();
-                TDesktop newDesktop = new TDesktop(this);
-                setDesktop(newDesktop);
-                newDesktop.setBackgroundCell(null);
+                exposeBackground();
             } else {
                 setDesktop(oldDesktop);
             }
@@ -445,6 +444,13 @@ public class DemoApplication extends TApplication {
         return super.onMenu(menu);
     }
 
+    private void exposeBackground() {
+        oldDesktop = getDesktop();
+        TDesktop newDesktop = new TDesktop(this);
+        setDesktop(newDesktop);
+        newDesktop.setBackgroundCell(null);
+    }
+
     private void setUseGradientAllSupportedWindows(boolean useGradient) {
         for (TWindow window: getAllWindows()) {
             if (window instanceof DemoMainWindow windowMain) {
@@ -457,18 +463,26 @@ public class DemoApplication extends TApplication {
     }
 
     private void applyRoundBorders() {
-        System.setProperty("casciian.TWindow.borderStyleForeground", "round");
-        System.setProperty("casciian.TWindow.borderStyleModal", "round");
-        System.setProperty("casciian.TWindow.borderStyleMoving", "round");
-        System.setProperty("casciian.TWindow.borderStyleInactive", "round");
-        System.setProperty("casciian.TEditColorTheme.borderStyle", "round");
-        System.setProperty("casciian.TEditColorTheme.options.borderStyle", "round");
-        System.setProperty("casciian.TEditDesktopStyle.borderStyle", "round");
-        System.setProperty("casciian.TPanel.borderStyle", "round");
-        System.setProperty("casciian.TRadioGroup.borderStyle", "round");
-        System.setProperty("casciian.TScreenOptions.borderStyle", "round");
-        System.setProperty("casciian.TScreenOptions.grid.borderStyle", "round");
-        System.setProperty("casciian.TScreenOptions.options.borderStyle", "round");
+        applyBorders("round");
+    }
+
+    private void applySingleBorders() {
+        applyBorders("single");
+    }
+
+    private void applyBorders(String style) {
+        System.setProperty("casciian.TWindow.borderStyleForeground", style);
+        System.setProperty("casciian.TWindow.borderStyleModal", style);
+        System.setProperty("casciian.TWindow.borderStyleMoving", style);
+        System.setProperty("casciian.TWindow.borderStyleInactive", style);
+        System.setProperty("casciian.TEditColorTheme.borderStyle", style);
+        System.setProperty("casciian.TEditColorTheme.options.borderStyle", style);
+        System.setProperty("casciian.TEditDesktopStyle.borderStyle", style);
+        System.setProperty("casciian.TPanel.borderStyle", style);
+        System.setProperty("casciian.TRadioGroup.borderStyle", style);
+        System.setProperty("casciian.TScreenOptions.borderStyle", style);
+        System.setProperty("casciian.TScreenOptions.grid.borderStyle", style);
+        System.setProperty("casciian.TScreenOptions.options.borderStyle", style);
     }
 
     private boolean applyBlandLook() {
@@ -514,8 +528,8 @@ public class DemoApplication extends TApplication {
             window.setAlpha(90 * 255 / 100);
 
             for (TWidget widget: window.getChildren()) {
-                if (widget instanceof TButton) {
-                    ((TButton) widget).setStyle(TButton.Style.SQUARE);
+                if (widget instanceof TButton button) {
+                    button.setStyle(TButton.Style.SQUARE);
                 }
             }
         }
@@ -556,6 +570,40 @@ public class DemoApplication extends TApplication {
             window.setBorderStyleMoving("round");
             window.setBorderStyleInactive("round");
             window.setAlpha(90 * 255 / 100);
+        }
+        for (TMenu m: getAllMenus()) {
+            m.setBorderStyleForeground("single");
+            m.setBorderStyleModal("single");
+            m.setBorderStyleMoving("single");
+            m.setBorderStyleInactive("single");
+            m.setAlpha(95 * 255 / 100);
+        }
+        setDesktop(new TDesktop(this));
+        oldDesktop = getDesktop();
+        setHideStatusBar(false);
+        onMenu(new TMenuEvent(getBackend(), 10011));
+        return true;
+    }
+
+    /**
+     * Apply a preset theme using the modern ("custom") look: round borders
+     * and translucent windows.  The supplied {@code themeSetter} is invoked
+     * in place of {@code setQmodem5()} so the caller controls the colour
+     * palette.
+     *
+     * @param themeSetter a Runnable that installs the desired theme on
+     * {@link #getTheme()}
+     * @return true (the menu event has been handled)
+     */
+    private boolean applyCursesThemeLook(final Runnable themeSetter) {
+        applySingleBorders();
+
+        themeSetter.run();
+        for (TWindow window: getAllWindows()) {
+            window.setBorderStyleForeground("single");
+            window.setBorderStyleModal("single");
+            window.setBorderStyleMoving("single");
+            window.setBorderStyleInactive("single");
         }
         for (TMenu m: getAllMenus()) {
             m.setBorderStyleForeground("single");
@@ -666,30 +714,30 @@ public class DemoApplication extends TApplication {
         backgroundImage.setChecked(false);
         demoMenu.addItem(10012, i18n.getString("shadowOpacity"));
         TSubMenu languageMenu = demoMenu.addSubMenu(i18n.getString("selectLanguage"));
-        TMenuItem en = languageMenu.addItem(10005, i18n.getString("english"));
-        TMenuItem es = languageMenu.addItem(10006, i18n.getString("espanol"));
+        languageMenu.addItem(10005, i18n.getString("english"));
+        languageMenu.addItem(10006, i18n.getString("espanol"));
 
         demoMenu.addSeparator();
         TMenuItem item = demoMenu.addItem(2000, i18n.getString("checkable"));
         item.setCheckable(true);
         item = demoMenu.addItem(2001, i18n.getString("disabled"));
         item.setEnabled(false);
-        item = demoMenu.addItem(2002, i18n.getString("normal"));
+        demoMenu.addItem(2002, i18n.getString("normal"));
         TSubMenu subMenu = demoMenu.addSubMenu(i18n.getString("subMenu"));
-        item = demoMenu.addItem(2010, i18n.getString("normalAD"));
+        demoMenu.addItem(2010, i18n.getString("normalAD"));
 
         item = subMenu.addItem(2000, i18n.getString("checkableSub"));
         item.setCheckable(true);
         item = subMenu.addItem(2001, i18n.getString("disabledSub"));
         item.setEnabled(false);
-        item = subMenu.addItem(2002, i18n.getString("normalSub"));
+        subMenu.addItem(2002, i18n.getString("normalSub"));
 
         subMenu = subMenu.addSubMenu(i18n.getString("subMenu"));
         item = subMenu.addItem(2000, i18n.getString("checkableSub"));
         item.setCheckable(true);
         item = subMenu.addItem(2001, i18n.getString("disabledSub"));
         item.setEnabled(false);
-        item = subMenu.addItem(2002, i18n.getString("normalSub"));
+        subMenu.addItem(2002, i18n.getString("normalSub"));
 
         addTableMenu();
         addWindowMenu();
