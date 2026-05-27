@@ -22,6 +22,8 @@ import casciian.bits.StringUtils;
 /**
  * TLabel implements a simple label, with an optional mnemonic hotkey action
  * associated with it.
+ *
+ * @param <F> the type of widget this label is for
  */
 public class TLabel<F extends TWidget> extends TWidget {
 
