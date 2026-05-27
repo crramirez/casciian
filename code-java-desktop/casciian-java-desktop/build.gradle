@@ -106,3 +106,24 @@ signing {
         sign publishing.publications
     }
 }
+
+tasks.register('publishToLocalStaging') {
+    group = 'publishing'
+    description = 'Publishes signed artifacts to build/staging-repo (for Central Portal bundling).'
+    dependsOn(
+        'publishMavenJavaPublicationToLocalStagingRepository'
+    )
+}
+
+tasks.register('centralBundleZip', Zip) {
+    group = 'publishing'
+    description = 'Creates a Maven-layout ZIP bundle for Sonatype Central Portal upload.'
+    dependsOn('publishToLocalStaging')
+
+    from(rootProject.layout.buildDirectory.dir("staging-repo"))
+    archiveBaseName.set("casciian-java-desktop-central")
+    archiveVersion.set(project.version.toString())
+    destinationDirectory.set(rootProject.layout.buildDirectory.dir("central-bundle"))
+
+    // Result: build/central-bundle/casciian-central-<version>.zip
+}
