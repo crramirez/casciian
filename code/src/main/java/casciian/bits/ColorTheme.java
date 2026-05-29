@@ -1301,12 +1301,12 @@ public class ColorTheme {
         colors.put(TPROGRESSBAR_INCOMPLETE, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
+            .bold(true)
             .build());
         colors.put(TPROGRESSBAR_INCOMPLETE_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
-            .backColor(BLUE)
-            .bold(false)
+            .backColor(WHITE)
+            .bold(true)
             .build());
         colors.put(TPROGRESSBAR_BORDER, CellAttributes.builder()
             .foreColor(WHITE)
