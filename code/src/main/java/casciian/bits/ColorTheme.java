@@ -343,6 +343,12 @@ public class ColorTheme {
     /** Color key for TProgressBar incomplete portion in modal mode. */
     public static final String TPROGRESSBAR_INCOMPLETE_MODAL = "tprogressbar.incomplete.modal";
 
+    /** Color key for TProgressBar border. */
+    public static final String TPROGRESSBAR_BORDER = "tprogressbar.border";
+
+    /** Color key for TProgressBar border in modal mode. */
+    public static final String TPROGRESSBAR_BORDER_MODAL = "tprogressbar.border.modal";
+
     /** Color key for THScroller and TVScroller bar. */
     public static final String TSCROLLER_BAR = "tscroller.bar";
 
@@ -1302,6 +1308,16 @@ public class ColorTheme {
             .backColor(BLUE)
             .bold(false)
             .build());
+        colors.put(TPROGRESSBAR_BORDER, CellAttributes.builder()
+            .foreColor(WHITE)
+            .backColor(BLUE)
+            .bold(true)
+            .build());
+        colors.put(TPROGRESSBAR_BORDER_MODAL, CellAttributes.builder()
+            .foreColor(WHITE)
+            .backColor(WHITE)
+            .bold(true)
+            .build());
 
         // THScroller / TVScroller
         colors.put(TSCROLLER_BAR, CellAttributes.builder()
@@ -1686,6 +1702,11 @@ public class ColorTheme {
         color.setBackColorRGB(pink2);
         color.setBold(false);
         colors.put(TPROGRESSBAR_INCOMPLETE, color);
+        color = new CellAttributes();
+        color.setForeColor(MAGENTA);
+        color.setBold(true);
+        colors.put(TPROGRESSBAR_BORDER, color);
+        colors.put(TPROGRESSBAR_BORDER_MODAL, color);
 
         color = new CellAttributes();
         color.setForeColor(MAGENTA);
@@ -2286,6 +2307,16 @@ public class ColorTheme {
         color.setBackColor(CYAN);
         color.setBold(false);
         colors.put(TPROGRESSBAR_INCOMPLETE_MODAL, color);
+        color = new CellAttributes();
+        color.setForeColor(BLACK);
+        color.setBackColor(CYAN);
+        color.setBold(true);
+        colors.put(TPROGRESSBAR_BORDER, color);
+        color = new CellAttributes();
+        color.setForeColor(WHITE);
+        color.setBackColor(WHITE);
+        color.setBold(true);
+        colors.put(TPROGRESSBAR_BORDER_MODAL, color);
 
         // THScroller / TVScroller
         color = new CellAttributes();
@@ -2787,6 +2818,8 @@ public class ColorTheme {
         colors.put(TPROGRESSBAR_COMPLETE_MODAL, rgb(fgGreen, fgGreen));
         colors.put(TPROGRESSBAR_INCOMPLETE, rgb(fgMuted, bgWindow));
         colors.put(TPROGRESSBAR_INCOMPLETE_MODAL, rgb(fgMuted, bgWindow));
+        colors.put(TPROGRESSBAR_BORDER, rgb(fgWhite, bgWindow));
+        colors.put(TPROGRESSBAR_BORDER_MODAL, rgb(fgWhite, bgModal));
 
         // Menu: dark panel surface with bright hotkeys.
         colors.put(TMENU, rgb(fgText, bgPanel));
@@ -2928,6 +2961,10 @@ public class ColorTheme {
         // Panel border
         colors.put(TPANEL_BORDER, attr(CYAN, BLUE, true));
         colors.put(TPANEL_BORDER_MODAL, attr(CYAN, BLUE, true));
+
+        // Progress bar border
+        colors.put(TPROGRESSBAR_BORDER, attr(WHITE, BLUE, false));
+        colors.put(TPROGRESSBAR_BORDER_MODAL, attr(BLACK, WHITE, false));
 
         // Menu: MC menu is lightgray on cyan with yellow hotkeys.
         colors.put(TMENU, attr(BLACK, CYAN, false));
@@ -3132,6 +3169,8 @@ public class ColorTheme {
         colors.put(TPROGRESSBAR_COMPLETE_MODAL, rgb(accentGreen, accentGreen));
         colors.put(TPROGRESSBAR_INCOMPLETE, rgb(fgBorder, bgBlack));
         colors.put(TPROGRESSBAR_INCOMPLETE_MODAL, rgb(fgBorder, bgBlack));
+        colors.put(TPROGRESSBAR_BORDER, rgb(accentCyan, bgBlack));
+        colors.put(TPROGRESSBAR_BORDER_MODAL, rgb(accentMag, bgBlack));
 
         // Menu: flat black surface, accent-coloured highlights.
         colors.put(TMENU, rgb(fgText, bgBlack));
@@ -3335,6 +3374,8 @@ public class ColorTheme {
         colors.put(TPROGRESSBAR_COMPLETE_MODAL, rgb(accent, accent));
         colors.put(TPROGRESSBAR_INCOMPLETE, rgb(fgMuted, bgInput));
         colors.put(TPROGRESSBAR_INCOMPLETE_MODAL, rgb(fgMuted, bgInput));
+        colors.put(TPROGRESSBAR_BORDER, rgb(accent, bgPanel));
+        colors.put(TPROGRESSBAR_BORDER_MODAL, rgb(accent, bgChrome));
 
         // Menu (command palette-like).
         colors.put(TMENU, rgb(fgChrome, bgPanel));
@@ -3538,6 +3579,8 @@ public class ColorTheme {
         colors.put(TPROGRESSBAR_COMPLETE_MODAL, rgb(accent, accent));
         colors.put(TPROGRESSBAR_INCOMPLETE, rgb(fgMuted, borderDim));
         colors.put(TPROGRESSBAR_INCOMPLETE_MODAL, rgb(fgMuted, borderDim));
+        colors.put(TPROGRESSBAR_BORDER, rgb(accent, bgPanel));
+        colors.put(TPROGRESSBAR_BORDER_MODAL, rgb(accent, bgEditor));
 
         // Menu.
         colors.put(TMENU, rgb(fgChrome, bgPanel));
