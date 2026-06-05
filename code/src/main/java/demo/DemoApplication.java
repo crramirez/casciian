@@ -151,29 +151,14 @@ public class DemoApplication extends TApplication {
      * Public constructor.
      *
      * @param backendType one of the TApplication.BackendType values
-     * @param defaults if true, apply Casciian default settings; if false, apply custom theme and visual enhancements
      * @throws UnsupportedEncodingException if TApplication can't instantiate the Backend.
      */
     @SuppressWarnings("this-escape")
-    public DemoApplication(final BackendType backendType, final boolean defaults) throws UnsupportedEncodingException {
+    public DemoApplication(final BackendType backendType) throws UnsupportedEncodingException {
         super(backendType);
 
         addAllWidgets();
         getBackend().setTitle(i18n.getString("applicationTitle"));
-
-        if (!defaults) {
-            // Use the custom theme by default.
-            onMenu(new TMenuEvent(getBackend(), 10003));
-
-            // Use window gradients by default.
-            setMenuItemChecked(10010, true);
-            onMenu(new TMenuEvent(getBackend(), 10010));
-
-            // Expose terminal background image by default.
-            setMenuItemChecked(10011, true);
-            onMenu(new TMenuEvent(getBackend(), 10011));
-        }
-
     }
 
     /**
@@ -422,6 +407,11 @@ public class DemoApplication extends TApplication {
             // Enable/disable menu icons.
             TMenuItem menuItem = getMenuItem(menu.getId());
             SystemProperties.setMenuIcons(menuItem.isChecked());
+            // Recompute menu widths so the icon padding is accounted for.
+            for (TMenu m: getAllMenus()) {
+                m.recomputeWidth();
+            }
+            recomputeMenuX();
             return true;
         }
 

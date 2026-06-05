@@ -406,6 +406,22 @@ public class TMenuItem extends TWidget {
     }
 
     /**
+     * Recompute this menu item's width based on its label, optional
+     * accelerator key, and the current menu-icons setting.  This allows the
+     * width to stay correct when the menu-icons option is toggled at runtime.
+     */
+    public void recomputeWidth() {
+        int newWidth = StringUtils.width(label) + 4;
+        if (key != null) {
+            newWidth += StringUtils.width(key.toString()) + 2;
+        }
+        if (SystemProperties.isMenuIcons()) {
+            newWidth += SystemProperties.getMenuIconsOffset();
+        }
+        setWidth(newWidth);
+    }
+
+    /**
      * Dispatch event(s) due to selection or click.
      *
      * @param backend the backend that generated the user input
