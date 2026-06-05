@@ -381,18 +381,18 @@ public class DemoMainWindow extends TWindow {
      */
     public void setUseGradient(final boolean useGradient) {
         if (useGradient) {
-            int pink = 0xf7a8b8;
-            int blue = 0x55cdfc;
-            int yellow = 0xffff00;
-            int orange = 0xffc800;
+            // Derive the gradient colors from the active theme so they stay
+            // harmonic when the user switches themes.
+            int[] corners = DemoGradientColors.cornerColors(getApplication());
+            int glow = DemoGradientColors.glowColor(getApplication());
 
             setDrawPreTransform(new GradientCellTransform(
-                GradientCellTransform.Layer.BACKGROUND, blue, pink,
-                yellow, blue), true);
+                GradientCellTransform.Layer.BACKGROUND,
+                corners[0], corners[1], corners[2], corners[3]), true);
 
             if (SystemProperties.isTextMouse()) {
                 setDrawPostTransform(new MouseGlowCellTransform(
-                    MouseGlowCellTransform.Layer.BOTH, orange, 7));
+                    MouseGlowCellTransform.Layer.BOTH, glow, 7));
             } else {
                 setDrawPostTransform(null);
             }

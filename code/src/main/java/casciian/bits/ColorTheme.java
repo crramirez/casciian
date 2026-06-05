@@ -777,7 +777,6 @@ public class ColorTheme {
      * Sets to defaults that resemble the Borland IDE colors.
      */
     public void setDefaultTheme() {
-        CellAttributes color;
 
         // TWindow border
         colors.put(TWINDOW_BORDER, CellAttributes.builder()
@@ -935,28 +934,31 @@ public class ColorTheme {
         colors.put(TLABEL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(true)
+            .bold(false)
             .build());
         colors.put(TLABEL_ACTIVE, CellAttributes.builder()
-            .foreColor(YELLOW)
-            .backColor(BLUE)
-            .bold(true)
-            .build());
-        colors.put(TLABEL_DISABLED, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
             .bold(true)
             .build());
-        color = new CellAttributes(colors.get(TWINDOW_BACKGROUND_MODAL));
-        colors.put(TLABEL_MODAL, color);
+        colors.put(TLABEL_DISABLED, CellAttributes.builder()
+            .foreColor(BLACK)
+            .backColor(BLUE)
+            .bold(true)
+            .build());
+        colors.put(TLABEL_MODAL, CellAttributes.builder()
+            .foreColor(BLACK)
+            .backColor(WHITE)
+            .bold(false)
+            .build());
         colors.put(TLABEL_ACTIVE_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(WHITE)
             .bold(true)
             .build());
         colors.put(TLABEL_DISABLED_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
+            .foreColor(BLACK)
+            .backColor(WHITE)
             .bold(true)
             .build());
         colors.put(TLABEL_MNEMONIC, CellAttributes.builder()
@@ -965,12 +967,12 @@ public class ColorTheme {
             .bold(true)
             .build());
         colors.put(TLABEL_ACTIVE_MNEMONIC, CellAttributes.builder()
-            .foreColor(WHITE)
+            .foreColor(YELLOW)
             .backColor(BLUE)
             .bold(true)
             .build());
         colors.put(TLABEL_DISABLED_MNEMONIC, CellAttributes.builder()
-            .foreColor(YELLOW)
+            .foreColor(BLACK)
             .backColor(BLUE)
             .bold(true)
             .build());
@@ -985,8 +987,8 @@ public class ColorTheme {
             .bold(true)
             .build());
         colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, CellAttributes.builder()
-            .foreColor(YELLOW)
-            .backColor(BLUE)
+            .foreColor(BLACK)
+            .backColor(WHITE)
             .bold(true)
             .build());
 

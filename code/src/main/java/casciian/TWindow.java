@@ -91,6 +91,11 @@ public class TWindow extends TWidget {
      */
     public static final int OVERRIDEMENU        = 0x80;
 
+    /**
+     * The "default" style literal used by border-style setters and getters.
+     */
+    private static final String DEFAULT_STYLE = "default";
+
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -120,7 +125,7 @@ public class TWindow extends TWidget {
      * the window directly rather than processed through the menu
      * accelerators.
      */
-    private Set<TKeypress> keyboardShortcuts = new HashSet<TKeypress>();
+    private Set<TKeypress> keyboardShortcuts = new HashSet<>();
 
     /**
      * If true, then the user clicked on the title bar and is moving the
@@ -337,8 +342,12 @@ public class TWindow extends TWidget {
         this.flags       = flags;
 
         // Minimum width/height are 10 and 2
-        assert (width >= 10);
-        assert (getHeight() >= 2);
+        if (width < 10) {
+            throw new IllegalArgumentException("Window width must be at least 10");
+        }
+        if (getHeight() < 2) {
+            throw new IllegalArgumentException("Window height must be at least 2");
+        }
 
         // MODAL implies CENTERED
         if (isModal()) {
@@ -382,13 +391,9 @@ public class TWindow extends TWidget {
         if ((flags & NOCLOSEBOX) != 0) {
             return false;
         }
-        if ((mouse != null)
+        return (mouse != null)
             && (mouse.getAbsoluteY() == getY())
-            && (mouse.getAbsoluteX() == getX() + 3)
-        ) {
-            return true;
-        }
-        return false;
+            && (mouse.getAbsoluteX() == getX() + 3);
     }
 
     /**
@@ -400,14 +405,10 @@ public class TWindow extends TWidget {
         if ((flags & NOZOOMBOX) != 0) {
             return false;
         }
-        if ((mouse != null)
+        return (mouse != null)
             && !isModal()
             && (mouse.getAbsoluteY() == getY())
-            && (mouse.getAbsoluteX() == getX() + getWidth() - 4)
-        ) {
-            return true;
-        }
-        return false;
+            && (mouse.getAbsoluteX() == getX() + getWidth() - 4);
     }
 
     /**
@@ -418,16 +419,12 @@ public class TWindow extends TWidget {
      * corner
      */
     protected boolean mouseOnResize() {
-        if (((flags & RESIZABLE) != 0)
+        return ((flags & RESIZABLE) != 0)
             && (getBorderStyle() != BorderStyle.NONE)
             && (mouse != null)
             && (mouse.getAbsoluteY() == getY() + getHeight() - 1)
             && ((mouse.getAbsoluteX() == getX() + getWidth() - 1)
-                || (mouse.getAbsoluteX() == getX() + getWidth() - 2))
-        ) {
-            return true;
-        }
-        return false;
+                || (mouse.getAbsoluteX() == getX() + getWidth() - 2));
     }
 
     /**
@@ -525,10 +522,8 @@ public class TWindow extends TWidget {
         }
 
         // Give the shortcut bar a shot at this.
-        if (statusBar != null) {
-            if (statusBar.statusBarMouseDown(mouse)) {
-                return;
-            }
+        if ((statusBar != null) && statusBar.statusBarMouseDown(mouse)) {
+            return;
         }
 
         // I didn't take it, pass it on to my children
@@ -584,10 +579,8 @@ public class TWindow extends TWidget {
         }
 
         // Give the shortcut bar a shot at this.
-        if (statusBar != null) {
-            if (statusBar.statusBarMouseUp(mouse)) {
-                return;
-            }
+        if ((statusBar != null) && statusBar.statusBarMouseUp(mouse)) {
+            return;
         }
 
         // I didn't take it, pass it on to my children
@@ -676,13 +669,13 @@ public class TWindow extends TWidget {
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
 
-        if (inWindowMove || inWindowResize) {
-            // ESC or ENTER - Exit size/move
-            if (keypress.equals(kbEsc) || keypress.equals(kbEnter)) {
-                inWindowMove = false;
-                inWindowResize = false;
-                return;
-            }
+        // ESC or ENTER - Exit size/move
+        if ((inWindowMove || inWindowResize)
+            && (keypress.equals(kbEsc) || keypress.equals(kbEnter))
+        ) {
+            inWindowMove = false;
+            inWindowResize = false;
+            return;
         }
 
         if (inKeyboardResize) {
@@ -692,25 +685,21 @@ public class TWindow extends TWidget {
                 inKeyboardResize = false;
             }
 
-            if (keypress.equals(kbLeft)) {
-                if (getX() > 0) {
-                    setX(getX() - 1);
-                }
+            if (keypress.equals(kbLeft) && (getX() > 0)) {
+                setX(getX() - 1);
             }
-            if (keypress.equals(kbRight)) {
-                if (getX() < getScreen().getWidth() - 1) {
-                    setX(getX() + 1);
-                }
+            if (keypress.equals(kbRight)
+                && (getX() < getScreen().getWidth() - 1)
+            ) {
+                setX(getX() + 1);
             }
-            if (keypress.equals(kbDown)) {
-                if (getY() < application.getDesktopBottom() - 1) {
-                    setY(getY() + 1);
-                }
+            if (keypress.equals(kbDown)
+                && (getY() < application.getDesktopBottom() - 1)
+            ) {
+                setY(getY() + 1);
             }
-            if (keypress.equals(kbUp)) {
-                if (getY() > 1) {
-                    setY(getY() - 1);
-                }
+            if (keypress.equals(kbUp) && (getY() > 1)) {
+                setY(getY() - 1);
             }
 
             /*
@@ -721,33 +710,29 @@ public class TWindow extends TWidget {
                 && (getBorderStyle() != BorderStyle.NONE)
             ) {
 
-                if (keypress.equals(kbShiftLeft)) {
-                    if ((getWidth() > minimumWindowWidth)
-                        || (minimumWindowWidth <= 0)
-                    ) {
-                        setWidth(getWidth() - 1);
-                    }
+                if (keypress.equals(kbShiftLeft)
+                    && ((getWidth() > minimumWindowWidth)
+                        || (minimumWindowWidth <= 0))
+                ) {
+                    setWidth(getWidth() - 1);
                 }
-                if (keypress.equals(kbShiftRight)) {
-                    if ((getWidth() < maximumWindowWidth)
-                        || (maximumWindowWidth <= 0)
-                    ) {
-                        setWidth(getWidth() + 1);
-                    }
+                if (keypress.equals(kbShiftRight)
+                    && ((getWidth() < maximumWindowWidth)
+                        || (maximumWindowWidth <= 0))
+                ) {
+                    setWidth(getWidth() + 1);
                 }
-                if (keypress.equals(kbShiftUp)) {
-                    if ((getHeight() > minimumWindowHeight)
-                        || (minimumWindowHeight <= 0)
-                    ) {
-                        setHeight(getHeight() - 1);
-                    }
+                if (keypress.equals(kbShiftUp)
+                    && ((getHeight() > minimumWindowHeight)
+                        || (minimumWindowHeight <= 0))
+                ) {
+                    setHeight(getHeight() - 1);
                 }
-                if (keypress.equals(kbShiftDown)) {
-                    if ((getHeight() < maximumWindowHeight)
-                        || (maximumWindowHeight <= 0)
-                    ) {
-                        setHeight(getHeight() + 1);
-                    }
+                if (keypress.equals(kbShiftDown)
+                    && ((getHeight() < maximumWindowHeight)
+                        || (maximumWindowHeight <= 0))
+                ) {
+                    setHeight(getHeight() + 1);
                 }
 
                 // Pass a resize event to my children
@@ -760,10 +745,8 @@ public class TWindow extends TWidget {
         }
 
         // Give the shortcut bar a shot at this.
-        if (statusBar != null) {
-            if (statusBar.statusBarKeypress(keypress)) {
-                return;
-            }
+        if ((statusBar != null) && statusBar.statusBarKeypress(keypress)) {
+            return;
         }
 
         // These keystrokes will typically not be seen unless a subclass
@@ -868,7 +851,7 @@ public class TWindow extends TWidget {
                 }
             }
 
-        } // if (!(this instanceof TDesktop))
+        }
 
         // I didn't take it, pass it on to my children
         super.onCommand(command);
@@ -937,24 +920,24 @@ public class TWindow extends TWidget {
      */
     @Override
     public void onResize(final TResizeEvent resize) {
-        if (resize.getType() == TResizeEvent.Type.WIDGET) {
-            if (getChildren().size() == 1) {
-                TWidget child = getChildren().get(0);
-                if ((child instanceof TSplitPane)
-                    || (child instanceof TPanel)
-                ) {
-                    if (this instanceof TDesktop) {
-                        child.onResize(new TResizeEvent(resize.getBackend(),
-                            TResizeEvent.Type.WIDGET,
-                            resize.getWidth(), resize.getHeight()));
-                    } else {
-                        child.onResize(new TResizeEvent(resize.getBackend(),
-                            TResizeEvent.Type.WIDGET,
-                            resize.getWidth() - 2, resize.getHeight() - 2));
-                    }
+        if ((resize.getType() == TResizeEvent.Type.WIDGET)
+            && (getChildren().size() == 1)
+        ) {
+            TWidget child = getChildren().get(0);
+            if ((child instanceof TSplitPane)
+                || (child instanceof TPanel)
+            ) {
+                if (this instanceof TDesktop) {
+                    child.onResize(new TResizeEvent(resize.getBackend(),
+                        TResizeEvent.Type.WIDGET,
+                        resize.getWidth(), resize.getHeight()));
+                } else {
+                    child.onResize(new TResizeEvent(resize.getBackend(),
+                        TResizeEvent.Type.WIDGET,
+                        resize.getWidth() - 2, resize.getHeight() - 2));
                 }
-                return;
             }
+            return;
         }
 
         // Pass on to TWidget.
@@ -995,20 +978,15 @@ public class TWindow extends TWidget {
         CellAttributes background = getBackground();
         BorderStyle borderStyle = getBorderStyle();
 
-        if(SystemProperties.isTranslucence()) {
-            drawBox(0, 0, getWidth(), getHeight(), border, background, borderStyle);
+        if (SystemProperties.isTranslucence()) {
+            drawBox(0, 0, getWidth(), getHeight(), border, background,
+                borderStyle);
         } else {
-            drawBoxWithShadow(0, 0, getWidth(), getHeight(), border, background, borderStyle);
+            drawBoxWithShadow(0, 0, getWidth(), getHeight(), border,
+                background, borderStyle);
         }
 
-        if ((title != null) && (!title.isEmpty())) {
-            // Draw the title
-            int titleLength = StringUtils.width(title);
-            int titleLeft = (getWidth() - titleLength - 2) / 2;
-            putCharXY(titleLeft, 0, ' ', border);
-            putStringXY(titleLeft + 1, 0, title, border);
-            putCharXY(titleLeft + titleLength + 1, 0, ' ', border);
-        }
+        drawTitleBar(border);
 
         if (isActive()) {
             int lBracket = '[';
@@ -1017,56 +995,97 @@ public class TWindow extends TWidget {
                 lBracket = '(';
                 rBracket = ')';
             }
-
-            // Draw the close button
-            if ((flags & NOCLOSEBOX) == 0) {
-                putCharXY(2, 0, lBracket, border);
-                putCharXY(4, 0, rBracket, border);
-                if (mouseOnClose() && mouse.isMouse1()) {
-                    putCharXY(3, 0, GraphicsChars.CP437[0x0F],
-                        getBorderControls());
-                } else {
-                    putCharXY(3, 0, GraphicsChars.CP437[0xFE],
-                        getBorderControls());
-                }
-            }
-
-            // Draw the maximize button
-            if (!isModal() && ((flags & NOZOOMBOX) == 0)) {
-
-                putCharXY(getWidth() - 5, 0, lBracket, border);
-                putCharXY(getWidth() - 3, 0, rBracket, border);
-                if (mouseOnMaximize() && mouse.isMouse1()) {
-                    putCharXY(getWidth() - 4, 0, GraphicsChars.CP437[0x0F],
-                        getBorderControls());
-                } else {
-                    if (maximized) {
-                        putCharXY(getWidth() - 4, 0, GraphicsChars.CP437[0x12],
-                            getBorderControls());
-                    } else {
-                        putCharXY(getWidth() - 4, 0, GraphicsChars.UPARROW,
-                            getBorderControls());
-                    }
-                }
-            }
-
-            // Draw the resize corner
-            if (((flags & RESIZABLE) != 0)
-                && (getBorderStyle() != BorderStyle.NONE)
-            ) {
-                if ((flags & RESIZABLE) != 0) {
-                    putCharXY(getWidth() - 2, getHeight() - 1,
-                        getBorderStyle().getHorizontal(), getBorderControls());
-                    putCharXY(getWidth() - 1, getHeight() - 1,
-                        getBorderStyle().getBottomRight(), getBorderControls());
-                }
-            }
+            drawCloseButton(border, lBracket, rBracket);
+            drawMaximizeButton(border, lBracket, rBracket);
+            drawResizeCorner();
         }
 
-        if (drawPreTransform != null && !SystemProperties.isDisablePreTransform()) {
+        if ((drawPreTransform != null)
+            && !SystemProperties.isDisablePreTransform()
+        ) {
             applyCellTransform(0, 0, getWidth(), getHeight(), drawPreTransform,
                 drawPreTransformWidget);
         }
+    }
+
+    /**
+     * Draw the window title across the top border.
+     *
+     * @param border the border color attributes
+     */
+    private void drawTitleBar(final CellAttributes border) {
+        if ((title == null) || title.isEmpty()) {
+            return;
+        }
+        int titleLength = StringUtils.width(title);
+        int titleLeft = (getWidth() - titleLength - 2) / 2;
+        putCharXY(titleLeft, 0, ' ', border);
+        putStringXY(titleLeft + 1, 0, title, border);
+        putCharXY(titleLeft + titleLength + 1, 0, ' ', border);
+    }
+
+    /**
+     * Draw the close button in the top-left of the title bar.
+     *
+     * @param border the border color attributes
+     * @param lBracket the left bracket character
+     * @param rBracket the right bracket character
+     */
+    private void drawCloseButton(final CellAttributes border,
+        final int lBracket, final int rBracket) {
+
+        if ((flags & NOCLOSEBOX) != 0) {
+            return;
+        }
+        putCharXY(2, 0, lBracket, border);
+        putCharXY(4, 0, rBracket, border);
+        if (mouseOnClose() && mouse.isMouse1()) {
+            putCharXY(3, 0, GraphicsChars.CP437[0x0F], getBorderControls());
+        } else {
+            putCharXY(3, 0, GraphicsChars.CP437[0xFE], getBorderControls());
+        }
+    }
+
+    /**
+     * Draw the maximize/restore button in the top-right of the title bar.
+     *
+     * @param border the border color attributes
+     * @param lBracket the left bracket character
+     * @param rBracket the right bracket character
+     */
+    private void drawMaximizeButton(final CellAttributes border,
+        final int lBracket, final int rBracket) {
+
+        if (isModal() || ((flags & NOZOOMBOX) != 0)) {
+            return;
+        }
+        putCharXY(getWidth() - 5, 0, lBracket, border);
+        putCharXY(getWidth() - 3, 0, rBracket, border);
+        if (mouseOnMaximize() && mouse.isMouse1()) {
+            putCharXY(getWidth() - 4, 0, GraphicsChars.CP437[0x0F],
+                getBorderControls());
+        } else if (maximized) {
+            putCharXY(getWidth() - 4, 0, GraphicsChars.CP437[0x12],
+                getBorderControls());
+        } else {
+            putCharXY(getWidth() - 4, 0, GraphicsChars.UPARROW,
+                getBorderControls());
+        }
+    }
+
+    /**
+     * Draw the resize corner glyph in the bottom-right when resizable.
+     */
+    private void drawResizeCorner() {
+        if (((flags & RESIZABLE) == 0)
+            || (getBorderStyle() == BorderStyle.NONE)
+        ) {
+            return;
+        }
+        putCharXY(getWidth() - 2, getHeight() - 1, GraphicsChars.SINGLE_BAR,
+            getBorderControls());
+        putCharXY(getWidth() - 1, getHeight() - 1, GraphicsChars.LRCORNER,
+            getBorderControls());
     }
 
     /**
@@ -1097,7 +1116,7 @@ public class TWindow extends TWidget {
      */
     @Override
     public String getMouseStyle() {
-        return System.getProperty("casciian.Swing.mouseStyle", "default");
+        return System.getProperty("casciian.Swing.mouseStyle", DEFAULT_STYLE);
     }
 
     // ------------------------------------------------------------------------
@@ -1425,10 +1444,7 @@ public class TWindow extends TWidget {
      * @return true if the window is moving
      */
     public boolean inMovements() {
-        if (inWindowResize || inWindowMove || inKeyboardResize) {
-            return true;
-        }
-        return false;
+        return inWindowResize || inWindowMove || inKeyboardResize;
     }
 
     /**
@@ -1446,10 +1462,7 @@ public class TWindow extends TWidget {
      * @return true if this window is modal
      */
     public final boolean isModal() {
-        if ((flags & MODAL) == 0) {
-            return false;
-        }
-        return true;
+        return (flags & MODAL) != 0;
     }
 
     /**
@@ -1458,10 +1471,7 @@ public class TWindow extends TWidget {
      * @return true if this window has a close box
      */
     public final boolean hasCloseBox() {
-        if ((flags & NOCLOSEBOX) != 0) {
-            return true;
-        }
-        return false;
+        return (flags & NOCLOSEBOX) != 0;
     }
 
     /**
@@ -1483,10 +1493,7 @@ public class TWindow extends TWidget {
      * @return true if this window has a maximize/zoom box
      */
     public final boolean hasZoomBox() {
-        if ((flags & NOZOOMBOX) != 0) {
-            return true;
-        }
-        return false;
+        return (flags & NOZOOMBOX) != 0;
     }
 
     /**
@@ -1510,10 +1517,7 @@ public class TWindow extends TWidget {
      * visible
      */
     public final boolean hasOverriddenMenu() {
-        if ((flags & OVERRIDEMENU) != 0) {
-            return true;
-        }
-        return false;
+        return (flags & OVERRIDEMENU) != 0;
     }
 
     /**
@@ -1522,12 +1526,8 @@ public class TWindow extends TWidget {
      * @return true if this window is resizable
      */
     public final boolean isResizable() {
-        if (((flags & RESIZABLE) == 0)
-            || (getBorderStyle() == BorderStyle.NONE)
-        ) {
-            return false;
-        }
-        return true;
+        return ((flags & RESIZABLE) != 0)
+            && (getBorderStyle() != BorderStyle.NONE);
     }
 
     /**
@@ -1707,7 +1707,7 @@ public class TWindow extends TWidget {
             String style = System.getProperty("casciian.TWindow.borderStyleForeground",
                 "double");
             borderStyleActive = BorderStyle.getStyle(style);
-        } else if (borderStyle.equals("default")) {
+        } else if (borderStyle.equals(DEFAULT_STYLE)) {
             borderStyleActive = BorderStyle.DOUBLE;
         } else {
             borderStyleActive = BorderStyle.getStyle(borderStyle);
@@ -1735,7 +1735,7 @@ public class TWindow extends TWidget {
             String style = System.getProperty("casciian.TWindow.borderStyleModal",
                 "double");
             borderStyleActiveModal = BorderStyle.getStyle(style);
-        } else if (borderStyle.equals("default")) {
+        } else if (borderStyle.equals(DEFAULT_STYLE)) {
             borderStyleActiveModal = BorderStyle.DOUBLE;
         } else {
             borderStyleActiveModal = BorderStyle.getStyle(borderStyle);
@@ -1764,7 +1764,7 @@ public class TWindow extends TWidget {
             String style = System.getProperty("casciian.TWindow.borderStyleInactive",
                 "single");
             borderStyleInactive = BorderStyle.getStyle(style);
-        } else if (borderStyle.equals("default")) {
+        } else if (borderStyle.equals(DEFAULT_STYLE)) {
             borderStyleInactive = BorderStyle.SINGLE;
         } else {
             borderStyleInactive = BorderStyle.getStyle(borderStyle);
@@ -1793,7 +1793,7 @@ public class TWindow extends TWidget {
             String style = System.getProperty("casciian.TWindow.borderStyleMoving",
                 "single");
             borderStyleMoving = BorderStyle.getStyle(style);
-        } else if (borderStyle.equals("default")) {
+        } else if (borderStyle.equals(DEFAULT_STYLE)) {
             borderStyleMoving = BorderStyle.SINGLE;
         } else {
             borderStyleMoving = BorderStyle.getStyle(borderStyle);
@@ -1836,7 +1836,10 @@ public class TWindow extends TWidget {
      * opaque)
      */
     public void setAlpha(final int alpha) {
-        assert ((alpha >= 0) && (alpha <= 255));
+        if ((alpha < 0) || (alpha > 255)) {
+            throw new IllegalArgumentException(
+                "Alpha must be between 0 and 255, was " + alpha);
+        }
         this.alpha = alpha;
     }
 

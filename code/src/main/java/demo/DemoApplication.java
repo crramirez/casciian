@@ -274,6 +274,7 @@ public class DemoApplication extends TApplication {
             menuItem.setChecked(true);
 
             onMenu(new TMenuEvent(getBackend(), 10011));
+            refreshGradients();
             return true;
         }
 
@@ -309,6 +310,7 @@ public class DemoApplication extends TApplication {
             oldDesktop = getDesktop();
             setHideStatusBar(false);
             onMenu(new TMenuEvent(getBackend(), 10011));
+            refreshGradients();
             return true;
         }
 
@@ -462,6 +464,17 @@ public class DemoApplication extends TApplication {
         }
     }
 
+    /**
+     * Re-apply gradients to all supported windows when gradients are enabled,
+     * so the gradient colors are recomputed from (and stay harmonic with) the
+     * currently active color theme.
+     */
+    private void refreshGradients() {
+        if (isMenuItemChecked(10010)) {
+            setUseGradientAllSupportedWindows(true);
+        }
+    }
+
     private void applyRoundBorders() {
         applyBorders("round");
     }
@@ -544,6 +557,7 @@ public class DemoApplication extends TApplication {
         oldDesktop = getDesktop();
         setHideStatusBar(false);
         onMenu(new TMenuEvent(getBackend(), 10011));
+        refreshGradients();
         return true;
     }
 
@@ -582,6 +596,7 @@ public class DemoApplication extends TApplication {
         oldDesktop = getDesktop();
         setHideStatusBar(false);
         onMenu(new TMenuEvent(getBackend(), 10011));
+        refreshGradients();
         return true;
     }
 
@@ -616,6 +631,7 @@ public class DemoApplication extends TApplication {
         oldDesktop = getDesktop();
         setHideStatusBar(false);
         onMenu(new TMenuEvent(getBackend(), 10011));
+        refreshGradients();
         return true;
     }
 

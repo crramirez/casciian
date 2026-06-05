@@ -45,6 +45,7 @@ public class DemoTextFieldWindow extends TWindow {
      * The name of the resource bundle for this class.
      */
     public static final String RESOURCE_BUNDLE_NAME = DemoTextFieldWindow.class.getName() + "Bundle";
+    private static final String LABEL_FORMAT = "%-10s";
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -64,7 +65,7 @@ public class DemoTextFieldWindow extends TWindow {
     /**
      * Day of week label is updated with TSpinner clicks.
      */
-    TLabel dayOfWeekLabel;
+    TLabel<?> dayOfWeekLabel;
 
     /**
      * Day of week to demonstrate TSpinner.  Has to be at class scope so that
@@ -128,7 +129,7 @@ public class DemoTextFieldWindow extends TWindow {
         );
 
         dayOfWeekLabel = addLabel("Wednesday-", 35, row - 1, "tmenu", false);
-        dayOfWeekLabel.setLabel(String.format("%-10s",
+        dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
                 dayOfWeekCalendar.getDisplayName(Calendar.DAY_OF_WEEK,
                     Calendar.LONG, Locale.getDefault())));
 
@@ -136,7 +137,7 @@ public class DemoTextFieldWindow extends TWindow {
             new TAction() {
                 public void DO() {
                     dayOfWeekCalendar.add(Calendar.DAY_OF_WEEK, 1);
-                    dayOfWeekLabel.setLabel(String.format("%-10s",
+                    dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
                             dayOfWeekCalendar.getDisplayName(
                             Calendar.DAY_OF_WEEK, Calendar.LONG,
                             Locale.getDefault())));
@@ -145,7 +146,7 @@ public class DemoTextFieldWindow extends TWindow {
             new TAction() {
                 public void DO() {
                     dayOfWeekCalendar.add(Calendar.DAY_OF_WEEK, -1);
-                    dayOfWeekLabel.setLabel(String.format("%-10s",
+                    dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
                             dayOfWeekCalendar.getDisplayName(
                             Calendar.DAY_OF_WEEK, Calendar.LONG,
                             Locale.getDefault())));
