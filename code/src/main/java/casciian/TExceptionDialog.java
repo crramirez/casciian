@@ -39,7 +39,11 @@ public class TExceptionDialog extends TWindow {
      * The name of the resource bundle for this class.
      */
     public static final String RESOURCE_BUNDLE_NAME = TExceptionDialog.class.getName() + "Bundle";
-    public static final String SEPARATOR_LINE = "-----------------------------------\n";
+
+    /**
+     * A separator line used to delimit sections of the troubleshooting report.
+     */
+    private static final String SEPARATOR_LINE = "-----------------------------------\n";
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
