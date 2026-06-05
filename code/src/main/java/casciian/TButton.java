@@ -47,6 +47,18 @@ public class TButton extends TWidget {
          */
         SQUARE,
 
+        /**
+         * A flat button with square brackets ('[' and ']') drawn at the
+         * edges.  The button has no shadow and does not move when pushed.
+         */
+        BRACKETS,
+
+        /**
+         * A flat button with angle brackets ('&lt;' and '&gt;') drawn at the
+         * edges.  The button has no shadow and does not move when pushed.
+         */
+        DIAMONDS,
+
     }
 
     // ------------------------------------------------------------------------
@@ -305,7 +317,11 @@ public class TButton extends TWidget {
         rightEdge = new Cell('/', buttonColor);
          */
 
-        if (inButtonPress) {
+        // Flat styles (brackets, diamonds) do not move when pushed and have
+        // no shadow.
+        boolean flat = isFlat();
+
+        if (inButtonPress && !flat) {
             putCharXY(1, 0, leftEdge);
             putStringXY(2, 0, mnemonic.getRawLabel(), buttonColor);
             putCharXY(getWidth() - 1, 0, rightEdge);
@@ -314,7 +330,7 @@ public class TButton extends TWidget {
             putStringXY(1, 0, mnemonic.getRawLabel(), buttonColor);
             putCharXY(getWidth() - 2, 0, rightEdge);
 
-            if (!noButtonShadow) {
+            if (!noButtonShadow && !flat) {
                 Cell leftBottomShadow = getLeftBottomShadow();
                 Cell rightTopShadow = getRightTopShadow();
                 Cell rightBottomShadow = getRightBottomShadow();
@@ -328,7 +344,7 @@ public class TButton extends TWidget {
             }
         }
         if (mnemonic.getScreenShortcutIdx() >= 0) {
-            if (inButtonPress) {
+            if (inButtonPress && !flat) {
                 putCharXY(2 + mnemonic.getScreenShortcutIdx(), 0,
                     mnemonic.getShortcut(), mnemonicColor);
             } else {
@@ -381,7 +397,23 @@ public class TButton extends TWidget {
         if (style == Style.SQUARE) {
             return new Cell(buttonColor);
         }
+        if (style == Style.BRACKETS) {
+            return new Cell('[', buttonColor);
+        }
+        if (style == Style.DIAMONDS) {
+            return new Cell('<', buttonColor);
+        }
         throw new IllegalArgumentException("Unsupported button style");
+    }
+
+    /**
+     * Returns true if this style is a flat style (no shadow, no push
+     * movement).
+     *
+     * @return true if the button is flat
+     */
+    private boolean isFlat() {
+        return (style == Style.BRACKETS) || (style == Style.DIAMONDS);
     }
 
     /**
@@ -393,6 +425,12 @@ public class TButton extends TWidget {
     private Cell getRightEdge(final CellAttributes buttonColor) {
         if (style == Style.SQUARE) {
             return new Cell(buttonColor);
+        }
+        if (style == Style.BRACKETS) {
+            return new Cell(']', buttonColor);
+        }
+        if (style == Style.DIAMONDS) {
+            return new Cell('>', buttonColor);
         }
         throw new IllegalArgumentException("Unsupported button style");
     }
@@ -470,8 +508,8 @@ public class TButton extends TWidget {
     /**
      * Set the button style.
      *
-     * @param buttonStyle the button style string: "square"; or null to use
-     * the value from casciian.TButton.style.
+     * @param buttonStyle the button style string: "square", "brackets", or
+     * "diamonds"; or null to use the value from casciian.TButton.style.
      */
     public void setStyle(final String buttonStyle) {
         String styleString = System.getProperty("casciian.TButton.style",
@@ -481,6 +519,10 @@ public class TButton extends TWidget {
         }
         if (styleString.equals("square")) {
             style = Style.SQUARE;
+        } else if (styleString.equals("brackets")) {
+            style = Style.BRACKETS;
+        } else if (styleString.equals("diamonds")) {
+            style = Style.DIAMONDS;
         } else {
             // No other button styles supported.
             style = Style.SQUARE;
