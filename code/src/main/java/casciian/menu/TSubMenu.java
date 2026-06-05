@@ -208,6 +208,21 @@ public class TSubMenu extends TMenuItem {
     // ------------------------------------------------------------------------
 
     /**
+     * Recompute this sub-menu's width along with the width of its pop-up
+     * menu and all of its items.  This keeps everything correctly sized when
+     * a setting that affects item widths, such as menu icons, is toggled at
+     * runtime.
+     */
+    @Override
+    public void recomputeWidth() {
+        menu.recomputeWidth();
+        super.recomputeWidth();
+        if (menu.getWidth() + 2 > getWidth()) {
+            setWidth(menu.getWidth() + 2);
+        }
+    }
+
+    /**
      * Convenience function to add a custom menu item.
      *
      * @param id menu item ID.  Must be greater than 1024.
