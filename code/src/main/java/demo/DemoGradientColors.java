@@ -51,9 +51,9 @@ final class DemoGradientColors {
         Backend backend = application.getBackend();
 
         int windowBackground = backColor(backend, theme,
-            ColorTheme.TWINDOW_BACKGROUND);
+            ColorTheme.TWINDOW_BORDER);
         int accent = backColor(backend, theme, ColorTheme.TBUTTON_ACTIVE);
-        int border = foreColor(backend, theme, ColorTheme.TWINDOW_BORDER);
+        int border = foreColor(backend, theme, ColorTheme.TLABEL);
 
         // Sweep from the window background, through the two accent colors,
         // and back to the window background so the gradient blends into the
@@ -106,5 +106,4 @@ final class DemoGradientColors {
         }
         return backend.attrToForegroundColor(color) & 0xFFFFFF;
     }
-
 }
