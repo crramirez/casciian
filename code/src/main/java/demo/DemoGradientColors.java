@@ -67,6 +67,32 @@ final class DemoGradientColors {
     }
 
     /**
+     * Resolve the four gradient corner colors (24-bit RGB) for the active
+     * theme using modal variants, ordered as topLeft, topRight, bottomLeft,
+     * bottomRight.
+     *
+     * @param application the running application providing the theme and
+     * backend used to resolve colors
+     * @return an array of four RGB ints
+     */
+    static int[] cornerColorsModal(final TApplication application) {
+        ColorTheme theme = application.getTheme();
+        Backend backend = application.getBackend();
+
+        int windowBackground = backColor(backend, theme,
+            ColorTheme.TWINDOW_BORDER_MODAL);
+        int accent = backColor(backend, theme, ColorTheme.TBUTTON_ACTIVE_MODAL);
+        int border = foreColor(backend, theme, ColorTheme.TLABEL_MODAL);
+
+        return new int[] {
+            windowBackground,
+            accent,
+            border,
+            windowBackground,
+        };
+    }
+
+    /**
      * Resolve the color used for the mouse glow effect for the active theme.
      *
      * @param application the running application providing the theme and

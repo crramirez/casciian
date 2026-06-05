@@ -182,7 +182,8 @@ public class DemoCheckBoxWindow extends TWindow {
         if (useGradient) {
             // Derive the gradient colors from the active theme so they stay
             // harmonic when the user switches themes.
-            int[] corners = DemoGradientColors.cornerColors(getApplication());
+            int[] corners = DemoGradientColors.cornerColorsModal(
+                getApplication());
             setDrawPreTransform(new GradientCellTransform(
                 GradientCellTransform.Layer.BACKGROUND,
                 corners[0], corners[1], corners[2], corners[3]), true);
