@@ -43,7 +43,7 @@ public class TExceptionDialog extends TWindow {
     /**
      * A separator line used to delimit sections of the troubleshooting report.
      */
-    public static final String SEPARATOR_LINE = "-----------------------------------\n";
+    private static final String SEPARATOR_LINE = "-----------------------------------\n";
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
