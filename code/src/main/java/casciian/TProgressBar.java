@@ -139,15 +139,16 @@ public class TProgressBar extends TWidget {
 
         CellAttributes completeColor = getWidgetColor("tprogressbar.complete");
         CellAttributes incompleteColor = getWidgetColor("tprogressbar.incomplete");
+        CellAttributes borderColor = getWidgetColor("tprogressbar.border");
 
         float progress = ((float)value - minValue) / ((float)maxValue - minValue);
         int progressInt = (int)(progress * 100);
         int progressUnit = 100 / (getWidth() - 2);
 
         if (matchWindowBackground) {
-            putForegroundCharXY(0, 0, leftBorderChar, incompleteColor);
+            putForegroundCharXY(0, 0, leftBorderChar, borderColor);
         } else {
-            putCharXY(0, 0, leftBorderChar, incompleteColor);
+            putCharXY(0, 0, leftBorderChar, borderColor);
         }
         for (int i = StringUtils.width(leftBorderChar); i < getWidth() - 2;) {
             float iProgress = (float)i / (getWidth() - 2);
@@ -193,10 +194,10 @@ public class TProgressBar extends TWidget {
         }
         if (matchWindowBackground) {
             putForegroundCharXY(getWidth() - StringUtils.width(rightBorderChar),
-                0, rightBorderChar, incompleteColor);
+                0, rightBorderChar, borderColor);
         } else {
             putCharXY(getWidth() - StringUtils.width(rightBorderChar), 0,
-                rightBorderChar, incompleteColor);
+                rightBorderChar, borderColor);
         }
     }
 
