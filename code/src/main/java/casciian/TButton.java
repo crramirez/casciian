@@ -158,7 +158,7 @@ public class TButton extends TWidget {
      */
     private boolean mouseOnButton() {
         int rightEdge = getWidth() - 1;
-        if (inButtonPress) {
+        if (inButtonPress && !isFlat()) {
             rightEdge++;
         }
         if ((mouse != null)
@@ -513,7 +513,7 @@ public class TButton extends TWidget {
      */
     public void setStyle(final String buttonStyle) {
         String styleString = System.getProperty("casciian.TButton.style",
-            "square");
+            "square").toLowerCase();
         if (buttonStyle != null) {
             styleString = buttonStyle.toLowerCase();
         }

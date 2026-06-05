@@ -235,6 +235,8 @@ public class DemoApplication extends TApplication {
             System.setProperty("casciian.TWindow.opacity", "80");
             System.setProperty("casciian.TImage.opacity", "80");
             System.setProperty("casciian.TTerminal.opacity", "80");
+            System.clearProperty("casciian.TButton.style");
+            restoreDefaultShadowIfZero();
 
             getTheme().setFemme();
             for (TWindow window: getAllWindows()) {
@@ -243,6 +245,12 @@ public class DemoApplication extends TApplication {
                 window.setBorderStyleMoving("round");
                 window.setBorderStyleInactive("round");
                 window.setAlpha(80 * 255 / 100);
+
+                for (TWidget widget: window.getChildren()) {
+                    if (widget instanceof TButton button) {
+                        button.setStyle(TButton.Style.SQUARE);
+                    }
+                }
             }
             for (TMenu m: getAllMenus()) {
                 m.setBorderStyleForeground("round");
@@ -275,6 +283,8 @@ public class DemoApplication extends TApplication {
             System.setProperty("casciian.TWindow.opacity", "90");
             System.setProperty("casciian.TImage.opacity", "90");
             System.setProperty("casciian.TTerminal.opacity", "90");
+            System.clearProperty("casciian.TButton.style");
+            restoreDefaultShadowIfZero();
 
             getTheme().setQmodem5();
             for (TWindow window: getAllWindows()) {
@@ -283,6 +293,12 @@ public class DemoApplication extends TApplication {
                 window.setBorderStyleMoving("round");
                 window.setBorderStyleInactive("round");
                 window.setAlpha(90 * 255 / 100);
+
+                for (TWidget widget: window.getChildren()) {
+                    if (widget instanceof TButton button) {
+                        button.setStyle(TButton.Style.SQUARE);
+                    }
+                }
             }
             for (TMenu m: getAllMenus()) {
                 m.setBorderStyleForeground("single");
@@ -311,6 +327,14 @@ public class DemoApplication extends TApplication {
         if (menu.getId() == 10022) {
             applyClassicThemeLook(() -> getTheme().setFlatDark());
             SystemProperties.setShadowOpacity(0);
+            System.setProperty("casciian.TButton.style", "brackets");
+            for (TWindow window: getAllWindows()) {
+                for (TWidget widget: window.getChildren()) {
+                    if (widget instanceof TButton button) {
+                        button.setStyle(TButton.Style.BRACKETS);
+                    }
+                }
+            }
             // Disable gradients for all windows
             setUseGradientAllSupportedWindows(false);
             exposeBackground();
@@ -493,6 +517,19 @@ public class DemoApplication extends TApplication {
     }
 
     /**
+     * Restore shadow opacity to the default value (60) if it is currently
+     * zero.  This is called when switching to any theme other than flat dark,
+     * so that shadows that were disabled by the flat-dark theme are
+     * re-enabled automatically while any non-zero value chosen by the user
+     * is left untouched.
+     */
+    private void restoreDefaultShadowIfZero() {
+        if (SystemProperties.getShadowOpacity() == 0) {
+            SystemProperties.setShadowOpacity(60);
+        }
+    }
+
+    /**
      * Apply a preset theme using the classic ("bland") look: square borders
      * and square buttons, with the opacity-related system properties cleared
      * (windows/menus are still painted at 90% alpha to match the existing
@@ -521,6 +558,7 @@ public class DemoApplication extends TApplication {
         System.clearProperty("casciian.TImage.opacity");
         System.clearProperty("casciian.TTerminal.opacity");
         System.clearProperty("casciian.TButton.style");
+        restoreDefaultShadowIfZero();
 
         themeSetter.run();
         for (TWindow window: getAllWindows()) {
@@ -566,6 +604,8 @@ public class DemoApplication extends TApplication {
         System.setProperty("casciian.TWindow.opacity", "90");
         System.setProperty("casciian.TImage.opacity", "90");
         System.setProperty("casciian.TTerminal.opacity", "90");
+        System.clearProperty("casciian.TButton.style");
+        restoreDefaultShadowIfZero();
 
         themeSetter.run();
         for (TWindow window: getAllWindows()) {
@@ -574,6 +614,12 @@ public class DemoApplication extends TApplication {
             window.setBorderStyleMoving("round");
             window.setBorderStyleInactive("round");
             window.setAlpha(90 * 255 / 100);
+
+            for (TWidget widget: window.getChildren()) {
+                if (widget instanceof TButton button) {
+                    button.setStyle(TButton.Style.SQUARE);
+                }
+            }
         }
         for (TMenu m: getAllMenus()) {
             m.setBorderStyleForeground("single");
@@ -602,6 +648,8 @@ public class DemoApplication extends TApplication {
      */
     private boolean applyCursesThemeLook(final Runnable themeSetter) {
         applySingleBorders();
+        System.setProperty("casciian.TButton.style", "brackets");
+        restoreDefaultShadowIfZero();
 
         themeSetter.run();
         for (TWindow window: getAllWindows()) {
@@ -609,6 +657,12 @@ public class DemoApplication extends TApplication {
             window.setBorderStyleModal("single");
             window.setBorderStyleMoving("single");
             window.setBorderStyleInactive("single");
+
+            for (TWidget widget: window.getChildren()) {
+                if (widget instanceof TButton button) {
+                    button.setStyle(TButton.Style.BRACKETS);
+                }
+            }
         }
         for (TMenu m: getAllMenus()) {
             m.setBorderStyleForeground("single");
