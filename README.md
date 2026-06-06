@@ -53,13 +53,6 @@ artifact so the main toolkit stays framework-neutral while still giving
 Micronaut applications a practical way to add SSH-accessible operations
 or admin terminals.
 
-### Mobile SSH note
-
-Some mobile SSH clients make it harder to send Enter reliably depending
-on keyboard mode and client settings. If Enter does not trigger actions
-in your Casciian session, verify your SSH app's key mapping/special-key
-settings or test with an external keyboard.
-
 ## Java Desktop Add-on (from Casciian 1.5)
 
 Casciian's core library deliberately avoids any dependency on the JDK's
