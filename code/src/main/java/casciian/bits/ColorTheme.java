@@ -2888,16 +2888,16 @@ public class ColorTheme {
         colors.put(TTEXT_MODAL, attr(BLACK, WHITE, false));
 
         // Buttons: MC's "dfocus / dhotfocus" style - black/blue on cyan.
-        colors.put(TBUTTON_INACTIVE, attr(BLACK, CYAN, false));
-        colors.put(TBUTTON_INACTIVE_MODAL, attr(BLACK, CYAN, false));
+        colors.put(TBUTTON_INACTIVE, attr(WHITE, BLUE, true));
+        colors.put(TBUTTON_INACTIVE_MODAL, attr(BLACK, WHITE, false));
         colors.put(TBUTTON_ACTIVE, attr(WHITE, CYAN, true));
-        colors.put(TBUTTON_ACTIVE_MODAL, attr(WHITE, CYAN, true));
-        colors.put(TBUTTON_DISABLED, attr(BLACK, WHITE, true));
+        colors.put(TBUTTON_ACTIVE_MODAL, attr(BLACK, CYAN, false));
+        colors.put(TBUTTON_DISABLED, attr(WHITE, BLUE, false));
         colors.put(TBUTTON_DISABLED_MODAL, attr(BLACK, WHITE, true));
-        colors.put(TBUTTON_MNEMONIC, attr(BLUE, CYAN, true));
-        colors.put(TBUTTON_MNEMONIC_MODAL, attr(BLUE, CYAN, true));
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, attr(YELLOW, CYAN, true));
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(YELLOW, CYAN, true));
+        colors.put(TBUTTON_MNEMONIC, attr(CYAN, BLUE, true));
+        colors.put(TBUTTON_MNEMONIC_MODAL, attr(BLUE, WHITE, true));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, attr(CYAN, CYAN, true));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(BLUE, CYAN, true));
 
         // Fields / inputs: MC input is lightgray on blue.
         colors.put(TFIELD_INACTIVE, attr(WHITE, BLUE, false));
@@ -2969,7 +2969,7 @@ public class ColorTheme {
         colors.put(TPROGRESSBAR_BORDER_MODAL, attr(BLACK, WHITE, false));
 
         // Menu: MC menu is lightgray on cyan with yellow hotkeys.
-        colors.put(TMENU, attr(BLACK, CYAN, false));
+        colors.put(TMENU, attr(WHITE, CYAN, true));
         colors.put(TMENU_HIGHLIGHTED, attr(WHITE, BLACK, true));
         colors.put(TMENU_MNEMONIC, attr(YELLOW, CYAN, true));
         colors.put(TMENU_MNEMONIC_HIGHLIGHTED, attr(YELLOW, BLACK, true));

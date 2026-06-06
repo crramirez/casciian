@@ -137,9 +137,9 @@ public class TMenuItem extends TWidget {
         setHeight(1);
         this.label = mnemonic.getRawLabel();
         if (SystemProperties.isMenuIcons()) {
-            setWidth(StringUtils.width(label) + 4 + SystemProperties.getMenuIconsOffset());
+            setWidth(StringUtils.width(this.label) + 4 + SystemProperties.getMenuIconsOffset());
         } else {
-            setWidth(StringUtils.width(label) + 4);
+            setWidth(StringUtils.width(this.label) + 4);
         }
         this.id = id;
         this.icon = icon;

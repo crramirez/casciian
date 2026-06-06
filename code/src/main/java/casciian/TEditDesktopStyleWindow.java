@@ -182,6 +182,8 @@ public class TEditDesktopStyleWindow extends TWindow {
 
         var buttonStyles = new ArrayList<String>();
         buttonStyles.add("square");
+        buttonStyles.add("brackets");
+        buttonStyles.add("diamonds");
 
         buttonStyle = addLabelFor(i18n.getString("buttonStyle"), 2, 10,
             addComboBox(2, 11, 18, buttonStyles, 0, 6,

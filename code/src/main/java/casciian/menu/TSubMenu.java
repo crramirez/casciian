@@ -215,11 +215,14 @@ public class TSubMenu extends TMenuItem {
      */
     @Override
     public void recomputeWidth() {
+        // Recompute the pop-up menu (and all of its items) so it stays
+        // correctly sized.  The sub-menu item itself, however, lives in the
+        // parent menu and must be sized from its own label only -- not from
+        // the (potentially much wider) pop-up menu -- otherwise toggling a
+        // setting such as menu icons would inflate the parent menu to the
+        // width of the widest pop-up entry and never shrink back.
         menu.recomputeWidth();
         super.recomputeWidth();
-        if (menu.getWidth() + 2 > getWidth()) {
-            setWidth(menu.getWidth() + 2);
-        }
     }
 
     /**
