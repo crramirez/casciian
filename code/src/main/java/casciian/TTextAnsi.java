@@ -157,14 +157,24 @@ public class TTextAnsi extends TScrollable {
                     } else if (cell.isDefaultColor(true)) {
                         CellAttributes themed = new CellAttributes();
                         themed.setTo(cell);
-                        themed.setForeColor(defaultColor.getForeColor());
-                        themed.setForeColorRGB(defaultColor.getForeColorRGB());
+                        if (defaultColor.getForeColorRGB() >= 0) {
+                            themed.setForeColorRGB(
+                                defaultColor.getForeColorRGB());
+                        } else {
+                            themed.setForeColor(defaultColor.getForeColor());
+                        }
+                        themed.setDefaultColor(true, false);
                         putCharXY(col, topY, cell.getChar(), themed);
                     } else if (cell.isDefaultColor(false)) {
                         CellAttributes themed = new CellAttributes();
                         themed.setTo(cell);
-                        themed.setBackColor(defaultColor.getBackColor());
-                        themed.setBackColorRGB(defaultColor.getBackColorRGB());
+                        if (defaultColor.getBackColorRGB() >= 0) {
+                            themed.setBackColorRGB(
+                                defaultColor.getBackColorRGB());
+                        } else {
+                            themed.setBackColor(defaultColor.getBackColor());
+                        }
+                        themed.setDefaultColor(false, false);
                         putCharXY(col, topY, cell.getChar(), themed);
                     } else {
                         putCharXY(col, topY, cells.get(srcCol));
