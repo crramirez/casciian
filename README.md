@@ -42,6 +42,17 @@ console that operates on the same backing database, accessible by
 simply `ssh`-ing into the running Spring Boot process. The repository
 also includes a runnable `demo-shop` showing this exact use case.
 
+## Micronaut Integration
+
+For Micronaut users, the
+[casciian-micronaut](https://github.com/crramirez/casciian-micronaut)
+companion project provides Micronaut integration for exposing
+Casciian-based TUIs from Micronaut applications. Like
+`casciian-spring`, it is intentionally separate from the core Casciian
+artifact so the main toolkit stays framework-neutral while still giving
+Micronaut applications a practical way to add SSH-accessible operations
+or admin terminals.
+
 ## Java Desktop Add-on (from Casciian 1.5)
 
 Casciian's core library deliberately avoids any dependency on the JDK's
