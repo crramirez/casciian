@@ -20,6 +20,7 @@ import java.util.List;
 import casciian.bits.AnsiParser;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
+import casciian.bits.ColorTheme;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import static casciian.TKeypress.*;
@@ -128,7 +129,8 @@ public class TTextAnsi extends TScrollable {
      */
     @Override
     public void draw() {
-        CellAttributes defaultColor = getWidgetColor("ttext");
+        CellAttributes defaultColor = getWidgetColor(ColorTheme.TLABEL);
+        CellAttributes defaultColorBold = getWidgetColor(ColorTheme.TLABEL_ACTIVE);
 
         int begin = vScroller.getValue();
         int hOffset = hScroller.getValue();
