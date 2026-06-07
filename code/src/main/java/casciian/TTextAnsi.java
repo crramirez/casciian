@@ -20,7 +20,6 @@ import java.util.List;
 import casciian.bits.AnsiParser;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
-import casciian.bits.StringUtils;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import static casciian.TKeypress.*;
@@ -144,7 +143,32 @@ public class TTextAnsi extends TScrollable {
             for (int col = 0; col < drawWidth; col++) {
                 int srcCol = col + hOffset;
                 if (srcCol < cells.size()) {
-                    putCharXY(col, topY, cells.get(srcCol));
+                    Cell cell = cells.get(srcCol);
+                    // Replace default terminal colors with theme colors
+                    if (cell.isDefaultColor(true)
+                            && cell.isDefaultColor(false)) {
+                        CellAttributes themed = new CellAttributes();
+                        themed.setTo(defaultColor);
+                        themed.setBold(cell.isBold());
+                        themed.setUnderline(cell.isUnderline());
+                        themed.setBlink(cell.isBlink());
+                        themed.setReverse(cell.isReverse());
+                        putCharXY(col, topY, cell.getChar(), themed);
+                    } else if (cell.isDefaultColor(true)) {
+                        CellAttributes themed = new CellAttributes();
+                        themed.setTo(cell);
+                        themed.setForeColor(defaultColor.getForeColor());
+                        themed.setForeColorRGB(defaultColor.getForeColorRGB());
+                        putCharXY(col, topY, cell.getChar(), themed);
+                    } else if (cell.isDefaultColor(false)) {
+                        CellAttributes themed = new CellAttributes();
+                        themed.setTo(cell);
+                        themed.setBackColor(defaultColor.getBackColor());
+                        themed.setBackColorRGB(defaultColor.getBackColorRGB());
+                        putCharXY(col, topY, cell.getChar(), themed);
+                    } else {
+                        putCharXY(col, topY, cells.get(srcCol));
+                    }
                 } else {
                     putCharXY(col, topY, ' ', defaultColor);
                 }

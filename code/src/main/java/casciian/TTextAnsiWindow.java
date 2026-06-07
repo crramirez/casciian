@@ -26,7 +26,7 @@ import casciian.event.TResizeEvent;
  * {@code pandoc file.md -t ansi} in a standalone window.
  * </p>
  */
-public class TTextAnsiWindow extends TScrollableWindow {
+public class TTextAnsiWindow extends TWindow {
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -91,22 +91,9 @@ public class TTextAnsiWindow extends TScrollableWindow {
 
         super(parent, title, x, y, width, height, flags);
 
+        // Position TTextAnsi so its scrollbars overlay the window border
         textAnsiField = new TTextAnsi(this, text, 0, 0,
-            getWidth() - 2, getHeight() - 2);
-
-        setupAfterTextField();
-    }
-
-    /**
-     * Setup scrollbars after the text field is created.
-     */
-    private void setupAfterTextField() {
-        hScroller = new THScroller(this,
-            Math.min(Math.max(0, getWidth() - 17), 17),
-            getHeight() - 2,
-            getWidth() - Math.min(Math.max(0, getWidth() - 17), 17) - 3);
-        vScroller = new TVScroller(this, getWidth() - 2, 0, getHeight() - 2);
-        reflowData();
+            getWidth() - 1, getHeight() - 1);
     }
 
     // ------------------------------------------------------------------------
@@ -121,43 +108,17 @@ public class TTextAnsiWindow extends TScrollableWindow {
     @Override
     public void onResize(final TResizeEvent event) {
         if (event.getType() == TResizeEvent.Type.WIDGET) {
-            // Resize the text field
+            // Resize the text field so its scrollbars remain on the border
             TResizeEvent fieldSize = new TResizeEvent(event.getBackend(),
-                TResizeEvent.Type.WIDGET, event.getWidth() - 2,
-                event.getHeight() - 2);
+                TResizeEvent.Type.WIDGET, event.getWidth() - 1,
+                event.getHeight() - 1);
             textAnsiField.onResize(fieldSize);
-
-            // Have TScrollableWindow handle the scrollbars
-            super.onResize(event);
             return;
         }
 
         // Pass to children instead
         for (TWidget widget : getChildren()) {
             widget.onResize(event);
-        }
-    }
-
-    // ------------------------------------------------------------------------
-    // TScrollableWindow ------------------------------------------------------
-    // ------------------------------------------------------------------------
-
-    /**
-     * Draw the window.
-     */
-    @Override
-    public void draw() {
-        reflowData();
-        super.draw();
-    }
-
-    /**
-     * Resize scrollbars for a new width/height.
-     */
-    @Override
-    public void reflowData() {
-        if (textAnsiField != null) {
-            textAnsiField.reflowData();
         }
     }
 

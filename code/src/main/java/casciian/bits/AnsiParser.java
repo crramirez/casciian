@@ -158,6 +158,8 @@ public final class AnsiParser {
         List<Line> lines = new ArrayList<>();
         List<Cell> currentLine = new ArrayList<>();
         CellAttributes currentAttr = new CellAttributes();
+        currentAttr.setDefaultColor(true, true);
+        currentAttr.setDefaultColor(false, true);
         int col = 0;
 
         State state = State.GROUND;
@@ -343,8 +345,10 @@ public final class AnsiParser {
                     int rgb = getIndexedColor(value);
                     if (sgrColorMode == 38) {
                         attr.setForeColorRGB(rgb);
+                        attr.setDefaultColor(true, false);
                     } else {
                         attr.setBackColorRGB(rgb);
+                        attr.setDefaultColor(false, false);
                     }
                     sgrColorMode = -1;
                     idx256Color = false;
@@ -360,8 +364,10 @@ public final class AnsiParser {
                             | (value & 0xFF);
                         if (sgrColorMode == 38) {
                             attr.setForeColorRGB(rgb);
+                            attr.setDefaultColor(true, false);
                         } else {
                             attr.setBackColorRGB(rgb);
+                            attr.setDefaultColor(false, false);
                         }
                         rgbRed = -1;
                         rgbGreen = -1;
@@ -386,6 +392,8 @@ public final class AnsiParser {
             switch (value) {
             case 0:
                 attr.reset();
+                attr.setDefaultColor(true, true);
+                attr.setDefaultColor(false, true);
                 break;
             case 1:
                 attr.setBold(true);
@@ -438,27 +446,35 @@ public final class AnsiParser {
                 break;
             case 30:
                 attr.setForeColor(Color.BLACK);
+                attr.setDefaultColor(true, false);
                 break;
             case 31:
                 attr.setForeColor(Color.RED);
+                attr.setDefaultColor(true, false);
                 break;
             case 32:
                 attr.setForeColor(Color.GREEN);
+                attr.setDefaultColor(true, false);
                 break;
             case 33:
                 attr.setForeColor(Color.YELLOW);
+                attr.setDefaultColor(true, false);
                 break;
             case 34:
                 attr.setForeColor(Color.BLUE);
+                attr.setDefaultColor(true, false);
                 break;
             case 35:
                 attr.setForeColor(Color.MAGENTA);
+                attr.setDefaultColor(true, false);
                 break;
             case 36:
                 attr.setForeColor(Color.CYAN);
+                attr.setDefaultColor(true, false);
                 break;
             case 37:
                 attr.setForeColor(Color.WHITE);
+                attr.setDefaultColor(true, false);
                 break;
             case 38:
                 sgrColorMode = 38;
@@ -470,27 +486,35 @@ public final class AnsiParser {
                 break;
             case 40:
                 attr.setBackColor(Color.BLACK);
+                attr.setDefaultColor(false, false);
                 break;
             case 41:
                 attr.setBackColor(Color.RED);
+                attr.setDefaultColor(false, false);
                 break;
             case 42:
                 attr.setBackColor(Color.GREEN);
+                attr.setDefaultColor(false, false);
                 break;
             case 43:
                 attr.setBackColor(Color.YELLOW);
+                attr.setDefaultColor(false, false);
                 break;
             case 44:
                 attr.setBackColor(Color.BLUE);
+                attr.setDefaultColor(false, false);
                 break;
             case 45:
                 attr.setBackColor(Color.MAGENTA);
+                attr.setDefaultColor(false, false);
                 break;
             case 46:
                 attr.setBackColor(Color.CYAN);
+                attr.setDefaultColor(false, false);
                 break;
             case 47:
                 attr.setBackColor(Color.WHITE);
+                attr.setDefaultColor(false, false);
                 break;
             case 48:
                 sgrColorMode = 48;
@@ -502,51 +526,67 @@ public final class AnsiParser {
                 break;
             case 90:
                 attr.setForeColorRGB(COLORS_256[8]);
+                attr.setDefaultColor(true, false);
                 break;
             case 91:
                 attr.setForeColorRGB(COLORS_256[9]);
+                attr.setDefaultColor(true, false);
                 break;
             case 92:
                 attr.setForeColorRGB(COLORS_256[10]);
+                attr.setDefaultColor(true, false);
                 break;
             case 93:
                 attr.setForeColorRGB(COLORS_256[11]);
+                attr.setDefaultColor(true, false);
                 break;
             case 94:
                 attr.setForeColorRGB(COLORS_256[12]);
+                attr.setDefaultColor(true, false);
                 break;
             case 95:
                 attr.setForeColorRGB(COLORS_256[13]);
+                attr.setDefaultColor(true, false);
                 break;
             case 96:
                 attr.setForeColorRGB(COLORS_256[14]);
+                attr.setDefaultColor(true, false);
                 break;
             case 97:
                 attr.setForeColorRGB(COLORS_256[15]);
+                attr.setDefaultColor(true, false);
                 break;
             case 100:
                 attr.setBackColorRGB(COLORS_256[8]);
+                attr.setDefaultColor(false, false);
                 break;
             case 101:
                 attr.setBackColorRGB(COLORS_256[9]);
+                attr.setDefaultColor(false, false);
                 break;
             case 102:
                 attr.setBackColorRGB(COLORS_256[10]);
+                attr.setDefaultColor(false, false);
                 break;
             case 103:
                 attr.setBackColorRGB(COLORS_256[11]);
+                attr.setDefaultColor(false, false);
                 break;
             case 104:
                 attr.setBackColorRGB(COLORS_256[12]);
+                attr.setDefaultColor(false, false);
                 break;
             case 105:
                 attr.setBackColorRGB(COLORS_256[13]);
+                attr.setDefaultColor(false, false);
                 break;
             case 106:
                 attr.setBackColorRGB(COLORS_256[14]);
+                attr.setDefaultColor(false, false);
                 break;
             case 107:
                 attr.setBackColorRGB(COLORS_256[15]);
+                attr.setDefaultColor(false, false);
                 break;
             default:
                 break;
