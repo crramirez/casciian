@@ -144,4 +144,5 @@ Configuration
 
 Casciian's runtime behavior can be tuned through Java system properties (all
 prefixed with `casciian.`), either via `-D` JVM options or through a
-`CASCIIANRC` properties file.
+properties file whose path is provided in the `CASCIIANRC` environment
+variable.
