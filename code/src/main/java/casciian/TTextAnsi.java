@@ -149,21 +149,27 @@ public class TTextAnsi extends TScrollable {
                     // Replace default terminal colors with theme colors
                     if (cell.isDefaultColor(true)
                             && cell.isDefaultColor(false)) {
+                        CellAttributes base = cell.isBold()
+                            && defaultColor.getForeColorRGB() >= 0
+                            ? defaultColorBold : defaultColor;
                         CellAttributes themed = new CellAttributes();
-                        themed.setTo(defaultColor);
+                        themed.setTo(base);
                         themed.setBold(cell.isBold());
                         themed.setUnderline(cell.isUnderline());
                         themed.setBlink(cell.isBlink());
                         themed.setReverse(cell.isReverse());
                         putCharXY(col, topY, cell.getChar(), themed);
                     } else if (cell.isDefaultColor(true)) {
+                        CellAttributes base = cell.isBold()
+                            && defaultColor.getForeColorRGB() >= 0
+                            ? defaultColorBold : defaultColor;
                         CellAttributes themed = new CellAttributes();
                         themed.setTo(cell);
-                        if (defaultColor.getForeColorRGB() >= 0) {
+                        if (base.getForeColorRGB() >= 0) {
                             themed.setForeColorRGB(
-                                defaultColor.getForeColorRGB());
+                                base.getForeColorRGB());
                         } else {
-                            themed.setForeColor(defaultColor.getForeColor());
+                            themed.setForeColor(base.getForeColor());
                         }
                         themed.setDefaultColor(true, false);
                         putCharXY(col, topY, cell.getChar(), themed);
