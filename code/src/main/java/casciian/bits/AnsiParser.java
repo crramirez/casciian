@@ -300,7 +300,10 @@ public final class AnsiParser {
             final int ch, final CellAttributes attr) {
         // Extend line to reach the column
         while (line.size() <= col) {
-            line.add(new Cell());
+            Cell pad = new Cell();
+            pad.setDefaultColor(true, true);
+            pad.setDefaultColor(false, true);
+            line.add(pad);
         }
         Cell cell = new Cell();
         cell.setTo(attr);
@@ -319,7 +322,10 @@ public final class AnsiParser {
     private static void applySgr(final String params,
             final CellAttributes attr) {
         if (params.isEmpty()) {
+            // ESC[m (no params) is equivalent to ESC[0m (reset).
             attr.reset();
+            attr.setDefaultColor(true, true);
+            attr.setDefaultColor(false, true);
             return;
         }
 
