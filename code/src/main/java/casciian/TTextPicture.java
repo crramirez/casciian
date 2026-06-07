@@ -35,7 +35,11 @@ import static casciian.TKeypress.*;
 /**
  * TTextPicture displays a color-and-text canvas, also called "ANSI Art" or
  * "ASCII Art".
+ *
+ * @deprecated Use {@link TTextAnsi} instead, which provides simpler and more
+ * reliable ANSI text rendering without requiring a full terminal emulator.
  */
+@Deprecated
 public class TTextPicture extends TScrollable implements TerminalListener {
 
     // ------------------------------------------------------------------------
