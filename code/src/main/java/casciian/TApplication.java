@@ -2476,7 +2476,11 @@ public class TApplication implements Runnable {
         try {
             String filename = fileOpenBox(".", TFileOpenBox.Type.OPEN);
             if (filename != null) {
-                new TTextPictureWindow(this, filename);
+                String content = new String(
+                    java.nio.file.Files.readAllBytes(
+                        java.nio.file.Paths.get(filename)),
+                    java.nio.charset.StandardCharsets.UTF_8);
+                new TTextAnsiWindow(this, filename, content);
             }
         } catch (IOException e) {
             // Show this exception to the user.
