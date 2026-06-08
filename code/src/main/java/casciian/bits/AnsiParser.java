@@ -190,11 +190,8 @@ public final class AnsiParser {
                         putCell(currentLine, col, ' ', currentAttr);
                         col++;
                     }
-                    if (col >= width) {
-                        lines.add(new Line(currentLine));
-                        currentLine = new ArrayList<>();
-                        col = 0;
-                    }
+                    // Delayed wrap: leave the cursor at column==width and
+                    // only wrap when the next printable character arrives.
                 } else if (ch == '\b') {
                     // Backspace: move cursor back one column
                     if (col > 0) {
@@ -203,24 +200,21 @@ public final class AnsiParser {
                 } else if (ch >= 0x20) {
                     // Printable character
                     int charWidth = StringUtils.width(ch);
-                    if (col + charWidth > width) {
-                        // Wrap
+                    if (col > 0 && col + charWidth > width) {
+                        // Delayed wrap: the previous character filled the
+                        // line, so wrap now that another character arrives.
                         lines.add(new Line(currentLine));
                         currentLine = new ArrayList<>();
                         col = 0;
                     }
                     putCell(currentLine, col, ch, currentAttr);
                     col++;
-                    if (charWidth == 2) {
+                    if (charWidth == 2 && col < width) {
                         // Wide character takes two columns; put a padding
-                        // space for the right half
+                        // space for the right half (unless it would overflow
+                        // the configured width, e.g. width == 1).
                         putCell(currentLine, col, ' ', currentAttr);
                         col++;
-                    }
-                    if (col >= width) {
-                        lines.add(new Line(currentLine));
-                        currentLine = new ArrayList<>();
-                        col = 0;
                     }
                 }
                 // else: ignore other control characters
@@ -279,8 +273,9 @@ public final class AnsiParser {
             i += charCount;
         }
 
-        // Add the last line if it has content or if text ended without a
-        // trailing newline
+        // Add the last line if it still has buffered content, or if the
+        // cursor is at column 0 with nothing buffered (empty input or a
+        // trailing newline) so a final empty line is emitted.
         if (!currentLine.isEmpty() || col == 0) {
             lines.add(new Line(currentLine));
         }

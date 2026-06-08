@@ -104,11 +104,10 @@ class AnsiParserTest {
     @Test
     void testExactWidthNoWrap() {
         List<AnsiParser.Line> lines = AnsiParser.parse("ABC", 3);
-        // Exactly fills one line; next char would wrap but there is none
-        // ABC fills width=3, triggers wrap -> empty trailing line
-        assertEquals(2, lines.size());
+        // Exactly fills one line; wrapping is delayed (ECMA-48/VT100) so no
+        // trailing empty line is produced when the input ends on the boundary.
+        assertEquals(1, lines.size());
         assertEquals("ABC", lineText(lines.get(0)));
-        assertEquals(0, lines.get(1).getWidth());
     }
 
     // -----------------------------------------------------------------------
