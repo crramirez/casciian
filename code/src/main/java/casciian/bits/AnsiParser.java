@@ -18,6 +18,7 @@ package casciian.bits;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.IntUnaryOperator;
 
 /**
  * AnsiParser is a utility class that parses text containing ANSI escape
@@ -45,46 +46,10 @@ public final class AnsiParser {
     // ------------------------------------------------------------------------
 
     /**
-     * The default 256-color palette matching xterm defaults.
+     * Palette lookup using the shared default xterm 256-color palette.
      */
-    private static final int[] COLORS_256;
-
-    static {
-        COLORS_256 = new int[256];
-        // Standard 8 colors (normal)
-        COLORS_256[0] = 0x000000;
-        COLORS_256[1] = 0xa80000;
-        COLORS_256[2] = 0x00a800;
-        COLORS_256[3] = 0xa85400;
-        COLORS_256[4] = 0x0000a8;
-        COLORS_256[5] = 0xa800a8;
-        COLORS_256[6] = 0x00a8a8;
-        COLORS_256[7] = 0xa8a8a8;
-        // High-intensity colors
-        COLORS_256[8] = 0x545454;
-        COLORS_256[9] = 0xfc5454;
-        COLORS_256[10] = 0x54fc54;
-        COLORS_256[11] = 0xfcfc54;
-        COLORS_256[12] = 0x5454fc;
-        COLORS_256[13] = 0xfc54fc;
-        COLORS_256[14] = 0x54fcfc;
-        COLORS_256[15] = 0xfcfcfc;
-        // 216-color cube (6x6x6)
-        for (int i = 0; i < 216; i++) {
-            int ri = i / 36;
-            int gi = (i / 6) % 6;
-            int bi = i % 6;
-            int r = (ri == 0) ? 0 : 55 + ri * 40;
-            int g = (gi == 0) ? 0 : 55 + gi * 40;
-            int b = (bi == 0) ? 0 : 55 + bi * 40;
-            COLORS_256[16 + i] = (r << 16) | (g << 8) | b;
-        }
-        // 24 grayscale colors
-        for (int i = 0; i < 24; i++) {
-            int v = 8 + i * 10;
-            COLORS_256[232 + i] = (v << 16) | (v << 8) | v;
-        }
-    }
+    private static final IntUnaryOperator DEFAULT_PALETTE =
+        SgrUtil::getDefaultIndexedColor;
 
     // ------------------------------------------------------------------------
     // Inner class: parsed line -----------------------------------------------
@@ -308,8 +273,8 @@ public final class AnsiParser {
 
     /**
      * Apply an SGR (Select Graphic Rendition) parameter string to the
-     * given attributes. This handles the common SGR codes used by tools
-     * like pandoc, bat, less, etc.
+     * given attributes. Delegates to {@link SgrUtil} for the common
+     * color/attribute codes.
      *
      * @param params the parameter string (e.g., "1;31" for bold red)
      * @param attr the attributes to modify
@@ -318,19 +283,13 @@ public final class AnsiParser {
             final CellAttributes attr) {
         if (params.isEmpty()) {
             // ESC[m (no params) is equivalent to ESC[0m (reset).
-            attr.reset();
-            attr.setDefaultColor(true, true);
-            attr.setDefaultColor(false, true);
+            SgrUtil.resetToDefaults(attr);
             return;
         }
 
         // Split by ; or : (colon is used in some SGR subparameters)
         String[] parts = params.split("[;:]");
-        int sgrColorMode = -1;
-        boolean idx256Color = false;
-        boolean rgbColor = false;
-        int rgbRed = -1;
-        int rgbGreen = -1;
+        SgrUtil.ExtendedColorState extColor = new SgrUtil.ExtendedColorState();
 
         for (String part : parts) {
             int value;
@@ -340,271 +299,21 @@ public final class AnsiParser {
                 continue;
             }
 
-            // Handle extended color sub-parameters
-            if (sgrColorMode == 38 || sgrColorMode == 48) {
-                if (idx256Color) {
-                    int rgb = getIndexedColor(value);
-                    if (sgrColorMode == 38) {
-                        attr.setForeColorRGB(rgb);
-                        attr.setDefaultColor(true, false);
-                    } else {
-                        attr.setBackColorRGB(rgb);
-                        attr.setDefaultColor(false, false);
-                    }
-                    sgrColorMode = -1;
-                    idx256Color = false;
-                    continue;
-                }
-                if (rgbColor) {
-                    if (rgbRed == -1) {
-                        rgbRed = value & 0xFF;
-                    } else if (rgbGreen == -1) {
-                        rgbGreen = value & 0xFF;
-                    } else {
-                        int rgb = (rgbRed << 16) | (rgbGreen << 8)
-                            | (value & 0xFF);
-                        if (sgrColorMode == 38) {
-                            attr.setForeColorRGB(rgb);
-                            attr.setDefaultColor(true, false);
-                        } else {
-                            attr.setBackColorRGB(rgb);
-                            attr.setDefaultColor(false, false);
-                        }
-                        rgbRed = -1;
-                        rgbGreen = -1;
-                        sgrColorMode = -1;
-                        rgbColor = false;
-                    }
-                    continue;
-                }
-                if (value == 5) {
-                    idx256Color = true;
-                    continue;
-                } else if (value == 2) {
-                    rgbColor = true;
-                    continue;
-                } else {
-                    // Unknown sub-mode, bail out
-                    sgrColorMode = -1;
-                    continue;
-                }
+            // Handle extended color sub-parameters (38;5;n or 38;2;r;g;b)
+            if (extColor.isActive()) {
+                extColor.feedValue(value, attr, DEFAULT_PALETTE);
+                continue;
             }
 
-            switch (value) {
-            case 0:
-                attr.reset();
-                attr.setDefaultColor(true, true);
-                attr.setDefaultColor(false, true);
-                break;
-            case 1:
-                attr.setBold(true);
-                break;
-            case 2:
-                // Dim/faint - treat as no-bold
-                attr.setBold(false);
-                break;
-            case 3:
-                // Italic - not directly supported, map to underline
-                attr.setUnderline(true);
-                break;
-            case 4:
-                attr.setUnderline(true);
-                break;
-            case 5:
-            case 6:
-                attr.setBlink(true);
-                break;
-            case 7:
-                attr.setReverse(true);
-                break;
-            case 8:
-                // Hidden/invisible - not supported
-                break;
-            case 9:
-                // Strikethrough - not supported
-                break;
-            case 22:
-                attr.setBold(false);
-                break;
-            case 23:
-                // Not italic
-                attr.setUnderline(false);
-                break;
-            case 24:
-                attr.setUnderline(false);
-                break;
-            case 25:
-                attr.setBlink(false);
-                break;
-            case 27:
-                attr.setReverse(false);
-                break;
-            case 28:
-                // Not hidden
-                break;
-            case 29:
-                // Not strikethrough
-                break;
-            case 30:
-                attr.setForeColor(Color.BLACK);
-                attr.setDefaultColor(true, false);
-                break;
-            case 31:
-                attr.setForeColor(Color.RED);
-                attr.setDefaultColor(true, false);
-                break;
-            case 32:
-                attr.setForeColor(Color.GREEN);
-                attr.setDefaultColor(true, false);
-                break;
-            case 33:
-                attr.setForeColor(Color.YELLOW);
-                attr.setDefaultColor(true, false);
-                break;
-            case 34:
-                attr.setForeColor(Color.BLUE);
-                attr.setDefaultColor(true, false);
-                break;
-            case 35:
-                attr.setForeColor(Color.MAGENTA);
-                attr.setDefaultColor(true, false);
-                break;
-            case 36:
-                attr.setForeColor(Color.CYAN);
-                attr.setDefaultColor(true, false);
-                break;
-            case 37:
-                attr.setForeColor(Color.WHITE);
-                attr.setDefaultColor(true, false);
-                break;
-            case 38:
-                sgrColorMode = 38;
-                break;
-            case 39:
-                // Default foreground
-                attr.setForeColor(Color.WHITE);
-                attr.setDefaultColor(true, true);
-                break;
-            case 40:
-                attr.setBackColor(Color.BLACK);
-                attr.setDefaultColor(false, false);
-                break;
-            case 41:
-                attr.setBackColor(Color.RED);
-                attr.setDefaultColor(false, false);
-                break;
-            case 42:
-                attr.setBackColor(Color.GREEN);
-                attr.setDefaultColor(false, false);
-                break;
-            case 43:
-                attr.setBackColor(Color.YELLOW);
-                attr.setDefaultColor(false, false);
-                break;
-            case 44:
-                attr.setBackColor(Color.BLUE);
-                attr.setDefaultColor(false, false);
-                break;
-            case 45:
-                attr.setBackColor(Color.MAGENTA);
-                attr.setDefaultColor(false, false);
-                break;
-            case 46:
-                attr.setBackColor(Color.CYAN);
-                attr.setDefaultColor(false, false);
-                break;
-            case 47:
-                attr.setBackColor(Color.WHITE);
-                attr.setDefaultColor(false, false);
-                break;
-            case 48:
-                sgrColorMode = 48;
-                break;
-            case 49:
-                // Default background
-                attr.setBackColor(Color.BLACK);
-                attr.setDefaultColor(false, true);
-                break;
-            case 90:
-                attr.setForeColorRGB(COLORS_256[8]);
-                attr.setDefaultColor(true, false);
-                break;
-            case 91:
-                attr.setForeColorRGB(COLORS_256[9]);
-                attr.setDefaultColor(true, false);
-                break;
-            case 92:
-                attr.setForeColorRGB(COLORS_256[10]);
-                attr.setDefaultColor(true, false);
-                break;
-            case 93:
-                attr.setForeColorRGB(COLORS_256[11]);
-                attr.setDefaultColor(true, false);
-                break;
-            case 94:
-                attr.setForeColorRGB(COLORS_256[12]);
-                attr.setDefaultColor(true, false);
-                break;
-            case 95:
-                attr.setForeColorRGB(COLORS_256[13]);
-                attr.setDefaultColor(true, false);
-                break;
-            case 96:
-                attr.setForeColorRGB(COLORS_256[14]);
-                attr.setDefaultColor(true, false);
-                break;
-            case 97:
-                attr.setForeColorRGB(COLORS_256[15]);
-                attr.setDefaultColor(true, false);
-                break;
-            case 100:
-                attr.setBackColorRGB(COLORS_256[8]);
-                attr.setDefaultColor(false, false);
-                break;
-            case 101:
-                attr.setBackColorRGB(COLORS_256[9]);
-                attr.setDefaultColor(false, false);
-                break;
-            case 102:
-                attr.setBackColorRGB(COLORS_256[10]);
-                attr.setDefaultColor(false, false);
-                break;
-            case 103:
-                attr.setBackColorRGB(COLORS_256[11]);
-                attr.setDefaultColor(false, false);
-                break;
-            case 104:
-                attr.setBackColorRGB(COLORS_256[12]);
-                attr.setDefaultColor(false, false);
-                break;
-            case 105:
-                attr.setBackColorRGB(COLORS_256[13]);
-                attr.setDefaultColor(false, false);
-                break;
-            case 106:
-                attr.setBackColorRGB(COLORS_256[14]);
-                attr.setDefaultColor(false, false);
-                break;
-            case 107:
-                attr.setBackColorRGB(COLORS_256[15]);
-                attr.setDefaultColor(false, false);
-                break;
-            default:
-                break;
+            // Try the shared SGR handler
+            if (SgrUtil.applySgrCode(value, attr, DEFAULT_PALETTE)) {
+                continue;
+            }
+
+            // Codes 38/48 start an extended color sequence
+            if (value == 38 || value == 48) {
+                extColor.begin(value);
             }
         }
-    }
-
-    /**
-     * Get the RGB value for a 256-color index.
-     *
-     * @param index the color index (0-255)
-     * @return the RGB value
-     */
-    private static int getIndexedColor(final int index) {
-        if (index < 0 || index > 255) {
-            return 0;
-        }
-        return COLORS_256[index];
     }
 }
