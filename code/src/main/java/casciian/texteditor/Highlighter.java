@@ -120,9 +120,9 @@ public class Highlighter {
             "double", "void",
         };
         color = new CellAttributes();
-        color.setForeColor(Color.GREEN);
+        color.setForeColor(Color.BRIGHT_GREEN);
         color.setBackColor(Color.BLUE);
-        color.setBold(true);
+        color.setBold(false);
         for (String str: types) {
             colors.put(str, color);
         }
@@ -132,9 +132,9 @@ public class Highlighter {
             "static", "strictfp", "synchronized", "transient", "volatile",
         };
         color = new CellAttributes();
-        color.setForeColor(Color.WHITE);
+        color.setForeColor(Color.BRIGHT_WHITE);
         color.setBackColor(Color.BLUE);
-        color.setBold(true);
+        color.setBold(false);
         for (String str: modifiers) {
             colors.put(str, color);
         }
@@ -145,9 +145,9 @@ public class Highlighter {
             "switch", "case", "default",
         };
         color = new CellAttributes();
-        color.setForeColor(Color.YELLOW);
+        color.setForeColor(Color.BRIGHT_YELLOW);
         color.setBackColor(Color.BLUE);
-        color.setBold(true);
+        color.setBold(false);
         for (String str: keywords) {
             colors.put(str, color);
         }
@@ -161,9 +161,9 @@ public class Highlighter {
             ",", ";", ".", "?", ":",
         };
         color = new CellAttributes();
-        color.setForeColor(Color.CYAN);
+        color.setForeColor(Color.BRIGHT_CYAN);
         color.setBackColor(Color.BLUE);
-        color.setBold(true);
+        color.setBold(false);
         for (String str: operators) {
             colors.put(str, color);
         }
@@ -172,9 +172,9 @@ public class Highlighter {
             "package", "import",
         };
         color = new CellAttributes();
-        color.setForeColor(Color.GREEN);
+        color.setForeColor(Color.BRIGHT_GREEN);
         color.setBackColor(Color.BLUE);
-        color.setBold(true);
+        color.setBold(false);
         for (String str: packageKeywords) {
             colors.put(str, color);
         }

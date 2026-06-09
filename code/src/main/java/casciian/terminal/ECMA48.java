@@ -1414,9 +1414,8 @@ public class ECMA48 implements Runnable {
                 attr.setForeColor(Color.getSgrColor(i));
                 colors88.set(i, backend.attrToForegroundColor(attr));
             }
-            attr.setBold(true);
             for (int i = 0; i < 8; i++) {
-                attr.setForeColor(Color.getSgrColor(i));
+                attr.setForeColor(Color.getSgrColor(i + 8));
                 colors88.set(i + 8, backend.attrToForegroundColor(attr));
             }
         } else {

@@ -4232,9 +4232,11 @@ public class ECMA48Terminal extends LogicalScreen
             return rgb;
         }
 
-        int colorValue = attr.getForeColor().getValue();
-        if (attr.isBold()) {
-            return switch (colorValue) {
+        Color foreColor = attr.getForeColor();
+        // A bright color (Color.BRIGHT_*) or the legacy bold attribute both
+        // select the high-intensity palette entry.
+        if (foreColor.isBright() || attr.isBold()) {
+            return switch (foreColor.getValue() & 0x07) {
                 case 0 -> MYBOLD_BLACK;  // Color.BLACK
                 case 1 -> MYBOLD_RED;    // Color.RED
                 case 2 -> MYBOLD_GREEN;  // Color.GREEN
@@ -4243,10 +4245,10 @@ public class ECMA48Terminal extends LogicalScreen
                 case 5 -> MYBOLD_MAGENTA;// Color.MAGENTA
                 case 6 -> MYBOLD_CYAN;   // Color.CYAN
                 case 7 -> MYBOLD_WHITE;  // Color.WHITE
-                default -> throw new IllegalArgumentException("Invalid color: " + colorValue);
+                default -> throw new IllegalArgumentException("Invalid color: " + foreColor.getValue());
             };
         }
-        return switch (colorValue) {
+        return switch (foreColor.getValue()) {
             case 0 -> MYBLACK;   // Color.BLACK
             case 1 -> MYRED;     // Color.RED
             case 2 -> MYGREEN;   // Color.GREEN
@@ -4255,7 +4257,7 @@ public class ECMA48Terminal extends LogicalScreen
             case 5 -> MYMAGENTA; // Color.MAGENTA
             case 6 -> MYCYAN;    // Color.CYAN
             case 7 -> MYWHITE;   // Color.WHITE
-            default -> throw new IllegalArgumentException("Invalid color: " + colorValue);
+            default -> throw new IllegalArgumentException("Invalid color: " + foreColor.getValue());
         };
     }
 
@@ -4275,7 +4277,23 @@ public class ECMA48Terminal extends LogicalScreen
             return rgb;
         }
 
-        return switch (attr.getBackColor().getValue()) {
+        Color backColor = attr.getBackColor();
+        // A bright background color (Color.BRIGHT_*) selects the
+        // high-intensity palette entry.
+        if (backColor.isBright()) {
+            return switch (backColor.getValue() & 0x07) {
+                case 0 -> MYBOLD_BLACK;  // Color.BLACK
+                case 1 -> MYBOLD_RED;    // Color.RED
+                case 2 -> MYBOLD_GREEN;  // Color.GREEN
+                case 3 -> MYBOLD_YELLOW; // Color.YELLOW
+                case 4 -> MYBOLD_BLUE;   // Color.BLUE
+                case 5 -> MYBOLD_MAGENTA;// Color.MAGENTA
+                case 6 -> MYBOLD_CYAN;   // Color.CYAN
+                case 7 -> MYBOLD_WHITE;  // Color.WHITE
+                default -> throw new IllegalArgumentException("Invalid color: " + backColor.getValue());
+            };
+        }
+        return switch (backColor.getValue()) {
             case 0 -> MYBLACK;   // Color.BLACK
             case 1 -> MYRED;     // Color.RED
             case 2 -> MYGREEN;   // Color.GREEN
@@ -4284,7 +4302,7 @@ public class ECMA48Terminal extends LogicalScreen
             case 5 -> MYMAGENTA; // Color.MAGENTA
             case 6 -> MYCYAN;    // Color.CYAN
             case 7 -> MYWHITE;   // Color.WHITE
-            default -> throw new IllegalArgumentException("Invalid color: " + attr.getBackColor().getValue());
+            default -> throw new IllegalArgumentException("Invalid color: " + backColor.getValue());
         };
     }
 
@@ -4353,7 +4371,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the RGB palette color value
      */
     private static int getPaletteColor(final Color color, final boolean bold) {
-        return bold ? switch (color.getValue()) {
+        return (bold || color.isBright()) ? switch (color.getValue() & 0x07) {
             case 0 -> MYBOLD_BLACK;
             case 1 -> MYBOLD_RED;
             case 2 -> MYBOLD_GREEN;
@@ -4456,12 +4474,13 @@ public class ECMA48Terminal extends LogicalScreen
     private String color(final Color color, final boolean foreground,
                          final boolean header, final boolean bold) {
 
-        int ecmaColor = color.getValue();
+        int ecmaColor = color.getValue() & 0x07;
+        boolean bright = bold || color.isBright();
 
         // Convert Color.* values to SGR numerics
         if (foreground) {
-            if (bold) {
-                // Use bright foreground colors (90-97) for bold text.
+            if (bright) {
+                // Use bright foreground colors (90-97) for bold/bright text.
                 // This is the AIXterm-style bright colors which are widely
                 // supported and do not rely on SGR 1 to switch to bright colors.
                 ecmaColor += 90;
@@ -4469,7 +4488,13 @@ public class ECMA48Terminal extends LogicalScreen
                 ecmaColor += 30;
             }
         } else {
-            ecmaColor += 40;
+            if (color.isBright()) {
+                // Use bright background colors (100-107) for bright
+                // background colors.
+                ecmaColor += 100;
+            } else {
+                ecmaColor += 40;
+            }
         }
 
         if (header) {
