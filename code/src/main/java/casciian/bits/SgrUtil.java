@@ -189,8 +189,7 @@ public final class SgrUtil {
             attr.setBold(false);
             return true;
         case 3:
-            // Italic — map to underline (no native italic support)
-            attr.setUnderline(true);
+            // Italic — not supported, but recognized
             return true;
         case 4:
             attr.setUnderline(true);
@@ -212,8 +211,7 @@ public final class SgrUtil {
             attr.setBold(false);
             return true;
         case 23:
-            // Not italic
-            attr.setUnderline(false);
+            // Not italic — no-op because italic is not supported
             return true;
         case 24:
             attr.setUnderline(false);
