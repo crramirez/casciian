@@ -46,6 +46,7 @@ import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.ComplexCell;
 import casciian.bits.ExtendedGraphemeClusterUtils;
+import casciian.bits.SgrUtil;
 import casciian.bits.StringUtils;
 import casciian.event.TInputEvent;
 import casciian.event.TKeypressEvent;
@@ -675,6 +676,8 @@ public class ECMA48 implements Runnable {
             g3Charset           = CharacterSet.US;
             grCharset           = CharacterSet.DRAWING;
             attr                = new CellAttributes();
+            attr.setDefaultColor(true, true);
+            attr.setDefaultColor(false, true);
             glLockshift         = LockshiftMode.NONE;
             grLockshift         = LockshiftMode.NONE;
             lineWrap            = true;
@@ -1399,7 +1402,10 @@ public class ECMA48 implements Runnable {
      * Reset the 88- or 256-colors.
      */
     private void resetColors() {
-        colors88 = new ArrayList<>(Collections.nCopies(256, 0));
+        // Initialize with the shared default xterm 256-color palette
+        // (indices 16-255 are identical; indices 0-15 may be overridden
+        // by backend-specific colors below).
+        colors88 = SgrUtil.buildDefaultPalette();
 
         if (backend != null) {
             // Set default system colors to match the backend.
@@ -1433,249 +1439,6 @@ public class ECMA48 implements Runnable {
             colors88.set(14, 0x0054fcfc);
             colors88.set(15, 0x00fcfcfc);
         }
-
-        // These match xterm's default colors from 256colres.h.
-        colors88.set(16, 0x000000);
-        colors88.set(17, 0x00005f);
-        colors88.set(18, 0x000087);
-        colors88.set(19, 0x0000af);
-        colors88.set(20, 0x0000d7);
-        colors88.set(21, 0x0000ff);
-        colors88.set(22, 0x005f00);
-        colors88.set(23, 0x005f5f);
-        colors88.set(24, 0x005f87);
-        colors88.set(25, 0x005faf);
-        colors88.set(26, 0x005fd7);
-        colors88.set(27, 0x005fff);
-        colors88.set(28, 0x008700);
-        colors88.set(29, 0x00875f);
-        colors88.set(30, 0x008787);
-        colors88.set(31, 0x0087af);
-        colors88.set(32, 0x0087d7);
-        colors88.set(33, 0x0087ff);
-        colors88.set(34, 0x00af00);
-        colors88.set(35, 0x00af5f);
-        colors88.set(36, 0x00af87);
-        colors88.set(37, 0x00afaf);
-        colors88.set(38, 0x00afd7);
-        colors88.set(39, 0x00afff);
-        colors88.set(40, 0x00d700);
-        colors88.set(41, 0x00d75f);
-        colors88.set(42, 0x00d787);
-        colors88.set(43, 0x00d7af);
-        colors88.set(44, 0x00d7d7);
-        colors88.set(45, 0x00d7ff);
-        colors88.set(46, 0x00ff00);
-        colors88.set(47, 0x00ff5f);
-        colors88.set(48, 0x00ff87);
-        colors88.set(49, 0x00ffaf);
-        colors88.set(50, 0x00ffd7);
-        colors88.set(51, 0x00ffff);
-        colors88.set(52, 0x5f0000);
-        colors88.set(53, 0x5f005f);
-        colors88.set(54, 0x5f0087);
-        colors88.set(55, 0x5f00af);
-        colors88.set(56, 0x5f00d7);
-        colors88.set(57, 0x5f00ff);
-        colors88.set(58, 0x5f5f00);
-        colors88.set(59, 0x5f5f5f);
-        colors88.set(60, 0x5f5f87);
-        colors88.set(61, 0x5f5faf);
-        colors88.set(62, 0x5f5fd7);
-        colors88.set(63, 0x5f5fff);
-        colors88.set(64, 0x5f8700);
-        colors88.set(65, 0x5f875f);
-        colors88.set(66, 0x5f8787);
-        colors88.set(67, 0x5f87af);
-        colors88.set(68, 0x5f87d7);
-        colors88.set(69, 0x5f87ff);
-        colors88.set(70, 0x5faf00);
-        colors88.set(71, 0x5faf5f);
-        colors88.set(72, 0x5faf87);
-        colors88.set(73, 0x5fafaf);
-        colors88.set(74, 0x5fafd7);
-        colors88.set(75, 0x5fafff);
-        colors88.set(76, 0x5fd700);
-        colors88.set(77, 0x5fd75f);
-        colors88.set(78, 0x5fd787);
-        colors88.set(79, 0x5fd7af);
-        colors88.set(80, 0x5fd7d7);
-        colors88.set(81, 0x5fd7ff);
-        colors88.set(82, 0x5fff00);
-        colors88.set(83, 0x5fff5f);
-        colors88.set(84, 0x5fff87);
-        colors88.set(85, 0x5fffaf);
-        colors88.set(86, 0x5fffd7);
-        colors88.set(87, 0x5fffff);
-        colors88.set(88, 0x870000);
-        colors88.set(89, 0x87005f);
-        colors88.set(90, 0x870087);
-        colors88.set(91, 0x8700af);
-        colors88.set(92, 0x8700d7);
-        colors88.set(93, 0x8700ff);
-        colors88.set(94, 0x875f00);
-        colors88.set(95, 0x875f5f);
-        colors88.set(96, 0x875f87);
-        colors88.set(97, 0x875faf);
-        colors88.set(98, 0x875fd7);
-        colors88.set(99, 0x875fff);
-        colors88.set(100, 0x878700);
-        colors88.set(101, 0x87875f);
-        colors88.set(102, 0x878787);
-        colors88.set(103, 0x8787af);
-        colors88.set(104, 0x8787d7);
-        colors88.set(105, 0x8787ff);
-        colors88.set(106, 0x87af00);
-        colors88.set(107, 0x87af5f);
-        colors88.set(108, 0x87af87);
-        colors88.set(109, 0x87afaf);
-        colors88.set(110, 0x87afd7);
-        colors88.set(111, 0x87afff);
-        colors88.set(112, 0x87d700);
-        colors88.set(113, 0x87d75f);
-        colors88.set(114, 0x87d787);
-        colors88.set(115, 0x87d7af);
-        colors88.set(116, 0x87d7d7);
-        colors88.set(117, 0x87d7ff);
-        colors88.set(118, 0x87ff00);
-        colors88.set(119, 0x87ff5f);
-        colors88.set(120, 0x87ff87);
-        colors88.set(121, 0x87ffaf);
-        colors88.set(122, 0x87ffd7);
-        colors88.set(123, 0x87ffff);
-        colors88.set(124, 0xaf0000);
-        colors88.set(125, 0xaf005f);
-        colors88.set(126, 0xaf0087);
-        colors88.set(127, 0xaf00af);
-        colors88.set(128, 0xaf00d7);
-        colors88.set(129, 0xaf00ff);
-        colors88.set(130, 0xaf5f00);
-        colors88.set(131, 0xaf5f5f);
-        colors88.set(132, 0xaf5f87);
-        colors88.set(133, 0xaf5faf);
-        colors88.set(134, 0xaf5fd7);
-        colors88.set(135, 0xaf5fff);
-        colors88.set(136, 0xaf8700);
-        colors88.set(137, 0xaf875f);
-        colors88.set(138, 0xaf8787);
-        colors88.set(139, 0xaf87af);
-        colors88.set(140, 0xaf87d7);
-        colors88.set(141, 0xaf87ff);
-        colors88.set(142, 0xafaf00);
-        colors88.set(143, 0xafaf5f);
-        colors88.set(144, 0xafaf87);
-        colors88.set(145, 0xafafaf);
-        colors88.set(146, 0xafafd7);
-        colors88.set(147, 0xafafff);
-        colors88.set(148, 0xafd700);
-        colors88.set(149, 0xafd75f);
-        colors88.set(150, 0xafd787);
-        colors88.set(151, 0xafd7af);
-        colors88.set(152, 0xafd7d7);
-        colors88.set(153, 0xafd7ff);
-        colors88.set(154, 0xafff00);
-        colors88.set(155, 0xafff5f);
-        colors88.set(156, 0xafff87);
-        colors88.set(157, 0xafffaf);
-        colors88.set(158, 0xafffd7);
-        colors88.set(159, 0xafffff);
-        colors88.set(160, 0xd70000);
-        colors88.set(161, 0xd7005f);
-        colors88.set(162, 0xd70087);
-        colors88.set(163, 0xd700af);
-        colors88.set(164, 0xd700d7);
-        colors88.set(165, 0xd700ff);
-        colors88.set(166, 0xd75f00);
-        colors88.set(167, 0xd75f5f);
-        colors88.set(168, 0xd75f87);
-        colors88.set(169, 0xd75faf);
-        colors88.set(170, 0xd75fd7);
-        colors88.set(171, 0xd75fff);
-        colors88.set(172, 0xd78700);
-        colors88.set(173, 0xd7875f);
-        colors88.set(174, 0xd78787);
-        colors88.set(175, 0xd787af);
-        colors88.set(176, 0xd787d7);
-        colors88.set(177, 0xd787ff);
-        colors88.set(178, 0xd7af00);
-        colors88.set(179, 0xd7af5f);
-        colors88.set(180, 0xd7af87);
-        colors88.set(181, 0xd7afaf);
-        colors88.set(182, 0xd7afd7);
-        colors88.set(183, 0xd7afff);
-        colors88.set(184, 0xd7d700);
-        colors88.set(185, 0xd7d75f);
-        colors88.set(186, 0xd7d787);
-        colors88.set(187, 0xd7d7af);
-        colors88.set(188, 0xd7d7d7);
-        colors88.set(189, 0xd7d7ff);
-        colors88.set(190, 0xd7ff00);
-        colors88.set(191, 0xd7ff5f);
-        colors88.set(192, 0xd7ff87);
-        colors88.set(193, 0xd7ffaf);
-        colors88.set(194, 0xd7ffd7);
-        colors88.set(195, 0xd7ffff);
-        colors88.set(196, 0xff0000);
-        colors88.set(197, 0xff005f);
-        colors88.set(198, 0xff0087);
-        colors88.set(199, 0xff00af);
-        colors88.set(200, 0xff00d7);
-        colors88.set(201, 0xff00ff);
-        colors88.set(202, 0xff5f00);
-        colors88.set(203, 0xff5f5f);
-        colors88.set(204, 0xff5f87);
-        colors88.set(205, 0xff5faf);
-        colors88.set(206, 0xff5fd7);
-        colors88.set(207, 0xff5fff);
-        colors88.set(208, 0xff8700);
-        colors88.set(209, 0xff875f);
-        colors88.set(210, 0xff8787);
-        colors88.set(211, 0xff87af);
-        colors88.set(212, 0xff87d7);
-        colors88.set(213, 0xff87ff);
-        colors88.set(214, 0xffaf00);
-        colors88.set(215, 0xffaf5f);
-        colors88.set(216, 0xffaf87);
-        colors88.set(217, 0xffafaf);
-        colors88.set(218, 0xffafd7);
-        colors88.set(219, 0xffafff);
-        colors88.set(220, 0xffd700);
-        colors88.set(221, 0xffd75f);
-        colors88.set(222, 0xffd787);
-        colors88.set(223, 0xffd7af);
-        colors88.set(224, 0xffd7d7);
-        colors88.set(225, 0xffd7ff);
-        colors88.set(226, 0xffff00);
-        colors88.set(227, 0xffff5f);
-        colors88.set(228, 0xffff87);
-        colors88.set(229, 0xffffaf);
-        colors88.set(230, 0xffffd7);
-        colors88.set(231, 0xffffff);
-        colors88.set(232, 0x080808);
-        colors88.set(233, 0x121212);
-        colors88.set(234, 0x1c1c1c);
-        colors88.set(235, 0x262626);
-        colors88.set(236, 0x303030);
-        colors88.set(237, 0x3a3a3a);
-        colors88.set(238, 0x444444);
-        colors88.set(239, 0x4e4e4e);
-        colors88.set(240, 0x585858);
-        colors88.set(241, 0x626262);
-        colors88.set(242, 0x6c6c6c);
-        colors88.set(243, 0x767676);
-        colors88.set(244, 0x808080);
-        colors88.set(245, 0x8a8a8a);
-        colors88.set(246, 0x949494);
-        colors88.set(247, 0x9e9e9e);
-        colors88.set(248, 0xa8a8a8);
-        colors88.set(249, 0xb2b2b2);
-        colors88.set(250, 0xbcbcbc);
-        colors88.set(251, 0xc6c6c6);
-        colors88.set(252, 0xd0d0d0);
-        colors88.set(253, 0xdadada);
-        colors88.set(254, 0xe4e4e4);
-        colors88.set(255, 0xeeeeee);
-
     }
 
     /**
@@ -4459,408 +4222,72 @@ public class ECMA48 implements Runnable {
         }
 
         if (csiParams.size() == 0) {
-            currentState.attr.reset();
+            SgrUtil.resetToDefaults(currentState.attr);
             return;
         }
 
-        int sgrColorMode = -1;
-        boolean idx88Color = false;
-        boolean rgbColor = false;
-        int rgbRed = -1;
-        int rgbGreen = -1;
+        SgrUtil.ExtendedColorState extColor = new SgrUtil.ExtendedColorState();
 
         for (Integer i: csiParams) {
 
-            if ((sgrColorMode == 38) || (sgrColorMode == 48)) {
-
-                assert (type == DeviceType.XTERM);
-
-                if (idx88Color) {
-                    /*
-                     * Indexed color mode, we now have the index number.
-                     */
-                    if (sgrColorMode == 38) {
-                        currentState.attr.setForeColorRGB(get88Color(i));
-                    } else {
-                        assert (sgrColorMode == 48);
-                        currentState.attr.setBackColorRGB(get88Color(i));
-                    }
-                    sgrColorMode = -1;
-                    idx88Color = false;
-                    continue;
-                }
-
-                if (rgbColor) {
-                    /*
-                     * RGB color mode, we are collecting tokens.
-                     */
-                    if (rgbRed == -1) {
-                        rgbRed = i & 0xFF;
-                    } else if (rgbGreen == -1) {
-                        rgbGreen = i & 0xFF;
-                    } else {
-                        int rgb = rgbRed << 16;
-                        rgb |= rgbGreen << 8;
-                        rgb |= i & 0xFF;
-
-                        // System.err.printf("RGB: %08x\n", rgb);
-
-                        if (sgrColorMode == 38) {
-                            currentState.attr.setForeColorRGB(rgb);
-                        } else {
-                            assert (sgrColorMode == 48);
-                            currentState.attr.setBackColorRGB(rgb);
-                        }
-                        rgbRed = -1;
-                        rgbGreen = -1;
-                        sgrColorMode = -1;
-                        rgbColor = false;
-                    }
-                    continue;
-                }
-
-                switch (i) {
-
-                case 2:
-                    /*
-                     * RGB color mode.
-                     */
-                    rgbColor = true;
-                    continue;
-
-                case 5:
-                    /*
-                     * Indexed color mode.
-                     */
-                    idx88Color = true;
-                    continue;
-
-                default:
-                    /*
-                     * This is neither indexed nor RGB color.  Bail out.
-                     */
-                    return;
-                }
-
-            } // if ((sgrColorMode == 38) || (sgrColorMode == 48))
-
-            switch (i) {
-
-            case 0:
-                // Normal
-                currentState.attr.reset();
-                break;
-
-            case 1:
-                // Bold
-                currentState.attr.setBold(true);
-                break;
-
-            case 4:
-                // Underline
-                currentState.attr.setUnderline(true);
-                break;
-
-            case 5:
-                // Blink
-                currentState.attr.setBlink(true);
-                break;
-
-            case 7:
-                // Reverse
-                currentState.attr.setReverse(true);
-                break;
-
-            default:
-                break;
+            // Handle extended color sub-parameters (38/48 sequences)
+            if (extColor.isActive()) {
+                extColor.feedValue(i, currentState.attr, this::get88Color);
+                continue;
             }
 
-            if (type == DeviceType.XTERM) {
-
-                switch (i) {
-
-                case 8:
-                    // Invisible
-                    // Not supported
-                    break;
-
-                case 90:
-                    // Set black foreground
-                    currentState.attr.setForeColorRGB(get88Color(8));
-                    break;
-                case 91:
-                    // Set red foreground
-                    currentState.attr.setForeColorRGB(get88Color(9));
-                    break;
-                case 92:
-                    // Set green foreground
-                    currentState.attr.setForeColorRGB(get88Color(10));
-                    break;
-                case 93:
-                    // Set yellow foreground
-                    currentState.attr.setForeColorRGB(get88Color(11));
-                    break;
-                case 94:
-                    // Set blue foreground
-                    currentState.attr.setForeColorRGB(get88Color(12));
-                    break;
-                case 95:
-                    // Set magenta foreground
-                    currentState.attr.setForeColorRGB(get88Color(13));
-                    break;
-                case 96:
-                    // Set cyan foreground
-                    currentState.attr.setForeColorRGB(get88Color(14));
-                    break;
-                case 97:
-                    // Set white foreground
-                    currentState.attr.setForeColorRGB(get88Color(15));
-                    break;
-
-                case 100:
-                    // Set black background
-                    currentState.attr.setBackColorRGB(get88Color(8));
-                    break;
-                case 101:
-                    // Set red background
-                    currentState.attr.setBackColorRGB(get88Color(9));
-                    break;
-                case 102:
-                    // Set green background
-                    currentState.attr.setBackColorRGB(get88Color(10));
-                    break;
-                case 103:
-                    // Set yellow background
-                    currentState.attr.setBackColorRGB(get88Color(11));
-                    break;
-                case 104:
-                    // Set blue background
-                    currentState.attr.setBackColorRGB(get88Color(12));
-                    break;
-                case 105:
-                    // Set magenta background
-                    currentState.attr.setBackColorRGB(get88Color(13));
-                    break;
-                case 106:
-                    // Set cyan background
-                    currentState.attr.setBackColorRGB(get88Color(14));
-                    break;
-                case 107:
-                    // Set white background
-                    currentState.attr.setBackColorRGB(get88Color(15));
-                    break;
-
-                default:
-                    break;
-                }
-            }
-
-            if ((type == DeviceType.VT220)
-                || (type == DeviceType.XTERM)) {
-
-                switch (i) {
-
-                case 22:
-                    // Normal intensity
-                    currentState.attr.setBold(false);
-                    break;
-
-                case 24:
-                    // No underline
-                    currentState.attr.setUnderline(false);
-                    break;
-
-                case 25:
-                    // No blink
-                    currentState.attr.setBlink(false);
-                    break;
-
-                case 27:
-                    // Un-reverse
-                    currentState.attr.setReverse(false);
-                    break;
-
-                default:
-                    break;
-                }
-            }
-
-            // A true VT100/102/220 does not support color, however everyone
-            // is used to their terminal emulator supporting color so we will
-            // unconditionally support color for all DeviceType's.
-
-            switch (i) {
-
-            case 30:
-                // Set black foreground
-                currentState.attr.setForeColor(Color.BLACK);
-                break;
-            case 31:
-                // Set red foreground
-                currentState.attr.setForeColor(Color.RED);
-                break;
-            case 32:
-                // Set green foreground
-                currentState.attr.setForeColor(Color.GREEN);
-                break;
-            case 33:
-                // Set yellow foreground
-                currentState.attr.setForeColor(Color.YELLOW);
-                break;
-            case 34:
-                // Set blue foreground
-                currentState.attr.setForeColor(Color.BLUE);
-                break;
-            case 35:
-                // Set magenta foreground
-                currentState.attr.setForeColor(Color.MAGENTA);
-                break;
-            case 36:
-                // Set cyan foreground
-                currentState.attr.setForeColor(Color.CYAN);
-                break;
-            case 37:
-                // Set white foreground
-                currentState.attr.setForeColor(Color.WHITE);
-                break;
-            case 38:
-                if (type == DeviceType.XTERM) {
-                    /*
-                     * Xterm supports T.416 / ISO-8613-3 codes to select
-                     * either an indexed color or an RGB value.  (It also
-                     * permits these ISO-8613-3 SGR sequences to be separated
-                     * by colons rather than semicolons.)
-                     *
-                     * We will support only the following:
-                     *
-                     * 1. Indexed color mode (88- or 256-color modes).
-                     *
-                     * 2. Direct RGB.
-                     *
-                     * These cover most of the use cases in the real world.
-                     *
-                     * HOWEVER, note that this is an awful broken "standard",
-                     * with no way to do it "right".  See
-                     * http://invisible-island.net/ncurses/ncurses.faq.html#xterm_16MegaColors
-                     * for a detailed discussion of the current state of RGB
-                     * in various terminals, the point of which is that none
-                     * of them really do the same thing despite all appearing
-                     * to be "xterm".
-                     *
-                     * Also see
-                     * https://bugs.kde.org/show_bug.cgi?id=107487#c3 .
-                     * where it is assumed that supporting just the "indexed
-                     * mode" of these sequences (which could align easily
-                     * with existing SGR colors) is assumed to mean full
-                     * support of 24-bit RGB.  So it is all or nothing.
-                     *
-                     * Finally, these sequences break the assumptions of
-                     * standard ECMA-48 style parsers as pointed out at
-                     * https://bugs.kde.org/show_bug.cgi?id=107487#c11 .
-                     * Therefore in order to keep a clean display, we cannot
-                     * parse anything else in this sequence.
-                     */
-                    sgrColorMode = 38;
-                    continue;
-                }
-                break;
-            case 39:
-                // Default foreground color
+            // ECMA48-specific: SGR 39 uses backend default foreground
+            if (i == 39) {
                 if (backend != null) {
-                    currentState.attr.setForeColorRGB(backend.getDefaultForeColorRGB());
+                    currentState.attr.setForeColorRGB(
+                        backend.getDefaultForeColorRGB());
                 } else {
                     currentState.attr.setForeColor(Color.WHITE);
                 }
-
                 currentState.attr.setDefaultColor(true, true);
-                break;
-            case 40:
-                // Set black background
-                currentState.attr.setBackColor(Color.BLACK);
-                break;
-            case 41:
-                // Set red background
-                currentState.attr.setBackColor(Color.RED);
-                break;
-            case 42:
-                // Set green background
-                currentState.attr.setBackColor(Color.GREEN);
-                break;
-            case 43:
-                // Set yellow background
-                currentState.attr.setBackColor(Color.YELLOW);
-                break;
-            case 44:
-                // Set blue background
-                currentState.attr.setBackColor(Color.BLUE);
-                break;
-            case 45:
-                // Set magenta background
-                currentState.attr.setBackColor(Color.MAGENTA);
-                break;
-            case 46:
-                // Set cyan background
-                currentState.attr.setBackColor(Color.CYAN);
-                break;
-            case 47:
-                // Set white background
-                currentState.attr.setBackColor(Color.WHITE);
-                break;
-            case 48:
-                if (type == DeviceType.XTERM) {
-                    /*
-                     * Xterm supports T.416 / ISO-8613-3 codes to select
-                     * either an indexed color or an RGB value.  (It also
-                     * permits these ISO-8613-3 SGR sequences to be separated
-                     * by colons rather than semicolons.)
-                     *
-                     * We will support only the following:
-                     *
-                     * 1. Indexed color mode (88- or 256-color modes).
-                     *
-                     * 2. Direct RGB.
-                     *
-                     * These cover most of the use cases in the real world.
-                     *
-                     * HOWEVER, note that this is an awful broken "standard",
-                     * with no way to do it "right".  See
-                     * http://invisible-island.net/ncurses/ncurses.faq.html#xterm_16MegaColors
-                     * for a detailed discussion of the current state of RGB
-                     * in various terminals, the point of which is that none
-                     * of them really do the same thing despite all appearing
-                     * to be "xterm".
-                     *
-                     * Also see
-                     * https://bugs.kde.org/show_bug.cgi?id=107487#c3 .
-                     * where it is assumed that supporting just the "indexed
-                     * mode" of these sequences (which could align easily
-                     * with existing SGR colors) is assumed to mean full
-                     * support of 24-bit RGB.  So it is all or nothing.
-                     *
-                     * Finally, these sequences break the assumptions of
-                     * standard ECMA-48 style parsers as pointed out at
-                     * https://bugs.kde.org/show_bug.cgi?id=107487#c11 .
-                     * Therefore in order to keep a clean display, we cannot
-                     * parse anything else in this sequence.
-                     */
-                    sgrColorMode = 48;
-                    continue;
-                }
-                break;
-            case 49:
-                // Default background
+                continue;
+            }
+
+            // ECMA48-specific: SGR 49 uses backend default background
+            if (i == 49) {
                 if (backend != null) {
-                    currentState.attr.setBackColorRGB(backend.getDefaultBackColorRGB());
+                    currentState.attr.setBackColorRGB(
+                        backend.getDefaultBackColorRGB());
                 } else {
                     currentState.attr.setBackColor(Color.BLACK);
                 }
                 currentState.attr.setDefaultColor(false, true);
-                break;
-
-
-                default:
-                break;
+                continue;
             }
+
+            // ECMA48-specific: SGR 38/48 extended color requires XTERM
+            if (i == 38 || i == 48) {
+                if (type == DeviceType.XTERM) {
+                    extColor.begin(i);
+                }
+                continue;
+            }
+
+            // ECMA48-specific: high-intensity colors require XTERM
+            if ((i >= 90 && i <= 97) || (i >= 100 && i <= 107)) {
+                if (type == DeviceType.XTERM) {
+                    SgrUtil.applySgrCode(i, currentState.attr,
+                        this::get88Color);
+                }
+                continue;
+            }
+
+            // ECMA48-specific: VT220+ attribute off codes
+            if (i == 22 || i == 24 || i == 25 || i == 27) {
+                if (type == DeviceType.VT220 || type == DeviceType.XTERM) {
+                    SgrUtil.applySgrCode(i, currentState.attr, null);
+                }
+                continue;
+            }
+
+            // All other standard codes (0, 1, 4, 5, 7, 30-37, 40-47)
+            // are handled by the shared utility.
+            SgrUtil.applySgrCode(i, currentState.attr, this::get88Color);
         }
     }
 
