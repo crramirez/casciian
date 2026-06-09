@@ -250,22 +250,21 @@ public class TEditColorThemeWindow extends TWindow {
             attr.setForeColor(Color.WHITE);
             putStringXY(10, 2, "\u2588\u2588\u2588", attr);
 
-            attr.setBold(true);
-            attr.setForeColor(Color.BLACK);
+            attr.setForeColor(Color.BRIGHT_BLACK);
             putStringXY(1, 3, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.BLUE);
+            attr.setForeColor(Color.BRIGHT_BLUE);
             putStringXY(4, 3, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.GREEN);
+            attr.setForeColor(Color.BRIGHT_GREEN);
             putStringXY(7, 3, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.CYAN);
+            attr.setForeColor(Color.BRIGHT_CYAN);
             putStringXY(10, 3, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.RED);
+            attr.setForeColor(Color.BRIGHT_RED);
             putStringXY(1, 4, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.MAGENTA);
+            attr.setForeColor(Color.BRIGHT_MAGENTA);
             putStringXY(4, 4, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.YELLOW);
+            attr.setForeColor(Color.BRIGHT_YELLOW);
             putStringXY(7, 4, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.WHITE);
+            attr.setForeColor(Color.BRIGHT_WHITE);
             putStringXY(10, 4, "\u2588\u2588\u2588", attr);
 
             // Draw the dot
@@ -277,8 +276,7 @@ public class TEditColorThemeWindow extends TWindow {
                 attr.reset();
                 putCharXY(dotX, dotY, GraphicsChars.CP437[0x07], attr);
             } else {
-                attr.setForeColor(color);
-                attr.setBold(bold);
+                attr.setForeColor(bold ? color.toBright() : color);
                 putCharXY(dotX, dotY, '\u25D8', attr);
             }
         }
@@ -833,8 +831,8 @@ public class TEditColorThemeWindow extends TWindow {
 
         // Draw the sample text box
         attr.reset();
-        attr.setBold(foreground.bold);
-        attr.setForeColor(foreground.color);
+        attr.setForeColor(foreground.bold
+            ? foreground.color.toBright() : foreground.color);
         try {
             String text = foreground.rgb.getText();
             while (text.startsWith("#")) {
@@ -883,7 +881,7 @@ public class TEditColorThemeWindow extends TWindow {
     private void refreshFromTheme(final String colorName) {
         CellAttributes attr = editTheme.getColor(colorName);
 
-        foreground.color = attr.getForeColor();
+        foreground.color = attr.getForeColor().toNormal();
 
         if (attr.getForeColorRGB() >= 0) {
             foreground.rgb.setText(String.format("%06x",
@@ -892,7 +890,7 @@ public class TEditColorThemeWindow extends TWindow {
             foreground.rgb.setText("");
         }
 
-        foreground.bold = attr.isBold();
+        foreground.bold = attr.isBold() || attr.getForeColor().isBright();
 
         background.color = attr.getBackColor();
 
@@ -929,7 +927,12 @@ public class TEditColorThemeWindow extends TWindow {
         } catch (NumberFormatException e) {
             // SQUASH
         }
-        attr.setBold(foreground.bold);
+        // A bold selection is stored as the bright foreground color so that
+        // the bold attribute can later carry real bold meaning.
+        if ((attr.getForeColorRGB() < 0) && foreground.bold) {
+            attr.setForeColor(foreground.color.toBright());
+        }
+        attr.setBold(false);
 
         attr.setBackColor(background.color);
         try {

@@ -592,6 +592,110 @@ class ECMA48TerminalTest {
         }
     }
     
+    @Test
+    @DisplayName("Bright foreground color (bold off) matches legacy bold color")
+    void shouldUseBrightForegroundForBrightColor() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // New model: bright color + bold off should render identically to the
+        // legacy bold + normal color.
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(false);
+        attr.setForeColor(Color.BRIGHT_GREEN);
+        attr.setBackColor(Color.BLACK);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains("\033[92m"),
+            "Bright green foreground should use bright color code 92. Output: " +
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Bright background color (bold off) uses 100-107 range")
+    void shouldUseBrightBackgroundForBrightColor() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(false);
+        attr.setForeColor(Color.WHITE);
+        attr.setBackColor(Color.BRIGHT_RED);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        // Bright red background = 101.
+        assertTrue(output.contains("101"),
+            "Bright red background should use bright background code 101. Output: " +
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("All bright background colors use correct 100-107 codes")
+    void shouldUseCorrectBrightBackgroundCodes() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        Color[] colors = {
+            Color.BRIGHT_BLACK, Color.BRIGHT_RED, Color.BRIGHT_GREEN,
+            Color.BRIGHT_YELLOW, Color.BRIGHT_BLUE, Color.BRIGHT_MAGENTA,
+            Color.BRIGHT_CYAN, Color.BRIGHT_WHITE
+        };
+        int[] expectedCodes = {100, 101, 102, 103, 104, 105, 106, 107};
+
+        for (int i = 0; i < colors.length; i++) {
+            CellAttributes attr = new CellAttributes();
+            attr.setForeColor(Color.WHITE);
+            attr.setBackColor(colors[i]);
+
+            terminal.clearPhysical();
+            terminal.putCharXY(0, 0, 'X', attr);
+            outputStream.reset();
+            terminal.flushPhysical();
+
+            String output = outputStream.toString();
+            assertTrue(output.contains(String.valueOf(expectedCodes[i])),
+                colors[i] + " background should use code " + expectedCodes[i]
+                + ". Output: " + escapeForDisplay(output));
+        }
+    }
+
+    @Test
+    @DisplayName("Bright foreground RGB matches legacy bold foreground RGB")
+    void brightForegroundMatchesLegacyBoldRgb() {
+        Color[] base = {
+            Color.BLACK, Color.RED, Color.GREEN, Color.YELLOW,
+            Color.BLUE, Color.MAGENTA, Color.CYAN, Color.WHITE
+        };
+        Color[] bright = {
+            Color.BRIGHT_BLACK, Color.BRIGHT_RED, Color.BRIGHT_GREEN,
+            Color.BRIGHT_YELLOW, Color.BRIGHT_BLUE, Color.BRIGHT_MAGENTA,
+            Color.BRIGHT_CYAN, Color.BRIGHT_WHITE
+        };
+
+        for (int i = 0; i < base.length; i++) {
+            CellAttributes legacy = new CellAttributes();
+            legacy.setForeColor(base[i]);
+            legacy.setBold(true);
+
+            CellAttributes updated = new CellAttributes();
+            updated.setForeColor(bright[i]);
+            updated.setBold(false);
+
+            assertEquals(ECMA48Terminal.attrToForegroundColor(legacy),
+                ECMA48Terminal.attrToForegroundColor(updated),
+                "Bright color " + bright[i] + " should match legacy bold "
+                + base[i]);
+        }
+    }
+
     // RGB color mode tests (doRgbColor flag)
 
     @Test
