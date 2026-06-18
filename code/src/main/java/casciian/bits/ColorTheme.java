@@ -1332,8 +1332,8 @@ public class ColorTheme {
             .bold(false)
             .build());
         colors.put(TSCROLLER_BAR_MODAL, CellAttributes.builder()
-            .foreColor(CYAN)
-            .backColor(BLUE)
+            .foreColor(BLUE)
+            .backColor(CYAN)
             .bold(false)
             .build());
         colors.put(TSCROLLER_ARROWS, CellAttributes.builder()
@@ -1342,8 +1342,8 @@ public class ColorTheme {
             .bold(false)
             .build());
         colors.put(TSCROLLER_ARROWS_MODAL, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
+            .foreColor(CYAN)
+            .backColor(BLUE)
             .bold(false)
             .build());
 
@@ -1416,8 +1416,8 @@ public class ColorTheme {
             .bold(false)
             .build());
         colors.put(TLIST_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
+            .foreColor(BLACK)
+            .backColor(CYAN)
             .bold(false)
             .build());
         colors.put(TLIST_SELECTED, CellAttributes.builder()
@@ -1426,8 +1426,8 @@ public class ColorTheme {
             .bold(false)
             .build());
         colors.put(TLIST_SELECTED_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
+            .foreColor(BRIGHT_WHITE)
+            .backColor(GREEN)
             .bold(false)
             .build());
         colors.put(TLIST_UNREADABLE, CellAttributes.builder()
@@ -1436,8 +1436,8 @@ public class ColorTheme {
             .bold(false)
             .build());
         colors.put(TLIST_UNREADABLE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
+            .foreColor(BRIGHT_WHITE)
+            .backColor(GREEN)
             .bold(false)
             .build());
         colors.put(TLIST_INACTIVE, CellAttributes.builder()
@@ -1446,8 +1446,8 @@ public class ColorTheme {
             .bold(false)
             .build());
         colors.put(TLIST_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
+            .foreColor(BLACK)
+            .backColor(CYAN)
             .bold(false)
             .build());
         colors.put(TLIST_SELECTED_INACTIVE, CellAttributes.builder()
@@ -1456,8 +1456,8 @@ public class ColorTheme {
             .bold(false)
             .build());
         colors.put(TLIST_SELECTED_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
+            .foreColor(BRIGHT_YELLOW)
+            .backColor(CYAN)
             .bold(false)
             .build());
 

@@ -194,8 +194,7 @@ public final class SgrUtil {
         case 4:
             attr.setUnderline(true);
             return true;
-        case 5:
-        case 6:
+        case 5, 6:
             attr.setBlink(true);
             return true;
         case 7:

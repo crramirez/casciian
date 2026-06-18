@@ -31,6 +31,8 @@ import casciian.bits.GraphicsChars;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import static casciian.TKeypress.*;
+import static casciian.bits.ColorTheme.TLABEL;
+import static casciian.bits.ColorTheme.TLABEL_ACTIVE;
 
 /**
  * TEditColorThemeWindow provides an easy UI for users to alter the running
@@ -219,11 +221,7 @@ public class TEditColorThemeWindow extends TWindow {
             drawBox(0, 0, getWidth(), getHeight(), border, background,
                 borderStyle);
 
-            attr.setTo(getTheme().getColor("twindow.background.modal"));
-            if (isActive()) {
-                attr.setForeColor(getTheme().getColor("tlabel").getForeColor());
-                attr.setBold(getTheme().getColor("tlabel").isBold());
-            }
+            attr.setTo(getWidgetColor(isActive() ? TLABEL_ACTIVE: TLABEL));
             if (borderStyle.equals(BorderStyle.NONE)) {
                 putStringXY(0, 0, i18n.getString("foregroundLabel"), attr);
             } else {
@@ -513,11 +511,7 @@ public class TEditColorThemeWindow extends TWindow {
             drawBox(0, 0, getWidth(), getHeight(), border, background,
                 borderStyle);
 
-            attr.setTo(getTheme().getColor("twindow.background.modal"));
-            if (isActive()) {
-                attr.setForeColor(getTheme().getColor("tlabel").getForeColor());
-                attr.setBold(getTheme().getColor("tlabel").isBold());
-            }
+            attr.setTo(getWidgetColor(isActive() ? TLABEL_ACTIVE: TLABEL));
             if (borderStyle.equals(BorderStyle.NONE)) {
                 putStringXY(0, 0, i18n.getString("backgroundLabel"), attr);
             } else {
