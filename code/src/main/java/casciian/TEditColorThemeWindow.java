@@ -884,7 +884,9 @@ public class TEditColorThemeWindow extends TWindow {
             foreground.rgb.setText("");
         }
 
-        foreground.bright = attr.isBold() || attr.getForeColor().isBright();
+        // The "bright" toggle reflects only the actual bright foreground
+        // color; this editor does not expose the (unrelated) bold attribute.
+        foreground.bright = attr.getForeColor().isBright();
 
         background.color = attr.getBackColor();
 
@@ -921,8 +923,9 @@ public class TEditColorThemeWindow extends TWindow {
         } catch (NumberFormatException e) {
             // SQUASH
         }
-        // A bright selection is stored as the bright foreground color so that
-        // the bold attribute can later carry real bold meaning.
+        // A bright selection is stored as the bright foreground color
+        // directly, independent of the bold attribute (which this editor
+        // does not expose).
         if ((attr.getForeColorRGB() < 0) && foreground.bright) {
             attr.setForeColor(foreground.color.toBright());
         }

@@ -130,7 +130,7 @@ public class TTextAnsi extends TScrollable {
     @Override
     public void draw() {
         CellAttributes defaultColor = getWidgetColor(ColorTheme.TLABEL);
-        CellAttributes defaultColorBold = getWidgetColor(ColorTheme.TLABEL_ACTIVE);
+        CellAttributes defaultColorBright = getWidgetColor(ColorTheme.TLABEL_ACTIVE);
 
         int begin = vScroller.getValue();
         int hOffset = hScroller.getValue();
@@ -149,9 +149,9 @@ public class TTextAnsi extends TScrollable {
                     // Replace default terminal colors with theme colors
                     if (cell.isDefaultColor(true)
                             && cell.isDefaultColor(false)) {
-                        CellAttributes base = cell.isBold()
+                        CellAttributes base = cell.isBoldAsBright()
                             && defaultColor.getForeColorRGB() >= 0
-                            ? defaultColorBold : defaultColor;
+                            ? defaultColorBright : defaultColor;
                         CellAttributes themed = new CellAttributes();
                         themed.setTo(base);
                         themed.setBold(cell.isBold());
@@ -160,9 +160,9 @@ public class TTextAnsi extends TScrollable {
                         themed.setReverse(cell.isReverse());
                         putCharXY(col, topY, cell.getChar(), themed);
                     } else if (cell.isDefaultColor(true)) {
-                        CellAttributes base = cell.isBold()
+                        CellAttributes base = cell.isBoldAsBright()
                             && defaultColor.getForeColorRGB() >= 0
-                            ? defaultColorBold : defaultColor;
+                            ? defaultColorBright : defaultColor;
                         CellAttributes themed = new CellAttributes();
                         themed.setTo(cell);
                         if (base.getForeColorRGB() >= 0) {

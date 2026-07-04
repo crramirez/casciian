@@ -514,96 +514,98 @@ class LogicalScreenTest {
     }
 
     @Test
-    @DisplayName("Draw box shadow sets bold attribute when opacity is not 100")
-    void testDrawBoxShadowSetsBoldWhenOpacityNot100() {
+    @DisplayName("Draw box shadow uses bright black (dark grey) when opacity is not 100")
+    void testDrawBoxShadowUsesBrightBlackWhenOpacityNot100() {
         // Set opacity to a value other than 100
         SystemProperties.setShadowOpacity(60);
-        
+
         // Draw the box shadow
         int left = 5, top = 5, right = 15, bottom = 10;
         screen.drawBoxShadow(left, top, right, bottom);
-        
-        // Verify that shadow cells have bold attribute
+
+        // Verify that shadow cells use bright black (dark grey), not the bold
+        // attribute, to approximate partial opacity.
         int boxWidth = right - left;
         int boxHeight = bottom - top;
-        
+
         // Check right edge shadow cells
         for (int i = 0; i < boxHeight; i++) {
             Cell cell1 = screen.getCharXY(left + boxWidth, top + 1 + i);
             Cell cell2 = screen.getCharXY(left + boxWidth + 1, top + 1 + i);
-            
-            // Cells should have shadow attributes (black color and bold)
-            assertEquals(Color.BLACK, cell1.getForeColor(), 
-                "Shadow should have black foreground (right edge, cell 1, row " + i + ")");
-            assertEquals(Color.BLACK, cell1.getBackColor(), 
+
+            // Cells should have shadow attributes (bright black foreground,
+            // no bold)
+            assertEquals(Color.BRIGHT_BLACK, cell1.getForeColor(),
+                "Shadow should have bright black foreground (right edge, cell 1, row " + i + ")");
+            assertEquals(Color.BLACK, cell1.getBackColor(),
                 "Shadow should have black background (right edge, cell 1, row " + i + ")");
-            assertTrue(cell1.isBold(), 
-                "Shadow should be bold when opacity is not 100 (right edge, cell 1, row " + i + ")");
-            
-            assertEquals(Color.BLACK, cell2.getForeColor(), 
-                "Shadow should have black foreground (right edge, cell 2, row " + i + ")");
-            assertEquals(Color.BLACK, cell2.getBackColor(), 
+            assertFalse(cell1.isBold(),
+                "Shadow should not use the bold attribute (right edge, cell 1, row " + i + ")");
+
+            assertEquals(Color.BRIGHT_BLACK, cell2.getForeColor(),
+                "Shadow should have bright black foreground (right edge, cell 2, row " + i + ")");
+            assertEquals(Color.BLACK, cell2.getBackColor(),
                 "Shadow should have black background (right edge, cell 2, row " + i + ")");
-            assertTrue(cell2.isBold(), 
-                "Shadow should be bold when opacity is not 100 (right edge, cell 2, row " + i + ")");
+            assertFalse(cell2.isBold(),
+                "Shadow should not use the bold attribute (right edge, cell 2, row " + i + ")");
         }
-        
+
         // Check bottom edge shadow cells
         for (int i = 0; i < boxWidth; i++) {
             Cell cell = screen.getCharXY(left + 2 + i, top + boxHeight);
-            assertEquals(Color.BLACK, cell.getForeColor(), 
-                "Shadow should have black foreground (bottom edge, col " + i + ")");
-            assertEquals(Color.BLACK, cell.getBackColor(), 
+            assertEquals(Color.BRIGHT_BLACK, cell.getForeColor(),
+                "Shadow should have bright black foreground (bottom edge, col " + i + ")");
+            assertEquals(Color.BLACK, cell.getBackColor(),
                 "Shadow should have black background (bottom edge, col " + i + ")");
-            assertTrue(cell.isBold(), 
-                "Shadow should be bold when opacity is not 100 (bottom edge, col " + i + ")");
+            assertFalse(cell.isBold(),
+                "Shadow should not use the bold attribute (bottom edge, col " + i + ")");
         }
     }
 
     @Test
-    @DisplayName("Draw box shadow does not set bold when opacity is 100")
-    void testDrawBoxShadowNotBoldWhenOpacity100() {
+    @DisplayName("Draw box shadow uses plain black when opacity is 100")
+    void testDrawBoxShadowUsesBlackWhenOpacity100() {
         // Set opacity to 100
         SystemProperties.setShadowOpacity(100);
-        
+
         // Draw only the box shadow
         int left = 5, top = 5, right = 15, bottom = 10;
         screen.drawBoxShadow(left, top, right, bottom);
-        
-        // Verify that shadow cells do not have bold attribute
+
+        // Verify that shadow cells use plain (non-bright) black
         int boxWidth = right - left;
         int boxHeight = bottom - top;
-        
+
         // Check right edge shadow cells
         for (int i = 0; i < boxHeight; i++) {
             Cell cell1 = screen.getCharXY(left + boxWidth, top + 1 + i);
             Cell cell2 = screen.getCharXY(left + boxWidth + 1, top + 1 + i);
-            
-            // Cells should have shadow attributes (black color but not bold)
-            assertEquals(Color.BLACK, cell1.getForeColor(), 
+
+            // Cells should have shadow attributes (plain black, not bold)
+            assertEquals(Color.BLACK, cell1.getForeColor(),
                 "Shadow should have black foreground (right edge, cell 1, row " + i + ")");
-            assertEquals(Color.BLACK, cell1.getBackColor(), 
+            assertEquals(Color.BLACK, cell1.getBackColor(),
                 "Shadow should have black background (right edge, cell 1, row " + i + ")");
-            assertFalse(cell1.isBold(), 
-                "Shadow should not be bold when opacity is 100 (right edge, cell 1, row " + i + ")");
-            
-            assertEquals(Color.BLACK, cell2.getForeColor(), 
+            assertFalse(cell1.isBold(),
+                "Shadow should not use the bold attribute (right edge, cell 1, row " + i + ")");
+
+            assertEquals(Color.BLACK, cell2.getForeColor(),
                 "Shadow should have black foreground (right edge, cell 2, row " + i + ")");
-            assertEquals(Color.BLACK, cell2.getBackColor(), 
+            assertEquals(Color.BLACK, cell2.getBackColor(),
                 "Shadow should have black background (right edge, cell 2, row " + i + ")");
-            assertFalse(cell2.isBold(), 
-                "Shadow should not be bold when opacity is 100 (right edge, cell 2, row " + i + ")");
+            assertFalse(cell2.isBold(),
+                "Shadow should not use the bold attribute (right edge, cell 2, row " + i + ")");
         }
-        
+
         // Check bottom edge shadow cells
         for (int i = 0; i < boxWidth; i++) {
             Cell cell = screen.getCharXY(left + 2 + i, top + boxHeight);
-            assertEquals(Color.BLACK, cell.getForeColor(), 
+            assertEquals(Color.BLACK, cell.getForeColor(),
                 "Shadow should have black foreground (bottom edge, col " + i + ")");
-            assertEquals(Color.BLACK, cell.getBackColor(), 
+            assertEquals(Color.BLACK, cell.getBackColor(),
                 "Shadow should have black background (bottom edge, col " + i + ")");
-            assertFalse(cell.isBold(), 
-                "Shadow should not be bold when opacity is 100 (bottom edge, col " + i + ")");
+            assertFalse(cell.isBold(),
+                "Shadow should not use the bold attribute (bottom edge, col " + i + ")");
         }
     }
 

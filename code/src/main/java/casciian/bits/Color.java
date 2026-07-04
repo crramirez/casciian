@@ -111,7 +111,8 @@ public final class Color {
     private static final int SGRBRIGHTWHITE   = SGRWHITE + BRIGHT_OFFSET;
 
     /**
-     * Black.  Bold + black = dark grey
+     * Black.  See {@link #BRIGHT_BLACK} for the dark-grey, high-intensity
+     * variant.
      */
     public static final Color BLACK = new Color(SGRBLACK);
 

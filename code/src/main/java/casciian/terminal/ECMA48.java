@@ -4288,6 +4288,14 @@ public class ECMA48 implements Runnable {
             // are handled by the shared utility.
             SgrUtil.applySgrCode(i, currentState.attr, this::get88Color);
         }
+
+        // A bold attribute received from the incoming stream must be
+        // reproduced faithfully by the terminal emulator: it is never
+        // reinterpreted as a bright color, regardless of the
+        // casciian.treatBoldAsBright system property.  This is specific to the
+        // emulator; the ANSI viewer widget (which shares SgrUtil) does not
+        // mark bold as transparent.
+        currentState.attr.setBoldTransparent(currentState.attr.isBold());
     }
 
     /**

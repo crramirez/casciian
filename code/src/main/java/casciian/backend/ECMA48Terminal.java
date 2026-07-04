@@ -1690,12 +1690,25 @@ public class ECMA48Terminal extends LogicalScreen
                     sb.append(gotoXY(x, y));
                 }
 
-                // Now emit only the modified attributes
-                // Note: We do NOT emit SGR 1 for bold because casciian uses
-                // bright colors (90-97) to indicate bold instead of the SGR 1
-                // attribute. This avoids showing bold/thick text on terminals
-                // that support it.
+                // Now emit only the modified attributes.
+                //
+                // When the bold attribute is rendered as a bright color
+                // (treatBoldAsBright enabled), the brightness is carried by the
+                // color codes (90-97) below and we must NOT emit SGR 1.
+                // Otherwise the bold attribute is emitted transparently as a
+                // real SGR 1 / SGR 22 so the terminal decides how to show it.
                 StringBuilder attrSgr = new StringBuilder(8);
+                boolean lCellBoldAsBright = lCell.isBoldAsBright();
+                boolean lastBoldAsBright = lastAttr.isBoldAsBright();
+                boolean lCellSgrBold = lCell.isBold() && !lCellBoldAsBright;
+                boolean lastSgrBold = lastAttr.isBold() && !lastBoldAsBright;
+                if (lCellSgrBold != lastSgrBold) {
+                    if (lCellSgrBold) {
+                        attrSgr.append(";1");
+                    } else {
+                        attrSgr.append(";22");
+                    }
+                }
                 if (lCell.isUnderline() != lastAttr.isUnderline()) {
                     if (lCell.isUnderline()) {
                         attrSgr.append(";4");
@@ -1763,15 +1776,36 @@ public class ECMA48Terminal extends LogicalScreen
                         && ((lastAttr.getForeColorRGB() >= 0)
                         || !lCell.getForeColor().equals(lastAttr.getForeColor())
                         || lastAttr.isDefaultColor(true)
-                        || lCell.isBold() != lastAttr.isBold())
+                        || lCellBoldAsBright != lastBoldAsBright
+                        || lCellSgrBold != lastSgrBold)
                     ) {
                         if (DEBUG_TO_STDERR && reallyDebug) {
                             System.err.println("4 set foreColor");
                         }
-                        sb.append(color(lCell.getForeColor(), true, true,
-                            lCell.isBold()));
-                        sb.append(rgbColor(lCell.isBold(),
-                            lCell.getForeColor(), true));
+                        if (lCellSgrBold
+                            && !lCell.getForeColor().isBright()
+                        ) {
+                            // Bold text that must NOT be brightened: pin the
+                            // foreground to its normal RGB value so a terminal
+                            // that would otherwise render SGR 1 as a bright
+                            // color cannot.  The SGR 1 emitted above still
+                            // provides the bold weight.  This is safe under
+                            // useTerminalPalette too: the terminal's own
+                            // ANSI colors are always queried (see
+                            // xtermQueryAnsiColors()) and reconciled into the
+                            // MY* palette via setColorFromOsc(), triggering a
+                            // full redraw, so getPaletteColor() already
+                            // reflects the terminal's native colors once it
+                            // responds -- the same trust model rgbColor()
+                            // already relies on.
+                            sb.append(forcedRgbColor(false,
+                                lCell.getForeColor(), true));
+                        } else {
+                            sb.append(color(lCell.getForeColor(), true, true,
+                                lCellBoldAsBright));
+                            sb.append(rgbColor(lCellBoldAsBright,
+                                lCell.getForeColor(), true));
+                        }
                     }
                 }
 
@@ -4232,9 +4266,10 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         Color foreColor = attr.getForeColor();
-        // A bright color (Color.BRIGHT_*) or the legacy bold attribute both
-        // select the high-intensity palette entry.
-        if (foreColor.isBright() || attr.isBold()) {
+        // A bright color (Color.BRIGHT_*) selects the high-intensity palette
+        // entry.  The bold attribute does so only when treatBoldAsBright is
+        // enabled (see CellAttributes.isBoldAsBright()).
+        if (foreColor.isBright() || attr.isBoldAsBright()) {
             return switch (foreColor.getValue() & 0x07) {
                 case 0 -> MYBRIGHT_BLACK;  // Color.BLACK
                 case 1 -> MYBRIGHT_RED;    // Color.RED
@@ -4324,21 +4359,6 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Create a T.416 RGB parameter sequence for a custom system color.
-     *
-     * @param colorRGB one of the MYBLACK, MYBOLD_BLUE, etc. colors
-     * @return the color portion of the string to emit to an ANSI /
-     * ECMA-style terminal
-     */
-    private String systemColorRGB(final int colorRGB) {
-        int colorRed = (colorRGB >>> 16) & 0xFF;
-        int colorGreen = (colorRGB >>> 8) & 0xFF;
-        int colorBlue = colorRGB & 0xFF;
-
-        return String.format("%d;%d;%d", colorRed, colorGreen, colorBlue);
-    }
-
-    /**
      * Create a T.416 RGB parameter sequence for a single color change.
      *
      * @param colorRGB   a 24-bit RGB value for foreground color
@@ -4394,6 +4414,24 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Create a T.416 RGB parameter sequence for a palette color,
+     * unconditionally, regardless of the {@code casciian.ECMA48.rgbColor}
+     * system property.  Shared by {@link #rgbColor} (which applies that
+     * property's gate) and by callers that must force an exact RGB value
+     * regardless of the property, such as bold-pinning in the render loop.
+     *
+     * @param bold       if true, use the bright palette variant
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param foreground if true, this is a foreground color
+     * @return the string to emit to an ANSI/ECMA-style terminal,
+     * e.g. "\033[38;2;RR;GG;BBm"
+     */
+    private String forcedRgbColor(final boolean bold, final Color color,
+                            final boolean foreground) {
+        return colorRGB(getPaletteColor(color, bold), foreground);
+    }
+
+    /**
      * Create a T.416 RGB parameter sequence for a single color change.
      *
      * @param bold       if true, set bold
@@ -4407,17 +4445,11 @@ public class ECMA48Terminal extends LogicalScreen
         if (!SystemProperties.isRgbColor()) {
             return "";
         }
-        StringBuilder sb = new StringBuilder("\033[");
         if (bold) {
             // Bold implies foreground only
-            sb.append("38;2;");
-            sb.append(systemColorRGB(getPaletteColor(color, true)));
-        } else {
-            sb.append(foreground ? "38;2;" : "48;2;");
-            sb.append(systemColorRGB(getPaletteColor(color, false)));
+            return forcedRgbColor(true, color, true);
         }
-        sb.append("m");
-        return sb.toString();
+        return forcedRgbColor(false, color, foreground);
     }
 
     /**

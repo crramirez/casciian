@@ -15,6 +15,7 @@
 package casciian.bits;
 
 import casciian.backend.Backend;
+import casciian.backend.SystemProperties;
 
 /**
  * The attributes used by a Cell: color, bold, blink, etc.
@@ -59,6 +60,16 @@ public class CellAttributes {
      * Default background color.
      */
     private static final int DEFAULT_BACKCOLOR    = 0x40;
+
+    /**
+     * Bold-transparent attribute.  When set, the bold attribute of this cell
+     * must never be reinterpreted as a bright (high-intensity) color,
+     * regardless of the {@code casciian.treatBoldAsBright} system property.
+     * This is set on cells produced by terminal emulators (which parse an
+     * incoming SGR stream) so that a received bold attribute is reproduced
+     * faithfully.
+     */
+    private static final int BOLD_TRANSPARENT     = 0x80;
 
     /**
      * Animation bits for time-dependent transforms.
@@ -173,6 +184,53 @@ public class CellAttributes {
         } else {
             flags &= ~BOLD;
         }
+    }
+
+    /**
+     * Getter for bold-transparent.
+     *
+     * @return bold-transparent value
+     * @see #BOLD_TRANSPARENT
+     */
+    public final boolean isBoldTransparent() {
+        return ((flags & BOLD_TRANSPARENT) != 0);
+    }
+
+    /**
+     * Setter for bold-transparent.  When set, the bold attribute of this cell
+     * is never reinterpreted as a bright color, regardless of the
+     * {@code casciian.treatBoldAsBright} system property.
+     *
+     * @param boldTransparent new bold-transparent value
+     * @see #BOLD_TRANSPARENT
+     */
+    public final void setBoldTransparent(final boolean boldTransparent) {
+        if (boldTransparent) {
+            flags |= BOLD_TRANSPARENT;
+        } else {
+            flags &= ~BOLD_TRANSPARENT;
+        }
+    }
+
+    /**
+     * Determine whether the bold attribute of this cell should be rendered as
+     * a bright (high-intensity) color.
+     *
+     * <p>
+     * Historically Casciian rendered bold text using the bright color
+     * palette.  Since 1.6.0 the bold attribute is transparent by default: it
+     * is emitted as a real SGR bold and the terminal decides how to display
+     * it.  Bold selects the bright palette only when the
+     * {@code casciian.treatBoldAsBright} system property is enabled and this
+     * cell is not marked {@link #isBoldTransparent() bold-transparent}.
+     * </p>
+     *
+     * @return true if this cell's bold attribute should map to a bright color
+     */
+    public final boolean isBoldAsBright() {
+        return isBold()
+            && !isBoldTransparent()
+            && SystemProperties.isTreatBoldAsBright();
     }
 
     /**
@@ -549,7 +607,11 @@ public class CellAttributes {
      * @return the HTML string
      */
     public String toHtml() {
-        String fontWeight = "normal";
+        // The bold attribute maps to a bright color only when
+        // treatBoldAsBright is enabled; otherwise it is rendered as a real
+        // bold font weight so the appearance is left to the reader.
+        boolean boldBright = isBoldAsBright();
+        String fontWeight = (isBold() && !boldBright) ? "bold" : "normal";
         String textDecoration = "none";
         String fgText;
         String bgText;
@@ -563,14 +625,14 @@ public class CellAttributes {
         }
         if (isReverse()) {
             fgText = backColor.toRgbString(false);
-            if (isBold()) {
+            if (boldBright) {
                 bgText = foreColor.toRgbString(true);
             } else {
                 bgText = foreColor.toRgbString(false);
             }
         } else {
             bgText = backColor.toRgbString(false);
-            if (isBold()) {
+            if (boldBright) {
                 fgText = foreColor.toRgbString(true);
             } else {
                 fgText = foreColor.toRgbString(false);
@@ -706,6 +768,18 @@ public class CellAttributes {
          */
         public Builder bold(final boolean bold) {
             attributes.setBold(bold);
+            return this;
+        }
+
+        /**
+         * Set the bold-transparent flag.
+         *
+         * @param boldTransparent new bold-transparent flag
+         * @return this builder
+         * @see CellAttributes#setBoldTransparent(boolean)
+         */
+        public Builder boldTransparent(final boolean boldTransparent) {
+            attributes.setBoldTransparent(boldTransparent);
             return this;
         }
 
