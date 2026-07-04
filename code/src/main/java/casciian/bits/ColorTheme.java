@@ -786,248 +786,204 @@ public class ColorTheme {
         colors.put(TWINDOW_BORDER, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TWindow background
         colors.put(TWINDOW_BACKGROUND, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TWindow border - inactive
         colors.put(TWINDOW_BORDER_INACTIVE, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TWindow background - inactive
         colors.put(TWINDOW_BACKGROUND_INACTIVE, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TWindow border - modal
         colors.put(TWINDOW_BORDER_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(WHITE)
-            .bold(false)
             .build());
 
         // TWindow background - modal
         colors.put(TWINDOW_BACKGROUND_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
 
         // TWindow border - modal + inactive
         colors.put(TWINDOW_BORDER_MODAL_INACTIVE, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
 
         // TWindow background - modal + inactive
         colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
 
         // TWindow border - during window movement - modal
         colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, CellAttributes.builder()
             .foreColor(BRIGHT_GREEN)
             .backColor(WHITE)
-            .bold(false)
             .build());
 
         // TWindow border - during window movement
         colors.put(TWINDOW_BORDER_WINDOWMOVE, CellAttributes.builder()
             .foreColor(BRIGHT_GREEN)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TWindow background - during window movement
         colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, CellAttributes.builder()
             .foreColor(YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TDesktop background
         colors.put(TDESKTOP_BACKGROUND, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(WHITE)
-            .bold(false)
             .build());
 
         // TButton text
         colors.put(TBUTTON_INACTIVE, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TBUTTON_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TBUTTON_ACTIVE, CellAttributes.builder()
             .foreColor(BRIGHT_CYAN)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TBUTTON_ACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_CYAN)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TBUTTON_DISABLED, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TBUTTON_DISABLED_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TBUTTON_MNEMONIC, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TBUTTON_MNEMONIC_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TBUTTON_MNEMONIC_PULSE, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
-            .bold(false)
             .build());
         colors.put(TBUTTON_MNEMONIC_PULSE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
-            .bold(false)
             .build());
         colors.put(TBUTTON_PULSE, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
-            .bold(false)
             .build());
         colors.put(TBUTTON_PULSE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
-            .bold(false)
             .build());
 
         // TLabel text
         colors.put(TLABEL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TLABEL_ACTIVE, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TLABEL_DISABLED, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TLABEL_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TLABEL_ACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TLABEL_DISABLED_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TLABEL_MNEMONIC, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TLABEL_ACTIVE_MNEMONIC, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TLABEL_DISABLED_MNEMONIC, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TLABEL_MNEMONIC_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
 
         // TText text
         colors.put(TTEXT, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTEXT_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TField text
         colors.put(TFIELD_INACTIVE, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TFIELD_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TFIELD_ACTIVE, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TFIELD_ACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         // Just a small bit of amber.
         colors.put(TFIELD_PULSE, CellAttributes.builder()
@@ -1042,42 +998,34 @@ public class ColorTheme {
         colors.put(TCHECKBOX_INACTIVE, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TCHECKBOX_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TCHECKBOX_ACTIVE, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLACK)
-            .bold(false)
             .build());
         colors.put(TCHECKBOX_ACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLACK)
-            .bold(false)
             .build());
         colors.put(TCHECKBOX_MNEMONIC, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TCHECKBOX_MNEMONIC_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
             .foreColor(BRIGHT_RED)
             .backColor(BLACK)
-            .bold(false)
             .build());
         colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_RED)
             .backColor(BLACK)
-            .bold(false)
             .build());
         // Just a small bit of amber.
         colors.put(TCHECKBOX_PULSE, CellAttributes.builder()
@@ -1092,96 +1040,78 @@ public class ColorTheme {
         colors.put(TCOMBOBOX_INACTIVE, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TCOMBOBOX_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TCOMBOBOX_ACTIVE, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TCOMBOBOX_ACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(CYAN)
-            .bold(false)
             .build());
 
         // TSpinner
         colors.put(TSPINNER_INACTIVE, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TSPINNER_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TSPINNER_ACTIVE, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TSPINNER_ACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(CYAN)
-            .bold(false)
             .build());
 
         // TCalendar
         colors.put(TCALENDAR_BACKGROUND, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TCALENDAR_BACKGROUND_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TCALENDAR_DAY, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TCALENDAR_DAY_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TCALENDAR_DAY_SELECTED, CellAttributes.builder()
             .foreColor(RED)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TCALENDAR_DAY_SELECTED_MODAL, CellAttributes.builder()
             .foreColor(RED)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TCALENDAR_ARROW, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TCALENDAR_ARROW_MODAL, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TCALENDAR_TITLE, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TCALENDAR_TITLE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TPanel border
@@ -1198,42 +1128,34 @@ public class ColorTheme {
         colors.put(TRADIOBUTTON_INACTIVE, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TRADIOBUTTON_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TRADIOBUTTON_ACTIVE, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLACK)
-            .bold(false)
             .build());
         colors.put(TRADIOBUTTON_ACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLACK)
-            .bold(false)
             .build());
         colors.put(TRADIOBUTTON_MNEMONIC, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TRADIOBUTTON_MNEMONIC_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
             .foreColor(BRIGHT_RED)
             .backColor(BLACK)
-            .bold(false)
             .build());
         colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_RED)
             .backColor(BLACK)
-            .bold(false)
             .build());
         // Just a small bit of amber.
         colors.put(TRADIOBUTTON_PULSE, CellAttributes.builder()
@@ -1248,382 +1170,312 @@ public class ColorTheme {
         colors.put(TRADIOGROUP_INACTIVE, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TRADIOGROUP_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TRADIOGROUP_ACTIVE, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TRADIOGROUP_ACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TMenu
         colors.put(TMENU, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TMENU_HIGHLIGHTED, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TMENU_MNEMONIC, CellAttributes.builder()
             .foreColor(RED)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TMENU_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
             .foreColor(RED)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TMENU_DISABLED, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
 
         // TProgressBar
         colors.put(TPROGRESSBAR_COMPLETE, CellAttributes.builder()
             .foreColor(BRIGHT_BLUE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TPROGRESSBAR_COMPLETE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_BLUE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TPROGRESSBAR_INCOMPLETE, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TPROGRESSBAR_INCOMPLETE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TPROGRESSBAR_BORDER, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TPROGRESSBAR_BORDER_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(WHITE)
-            .bold(false)
             .build());
 
         // THScroller / TVScroller
         colors.put(TSCROLLER_BAR, CellAttributes.builder()
             .foreColor(CYAN)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TSCROLLER_BAR_MODAL, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TSCROLLER_ARROWS, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TSCROLLER_ARROWS_MODAL, CellAttributes.builder()
             .foreColor(CYAN)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TTreeView
         colors.put(TTREEVIEW, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTREEVIEW_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTREEVIEW_EXPANDBUTTON, CellAttributes.builder()
             .foreColor(BRIGHT_GREEN)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTREEVIEW_EXPANDBUTTON_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_GREEN)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTREEVIEW_SELECTED, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TTREEVIEW_SELECTED_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TTREEVIEW_UNREADABLE, CellAttributes.builder()
             .foreColor(RED)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTREEVIEW_UNREADABLE_MODAL, CellAttributes.builder()
             .foreColor(RED)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTREEVIEW_INACTIVE, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTREEVIEW_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTREEVIEW_SELECTED_INACTIVE, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TTREEVIEW_SELECTED_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
 
         // TList
         colors.put(TLIST, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TLIST_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TLIST_SELECTED, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TLIST_SELECTED_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TLIST_UNREADABLE, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TLIST_UNREADABLE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(GREEN)
-            .bold(false)
             .build());
         colors.put(TLIST_INACTIVE, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TLIST_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TLIST_SELECTED_INACTIVE, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TLIST_SELECTED_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(CYAN)
-            .bold(false)
             .build());
 
         // TStatusBar
         colors.put(TSTATUSBAR_TEXT, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TSTATUSBAR_BUTTON, CellAttributes.builder()
             .foreColor(RED)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TSTATUSBAR_SELECTED, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TEditor
         colors.put(TEDITOR, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TEDITOR_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TEDITOR_SELECTED, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TEDITOR_SELECTED_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TEDITOR_MARGIN, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TEDITOR_MARGIN_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(CYAN)
-            .bold(false)
             .build());
 
         // TTable
         colors.put(TTABLE_INACTIVE, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTABLE_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTABLE_ACTIVE, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TTABLE_ACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TTABLE_SELECTED, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TTABLE_SELECTED_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(CYAN)
-            .bold(false)
             .build());
         colors.put(TTABLE_LABEL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TTABLE_LABEL_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TTABLE_LABEL_SELECTED, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TTABLE_LABEL_SELECTED_MODAL, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(WHITE)
-            .bold(false)
             .build());
         colors.put(TTABLE_BORDER, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TTABLE_BORDER_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // TSplitPane
         colors.put(TSPLITPANE, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
         colors.put(TSPLITPANE_MODAL, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // THelpWindow border - during window movement
         colors.put(THELPWINDOW_WINDOWMOVE, CellAttributes.builder()
             .foreColor(BRIGHT_GREEN)
             .backColor(CYAN)
-            .bold(false)
             .build());
 
         // THelpWindow border
         colors.put(THELPWINDOW_BORDER, CellAttributes.builder()
             .foreColor(BRIGHT_GREEN)
             .backColor(CYAN)
-            .bold(false)
             .build());
 
         // THelpWindow background
         colors.put(THELPWINDOW_BACKGROUND, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(CYAN)
-            .bold(false)
             .build());
 
         // THelpWindow text
         colors.put(THELPWINDOW_TEXT, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // THelpWindow link
         colors.put(THELPWINDOW_LINK, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
-            .bold(false)
             .build());
 
         // THelpWindow link - active
         colors.put(THELPWINDOW_LINK_ACTIVE, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(CYAN)
-            .bold(false)
             .build());
     }
 

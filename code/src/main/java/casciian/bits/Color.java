@@ -365,7 +365,7 @@ public final class Color {
     /**
      * Convert this color to an RGB string.
      *
-     * @param bright if true, return the bright/bold color
+     * @param bright if true, return the bright color
      * @return the RGB string
      */
     public String toRgbString(final boolean bright) {
