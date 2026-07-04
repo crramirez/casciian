@@ -35,7 +35,7 @@ import static casciian.TKeypress.*;
 /**
  * TTextPictureWindow shows an ASCII/ANSI art file with scrollbars.
  *
- * @deprecated Use {@link TTextAnsiWindow} instead, which provides simpler and
+ * @deprecated Use {@link casciian.TTextAnsiWindow} instead, which provides simpler and
  * more reliable ANSI text rendering without requiring a full terminal emulator.
  */
 @Deprecated
