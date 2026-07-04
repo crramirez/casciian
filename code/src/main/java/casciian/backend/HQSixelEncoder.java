@@ -23,7 +23,7 @@ package casciian.backend;
 import casciian.bits.ImageRGB;
 import casciian.bits.MathUtils;
 import casciian.bits.Rgb;
-import casciian.terminal.SixelDecoder;
+import casciian.image.decoders.SixelDecoder;
 
 import java.util.ArrayList;
 import java.util.Arrays;

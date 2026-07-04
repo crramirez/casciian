@@ -12,7 +12,7 @@
  * with this software. If not, see
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package casciian.terminal;
+package casciian.image.decoders;
 
 import casciian.bits.ImageRGB;
 import casciian.bits.ArrayImageRGB;

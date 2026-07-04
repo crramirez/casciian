@@ -12,7 +12,14 @@
  * with this software. If not, see
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package casciian;
+package casciian.terminal.widget;
+
+import casciian.TAction;
+import casciian.TApplication;
+import casciian.TScrollableWindow;
+import casciian.TStatusBar;
+import casciian.TVScroller;
+import casciian.TWindow;
 
 import java.util.ResourceBundle;
 

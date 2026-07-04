@@ -16,7 +16,6 @@
 package casciian.image.decoders;
 
 import casciian.bits.ImageRGB;
-import casciian.terminal.SixelDecoder;
 
 import java.io.IOException;
 import java.io.InputStream;

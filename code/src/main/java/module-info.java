@@ -41,7 +41,6 @@ module casciian {
     exports casciian.layout;
     exports casciian.menu;
     exports casciian.net;
-    exports casciian.terminal;
     exports casciian.texteditor;
 
     uses casciian.image.decoders.ImageDecoder;

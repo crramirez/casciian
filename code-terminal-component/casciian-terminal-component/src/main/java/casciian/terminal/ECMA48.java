@@ -38,6 +38,7 @@ import casciian.TKeypress;
 import casciian.backend.Backend;
 import casciian.backend.ECMA48Terminal;
 import casciian.backend.Screen;
+import casciian.image.decoders.SixelDecoder;
 import casciian.bits.ImageRGB;
 import casciian.bits.ArrayImageRGB;
 import casciian.bits.Clipboard;

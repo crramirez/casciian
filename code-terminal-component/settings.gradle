@@ -1,0 +1,24 @@
+/*
+ * Multi-project settings for the Casciian Terminal component and its demo.
+ *
+ * The component (casciian-terminal-component) is publishable to Maven Central.
+ * Users can opt into it when they want to embed an ECMA-48 / ANSI X3.64 style
+ * terminal widget (TTerminalWindow) or render ANSI art via a full terminal
+ * emulator, without pulling the terminal-specific code into the core library.
+ *
+ * For local development we use a Gradle composite build that points at the
+ * sibling `code/` project, so changes to casciian itself are picked up without
+ * needing to publish a snapshot first.
+ */
+rootProject.name = 'code-terminal-component'
+
+include 'casciian-terminal-component'
+include 'demo'
+
+// Composite build: substitute io.github.crramirez:casciian with the sibling
+// casciian project so local builds work without publishing first.
+includeBuild('../code') {
+    dependencySubstitution {
+        substitute module('io.github.crramirez:casciian') using project(':')
+    }
+}

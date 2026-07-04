@@ -246,11 +246,6 @@ public class DemoMainWindow extends TWindow {
         );
         row += 2;
 
-        addLabel(i18n.getString("terminalLabel"), 1, row);
-        addButton(i18n.getString("terminalButton"), col, row,
-            () -> getApplication().openTerminal(0, 0));
-        row += 2;
-
         addLabel(i18n.getString("colorAndStyleEditorLabel"), 1, row);
         addButton(i18n.getString("colorEditorButton"), col, row,
             () -> new TEditColorThemeWindow(getApplication()));

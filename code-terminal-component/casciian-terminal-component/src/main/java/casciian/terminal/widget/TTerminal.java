@@ -12,7 +12,14 @@
  * with this software. If not, see
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package casciian;
+package casciian.terminal.widget;
+
+import casciian.EditMenuUser;
+import casciian.TAction;
+import casciian.TApplication;
+import casciian.TScrollable;
+import casciian.TVScroller;
+import casciian.TWidget;
 
 import java.io.File;
 import java.io.IOException;

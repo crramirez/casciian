@@ -35,7 +35,7 @@ import java.util.function.IntUnaryOperator;
  *
  * <p>
  * This class is extracted from and inspired by the SGR parsing logic in
- * {@link casciian.terminal.ECMA48}, but is much simpler since it only
+ * the {@code ECMA48} terminal emulator, but is much simpler since it only
  * handles display rendering without terminal emulation.
  * </p>
  */

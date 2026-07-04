@@ -12,7 +12,13 @@
  * with this software. If not, see
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package casciian;
+package casciian.terminal.widget;
+
+import casciian.TAction;
+import casciian.TApplication;
+import casciian.TButton;
+import casciian.TLabel;
+import casciian.TWindow;
 
 import java.util.ArrayList;
 import java.util.Arrays;
