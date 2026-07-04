@@ -149,6 +149,37 @@ public final class SgrUtil {
     // Standard SGR application -----------------------------------------------
     // ------------------------------------------------------------------------
 
+    // --- Attribute toggles ---
+    private static final int SGR_RESET             = 0;
+    private static final int SGR_BOLD               = 1;
+    private static final int SGR_DIM                = 2;
+    private static final int SGR_ITALIC             = 3;
+    private static final int SGR_UNDERLINE          = 4;
+    private static final int SGR_BLINK_SLOW         = 5;
+    private static final int SGR_BLINK_RAPID        = 6;
+    private static final int SGR_REVERSE            = 7;
+    private static final int SGR_HIDDEN             = 8;
+    private static final int SGR_STRIKETHROUGH      = 9;
+    private static final int SGR_NORMAL_INTENSITY   = 22; // cancels bold/dim
+    private static final int SGR_ITALIC_OFF         = 23;
+    private static final int SGR_UNDERLINE_OFF      = 24;
+    private static final int SGR_BLINK_OFF          = 25;
+    private static final int SGR_REVERSE_OFF        = 27;
+    private static final int SGR_HIDDEN_OFF         = 28;
+    private static final int SGR_STRIKETHROUGH_OFF  = 29;
+
+    // --- Foreground colors ---
+    private static final int SGR_FG_BASE            = 30; // 30-37
+    private static final int SGR_FG_EXTENDED        = 38; // indexed/RGB, sub-params
+    private static final int SGR_FG_DEFAULT         = 39;
+    private static final int SGR_FG_BRIGHT_BASE     = 90; // 90-97
+
+    // --- Background colors ---
+    private static final int SGR_BG_BASE            = 40; // 40-47
+    private static final int SGR_BG_EXTENDED        = 48; // indexed/RGB, sub-params
+    private static final int SGR_BG_DEFAULT         = 49;
+    private static final int SGR_BG_BRIGHT_BASE     = 100; // 100-107
+
     /**
      * Apply a single SGR code to the given attributes. Handles the standard
      * attribute codes (bold, underline, blink, reverse), standard 8
@@ -170,6 +201,7 @@ public final class SgrUtil {
      * @return {@code true} if the code was handled, {@code false} if it
      *         was not recognized (caller may handle it specially)
      */
+    @SuppressWarnings("java:S1871")
     public static boolean applySgrCode(final int code,
             final CellAttributes attr, final IntUnaryOperator palette) {
 
@@ -178,126 +210,125 @@ public final class SgrUtil {
 
         switch (code) {
         // --- Attribute toggles ---
-        case 0:
+        case SGR_RESET:
             resetToDefaults(attr);
             return true;
-        case 1:
+        case SGR_BOLD:
             attr.setBold(true);
             return true;
-        case 2:
+        case SGR_DIM:
             // Dim/faint — treat as not-bold
             attr.setBold(false);
             return true;
-        case 3:
+        case SGR_ITALIC:
             // Italic — not supported, but recognized
             return true;
-        case 4:
+        case SGR_UNDERLINE:
             attr.setUnderline(true);
             return true;
-        case 5:
-        case 6:
+        case SGR_BLINK_SLOW, SGR_BLINK_RAPID:
             attr.setBlink(true);
             return true;
-        case 7:
+        case SGR_REVERSE:
             attr.setReverse(true);
             return true;
-        case 8:
+        case SGR_HIDDEN:
             // Hidden/invisible — not supported, but recognized
             return true;
-        case 9:
+        case SGR_STRIKETHROUGH:
             // Strikethrough — not supported, but recognized
             return true;
-        case 22:
+        case SGR_NORMAL_INTENSITY:
             attr.setBold(false);
             return true;
-        case 23:
+        case SGR_ITALIC_OFF:
             // Not italic — no-op because italic is not supported
             return true;
-        case 24:
+        case SGR_UNDERLINE_OFF:
             attr.setUnderline(false);
             return true;
-        case 25:
+        case SGR_BLINK_OFF:
             attr.setBlink(false);
             return true;
-        case 27:
+        case SGR_REVERSE_OFF:
             attr.setReverse(false);
             return true;
-        case 28:
+        case SGR_HIDDEN_OFF:
             // Not hidden
             return true;
-        case 29:
+        case SGR_STRIKETHROUGH_OFF:
             // Not strikethrough
             return true;
 
         // --- Standard foreground colors (30–37) ---
-        case 30:
-        case 31:
-        case 32:
-        case 33:
-        case 34:
-        case 35:
-        case 36:
-        case 37:
-            attr.setForeColor(Color.getSgrColor(code - 30));
+        case SGR_FG_BASE,
+             SGR_FG_BASE + 1,
+             SGR_FG_BASE + 2,
+             SGR_FG_BASE + 3,
+             SGR_FG_BASE + 4,
+             SGR_FG_BASE + 5,
+             SGR_FG_BASE + 6,
+             SGR_FG_BASE + 7:
+            attr.setForeColor(Color.getSgrColor(code - SGR_FG_BASE));
             attr.setDefaultColor(true, false);
             return true;
 
         // --- Extended foreground (38) handled by caller's state machine ---
-        case 38:
+        case SGR_FG_EXTENDED:
             return false;
 
         // --- Default foreground (39) ---
-        case 39:
+        case SGR_FG_DEFAULT:
             attr.setForeColor(Color.WHITE);
             attr.setDefaultColor(true, true);
             return true;
 
         // --- Standard background colors (40–47) ---
-        case 40:
-        case 41:
-        case 42:
-        case 43:
-        case 44:
-        case 45:
-        case 46:
-        case 47:
-            attr.setBackColor(Color.getSgrColor(code - 40));
+        case SGR_BG_BASE,
+             SGR_BG_BASE + 1,
+             SGR_BG_BASE + 2,
+             SGR_BG_BASE + 3,
+             SGR_BG_BASE + 4,
+             SGR_BG_BASE + 5,
+             SGR_BG_BASE + 6,
+             SGR_BG_BASE + 7:
+            attr.setBackColor(Color.getSgrColor(code - SGR_BG_BASE));
             attr.setDefaultColor(false, false);
             return true;
 
         // --- Extended background (48) handled by caller's state machine ---
-        case 48:
+        case SGR_BG_EXTENDED:
             return false;
 
         // --- Default background (49) ---
-        case 49:
+        case SGR_BG_DEFAULT:
             attr.setBackColor(Color.BLACK);
             attr.setDefaultColor(false, true);
             return true;
 
         // --- High-intensity foreground (90–97) ---
-        case 90:
-        case 91:
-        case 92:
-        case 93:
-        case 94:
-        case 95:
-        case 96:
-        case 97:
-            attr.setForeColorRGB(pal.applyAsInt(code - 90 + 8));
+        case SGR_FG_BRIGHT_BASE,
+             SGR_FG_BRIGHT_BASE + 1,
+             SGR_FG_BRIGHT_BASE + 2,
+             SGR_FG_BRIGHT_BASE + 3,
+             SGR_FG_BRIGHT_BASE + 4,
+             SGR_FG_BRIGHT_BASE + 5,
+             SGR_FG_BRIGHT_BASE + 6,
+             SGR_FG_BRIGHT_BASE + 7:
+            attr.setForeColorRGB(pal.applyAsInt(code - SGR_FG_BRIGHT_BASE + 8));
             attr.setDefaultColor(true, false);
             return true;
 
         // --- High-intensity background (100–107) ---
-        case 100:
-        case 101:
-        case 102:
-        case 103:
-        case 104:
-        case 105:
-        case 106:
-        case 107:
-            attr.setBackColorRGB(pal.applyAsInt(code - 100 + 8));
+        case SGR_BG_BRIGHT_BASE,
+             SGR_BG_BRIGHT_BASE + 1,
+             SGR_BG_BRIGHT_BASE + 2,
+             SGR_BG_BRIGHT_BASE + 3,
+             SGR_BG_BRIGHT_BASE + 4,
+             SGR_BG_BRIGHT_BASE + 5,
+             SGR_BG_BRIGHT_BASE + 6,
+             SGR_BG_BRIGHT_BASE + 7:
+            attr.setBackColorRGB(pal.applyAsInt(code - SGR_BG_BRIGHT_BASE + 8));
             attr.setDefaultColor(false, false);
             return true;
 
@@ -326,6 +357,7 @@ public final class SgrUtil {
          * Create a new extended color state tracker.
          */
         public ExtendedColorState() {
+            // No initialization needed; fields carry their default values.
         }
 
         /**
@@ -351,21 +383,18 @@ public final class SgrUtil {
         }
 
         /**
-         * Feed the next sub-parameter value. Returns {@code true} if the
-         * value was consumed (caller should continue to next param),
-         * {@code false} if the sequence has ended or is invalid.
+         * Feed the next sub-parameter value.
          *
          * @param value the sub-parameter value
          * @param attr the attributes to apply color to when complete
          * @param palette color index lookup (index→RGB)
-         * @return {@code true} if the value was consumed
          */
-        public boolean feedValue(final int value,
+        public void feedValue(final int value,
                 final CellAttributes attr,
                 final IntUnaryOperator palette) {
 
             if (mode == -1) {
-                return false;
+                return;
             }
 
             if (indexed) {
@@ -373,7 +402,7 @@ public final class SgrUtil {
                 int rgbVal = palette.applyAsInt(value);
                 applyColor(rgbVal, attr);
                 reset();
-                return true;
+                return;
             }
 
             if (rgb) {
@@ -387,20 +416,14 @@ public final class SgrUtil {
                     applyColor(rgbVal, attr);
                     reset();
                 }
-                return true;
+                return;
             }
 
             // Expecting sub-mode selector (5 = indexed, 2 = RGB)
-            if (value == 5) {
-                indexed = true;
-                return true;
-            } else if (value == 2) {
-                rgb = true;
-                return true;
-            } else {
-                // Unknown sub-mode, abort
-                reset();
-                return true;
+            switch (value) {
+                case 5 -> indexed = true;
+                case 2 -> rgb = true;
+                default -> reset(); // Unknown sub-mode, abort
             }
         }
 

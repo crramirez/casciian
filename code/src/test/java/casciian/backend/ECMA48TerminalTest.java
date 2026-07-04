@@ -45,7 +45,12 @@ class ECMA48TerminalTest {
 
     @BeforeEach
     void setUp() {
-        // Reset system properties
+        // Reset system properties.  reset() only clears the cache, so also
+        // clear the backing properties to keep tests isolated from each
+        // other (several tests in this class set these without resetting).
+        System.clearProperty(SystemProperties.CASCIIAN_TREAT_BOLD_AS_BRIGHT);
+        System.clearProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
+        System.clearProperty(SystemProperties.CASCIIAN_USE_TERMINAL_PALETTE);
         SystemProperties.reset();
 
         // Create mock backend
@@ -63,6 +68,9 @@ class ECMA48TerminalTest {
             terminal.closeTerminal();
         }
         // Reset system properties to default
+        System.clearProperty(SystemProperties.CASCIIAN_TREAT_BOLD_AS_BRIGHT);
+        System.clearProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
+        System.clearProperty(SystemProperties.CASCIIAN_USE_TERMINAL_PALETTE);
         SystemProperties.reset();
     }
 
@@ -492,10 +500,14 @@ class ECMA48TerminalTest {
     // Bold color tests
     
     @Test
-    @DisplayName("Bold foreground colors use 90-97 range (AIXterm bright colors)")
+    @DisplayName("Bold foreground colors use 90-97 range when treatBoldAsBright enabled")
     void shouldUseBrightColorsForBoldForeground() {
         terminal = createTerminal();
         assertNotNull(terminal);
+
+        // Legacy "bold means bright" behavior requires the compatibility
+        // property to be enabled.
+        SystemProperties.setTreatBoldAsBright(true);
 
         // Set up a cell with bold + foreground color (no RGB)
         CellAttributes attr = new CellAttributes();
@@ -556,10 +568,12 @@ class ECMA48TerminalTest {
     }
 
     @Test
-    @DisplayName("All bold foreground colors use correct bright codes")
+    @DisplayName("All bold foreground colors use correct bright codes when treatBoldAsBright enabled")
     void shouldUseCorrectBrightCodesForAllBoldColors() {
         terminal = createTerminal();
         assertNotNull(terminal);
+
+        SystemProperties.setTreatBoldAsBright(true);
 
         // Test all standard colors with bold
         Color[] colors = {
@@ -592,6 +606,220 @@ class ECMA48TerminalTest {
         }
     }
     
+    @Test
+    @DisplayName("By default, bold foreground emits real SGR bold and a normal color")
+    void boldForegroundEmitsRealSgrBoldByDefault() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Default (treatBoldAsBright disabled): bold must be emitted as a real
+        // SGR 1 and the color left normal so the terminal decides how to show
+        // the bold text.
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(true);
+        attr.setForeColor(Color.GREEN);
+        attr.setBackColor(Color.BLACK);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertTrue(output.contains("\033[1m"),
+            "Bold cell should emit a real SGR bold (\\033[1m) by default. Output: "
+            + escapeForDisplay(output));
+        assertTrue(output.contains("\033[38;2;"),
+            "Bold non-bright color should be pinned to its normal RGB so it "
+            + "cannot be brightened. Output: " + escapeForDisplay(output));
+        assertFalse(output.contains("\033[92m"),
+            "Bold green should NOT use bright code 92 by default. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Bold-transparent cell is never brightened, even when treatBoldAsBright enabled")
+    void boldTransparentCellNotBrightenedWhenPropertyEnabled() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // A cell marked bold-transparent (e.g. produced by the ECMA48 terminal
+        // emulator) must reproduce bold faithfully even when the legacy
+        // treatBoldAsBright behavior is enabled globally.
+        SystemProperties.setTreatBoldAsBright(true);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(true);
+        attr.setBoldTransparent(true);
+        attr.setForeColor(Color.GREEN);
+        attr.setBackColor(Color.BLACK);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertTrue(output.contains("\033[1m"),
+            "Bold-transparent cell should emit a real SGR bold (\\033[1m). Output: "
+            + escapeForDisplay(output));
+        assertTrue(output.contains("\033[38;2;"),
+            "Bold-transparent non-bright color should be pinned to its normal "
+            + "RGB. Output: " + escapeForDisplay(output));
+        assertFalse(output.contains("\033[92m"),
+            "Bold-transparent green should NOT use bright code 92. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("When useTerminalPalette enabled, bold foreground pin reflects the terminal's reported palette")
+    void boldForegroundPinUsesReconciledPaletteWhenUseTerminalPaletteEnabled() {
+        // With useTerminalPalette, Casciian does not send its own CGA
+        // palette, but it always queries the terminal's ANSI colors
+        // (xtermQueryAnsiColors()) and reconciles the response into the
+        // internal palette (setColorFromOsc()), forcing a full redraw.  Once
+        // that response arrives, the bold-not-bright pin must use the
+        // terminal's reported color, not Casciian's own CGA default.
+        SystemProperties.setUseTerminalPalette(true);
+        try {
+            terminal = createTerminal();
+            assertNotNull(terminal);
+
+            // Terminal reports its own green (index 2) as RGB(0, 205, 0),
+            // distinct from Casciian's CGA default green RGB(0, 170, 0).
+            terminal.oscResponse("4;2;rgb:0000/cdcd/0000");
+
+            CellAttributes attr = new CellAttributes();
+            attr.setBold(true);
+            attr.setForeColor(Color.GREEN);
+            attr.setBackColor(Color.BLACK);
+
+            terminal.putCharXY(0, 0, 'A', attr);
+            outputStream.reset();
+            terminal.flushPhysical();
+
+            String output = outputStream.toString();
+
+            assertTrue(output.contains("\033[1m"),
+                "Bold cell should emit a real SGR bold (\\033[1m). Output: "
+                + escapeForDisplay(output));
+            assertTrue(output.contains("\033[38;2;0;205;0m"),
+                "Bold green pin should use the terminal's reported RGB "
+                + "(0,205,0), not Casciian's CGA default. Output: "
+                + escapeForDisplay(output));
+        } finally {
+            SystemProperties.setUseTerminalPalette(false);
+        }
+    }
+
+    @Test
+    @DisplayName("Bright foreground color (bold off) matches legacy bold color")
+    void shouldUseBrightForegroundForBrightColor() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // New model: bright color + bold off should render identically to the
+        // legacy bold + normal color.
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(false);
+        attr.setForeColor(Color.BRIGHT_GREEN);
+        attr.setBackColor(Color.BLACK);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains("\033[92m"),
+            "Bright green foreground should use bright color code 92. Output: " +
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Bright background color (bold off) uses 100-107 range")
+    void shouldUseBrightBackgroundForBrightColor() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(false);
+        attr.setForeColor(Color.WHITE);
+        attr.setBackColor(Color.BRIGHT_RED);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        // Bright red background = 101.
+        assertTrue(output.contains("101"),
+            "Bright red background should use bright background code 101. Output: " +
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("All bright background colors use correct 100-107 codes")
+    void shouldUseCorrectBrightBackgroundCodes() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        Color[] colors = {
+            Color.BRIGHT_BLACK, Color.BRIGHT_RED, Color.BRIGHT_GREEN,
+            Color.BRIGHT_YELLOW, Color.BRIGHT_BLUE, Color.BRIGHT_MAGENTA,
+            Color.BRIGHT_CYAN, Color.BRIGHT_WHITE
+        };
+        int[] expectedCodes = {100, 101, 102, 103, 104, 105, 106, 107};
+
+        for (int i = 0; i < colors.length; i++) {
+            CellAttributes attr = new CellAttributes();
+            attr.setForeColor(Color.WHITE);
+            attr.setBackColor(colors[i]);
+
+            terminal.clearPhysical();
+            terminal.putCharXY(0, 0, 'X', attr);
+            outputStream.reset();
+            terminal.flushPhysical();
+
+            String output = outputStream.toString();
+            assertTrue(output.contains(String.valueOf(expectedCodes[i])),
+                colors[i] + " background should use code " + expectedCodes[i]
+                + ". Output: " + escapeForDisplay(output));
+        }
+    }
+
+    @Test
+    @DisplayName("Bright foreground RGB matches legacy bold foreground RGB")
+    void brightForegroundMatchesLegacyBoldRgb() {
+        Color[] base = {
+            Color.BLACK, Color.RED, Color.GREEN, Color.YELLOW,
+            Color.BLUE, Color.MAGENTA, Color.CYAN, Color.WHITE
+        };
+        Color[] bright = {
+            Color.BRIGHT_BLACK, Color.BRIGHT_RED, Color.BRIGHT_GREEN,
+            Color.BRIGHT_YELLOW, Color.BRIGHT_BLUE, Color.BRIGHT_MAGENTA,
+            Color.BRIGHT_CYAN, Color.BRIGHT_WHITE
+        };
+
+        // The legacy bold rendering path is only active when the
+        // compatibility property is enabled.
+        SystemProperties.setTreatBoldAsBright(true);
+
+        for (int i = 0; i < base.length; i++) {
+            CellAttributes legacy = new CellAttributes();
+            legacy.setForeColor(base[i]);
+            legacy.setBold(true);
+
+            CellAttributes updated = new CellAttributes();
+            updated.setForeColor(bright[i]);
+            updated.setBold(false);
+
+            assertEquals(ECMA48Terminal.attrToForegroundColor(legacy),
+                ECMA48Terminal.attrToForegroundColor(updated),
+                "Bright color " + bright[i] + " should match legacy bold "
+                + base[i]);
+        }
+    }
+
     // RGB color mode tests (doRgbColor flag)
 
     @Test

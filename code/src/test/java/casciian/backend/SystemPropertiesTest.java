@@ -49,6 +49,7 @@ class SystemPropertiesTest {
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET);
         System.clearProperty(SystemProperties.CASCIIAN_USE_JLINE);
         System.clearProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
+        System.clearProperty(SystemProperties.CASCIIAN_TREAT_BOLD_AS_BRIGHT);
         SystemProperties.reset();
     }
 
@@ -879,6 +880,47 @@ class SystemPropertiesTest {
         SystemProperties.reset();
 
         assertFalse(SystemProperties.isRgbColor());
+    }
+
+    // -------------------------------------------------------------------------
+    // Treat Bold As Bright Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get treatBoldAsBright returns default value (false) when not set")
+    void testIsTreatBoldAsBrightDefault() {
+        assertFalse(SystemProperties.isTreatBoldAsBright());
+    }
+
+    @Test
+    @DisplayName("Get treatBoldAsBright returns true when set to 'true'")
+    void testIsTreatBoldAsBrightSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_TREAT_BOLD_AS_BRIGHT, "true");
+        assertTrue(SystemProperties.isTreatBoldAsBright());
+    }
+
+    @Test
+    @DisplayName("Set and get treatBoldAsBright round trip")
+    void testSetTreatBoldAsBrightRoundTrip() {
+        assertFalse(SystemProperties.isTreatBoldAsBright());
+
+        SystemProperties.setTreatBoldAsBright(true);
+        assertTrue(SystemProperties.isTreatBoldAsBright());
+
+        SystemProperties.setTreatBoldAsBright(false);
+        assertFalse(SystemProperties.isTreatBoldAsBright());
+    }
+
+    @Test
+    @DisplayName("Reset clears treatBoldAsBright cached value")
+    void testResetClearsTreatBoldAsBright() {
+        SystemProperties.setTreatBoldAsBright(true);
+        assertTrue(SystemProperties.isTreatBoldAsBright());
+
+        System.setProperty(SystemProperties.CASCIIAN_TREAT_BOLD_AS_BRIGHT, "false");
+        SystemProperties.reset();
+
+        assertFalse(SystemProperties.isTreatBoldAsBright());
     }
 
     // -------------------------------------------------------------------------

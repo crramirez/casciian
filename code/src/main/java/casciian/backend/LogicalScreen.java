@@ -1151,8 +1151,12 @@ public class LogicalScreen implements Screen {
         int boxHeight = bottom - top;
 
         CellAttributes shadowAttr = new CellAttributes();
-        shadowAttr.setForeColor(Color.BLACK);
-        shadowAttr.setBold(shadowOpacity != 100);
+        // A fully opaque shadow is solid black; a partially opaque one uses
+        // bright black (dark grey) so some of the covered content remains
+        // faintly visible.  This approximates translucency without relying
+        // on the bold attribute, which no longer implies a bright color.
+        shadowAttr.setForeColor(shadowOpacity != 100
+            ? Color.BRIGHT_BLACK : Color.BLACK);
         shadowAttr.setBackColor(Color.BLACK);
 
         // Shadows do not honor clipping but they DO honor offset.

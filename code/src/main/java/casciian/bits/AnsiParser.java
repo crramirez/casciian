@@ -62,8 +62,7 @@ public final class AnsiParser {
         private final List<Cell> cells;
 
         Line(final List<Cell> cells) {
-            this.cells = Collections.unmodifiableList(
-                new ArrayList<>(cells));
+            this.cells = List.copyOf(cells);
         }
 
         /**

@@ -158,6 +158,22 @@ public class SystemProperties {
     public static final String CASCIIAN_ECMA48_RGB_COLOR = "casciian.ECMA48.rgbColor";
 
     /**
+     * System property key for treating the bold attribute as a bright
+     * (high-intensity) color.
+     * <p>
+     * Historically Casciian rendered the bold attribute using the bright
+     * color palette. Since 1.6.0 the bold attribute is transparent by
+     * default: it is emitted as a real SGR bold and the terminal decides how
+     * to display it. Setting this property to {@code true} restores the
+     * legacy "bold means bright" behavior, which is useful for custom,
+     * non-RGB color themes that relied on it.
+     * <p>
+     * Valid values: "true" or "false"
+     * Default: false
+     */
+    public static final String CASCIIAN_TREAT_BOLD_AS_BRIGHT = "casciian.treatBoldAsBright";
+
+    /**
      * System property key for the image fallback display mode used when the
      * terminal does not support sixel or Casciian image protocol.
      * Valid values: "halves" or "solid"
@@ -334,6 +350,14 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> ecma48RgbColor = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the treat-bold-as-bright setting.
+     * When true, render the bold attribute using the bright color palette.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> treatBoldAsBright = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the image fallback display mode.
@@ -813,6 +837,26 @@ public class SystemProperties {
     }
 
     /**
+     * Get the treat-bold-as-bright value from system properties.
+     *
+     * @return true if the bold attribute should be rendered using the bright
+     *         color palette, false otherwise. Default is false.
+     */
+    public static boolean isTreatBoldAsBright() {
+        return getBooleanProperty(treatBoldAsBright, CASCIIAN_TREAT_BOLD_AS_BRIGHT, false);
+    }
+
+    /**
+     * Set the treat-bold-as-bright value in system properties.
+     *
+     * @param value true to render the bold attribute as a bright color, false
+     *              to emit a real SGR bold and let the terminal decide
+     */
+    public static void setTreatBoldAsBright(boolean value) {
+        setBooleanProperty(treatBoldAsBright, CASCIIAN_TREAT_BOLD_AS_BRIGHT, value);
+    }
+
+    /**
      * Get the image fallback display mode from system properties.
      *
      * @return "halves" or "solid". Default is "halves".
@@ -889,6 +933,7 @@ public class SystemProperties {
         disablePostTransform.set(null);
         useJline.set(null);
         ecma48RgbColor.set(null);
+        treatBoldAsBright.set(null);
         imageFallbackDisplayMode.set(null);
         userDir.set(System.getProperty("user.dir"));
     }

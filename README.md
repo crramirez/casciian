@@ -146,3 +146,37 @@ Casciian's runtime behavior can be tuned through Java system properties (all
 prefixed with `casciian.`), either via `-D` JVM options or through a
 properties file whose path is provided by the `CASCIIANRC` environment
 variable.
+
+### Bold attribute and bright colors (since 1.6.0)
+
+Starting with **1.6.0**, the bold attribute no longer produces bright
+(high-intensity) colors on its own. Bold is now emitted as a real SGR bold
+(`ESC[1m`); to guarantee the text is shown as bold and *not* brightened —
+regardless of how the terminal is configured — Casciian pins a normal
+(non-bright) palette color to its exact RGB value. The result is bold text in
+its original color on every terminal.
+
+The pin also applies when `casciian.useTerminalPalette` is enabled: Casciian
+always queries the terminal's own ANSI colors on connect and reconciles the
+response into its internal palette (redrawing the screen once it arrives), so
+the pinned RGB reflects the terminal's native theme rather than Casciian's own
+defaults, once the terminal has responded to that query.
+
+If you rely on the legacy "bold means bright" behavior — most commonly with
+custom, **non-RGB** color themes — enable the following property to restore
+it:
+
+| Property | Values | Default | Description |
+| --- | --- | --- | --- |
+| `casciian.treatBoldAsBright` | `true` / `false` | `false` | When `true`, the bold attribute is rendered using the bright color palette (legacy behavior). |
+
+We recommend enabling `casciian.treatBoldAsBright=true` if you have custom,
+non-RGB themes that use the `bold` keyword and want to keep their previous
+bright appearance. Themes that use the `bright` keyword are unaffected by
+this property: `bright` always selects the bright color directly, while
+`bold` sets the bold attribute (whose bright rendering is governed by this
+property).
+
+Note that the built-in ECMA-48 terminal emulator always treats a received bold
+attribute transparently (as if this property were `false`), so terminal
+sessions are reproduced faithfully regardless of the setting.

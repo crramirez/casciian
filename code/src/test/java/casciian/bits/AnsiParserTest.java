@@ -234,6 +234,15 @@ class AnsiParserTest {
     }
 
     @Test
+    void testBoldNotTransparentInWidget() {
+        // The ANSI viewer widget must NOT mark bold as transparent (that is
+        // reserved for the ECMA48 terminal emulator), so the bold attribute
+        // remains subject to the treatBoldAsBright system property.
+        List<AnsiParser.Line> lines = AnsiParser.parse("\033[1mA", 80);
+        assertFalse(lines.get(0).getCells().get(0).isBoldTransparent());
+    }
+
+    @Test
     void testBoldReset() {
         List<AnsiParser.Line> lines = AnsiParser.parse(
             "\033[1mA\033[22mB", 80);
