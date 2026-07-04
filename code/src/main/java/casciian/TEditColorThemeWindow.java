@@ -894,7 +894,7 @@ public class TEditColorThemeWindow extends TWindow {
             background.rgb.setText(String.format("%06x",
                     attr.getBackColorRGB()));
         } else {
-            foreground.rgb.setText("");
+            background.rgb.setText("");
         }
     }
 
