@@ -89,6 +89,24 @@ public final class Palette256 {
         }
     }
 
+    /**
+     * Precomputed lookup table mapping each of the 16 CGA/ANSI color indices
+     * (0–15) to the nearest 6×6×6 cube / grayscale palette index (16–255).
+     *
+     * <p>
+     * There are only 16 CGA colors with fixed RGB values, so their nearest
+     * cube/grayscale entry can be computed once at class-load time and reused,
+     * turning {@link #fromCgaColor(Color)} into a single array access.
+     * </p>
+     */
+    private static final int[] CGA_TO_CUBE = new int[16];
+
+    static {
+        for (int i = 0; i < CGA_TO_CUBE.length; i++) {
+            CGA_TO_CUBE[i] = fromRgb(SgrUtil.getDefaultIndexedColor(i));
+        }
+    }
+
     // ------------------------------------------------------------------------
     // Constructor (utility class) -------------------------------------------
     // ------------------------------------------------------------------------
@@ -163,7 +181,7 @@ public final class Palette256 {
      *         color
      */
     public static int fromCgaColor(final Color color) {
-        return fromRgb(SgrUtil.getDefaultIndexedColor(fromColor(color)));
+        return CGA_TO_CUBE[fromColor(color)];
     }
 
     /**
@@ -186,8 +204,7 @@ public final class Palette256 {
      *         color
      */
     public static int fromCgaColor(final Color color, final boolean bright) {
-        return fromRgb(SgrUtil.getDefaultIndexedColor(
-            fromColor(color, bright)));
+        return CGA_TO_CUBE[fromColor(color, bright)];
     }
 
     /**
