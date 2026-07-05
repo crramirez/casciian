@@ -3273,7 +3273,7 @@ public class ColorTheme {
         colors.put(TWINDOW_BACKGROUND, rgb(fgText, bgPanel));
         colors.put(TWINDOW_BORDER_INACTIVE, rgb(borderDim, bgPanel));
         colors.put(TWINDOW_BACKGROUND_INACTIVE, rgb(fgChrome, bgPanel));
-        colors.put(TWINDOW_BORDER_WINDOWMOVE, rgb(accentHot, bgPanel));
+        colors.put(TWINDOW_BORDER_WINDOWMOVE, rgb(fgText, bgPanel));
         colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, rgb(fgText, bgPanel));
 
         // Modal dialogs: chrome surface with accent border.
@@ -3281,7 +3281,7 @@ public class ColorTheme {
         colors.put(TWINDOW_BACKGROUND_MODAL, rgb(fgChrome, bgChrome));
         colors.put(TWINDOW_BORDER_MODAL_INACTIVE, rgb(borderDim, bgChrome));
         colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, rgb(fgChrome, bgChrome));
-        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, rgb(accentHot, bgChrome));
+        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, rgb(fgText, bgChrome));
 
         // Labels / text: brighten when the associated widget is active, dim
         // when disabled.  Modal labels sit on the chrome surface to match
@@ -3481,7 +3481,7 @@ public class ColorTheme {
         colors.put(TWINDOW_BACKGROUND, rgb(fgText, bgPanel));
         colors.put(TWINDOW_BORDER_INACTIVE, rgb(borderDim, bgPanel));
         colors.put(TWINDOW_BACKGROUND_INACTIVE, rgb(fgChrome, bgPanel));
-        colors.put(TWINDOW_BORDER_WINDOWMOVE, rgb(accentHot, bgPanel));
+        colors.put(TWINDOW_BORDER_WINDOWMOVE, rgb(fgChrome, bgPanel));
         colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, rgb(fgText, bgPanel));
 
         // Modal dialogs.
@@ -3489,7 +3489,7 @@ public class ColorTheme {
         colors.put(TWINDOW_BACKGROUND_MODAL, rgb(fgChrome, bgEditor));
         colors.put(TWINDOW_BORDER_MODAL_INACTIVE, rgb(borderDim, bgEditor));
         colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, rgb(fgChrome, bgEditor));
-        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, rgb(accentHot, bgEditor));
+        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, rgb(fgChrome, bgEditor));
 
         // Labels / text.
         colors.put(TLABEL, rgb(fgChrome, bgPanel));
