@@ -1047,6 +1047,44 @@ class ECMA48TerminalTest {
             + "Output: " + escapeForDisplay(output));
     }
 
+    @Test
+    @DisplayName("A run of blank palette-background cells is painted, not erased to the default background")
+    void trailingBlankPaletteBackgroundCellsAreNotErasedToDefault() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // A themed window/desktop background is a run of blank (space) cells
+        // that carry a palette background.  These must be painted with the
+        // palette background rather than being treated as empty trailing
+        // cells and erased to the terminal default (which shows as black).
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColorPalette(221);
+        attr.setBackColorPalette(234);
+
+        // A single non-blank cell followed by a run of blank palette cells.
+        terminal.putCharXY(0, 0, 'X', attr);
+        for (int x = 1; x <= 9; x++) {
+            terminal.putCharXY(x, 0, ' ', attr);
+        }
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        // The palette background must be emitted, and the trailing blank
+        // cells must be painted as spaces under that background.  Before the
+        // fix, isBlank() considered a palette space cell "blank", so the run
+        // was dropped and clearRemainingLine() erased it to the default
+        // background.
+        assertTrue(output.contains("\033[48;5;234m"),
+            "Expected indexed background. Output: " + escapeForDisplay(output));
+        assertTrue(output.matches("(?s).*\\033\\[48;5;234m.* {9}.*"),
+            "Trailing blank palette cells must be painted with the palette "
+            + "background, not erased to default. Output: "
+            + escapeForDisplay(output));
+    }
+
     // Helper methods
 
     private ECMA48Terminal createTerminal() {
