@@ -1009,6 +1009,44 @@ class ECMA48TerminalTest {
             "Expected indexed background. Output: " + escapeForDisplay(output));
     }
 
+    @Test
+    @DisplayName("A run of identical palette cells keeps the palette color and is not reset to a named placeholder")
+    void adjacentIdenticalPaletteCellsDoNotResetColor() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // A themed window background is a run of many identical palette cells.
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColorPalette(221);
+        attr.setBackColorPalette(234);
+
+        terminal.putCharXY(0, 0, 'P', attr);
+        terminal.putCharXY(1, 0, 'Q', attr);
+        terminal.putCharXY(2, 0, 'R', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        // The palette color must be emitted once and remain active for the
+        // whole run; the subsequent identical cells must not fall through to
+        // the named-color branch and reset to the Color.WHITE / Color.BLACK
+        // placeholder left by the palette setters.
+        assertTrue(output.contains("\033[38;5;221m"),
+            "Expected indexed foreground. Output: " + escapeForDisplay(output));
+        assertTrue(output.contains("\033[48;5;234m"),
+            "Expected indexed background. Output: " + escapeForDisplay(output));
+        // SGR 37 (named white) / SGR 40 (named black) would be the placeholder
+        // reset emitted by the bug for cells after the first.
+        assertFalse(output.contains("\033[37m"),
+            "Identical palette cells must not reset foreground to named white. "
+            + "Output: " + escapeForDisplay(output));
+        assertFalse(output.contains("\033[40m"),
+            "Identical palette cells must not reset background to named black. "
+            + "Output: " + escapeForDisplay(output));
+    }
+
     // Helper methods
 
     private ECMA48Terminal createTerminal() {
