@@ -65,6 +65,7 @@ public final class TerminalComponentDemoApplication extends TApplication {
 
         super(backendType);
 
+        addToolMenu();
         // File menu: the "OS Shell" item opens an embedded terminal window.
         // MID_SHELL is defined by core Casciian; the terminal component
         // supplies the window that answers it.
@@ -77,10 +78,13 @@ public final class TerminalComponentDemoApplication extends TApplication {
             i18n.getString("fileMenuStatus"));
         statusBar.addShortcutKeypress(kbF1, cmHelp, i18n.getString("Help"));
 
+        addEditMenu();
         addWindowMenu();
         addHelpMenu();
 
         getBackend().setTitle(i18n.getString("applicationTitle"));
+
+        new TTerminalWindow(this, 0, 0, TWindow.RESIZABLE);
     }
 
     /**

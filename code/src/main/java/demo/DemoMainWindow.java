@@ -131,7 +131,7 @@ public class DemoMainWindow extends TWindow {
     private DemoMainWindow(final TApplication parent, final int flags) {
         // Construct a demo window.  X and Y don't matter because it will be
         // centered on screen.
-        super(parent, "", 0, 0, 66, 22, flags);
+        super(parent, "", 0, 0, 67, 23, flags);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -140,7 +140,7 @@ public class DemoMainWindow extends TWindow {
                 getHeight() - 2));
 
         int row = 1;
-        int col = 37;
+        int col = 38;
 
         // Add some widgets
         addLabel(i18n.getString("messageBoxLabel"), 1, row);
@@ -344,7 +344,7 @@ public class DemoMainWindow extends TWindow {
      */
     @Override
     public void onCommand(final TCommandEvent command) {
-        if (command.equals(cmOpen)) {
+        if (command.matchesCommand(cmOpen)) {
             try {
                 String filename = fileOpenBox(".");
                 if (filename != null) {
