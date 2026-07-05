@@ -49,6 +49,7 @@ class SystemPropertiesTest {
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET);
         System.clearProperty(SystemProperties.CASCIIAN_USE_JLINE);
         System.clearProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
+        System.clearProperty(SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR);
         System.clearProperty(SystemProperties.CASCIIAN_TREAT_BOLD_AS_BRIGHT);
         SystemProperties.reset();
     }
@@ -880,6 +881,54 @@ class SystemPropertiesTest {
         SystemProperties.reset();
 
         assertFalse(SystemProperties.isRgbColor());
+    }
+
+    // -------------------------------------------------------------------------
+    // Palette Color Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get paletteColor returns default value (false) when not set")
+    void testIsPaletteColorDefault() {
+        assertFalse(SystemProperties.isPaletteColor());
+    }
+
+    @Test
+    @DisplayName("Get paletteColor returns true when set to 'true'")
+    void testIsPaletteColorSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR, "true");
+        assertTrue(SystemProperties.isPaletteColor());
+    }
+
+    @Test
+    @DisplayName("Get paletteColor returns false when set to 'false'")
+    void testIsPaletteColorSetFalse() {
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR, "false");
+        assertFalse(SystemProperties.isPaletteColor());
+    }
+
+    @Test
+    @DisplayName("Set and get paletteColor round trip")
+    void testSetPaletteColorRoundTrip() {
+        assertFalse(SystemProperties.isPaletteColor());
+
+        SystemProperties.setPaletteColor(true);
+        assertTrue(SystemProperties.isPaletteColor());
+
+        SystemProperties.setPaletteColor(false);
+        assertFalse(SystemProperties.isPaletteColor());
+    }
+
+    @Test
+    @DisplayName("Reset clears paletteColor cached value")
+    void testResetClearsPaletteColor() {
+        SystemProperties.setPaletteColor(true);
+        assertTrue(SystemProperties.isPaletteColor());
+
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR, "false");
+        SystemProperties.reset();
+
+        assertFalse(SystemProperties.isPaletteColor());
     }
 
     // -------------------------------------------------------------------------

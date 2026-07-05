@@ -215,6 +215,10 @@ The `casciian.bits.Palette256` helper makes it easy to obtain indices:
 
 * `Palette256.fromColor(Color)` returns the palette index (0–15) for one of
   the 16 CGA/ANSI colors, with an optional `bright` variant.
+* `Palette256.fromCgaColor(Color)` maps one of the 16 CGA/ANSI colors to the
+  closest fixed color-cube / grayscale index (16–255), giving a
+  terminal-independent color even when the terminal's base 16 palette is
+  remapped, with an optional `bright` variant.
 * `Palette256.fromRgb(int rgb)` returns the closest palette index for an
   arbitrary 24-bit RGB value, searching both the 6×6×6 color cube and the
   grayscale ramp.
@@ -222,3 +226,10 @@ The `casciian.bits.Palette256` helper makes it easy to obtain indices:
 
 Palette, RGB, and named colors are mutually exclusive per channel: setting one
 clears the others.
+
+The system property `casciian.ECMA48.paletteColor` (default `false`) forces the
+16 named system colors to be emitted as fixed color-cube palette indices,
+mirroring `casciian.ECMA48.rgbColor` for 24-bit RGB. Only the 16 named colors
+are affected; cells that already carry a true RGB color are left untouched.
+This is enabled automatically for terminals such as Konsole whose default
+16-color palette has low contrast between normal and bright colors.

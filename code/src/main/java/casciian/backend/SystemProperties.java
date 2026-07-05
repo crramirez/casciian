@@ -158,6 +158,20 @@ public class SystemProperties {
     public static final String CASCIIAN_ECMA48_RGB_COLOR = "casciian.ECMA48.rgbColor";
 
     /**
+     * System property key for emitting 256-color palette (SGR {@code 38;5;n}
+     * / {@code 48;5;n}) sequences for the normal 16 system colors instead of
+     * plain palette numbers.
+     * <p>
+     * This mirrors {@link #CASCIIAN_ECMA48_RGB_COLOR}, but selects the fixed
+     * xterm 256-color cube instead of full 24-bit RGB.  Only the 16 named
+     * system colors are forced into the palette; cells that already carry a
+     * true RGB color are left untouched.
+     * Valid values: "true" or "false"
+     * Default: false
+     */
+    public static final String CASCIIAN_ECMA48_PALETTE_COLOR = "casciian.ECMA48.paletteColor";
+
+    /**
      * System property key for treating the bold attribute as a bright
      * (high-intensity) color.
      * <p>
@@ -350,6 +364,15 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> ecma48RgbColor = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the ECMA48 palette color setting.
+     * When true, emit 256-color palette sequences for the normal 16 system
+     * colors.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> ecma48PaletteColor = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the treat-bold-as-bright setting.
@@ -837,6 +860,26 @@ public class SystemProperties {
     }
 
     /**
+     * Get the ECMA48 palette color value from system properties.
+     *
+     * @return true if 256-color palette sequences should be emitted for the
+     *         normal 16 system colors, false otherwise. Default is false.
+     */
+    public static boolean isPaletteColor() {
+        return getBooleanProperty(ecma48PaletteColor, CASCIIAN_ECMA48_PALETTE_COLOR, false);
+    }
+
+    /**
+     * Set the ECMA48 palette color value in system properties.
+     *
+     * @param value true to emit 256-color palette sequences for the normal 16
+     *              system colors, false to use plain palette numbers
+     */
+    public static void setPaletteColor(boolean value) {
+        setBooleanProperty(ecma48PaletteColor, CASCIIAN_ECMA48_PALETTE_COLOR, value);
+    }
+
+    /**
      * Get the treat-bold-as-bright value from system properties.
      *
      * @return true if the bold attribute should be rendered using the bright
@@ -933,6 +976,7 @@ public class SystemProperties {
         disablePostTransform.set(null);
         useJline.set(null);
         ecma48RgbColor.set(null);
+        ecma48PaletteColor.set(null);
         treatBoldAsBright.set(null);
         imageFallbackDisplayMode.set(null);
         userDir.set(System.getProperty("user.dir"));

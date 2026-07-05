@@ -1309,11 +1309,11 @@ public class ColorTheme {
             .build());
         // Just a small bit of amber.
         colors.put(TFIELD_PULSE, CellAttributes.builder()
-            .foreColorRGB(0x8A610D)
+            .foreColorPalette(Palette256.fromRgb(0x8A610D))
             .build());
         // Just a small bit of amber.
         colors.put(TFIELD_PULSE_MODAL, CellAttributes.builder()
-            .foreColorRGB(0x8A610D)
+            .foreColorPalette(Palette256.fromRgb(0x8A610D))
             .build());
 
         // TCheckBox
@@ -1351,11 +1351,11 @@ public class ColorTheme {
             .build());
         // Just a small bit of amber.
         colors.put(TCHECKBOX_PULSE, CellAttributes.builder()
-            .foreColorRGB(0x8A610D)
+            .foreColorPalette(Palette256.fromRgb(0x8A610D))
             .build());
         // Just a small bit of amber.
         colors.put(TCHECKBOX_PULSE_MODAL, CellAttributes.builder()
-            .foreColorRGB(0x8A610D)
+            .foreColorPalette(Palette256.fromRgb(0x8A610D))
             .build());
 
         // TComboBox
@@ -1481,11 +1481,11 @@ public class ColorTheme {
             .build());
         // Just a small bit of amber.
         colors.put(TRADIOBUTTON_PULSE, CellAttributes.builder()
-            .foreColorRGB(0x8A610D)
+            .foreColorPalette(Palette256.fromRgb(0x8A610D))
             .build());
         // Just a small bit of amber.
         colors.put(TRADIOBUTTON_PULSE_MODAL, CellAttributes.builder()
-            .foreColorRGB(0x8A610D)
+            .foreColorPalette(Palette256.fromRgb(0x8A610D))
             .build());
 
         // TRadioGroup
@@ -1821,7 +1821,7 @@ public class ColorTheme {
         CellAttributes color;
         color = new CellAttributes();
         color.setForeColor(MAGENTA);
-        color.setBackColorRGB(pink2);
+        color.setBackColorPalette(Palette256.fromRgb(pink2));
         colors.put(TWINDOW_BACKGROUND, color);
         colors.put(TWINDOW_BACKGROUND_INACTIVE, color);
         colors.put(TWINDOW_BACKGROUND_MODAL, color);
@@ -1836,42 +1836,42 @@ public class ColorTheme {
         colors.put(TWINDOW_BORDER_MODAL_INACTIVE, color);
 
         color = new CellAttributes();
-        color.setForeColorRGB(blue);
+        color.setForeColorPalette(Palette256.fromRgb(blue));
         colors.put(TWINDOW_BORDER_WINDOWMOVE, color);
         colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, color);
 
         color = new CellAttributes();
         color.setForeColor(BRIGHT_RED);
-        color.setBackColorRGB(pink);
+        color.setBackColorPalette(Palette256.fromRgb(pink));
         colors.put(TBUTTON_ACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(BLACK);
-        color.setBackColorRGB(pink);
+        color.setBackColorPalette(Palette256.fromRgb(pink));
         colors.put(TBUTTON_INACTIVE, color);
         color = new CellAttributes();
         color.setForeColor(BRIGHT_BLACK);
         color = new CellAttributes();
-        color.setForeColorRGB(blue);
-        color.setBackColorRGB(pink);
+        color.setForeColorPalette(Palette256.fromRgb(blue));
+        color.setBackColorPalette(Palette256.fromRgb(pink));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, color);
         color = new CellAttributes();
-        color.setForeColorRGB(blue);
-        color.setBackColorRGB(pink);
+        color.setForeColorPalette(Palette256.fromRgb(blue));
+        color.setBackColorPalette(Palette256.fromRgb(pink));
         colors.put(TBUTTON_MNEMONIC, color);
         color = new CellAttributes();
         color.setForeColor(RED);
         colors.put(TBUTTON_PULSE, color);
         color = new CellAttributes();
-        color.setForeColorRGB(blue);
+        color.setForeColorPalette(Palette256.fromRgb(blue));
         colors.put(TBUTTON_MNEMONIC_PULSE, color);
 
         color = new CellAttributes();
         color.setForeColor(BRIGHT_BLUE);
-        color.setBackColorRGB(pink2);
+        color.setBackColorPalette(Palette256.fromRgb(pink2));
         colors.put(TPROGRESSBAR_COMPLETE, color);
         color = new CellAttributes();
         color.setForeColor(WHITE);
-        color.setBackColorRGB(pink2);
+        color.setBackColorPalette(Palette256.fromRgb(pink2));
         colors.put(TPROGRESSBAR_INCOMPLETE, color);
         color = new CellAttributes();
         color.setForeColor(BRIGHT_MAGENTA);
@@ -1908,18 +1908,18 @@ public class ColorTheme {
         boolean bright = color.isBold() || color.getForeColor().isBright();
         if (bg.equals(WHITE) && fg.equals(BLACK)) {
             color.setForeColor(MAGENTA);
-            color.setBackColorRGB(pink);
+            color.setBackColorPalette(Palette256.fromRgb(pink));
         } else if (bg.equals(WHITE) && fg.equals(WHITE)) {
             color.setForeColor(MAGENTA);
-            color.setBackColorRGB(pink);
+            color.setBackColorPalette(Palette256.fromRgb(pink));
             bright = true;
         } else if (bg.equals(WHITE) && fg.equals(GREEN)) {
             color.setForeColor(BLUE);
             color.setBackColor(BLACK);
             bright = true;
         } else if (bg.equals(WHITE) && fg.equals(RED)) {
-            color.setForeColorRGB(blue);
-            color.setBackColorRGB(pink);
+            color.setForeColorPalette(Palette256.fromRgb(blue));
+            color.setBackColorPalette(Palette256.fromRgb(pink));
             bright = true;
         } else if (bg.equals(BLUE) && fg.equals(CYAN)) {
             color.setForeColor(RED);
@@ -1939,7 +1939,9 @@ public class ColorTheme {
         // Express the result as an explicit bright foreground color; the
         // bold attribute is always cleared below since it carries real bold
         // meaning now and is unrelated to this brightness computation.
-        if ((color.getForeColorRGB() < 0) && bright) {
+        if ((color.getForeColorRGB() < 0) && (color.getForeColorPalette() < 0)
+            && bright
+        ) {
             color.setForeColor(color.getForeColor().toBright());
         }
         color.setBold(false);
@@ -2157,11 +2159,11 @@ public class ColorTheme {
         colors.put(TFIELD_ACTIVE_MODAL, color);
         color = new CellAttributes();
         // Just a small bit of amber.
-        color.setForeColorRGB(0x8A610D);
+        color.setForeColorPalette(Palette256.fromRgb(0x8A610D));
         colors.put(TFIELD_PULSE, color);
         color = new CellAttributes();
         // Just a small bit of amber.
-        color.setForeColorRGB(0x8A610D);
+        color.setForeColorPalette(Palette256.fromRgb(0x8A610D));
         colors.put(TFIELD_PULSE_MODAL, color);
 
         // TCheckBox
@@ -2199,11 +2201,11 @@ public class ColorTheme {
         colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED_MODAL, color);
         color = new CellAttributes();
         // Just a small bit of amber.
-        color.setForeColorRGB(0x8A610D);
+        color.setForeColorPalette(Palette256.fromRgb(0x8A610D));
         colors.put(TCHECKBOX_PULSE, color);
         color = new CellAttributes();
         // Just a small bit of amber.
-        color.setForeColorRGB(0x8A610D);
+        color.setForeColorPalette(Palette256.fromRgb(0x8A610D));
         colors.put(TCHECKBOX_PULSE_MODAL, color);
 
         // TComboBox
@@ -2329,11 +2331,11 @@ public class ColorTheme {
         colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, color);
         color = new CellAttributes();
         // Just a small bit of amber.
-        color.setForeColorRGB(0x8A610D);
+        color.setForeColorPalette(Palette256.fromRgb(0x8A610D));
         colors.put(TRADIOBUTTON_PULSE, color);
         color = new CellAttributes();
         // Just a small bit of amber.
-        color.setForeColorRGB(0x8A610D);
+        color.setForeColorPalette(Palette256.fromRgb(0x8A610D));
         colors.put(TRADIOBUTTON_PULSE_MODAL, color);
 
         // TRadioGroup
@@ -2677,24 +2679,26 @@ public class ColorTheme {
     }
 
     /**
-     * Build a CellAttributes with RGB fore/back colors (24-bit).
+     * Build a CellAttributes with 256-color palette fore/back colors mapped
+     * from 24-bit RGB values.
      */
     private static CellAttributes rgb(final int fgRGB, final int bgRGB,
                                       final boolean bold) {
         return CellAttributes.builder()
-            .foreColorRGB(fgRGB)
-            .backColorRGB(bgRGB)
+            .foreColorPalette(Palette256.fromRgb(fgRGB))
+            .backColorPalette(Palette256.fromRgb(bgRGB))
             .bold(bold)
             .build();
     }
 
     /**
-     * Build a CellAttributes with RGB fore/back colors (24-bit).
+     * Build a CellAttributes with 256-color palette fore/back colors mapped
+     * from 24-bit RGB values.
      */
     private static CellAttributes rgb(final int fgRGB, final int bgRGB) {
         return CellAttributes.builder()
-            .foreColorRGB(fgRGB)
-            .backColorRGB(bgRGB)
+            .foreColorPalette(Palette256.fromRgb(fgRGB))
+            .backColorPalette(Palette256.fromRgb(bgRGB))
             .build();
     }
 

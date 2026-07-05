@@ -44,6 +44,7 @@ import casciian.bits.Color;
 import casciian.bits.ComplexCell;
 import casciian.bits.ImageRGB;
 import casciian.bits.ArrayImageRGB;
+import casciian.bits.Palette256;
 import casciian.bits.StringUtils;
 import casciian.bits.UnicodeGlyphImage;
 import casciian.event.TCommandEvent;
@@ -1814,12 +1815,21 @@ public class ECMA48Terminal extends LogicalScreen
                             // reflects the terminal's native colors once it
                             // responds -- the same trust model rgbColor()
                             // already relies on.
-                            sb.append(forcedRgbColor(false,
-                                lCell.getForeColor(), true));
+                            if (SystemProperties.isPaletteColor()
+                                && !SystemProperties.isRgbColor()
+                            ) {
+                                sb.append(forcedPaletteColor(false,
+                                    lCell.getForeColor(), true));
+                            } else {
+                                sb.append(forcedRgbColor(false,
+                                    lCell.getForeColor(), true));
+                            }
                         } else {
                             sb.append(color(lCell.getForeColor(), true, true,
                                 lCellBoldAsBright));
                             sb.append(rgbColor(lCellBoldAsBright,
+                                lCell.getForeColor(), true));
+                            sb.append(paletteColor(lCellBoldAsBright,
                                 lCell.getForeColor(), true));
                         }
                     }
@@ -1866,6 +1876,8 @@ public class ECMA48Terminal extends LogicalScreen
                         }
                         sb.append(color(lCell.getBackColor(), false, true));
                         sb.append(rgbColor(false,
+                            lCell.getBackColor(), false));
+                        sb.append(paletteColor(false,
                             lCell.getBackColor(), false));
                     }
                 }
@@ -2704,9 +2716,9 @@ public class ECMA48Terminal extends LogicalScreen
             }
 
             // Konsole doesn't support changing the palette, and the contrast between regular and bright colors
-            // is too low in the default profile. So, we force sending full rgb colors, unless the user has
-            // explicitly configured casciian.ECMA48.rgbColor.
-            setRgbColorIfNotConfigured();
+            // is too low in the default profile. So, we force sending fixed 256-color palette (color cube)
+            // colors, unless the user has explicitly configured casciian.ECMA48.paletteColor.
+            setPaletteColorIfNotConfigured();
         }
 
         if (text.contains(XTVERSION_FOR_WARP)) {
@@ -2729,6 +2741,20 @@ public class ECMA48Terminal extends LogicalScreen
                     SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
             if (rgbColorProperty == null) {
                 SystemProperties.setRgbColor(true);
+            }
+        }
+    }
+
+    /**
+     * Enable 256-color palette mode if the terminal palette is not in use and
+     * the user has not explicitly configured the system property.
+     */
+    private void setPaletteColorIfNotConfigured() {
+        if (!SystemProperties.isUseTerminalPalette() || SystemProperties.isTranslucence()) {
+            String paletteColorProperty = System.getProperty(
+                    SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR);
+            if (paletteColorProperty == null) {
+                SystemProperties.setPaletteColor(true);
             }
         }
     }
@@ -4293,6 +4319,11 @@ public class ECMA48Terminal extends LogicalScreen
             return rgb;
         }
 
+        int paletteIndex = attr.getForeColorPalette();
+        if (paletteIndex >= 0) {
+            return Palette256.toRgb(paletteIndex);
+        }
+
         Color foreColor = attr.getForeColor();
         // A bright color (Color.BRIGHT_*) selects the high-intensity palette
         // entry.  The bold attribute does so only when treatBoldAsBright is
@@ -4337,6 +4368,11 @@ public class ECMA48Terminal extends LogicalScreen
         int rgb = attr.getBackColorRGB();
         if (rgb >= 0) {
             return rgb;
+        }
+
+        int paletteIndex = attr.getBackColorPalette();
+        if (paletteIndex >= 0) {
+            return Palette256.toRgb(paletteIndex);
         }
 
         Color backColor = attr.getBackColor();
@@ -4473,6 +4509,52 @@ public class ECMA48Terminal extends LogicalScreen
     private String forcedRgbColor(final boolean bold, final Color color,
                             final boolean foreground) {
         return colorRGB(getPaletteColor(color, bold), foreground);
+    }
+
+    /**
+     * Create a SGR indexed-color (256-color palette) parameter sequence for a
+     * palette color, unconditionally, regardless of the
+     * {@code casciian.ECMA48.paletteColor} system property.  The terminal-
+     * neutral xterm color cube entry closest to the named color is used, so
+     * the exact color is pinned even on terminals whose 16-color palette is
+     * remapped or low-contrast.
+     *
+     * @param bold       if true, use the bright palette variant
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param foreground if true, this is a foreground color
+     * @return the string to emit to an ANSI/ECMA-style terminal,
+     * e.g. "\033[38;5;Nm"
+     */
+    private String forcedPaletteColor(final boolean bold, final Color color,
+                            final boolean foreground) {
+        return colorPalette(Palette256.fromCgaColor(color, bold), foreground);
+    }
+
+    /**
+     * Create a SGR indexed-color (256-color palette) parameter sequence for a
+     * single color change, but only when the
+     * {@code casciian.ECMA48.paletteColor} system property is enabled.  This
+     * mirrors {@link #rgbColor(boolean, Color, boolean)}: the terminal-neutral
+     * xterm color cube entry closest to the named color is emitted so that
+     * terminals with a low-contrast or remapped 16-color palette still render
+     * a well-defined color.
+     *
+     * @param bold       if true, use the bright palette variant
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param foreground if true, this is a foreground color
+     * @return the string to emit to an ANSI/ECMA-style terminal,
+     * e.g. "\033[38;5;Nm", or "" if palette color mode is disabled
+     */
+    private String paletteColor(final boolean bold, final Color color,
+                                final boolean foreground) {
+        if (!SystemProperties.isPaletteColor()) {
+            return "";
+        }
+        if (bold) {
+            // Bold implies foreground only
+            return colorPalette(Palette256.fromCgaColor(color, true), true);
+        }
+        return colorPalette(Palette256.fromCgaColor(color), foreground);
     }
 
     /**
