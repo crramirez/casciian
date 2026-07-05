@@ -71,6 +71,36 @@ class Palette256Test {
     }
 
     @Test
+    @DisplayName("fromCgaColor maps CGA colors into the cube/grayscale range")
+    void cgaColorsMapIntoCube() {
+        for (Color color : new Color[] {
+            Color.BLACK, Color.RED, Color.GREEN, Color.YELLOW,
+            Color.BLUE, Color.MAGENTA, Color.CYAN, Color.WHITE}) {
+
+            int index = Palette256.fromCgaColor(color);
+            assertTrue(index >= 16 && index <= 255,
+                "Expected a cube/grayscale index (16-255) for " + color
+                    + " but got " + index);
+            // The mapped index must match the nearest cube entry for the
+            // CGA color's fixed RGB value.
+            int cgaRgb = SgrUtil.getDefaultIndexedColor(
+                Palette256.fromColor(color));
+            assertEquals(Palette256.fromRgb(cgaRgb), index);
+        }
+    }
+
+    @Test
+    @DisplayName("fromCgaColor can request the bright variant")
+    void cgaBrightVariantMapsIntoCube() {
+        int normal = Palette256.fromCgaColor(Color.GREEN, false);
+        int bright = Palette256.fromCgaColor(Color.GREEN, true);
+        assertEquals(Palette256.fromRgb(
+            SgrUtil.getDefaultIndexedColor(10)), bright);
+        assertEquals(Palette256.fromRgb(
+            SgrUtil.getDefaultIndexedColor(2)), normal);
+    }
+
+    @Test
     @DisplayName("fromRgb always returns an in-range palette index")
     void fromRgbAlwaysInRange() {
         for (int rgb = 0; rgb <= 0xFFFFFF; rgb += 7919) {

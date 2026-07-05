@@ -146,6 +146,51 @@ public final class Palette256 {
     }
 
     /**
+     * Get the closest color-cube / grayscale palette index for one of the 16
+     * CGA/ANSI colors.
+     *
+     * <p>
+     * Unlike {@link #fromColor(Color)}, which returns one of the base indices
+     * 0–15, this maps the CGA color to its nearest entry in the 6×6×6 color
+     * cube or the grayscale ramp (indices 16–255).  The base 16 indices are
+     * terminal-dependent (themes/OSC can remap them), so mapping into the
+     * cube yields a fixed, well-defined RGB color that renders consistently
+     * across terminals.
+     * </p>
+     *
+     * @param color one of the Color.WHITE, Color.BLUE, etc. constants
+     * @return the palette index (16–255) whose color is closest to this CGA
+     *         color
+     */
+    public static int fromCgaColor(final Color color) {
+        return fromRgb(SgrUtil.getDefaultIndexedColor(fromColor(color)));
+    }
+
+    /**
+     * Get the closest color-cube / grayscale palette index for one of the 16
+     * CGA/ANSI colors, optionally selecting the bright (high-intensity)
+     * variant.
+     *
+     * <p>
+     * Unlike {@link #fromColor(Color, boolean)}, which returns one of the
+     * base indices 0–15, this maps the CGA color to its nearest entry in the
+     * 6×6×6 color cube or the grayscale ramp (indices 16–255).  The base 16
+     * indices are terminal-dependent (themes/OSC can remap them), so mapping
+     * into the cube yields a fixed, well-defined RGB color that renders
+     * consistently across terminals.
+     * </p>
+     *
+     * @param color one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param bright if true, use the bright (8–15) variant of the color
+     * @return the palette index (16–255) whose color is closest to this CGA
+     *         color
+     */
+    public static int fromCgaColor(final Color color, final boolean bright) {
+        return fromRgb(SgrUtil.getDefaultIndexedColor(
+            fromColor(color, bright)));
+    }
+
+    /**
      * Find the closest 256-color palette index for a 24-bit RGB value.
      *
      * <p>
