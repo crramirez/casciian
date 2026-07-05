@@ -19,30 +19,40 @@ import casciian.TApplication;
 import casciian.TWindow;
 import casciian.event.TMenuEvent;
 import casciian.menu.TMenu;
-import casciian.terminal.widget.TTerminalInformationWindow;
+import casciian.TStatusBar;
 import casciian.terminal.widget.TTerminalWindow;
 
 import java.io.UnsupportedEncodingException;
+import java.util.ResourceBundle;
+
+import static casciian.TKeypress.kbF1;
+import static casciian.TCommand.cmHelp;
 
 /**
  * Demo TUI application showcasing the Casciian Terminal component.
  *
  * <p>The terminal component provides the {@link TTerminalWindow} widget, which
  * embeds an ECMA-48 / ANSI X3.64 terminal emulator running a shell (or a
- * custom command) inside a Casciian window. It also ships
- * {@link TTerminalInformationWindow}, which reports the capabilities of the
- * outer terminal Casciian is running on.</p>
+ * custom command) inside a Casciian window.  This demo wires it up behind the
+ * standard "OS Shell" File-menu item.</p>
  *
- * <p>Neither widget lives in the core library: applications opt into them by
+ * <p>The widget does not live in the core library: applications opt into it by
  * putting this component on the classpath / module path, keeping the core
  * free of terminal-specific logic and its dependencies.</p>
  */
 public final class TerminalComponentDemoApplication extends TApplication {
 
     /**
-     * Menu id: open a new embedded terminal window.
+     * The name of the resource bundle for this class.
      */
-    private static final int MID_OPEN_TERMINAL = 2000;
+    public static final String RESOURCE_BUNDLE_NAME =
+        TerminalComponentDemoApplication.class.getName() + "Bundle";
+
+    /**
+     * Translated strings.
+     */
+    private ResourceBundle i18n =
+        ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME);
 
     /**
      * Public constructor.
@@ -55,35 +65,34 @@ public final class TerminalComponentDemoApplication extends TApplication {
 
         super(backendType);
 
-        TMenu terminalMenu = addMenu("&Terminal");
-        terminalMenu.addItem(MID_OPEN_TERMINAL, "&Open terminal");
-        terminalMenu.addSeparator();
-        // MID_TERMINAL_INFORMATION is defined by core Casciian; the terminal
-        // component supplies the window that answers it.
-        terminalMenu.addItem(TMenu.MID_TERMINAL_INFORMATION,
-            "Terminal &information");
+        // File menu: the "OS Shell" item opens an embedded terminal window.
+        // MID_SHELL is defined by core Casciian; the terminal component
+        // supplies the window that answers it.
+        TMenu fileMenu = addMenu(i18n.getString("fileMenuTitle"));
+        fileMenu.addDefaultItem(TMenu.MID_CHANGE_DIR);
+        fileMenu.addDefaultItem(TMenu.MID_SHELL);
+        fileMenu.addSeparator();
+        fileMenu.addDefaultItem(TMenu.MID_EXIT);
+        TStatusBar statusBar = fileMenu.newStatusBar(
+            i18n.getString("fileMenuStatus"));
+        statusBar.addShortcutKeypress(kbF1, cmHelp, i18n.getString("Help"));
 
-        addFileMenu();
         addWindowMenu();
         addHelpMenu();
 
-        getBackend().setTitle("Casciian Terminal Component Demo");
+        getBackend().setTitle(i18n.getString("applicationTitle"));
     }
 
     /**
-     * Handle the terminal menu items that this component contributes.
+     * Handle the menu items that this demo contributes.
      *
      * @param menu the menu event
      * @return true if the event was consumed
      */
     @Override
     protected boolean onMenu(final TMenuEvent menu) {
-        if (menu.getId() == MID_OPEN_TERMINAL) {
+        if (menu.getId() == TMenu.MID_SHELL) {
             new TTerminalWindow(this, 0, 0, TWindow.RESIZABLE);
-            return true;
-        }
-        if (menu.getId() == TMenu.MID_TERMINAL_INFORMATION) {
-            new TTerminalInformationWindow(this);
             return true;
         }
         return super.onMenu(menu);

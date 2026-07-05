@@ -1,9 +1,8 @@
 /*
  * Casciian Terminal component - demo
  *
- * Demonstrates embedding a terminal (TTerminalWindow) and querying the outer
- * terminal's capabilities (TTerminalInformationWindow). Produces a fat JAR via
- * the `jarDemo` task.
+ * Demonstrates embedding a terminal (TTerminalWindow) behind the standard
+ * "OS Shell" File-menu item. Produces a fat JAR via the `jarDemo` task.
  */
 plugins {
     id 'application'

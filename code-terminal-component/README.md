@@ -37,15 +37,13 @@ What's in here?
       emulator:
         * `TTerminal` / `TTerminalWindow` — an embedded terminal running a
           shell or a custom command line.
-        * `TTerminalInformationWindow` — reports the capabilities of the
-          outer terminal Casciian is running on.
         * `TTextPicture` / `TTextPictureWindow` — *(deprecated)* display
           "ANSI Art" using the full terminal emulator. Prefer
           `casciian.TTextAnsi` / `casciian.TTextAnsiWindow` in core for
           simpler ANSI rendering.
 * **`demo`** — a small TUI application demonstrating the component. Its
-  **Terminal** menu opens a `TTerminalWindow` (running your shell) and a
-  `TTerminalInformationWindow`. Built as a fat JAR via the `jarDemo` task.
+  **File → OS Shell** item opens a `TTerminalWindow` running your shell.
+  Built as a fat JAR via the `jarDemo` task.
 
 Building
 --------

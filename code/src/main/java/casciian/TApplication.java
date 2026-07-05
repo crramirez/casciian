@@ -1245,6 +1245,10 @@ public class TApplication implements Runnable {
             closeAllWindows();
             return true;
         }
+        if (menu.getId() == TMenu.MID_TERMINAL_INFORMATION) {
+            new TTerminalInformationWindow(this);
+            return true;
+        }
         if (menu.getId() == TMenu.MID_ABOUT) {
             showAboutDialog();
             return true;
@@ -4345,6 +4349,7 @@ public class TApplication implements Runnable {
         helpMenu.addDefaultItem(TMenu.MID_HELP_HELP);
         helpMenu.addDefaultItem(TMenu.MID_HELP_ACTIVE_FILE);
         helpMenu.addSeparator();
+        helpMenu.addDefaultItem(TMenu.MID_TERMINAL_INFORMATION);
         helpMenu.addDefaultItem(TMenu.MID_ABOUT);
         TStatusBar statusBar = helpMenu.newStatusBar(i18n.
             getString("helpMenuStatus"));

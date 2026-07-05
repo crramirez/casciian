@@ -17,13 +17,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
-package casciian.terminal.widget;
-
-import casciian.TAction;
-import casciian.TApplication;
-import casciian.TButton;
-import casciian.TLabel;
-import casciian.TWindow;
+package casciian;
 
 import java.util.ArrayList;
 import java.util.Arrays;
