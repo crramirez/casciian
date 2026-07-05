@@ -62,6 +62,33 @@ public final class Palette256 {
      */
     private static final int[] CUBE_LEVELS = {0, 95, 135, 175, 215, 255};
 
+    /**
+     * Precomputed lookup table mapping every 8-bit channel value (0–255) to
+     * the index (0–5) of the nearest {@link #CUBE_LEVELS} entry.
+     *
+     * <p>
+     * Since the cube levels are fixed, the nearest level for any channel
+     * value can be computed once at class-load time and then reused, turning
+     * the per-lookup search into a single array access.
+     * </p>
+     */
+    private static final int[] CUBE_LEVEL_INDEX = new int[256];
+
+    static {
+        for (int value = 0; value < CUBE_LEVEL_INDEX.length; value++) {
+            int best = 0;
+            int bestDelta = Integer.MAX_VALUE;
+            for (int i = 0; i < CUBE_LEVELS.length; i++) {
+                int delta = Math.abs(CUBE_LEVELS[i] - value);
+                if (delta < bestDelta) {
+                    bestDelta = delta;
+                    best = i;
+                }
+            }
+            CUBE_LEVEL_INDEX[value] = best;
+        }
+    }
+
     // ------------------------------------------------------------------------
     // Constructor (utility class) -------------------------------------------
     // ------------------------------------------------------------------------
@@ -163,16 +190,7 @@ public final class Palette256 {
      * @return the closest cube level index (0–5)
      */
     private static int nearestCubeLevel(final int value) {
-        int best = 0;
-        int bestDelta = Integer.MAX_VALUE;
-        for (int i = 0; i < CUBE_LEVELS.length; i++) {
-            int delta = Math.abs(CUBE_LEVELS[i] - value);
-            if (delta < bestDelta) {
-                bestDelta = delta;
-                best = i;
-            }
-        }
-        return best;
+        return CUBE_LEVEL_INDEX[value];
     }
 
     /**
