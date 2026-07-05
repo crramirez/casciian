@@ -1070,11 +1070,6 @@ public class TApplication implements Runnable {
             return true;
         }
 
-        if (command.equals(cmShell)) {
-            openTerminal(0, 0, TWindow.RESIZABLE);
-            return true;
-        }
-
         if (command.equals(cmTile)) {
             tileWindows();
             return true;
@@ -1226,11 +1221,6 @@ public class TApplication implements Runnable {
                 // Show this exception to the user.
                 new TExceptionDialog(this, e);
             }
-            return true;
-        }
-
-        if (menu.getId() == TMenu.MID_SHELL) {
-            openTerminal(0, 0, TWindow.RESIZABLE);
             return true;
         }
 
@@ -4292,7 +4282,6 @@ public class TApplication implements Runnable {
     public final TMenu addFileMenu() {
         TMenu fileMenu = addMenu(i18n.getString("fileMenuTitle"));
         fileMenu.addDefaultItem(TMenu.MID_CHANGE_DIR);
-        fileMenu.addDefaultItem(TMenu.MID_SHELL);
         fileMenu.addSeparator();
         fileMenu.addDefaultItem(TMenu.MID_EXIT);
         TStatusBar statusBar = fileMenu.newStatusBar(i18n.
@@ -4565,169 +4554,6 @@ public class TApplication implements Runnable {
         final String text, final TInputBox.Type type) {
 
         return new TInputBox(this, title, caption, text, type);
-    }
-
-    /**
-     * Convenience function to open a terminal window.
-     *
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @return the terminal new window
-     */
-    public final TTerminalWindow openTerminal(final int x, final int y) {
-        return openTerminal(x, y, TWindow.RESIZABLE);
-    }
-
-    /**
-     * Convenience function to open a terminal window.
-     *
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param closeOnExit if true, close the window when the command exits
-     * @return the terminal new window
-     */
-    public final TTerminalWindow openTerminal(final int x, final int y,
-        final boolean closeOnExit) {
-
-        return openTerminal(x, y, TWindow.RESIZABLE, closeOnExit);
-    }
-
-    /**
-     * Convenience function to open a terminal window.
-     *
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param flags mask of CENTERED, MODAL, or RESIZABLE
-     * @return the terminal new window
-     */
-    public final TTerminalWindow openTerminal(final int x, final int y,
-        final int flags) {
-
-        return new TTerminalWindow(this, x, y, flags);
-    }
-
-    /**
-     * Convenience function to open a terminal window.
-     *
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param flags mask of CENTERED, MODAL, or RESIZABLE
-     * @param closeOnExit if true, close the window when the command exits
-     * @return the terminal new window
-     */
-    public final TTerminalWindow openTerminal(final int x, final int y,
-        final int flags, final boolean closeOnExit) {
-
-        return new TTerminalWindow(this, x, y, flags, closeOnExit);
-    }
-
-    /**
-     * Convenience function to open a terminal window and execute a custom
-     * command line inside it.
-     *
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param commandLine the command line to execute
-     * @return the terminal new window
-     */
-    public final TTerminalWindow openTerminal(final int x, final int y,
-        final String commandLine) {
-
-        return openTerminal(x, y, TWindow.RESIZABLE, commandLine);
-    }
-
-    /**
-     * Convenience function to open a terminal window and execute a custom
-     * command line inside it.
-     *
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param commandLine the command line to execute
-     * @param closeOnExit if true, close the window when the command exits
-     * @return the terminal new window
-     */
-    public final TTerminalWindow openTerminal(final int x, final int y,
-        final String commandLine, final boolean closeOnExit) {
-
-        return openTerminal(x, y, TWindow.RESIZABLE, commandLine, closeOnExit);
-    }
-
-    /**
-     * Convenience function to open a terminal window and execute a custom
-     * command line inside it.
-     *
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param flags mask of CENTERED, MODAL, or RESIZABLE
-     * @param command the command line to execute, as an array of strings
-     * which signifies the external program file to be invoked (command[0])
-     * and its arguments, if any (command[1], command[2], ...). Refer also to
-     * java.lang.ProcessBuilder for further operating-system specific
-     * details.
-     * @return the terminal new window
-     */
-    public final TTerminalWindow openTerminal(final int x, final int y,
-        final int flags, final String [] command) {
-
-        if (command.length == 0) {
-            return new TTerminalWindow(this, x, y, flags);
-        }
-        return new TTerminalWindow(this, x, y, flags, command);
-    }
-
-    /**
-     * Convenience function to open a terminal window and execute a custom
-     * command line inside it.
-     *
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param flags mask of CENTERED, MODAL, or RESIZABLE
-     * @param command the command line to execute, as an array of strings
-     * which signifies the external program file to be invoked (command[0])
-     * and its arguments, if any (command[1], command[2], ...). Refer also to
-     * java.lang.ProcessBuilder for further operating-system specific
-     * details.
-     * @param closeOnExit if true, close the window when the command exits
-     * @return the terminal new window
-     */
-    public final TTerminalWindow openTerminal(final int x, final int y,
-        final int flags, final String [] command, final boolean closeOnExit) {
-
-        return new TTerminalWindow(this, x, y, flags, command, closeOnExit);
-    }
-
-    /**
-     * Convenience function to open a terminal window and execute a custom
-     * command line inside it.
-     *
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param flags mask of CENTERED, MODAL, or RESIZABLE
-     * @param commandLine the command line to execute
-     * @return the terminal new window
-     */
-    public final TTerminalWindow openTerminal(final int x, final int y,
-        final int flags, final String commandLine) {
-
-        return new TTerminalWindow(this, x, y, flags, commandLine.split("\\s+"));
-    }
-
-    /**
-     * Convenience function to open a terminal window and execute a custom
-     * command line inside it.
-     *
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param flags mask of CENTERED, MODAL, or RESIZABLE
-     * @param commandLine the command line to execute
-     * @param closeOnExit if true, close the window when the command exits
-     * @return the terminal new window
-     */
-    public final TTerminalWindow openTerminal(final int x, final int y,
-        final int flags, final String commandLine, final boolean closeOnExit) {
-
-        return new TTerminalWindow(this, x, y, flags, commandLine.split("\\s+"),
-            closeOnExit);
     }
 
     /**

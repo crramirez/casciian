@@ -1,4 +1,4 @@
-package casciian.terminal;
+package casciian.image.decoders;
 
 import casciian.bits.ImageRGB;
 import org.junit.jupiter.api.DisplayName;

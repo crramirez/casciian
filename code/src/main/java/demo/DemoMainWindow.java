@@ -131,7 +131,7 @@ public class DemoMainWindow extends TWindow {
     private DemoMainWindow(final TApplication parent, final int flags) {
         // Construct a demo window.  X and Y don't matter because it will be
         // centered on screen.
-        super(parent, "", 0, 0, 66, 25, flags);
+        super(parent, "", 0, 0, 67, 23, flags);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -140,7 +140,7 @@ public class DemoMainWindow extends TWindow {
                 getHeight() - 2));
 
         int row = 1;
-        int col = 37;
+        int col = 38;
 
         // Add some widgets
         addLabel(i18n.getString("messageBoxLabel"), 1, row);
@@ -161,6 +161,17 @@ public class DemoMainWindow extends TWindow {
                 }
             }
         );
+
+        // Two progress bars and a timer label, placed next to the modal
+        // button.
+        progressBar1 = addProgressBar(col + 13, row, 12, 0, true);
+        timerLabel = addLabel(i18n.getString("timerLabel"), col + 13,
+            row + 1);
+        progressBar2 = addProgressBar(col + 13, row + 2, 12, 0, true);
+        progressBar2.setLeftBorderChar('\u255e');
+        progressBar2.setRightBorderChar('\u2561');
+        progressBar2.setCompletedChar('\u2592');
+        progressBar2.setRemainingChar('\u2550');
         row += 2;
 
         addLabel(i18n.getString("textFieldLabel"), 1, row);
@@ -246,21 +257,14 @@ public class DemoMainWindow extends TWindow {
         );
         row += 2;
 
-        addLabel(i18n.getString("terminalLabel"), 1, row);
-        addButton(i18n.getString("terminalButton"), col, row,
-            () -> getApplication().openTerminal(0, 0));
-        row += 2;
-
         addLabel(i18n.getString("colorAndStyleEditorLabel"), 1, row);
         addButton(i18n.getString("colorEditorButton"), col, row,
             () -> new TEditColorThemeWindow(getApplication()));
         addButton(i18n.getString("styleEditorButton"), col + 13, row,
             () -> new TEditDesktopStyleWindow(getApplication()));
+        row += 2;
 
-        row = 15;
-        progressBar1 = addProgressBar(col + 13, row, 12, 0, true);
-        row++;
-        timerLabel = addLabel(i18n.getString("timerLabel"), col + 13, row);
+        // Register the timers that drive the two progress bars.
         timer1 = getApplication().addTimer(250, true,
             new TAction() {
 
@@ -278,13 +282,6 @@ public class DemoMainWindow extends TWindow {
             }
         );
 
-        row++;
-        progressBar2 = addProgressBar(col + 13, row, 12, 0, true);
-        progressBar2.setLeftBorderChar('\u255e');
-        progressBar2.setRightBorderChar('\u2561');
-        progressBar2.setCompletedChar('\u2592');
-        progressBar2.setRemainingChar('\u2550');
-        row += 2;
         timer2 = getApplication().addTimer(125, true,
             new TAction() {
 
@@ -298,8 +295,6 @@ public class DemoMainWindow extends TWindow {
                 }
             }
         );
-
-        row += 2;
 
         addLabel(i18n.getString("exceptionLabel"), 1, row);
         addButton(i18n.getString("exceptionButton"), col, row,
@@ -349,7 +344,7 @@ public class DemoMainWindow extends TWindow {
      */
     @Override
     public void onCommand(final TCommandEvent command) {
-        if (command.equals(cmOpen)) {
+        if (command.matchesCommand(cmOpen)) {
             try {
                 String filename = fileOpenBox(".");
                 if (filename != null) {

@@ -2,7 +2,7 @@ package casciian.backend;
 
 import casciian.bits.ImageRGB;
 import casciian.bits.ArrayImageRGB;
-import casciian.terminal.SixelDecoder;
+import casciian.image.decoders.SixelDecoder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

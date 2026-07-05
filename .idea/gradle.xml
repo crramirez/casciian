@@ -34,6 +34,28 @@
           </set>
         </option>
       </GradleProjectSettings>
+      <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/code" name="casciian">
+                <projects>
+                  <project path="$PROJECT_DIR$/code" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/code-terminal-component" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/code" />
+            <option value="$PROJECT_DIR$/code-terminal-component" />
+            <option value="$PROJECT_DIR$/code-terminal-component/casciian-terminal-component" />
+            <option value="$PROJECT_DIR$/code-terminal-component/demo" />
+          </set>
+        </option>
+      </GradleProjectSettings>
     </option>
   </component>
 </project>

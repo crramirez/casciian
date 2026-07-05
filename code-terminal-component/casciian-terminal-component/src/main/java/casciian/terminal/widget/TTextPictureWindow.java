@@ -17,7 +17,13 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
-package casciian;
+package casciian.terminal.widget;
+
+import casciian.TApplication;
+import casciian.THScroller;
+import casciian.TScrollableWindow;
+import casciian.TVScroller;
+import casciian.TWidget;
 
 import java.io.IOException;
 
@@ -29,7 +35,7 @@ import static casciian.TKeypress.*;
 /**
  * TTextPictureWindow shows an ASCII/ANSI art file with scrollbars.
  *
- * @deprecated Use {@link TTextAnsiWindow} instead, which provides simpler and
+ * @deprecated Use {@link casciian.TTextAnsiWindow} instead, which provides simpler and
  * more reliable ANSI text rendering without requiring a full terminal emulator.
  */
 @Deprecated

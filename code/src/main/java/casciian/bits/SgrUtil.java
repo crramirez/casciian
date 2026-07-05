@@ -26,7 +26,7 @@ import java.util.function.IntUnaryOperator;
  * <p>
  * This class extracts the common SGR color and attribute handling logic
  * used by both {@link AnsiParser} (lightweight static renderer) and
- * {@link casciian.terminal.ECMA48} (full terminal emulator). Both
+ * the {@code ECMA48} terminal emulator (full terminal emulator). Both
  * components interpret the same SGR codes; this class provides the
  * shared mapping and application logic so that changes to color handling
  * only need to be made in one place.

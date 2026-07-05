@@ -66,6 +66,19 @@ publishable to Maven Central, so users can simply add it as an extra
 dependency when they need it. This add-on will be released starting from
 Casciian version 1.5.
 
+## Terminal Component (from Casciian 1.6)
+
+The embedded terminal — the ECMA-48 / ANSI X3.64 terminal emulator and the
+`TTerminalWindow` widget that runs a shell or child process inside a
+Casciian window — lives in the optional
+[`casciian-terminal-component`](code-terminal-component/README.md) module
+rather than in the core library. This keeps the core small and free of the
+terminal-specific logic and dependencies that only matter to applications
+embedding a terminal. It is a separate Gradle multi-project under
+`code-terminal-component/` and is publishable to Maven Central, so users
+can add it as an extra dependency when they need it. This component will be
+released starting from Casciian version 1.6.
+
 ## License
 
 This project is distributed under the Apache License, Version 2.0.
