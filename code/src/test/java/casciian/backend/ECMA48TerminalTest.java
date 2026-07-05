@@ -934,6 +934,81 @@ class ECMA48TerminalTest {
             escapeForDisplay(output));
     }
 
+    // 256-color palette tests
+
+    @Test
+    @DisplayName("Palette foreground color emits an indexed (38;5;n) sequence")
+    void shouldEmitIndexedSequenceForPaletteForeground() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColorPalette(196);
+        attr.setBackColor(Color.BLACK);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertTrue(output.contains("\033[38;5;196m"),
+            "Palette foreground should emit indexed sequence. Output: " +
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Palette background color emits an indexed (48;5;n) sequence")
+    void shouldEmitIndexedSequenceForPaletteBackground() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColor(Color.WHITE);
+        attr.setBackColorPalette(21);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertTrue(output.contains("\033[48;5;21m"),
+            "Palette background should emit indexed sequence. Output: " +
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Palette colors do not emit RGB (38;2/48;2) sequences")
+    void paletteColorsDoNotEmitRgbSequences() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColorPalette(200);
+        attr.setBackColorPalette(20);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertFalse(output.contains("38;2;"),
+            "Palette foreground should not emit RGB sequence. Output: " +
+            escapeForDisplay(output));
+        assertFalse(output.contains("48;2;"),
+            "Palette background should not emit RGB sequence. Output: " +
+            escapeForDisplay(output));
+        assertTrue(output.contains("\033[38;5;200m"),
+            "Expected indexed foreground. Output: " + escapeForDisplay(output));
+        assertTrue(output.contains("\033[48;5;20m"),
+            "Expected indexed background. Output: " + escapeForDisplay(output));
+    }
+
     // Helper methods
 
     private ECMA48Terminal createTerminal() {

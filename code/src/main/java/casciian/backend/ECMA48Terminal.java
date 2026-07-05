@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.backend;
 
@@ -1764,6 +1769,16 @@ public class ECMA48Terminal extends LogicalScreen
                         System.err.println("3a set foreColorRGB");
                     }
                     sb.append(colorRGB(foreColorRGB, true));
+                } else if ((lCell.getForeColorPalette() >= 0)
+                    && !lCell.isDefaultColor(true)
+                    && ((lCell.getForeColorPalette()
+                        != lastAttr.getForeColorPalette())
+                    || (lastAttr.getForeColorPalette() < 0))
+                ) {
+                    if (DEBUG_TO_STDERR && reallyDebug) {
+                        System.err.println("3p set foreColorPalette");
+                    }
+                    sb.append(colorPalette(lCell.getForeColorPalette(), true));
                 } else if (lCell.isDefaultColor(true)) {
                     if (!lastAttr.isDefaultColor(true)) {
                         if (DEBUG_TO_STDERR && reallyDebug) {
@@ -1819,6 +1834,17 @@ public class ECMA48Terminal extends LogicalScreen
                         System.err.println("5 set backColorRGB");
                     }
                     sb.append(colorRGB(lCell.getBackColorRGB(), false));
+                } else if ((lCell.getBackColorPalette() >= 0)
+                    && !lCell.isDefaultColor(false)
+                    && ((lCell.getBackColorPalette()
+                        != lastAttr.getBackColorPalette())
+                    || (lastAttr.getBackColorPalette() < 0))
+                ) {
+                    //noinspection ConstantValue
+                    if (DEBUG_TO_STDERR && reallyDebug) {
+                        System.err.println("5p set backColorPalette");
+                    }
+                    sb.append(colorPalette(lCell.getBackColorPalette(), false));
                 } else if (lCell.isDefaultColor(false)) {
                     if (!lastAttr.isDefaultColor(false)) {
                         //noinspection ConstantValue
@@ -4380,6 +4406,22 @@ public class ECMA48Terminal extends LogicalScreen
         }
         sb.append(String.format("%d;%d;%dm", colorRed, colorGreen, colorBlue));
         return sb.toString();
+    }
+
+    /**
+     * Create a SGR indexed-color (256-color palette) parameter sequence for a
+     * single color change.
+     *
+     * @param index      a 256-color palette index (0-255)
+     * @param foreground if true, this is a foreground color
+     * @return the string to emit to an ANSI / ECMA-style terminal,
+     * e.g. "\033[38;5;Nm"
+     */
+    private String colorPalette(final int index, final boolean foreground) {
+        if (foreground) {
+            return String.format("\033[38;5;%dm", index & 0xFF);
+        }
+        return String.format("\033[48;5;%dm", index & 0xFF);
     }
 
     /**
