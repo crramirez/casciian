@@ -1789,6 +1789,7 @@ public class ECMA48Terminal extends LogicalScreen
                 } else {
                     if ((lCell.getForeColorRGB() < 0)
                         && ((lastAttr.getForeColorRGB() >= 0)
+                        || (lastAttr.getForeColorPalette() >= 0)
                         || !lCell.getForeColor().equals(lastAttr.getForeColor())
                         || lastAttr.isDefaultColor(true)
                         || lCellBoldAsBright != lastBoldAsBright
@@ -1856,6 +1857,7 @@ public class ECMA48Terminal extends LogicalScreen
                 } else {
                     if ((lCell.getBackColorRGB() < 0)
                         && ((lastAttr.getBackColorRGB() >= 0)
+                        || (lastAttr.getBackColorPalette() >= 0)
                         || !lCell.getBackColor().equals(lastAttr.getBackColor())
                         || lastAttr.isDefaultColor(false))
                     ) {

@@ -542,7 +542,7 @@ public class CellAttributes {
      * @see Palette256
      */
     public final void setForeColorPalette(final int foreColorPalette) {
-        this.foreColorPalette = foreColorPalette & 0xFF;
+        this.foreColorPalette = (foreColorPalette < 0) ? -1 : (foreColorPalette & 0xFF);
         this.foreColorRGB = -1;
         this.foreColor = Color.WHITE;
     }
@@ -566,7 +566,7 @@ public class CellAttributes {
      * @see Palette256
      */
     public final void setBackColorPalette(final int backColorPalette) {
-        this.backColorPalette = backColorPalette & 0xFF;
+        this.backColorPalette = (backColorPalette < 0) ? -1 : (backColorPalette & 0xFF);
         this.backColorRGB = -1;
         this.backColor = Color.BLACK;
     }
@@ -673,16 +673,20 @@ public class CellAttributes {
         if ((foreColorPalette >= 0) || (backColorPalette >= 0)) {
             StringBuilder sb = new StringBuilder("Palette: ");
 
-            if (foreColorPalette < 0) {
-                sb.append(foreColor.toString());
-            } else {
+            if (foreColorPalette >= 0) {
                 sb.append(foreColorPalette);
+            } else if (foreColorRGB >= 0) {
+                sb.append(String.format("#%06x", (foreColorRGB & 0xFFFFFF)));
+            } else {
+                sb.append(foreColor.toString());
             }
             sb.append(" on ");
-            if (backColorPalette < 0) {
-                sb.append(backColor.toString());
-            } else {
+            if (backColorPalette >= 0) {
                 sb.append(backColorPalette);
+            } else if (backColorRGB >= 0) {
+                sb.append(String.format("#%06x", (backColorRGB & 0xFFFFFF)));
+            } else {
+                sb.append(backColor.toString());
             }
             return sb.toString();
         }
