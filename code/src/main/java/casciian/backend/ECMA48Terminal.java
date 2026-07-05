@@ -2717,44 +2717,39 @@ public class ECMA48Terminal extends LogicalScreen
 
             // Konsole doesn't support changing the palette, and the contrast between regular and bright colors
             // is too low in the default profile. So, we force sending fixed 256-color palette (color cube)
-            // colors, unless the user has explicitly configured casciian.ECMA48.paletteColor.
-            setPaletteColorIfNotConfigured();
+            // colors, unless the user has explicitly configured casciian.ECMA48.paletteColor or casciian.ECMA48.rgbColor.
+            setPaletteOrRgbColorIfNotConfigured();
         }
 
         if (text.contains(XTVERSION_FOR_WARP)) {
             // Warp doesn't support changing the palette, and the contrast between regular and bright colors
             // is too low in the default profile. So, we force sending full rgb colors, unless the user has
             // explicitly configured casciian.ECMA48.rgbColor.
-            setRgbColorIfNotConfigured();
+            setPaletteOrRgbColorIfNotConfigured();
         }
 
         setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
     }
 
     /**
-     * Enable RGB color mode if the terminal palette is not in use and the
+     * Enable 256-color palette mode or RGB color mode if the terminal palette is not in use and the
      * user has not explicitly configured the system property.
      */
-    private void setRgbColorIfNotConfigured() {
-        if (!SystemProperties.isUseTerminalPalette() || SystemProperties.isTranslucence()) {
-            String rgbColorProperty = System.getProperty(
-                    SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
-            if (rgbColorProperty == null) {
-                SystemProperties.setRgbColor(true);
-            }
-        }
-    }
+    private void setPaletteOrRgbColorIfNotConfigured() {
+        if (!SystemProperties.isUseTerminalPalette()) {
 
-    /**
-     * Enable 256-color palette mode if the terminal palette is not in use and
-     * the user has not explicitly configured the system property.
-     */
-    private void setPaletteColorIfNotConfigured() {
-        if (!SystemProperties.isUseTerminalPalette() || SystemProperties.isTranslucence()) {
-            String paletteColorProperty = System.getProperty(
+            if(SystemProperties.isTranslucence()) {
+                String rgbColorProperty = System.getProperty(
+                    SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
+                if (rgbColorProperty == null) {
+                    SystemProperties.setRgbColor(true);
+                }
+            } else {
+                String paletteColorProperty = System.getProperty(
                     SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR);
-            if (paletteColorProperty == null) {
-                SystemProperties.setPaletteColor(true);
+                if (paletteColorProperty == null) {
+                    SystemProperties.setPaletteColor(true);
+                }
             }
         }
     }
@@ -4527,7 +4522,7 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String forcedPaletteColor(final boolean bold, final Color color,
                             final boolean foreground) {
-        return colorPalette(Palette256.fromCgaColor(color, bold), foreground);
+        return colorPalette(Palette256.fromRgb(getPaletteColor(color, bold)), foreground);
     }
 
     /**
@@ -4552,9 +4547,9 @@ public class ECMA48Terminal extends LogicalScreen
         }
         if (bold) {
             // Bold implies foreground only
-            return colorPalette(Palette256.fromCgaColor(color, true), true);
+            return colorPalette(Palette256.fromRgb(getPaletteColor(color, true)), true);
         }
-        return colorPalette(Palette256.fromCgaColor(color), foreground);
+        return colorPalette(Palette256.fromRgb(getPaletteColor(color, false)), foreground);
     }
 
     /**
