@@ -15,6 +15,10 @@
  */
 package casciian.bits;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
  * Helpers for the xterm 256-color palette (the "color cube").
  *
@@ -103,9 +107,45 @@ public final class Palette256 {
 
     static {
         for (int i = 0; i < CGA_TO_CUBE.length; i++) {
-            CGA_TO_CUBE[i] = fromRgb(SgrUtil.getDefaultIndexedColor(i));
+            CGA_TO_CUBE[i] = computeFromRgb(SgrUtil.getDefaultIndexedColor(i));
         }
     }
+
+    /**
+     * Maximum number of entries kept in {@link #FROM_RGB_CACHE}.
+     */
+    private static final int FROM_RGB_CACHE_SIZE = 80;
+
+    /**
+     * Bounded least-recently-used cache of {@link #fromRgb(int)} results.
+     *
+     * <p>
+     * Callers tend to repeatedly ask for the palette index of a small,
+     * recurring set of RGB values (e.g. the colors of the current theme), so
+     * caching the result avoids re-running the cube/grayscale search on every
+     * call. The cache is capped at {@link #FROM_RGB_CACHE_SIZE} entries and
+     * evicts the least-recently-used entry once full.
+     * </p>
+     *
+     * <p>
+     * {@link LinkedHashMap} in access-order mode is not thread-safe on its
+     * own (its internal linked list is mutated on both reads and writes), so
+     * it is wrapped with {@link Collections#synchronizedMap(Map)} to make
+     * every access atomic. Access is expected to be brief (a hash lookup and
+     * a linked-list splice), so the small critical section this introduces is
+     * not expected to be a contention bottleneck.
+     * </p>
+     */
+    private static final Map<Integer, Integer> FROM_RGB_CACHE =
+        Collections.synchronizedMap(
+            new LinkedHashMap<>(FROM_RGB_CACHE_SIZE, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(
+                    final Map.Entry<Integer, Integer> eldest) {
+
+                    return size() > FROM_RGB_CACHE_SIZE;
+                }
+            });
 
     // ------------------------------------------------------------------------
     // Constructor (utility class) -------------------------------------------
