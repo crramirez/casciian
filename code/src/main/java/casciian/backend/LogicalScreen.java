@@ -31,6 +31,7 @@ import casciian.bits.Color;
 import casciian.bits.ComplexCell;
 import casciian.bits.Clipboard;
 import casciian.bits.ImageUtils;
+import casciian.bits.Palette256;
 import casciian.bits.StringUtils;
 
 /**
@@ -517,6 +518,8 @@ public class LogicalScreen implements Screen {
         if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
             if (attr.getBackColorRGB() != -1) {
                 logical[X][Y].setBackColorRGB(attr.getBackColorRGB());
+            } else if (attr.getBackColorPalette() >= 0) {
+                logical[X][Y].setBackColorPalette(attr.getBackColorPalette());
             } else {
                 logical[X][Y].setBackColor(attr.getBackColor());
             }
@@ -601,6 +604,8 @@ public class LogicalScreen implements Screen {
 
             if (backAttr.getBackColorRGB() >= 0) {
                 cell.setBackColorRGB(backAttr.getBackColorRGB());
+            } else if (backAttr.getBackColorPalette() >= 0) {
+                cell.setBackColorPalette(backAttr.getBackColorPalette());
             } else {
                 cell.setBackColor(backAttr.getBackColor());
             }
@@ -1424,15 +1429,21 @@ public class LogicalScreen implements Screen {
         if (cell.isImage()) {
             cell.invertImage();
         }
-        if (cell.getForeColorRGB() < 0) {
-            cell.setForeColor(cell.getForeColor().invert());
-        } else {
+        if (cell.getForeColorRGB() >= 0) {
             cell.setForeColorRGB(cell.getForeColorRGB() ^ 0x00ffffff);
-        }
-        if (cell.getBackColorRGB() < 0) {
-            cell.setBackColor(cell.getBackColor().invert());
+        } else if (cell.getForeColorPalette() >= 0) {
+            cell.setForeColorRGB(Palette256.toRgb(cell.getForeColorPalette())
+                ^ 0x00ffffff);
         } else {
+            cell.setForeColor(cell.getForeColor().invert());
+        }
+        if (cell.getBackColorRGB() >= 0) {
             cell.setBackColorRGB(cell.getBackColorRGB() ^ 0x00ffffff);
+        } else if (cell.getBackColorPalette() >= 0) {
+            cell.setBackColorRGB(Palette256.toRgb(cell.getBackColorPalette())
+                ^ 0x00ffffff);
+        } else {
+            cell.setBackColor(cell.getBackColor().invert());
         }
 
         cell.setDefaultColor(true, false);

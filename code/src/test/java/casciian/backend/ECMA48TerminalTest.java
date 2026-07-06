@@ -1085,6 +1085,66 @@ class ECMA48TerminalTest {
             + escapeForDisplay(output));
     }
 
+    @Test
+    @DisplayName("putBackgroundAttrXY preserves a palette background instead of erasing it to black")
+    void putBackgroundAttrXYPreservesPaletteBackground() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Themed window/widget backgrounds are applied with
+        // putBackgroundAttrXY.  A palette background must be carried through;
+        // before the fix it fell through to the Color.BLACK placeholder left
+        // by setBackColorPalette and rendered as a black background.
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColor(Color.MAGENTA);
+        attr.setBackColorPalette(234);
+
+        for (int x = 0; x < 5; x++) {
+            terminal.putBackgroundAttrXY(x, 0, attr);
+        }
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertTrue(output.contains("\033[48;5;234m"),
+            "putBackgroundAttrXY must preserve the palette background. "
+            + "Output: " + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("putForegroundCharXY preserves an existing palette background under drawn text")
+    void putForegroundCharXYPreservesPaletteBackground() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Label text is drawn with putForegroundCharXY, which keeps the
+        // background of the cell already on screen.  When that background is a
+        // palette color it must be preserved; before the fix it fell through
+        // to the Color.BLACK placeholder and the text got a black background.
+        CellAttributes bg = new CellAttributes();
+        bg.setForeColor(Color.MAGENTA);
+        bg.setBackColorPalette(234);
+        for (int x = 0; x < 5; x++) {
+            terminal.putCharXY(x, 0, ' ', bg);
+        }
+
+        CellAttributes fg = new CellAttributes();
+        fg.setForeColor(Color.WHITE);
+        terminal.putForegroundCharXY(1, 0, 'H', fg);
+        terminal.putForegroundCharXY(2, 0, 'i', fg);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertTrue(output.contains("\033[48;5;234m"),
+            "putForegroundCharXY must keep the underlying palette background. "
+            + "Output: " + escapeForDisplay(output));
+    }
+
     // Helper methods
 
     private ECMA48Terminal createTerminal() {
