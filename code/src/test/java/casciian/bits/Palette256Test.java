@@ -71,6 +71,19 @@ class Palette256Test {
     }
 
     @Test
+    @DisplayName("fromRgb keeps saturated colors on the color cube instead of "
+        + "flattening them to gray")
+    void saturatedColorDoesNotCollapseToGray() {
+        // 0x1f3a5f (a muted navy-blue theme color) has real chroma, but the
+        // grayscale ramp used to be a marginally closer numeric RGB match,
+        // causing it to render as flat gray instead of blue.
+        int index = Palette256.fromRgb(0x1f3a5f);
+        assertTrue(index < 232,
+            "Expected a color-cube index (16-231) but got grayscale index "
+                + index);
+    }
+
+    @Test
     @DisplayName("fromCgaColor maps CGA colors into the cube/grayscale range")
     void cgaColorsMapIntoCube() {
         for (Color color : new Color[] {

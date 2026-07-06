@@ -62,6 +62,16 @@ public final class Palette256 {
     private static final int GRAY_START = 232;
 
     /**
+     * Maximum chroma (the spread between the largest and smallest of the
+     * red/green/blue channels) an RGB value may have and still be allowed to
+     * resolve to the grayscale ramp in {@link #computeFromRgb(int)}. Colors
+     * with more chroma than this have a clearly perceptible hue and are
+     * always matched against the color cube instead, even if a grayscale
+     * entry happens to be a marginally closer numeric RGB match.
+     */
+    private static final int CHROMA_GRAY_THRESHOLD = 32;
+
+    /**
      * The six intensity levels used along each axis of the color cube.
      */
     private static final int[] CUBE_LEVELS = {0, 95, 135, 175, 215, 255};
@@ -300,6 +310,21 @@ public final class Palette256 {
         // Best matching entry in the grayscale ramp.
         int grayIndex = nearestGray(red, green, blue);
         int grayDistance = distance(rgb, toRgb(grayIndex));
+
+        // A color with meaningful chroma (i.e. it actually has a hue, as
+        // opposed to being a near-neutral gray) should not be flattened to
+        // the grayscale ramp just because a gray entry happens to be a
+        // marginally closer numeric RGB match: the grayscale ramp has no
+        // hue at all, so picking it always discards 100% of the color's
+        // saturation, which is usually a worse perceptual match than a
+        // saturated cube entry that is only slightly further away in raw
+        // RGB distance. Neutral/near-neutral inputs (low chroma) are
+        // unaffected and still resolve to the grayscale ramp as before.
+        int chroma = Math.max(red, Math.max(green, blue))
+            - Math.min(red, Math.min(green, blue));
+        if (chroma > CHROMA_GRAY_THRESHOLD) {
+            return cubeIndex;
+        }
 
         return (grayDistance < cubeDistance) ? grayIndex : cubeIndex;
     }

@@ -2720,7 +2720,10 @@ public class ColorTheme {
         final int bgInactive = 0x2a2a2a; // inactive window (slightly lighter)
         final int bgPanel = 0x252526; // panel / menu surface
         final int bgModal = 0x1a3a66; // modal surface (muted blue)
-        final int bgField = 0x0a3a6e; // input field idle
+        // input field idle; nudged from 0x0a3a6e so it lands in a distinct
+        // 256-color cube cell from bgModal (both previously quantized to the
+        // same palette index, making the two surfaces indistinguishable).
+        final int bgField = 0x0a2f74;
         final int bgFieldHot = 0x0f5aa8; // input field / active selection
         final int bgSelect = 0x264f78; // list / editor selection
         final int fgText = 0xe0e0e0;
@@ -3467,13 +3470,19 @@ public class ColorTheme {
         final int bgInput = 0xffffff; // input.background
         final int bgInputBd = 0xcecece; // input.border
         final int bgSelect = 0xadd6ff; // editor.selectionBackground
-        final int bgListSel = 0x0060c0; // list.activeSelectionBackground
+        // list.activeSelectionBackground, nudged +8 on blue so it lands in a
+        // different 256-color cube cell than buttonBg/accentHot instead of
+        // collapsing onto the same palette index (the shift is a single
+        // unit of the cube grid and is not perceptible on RGB terminals).
+        final int bgListSel = 0x0060c8;
         final int bgListHov = 0xe8e8e8; // list.hoverBackground
         final int fgText = 0x3b3b3b; // editor.foreground
         final int fgChrome = 0x1f1f1f; // sideBar.foreground
         final int fgMuted = 0x717171; // descriptionForeground
         final int accent = 0x0078d4; // statusBar / focusBorder
-        final int accentHot = 0x026ec1; // button.hoverBackground
+        // button.hoverBackground, nudged +6 on green for the same reason:
+        // without this it quantizes to the same 256-color index as buttonBg.
+        final int accentHot = 0x0274c1;
         final int buttonBg = 0x005fb8; // button.background
         final int borderDim = 0xe5e5e5; // editorGroup.border
 
