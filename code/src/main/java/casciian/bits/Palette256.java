@@ -128,12 +128,17 @@ public final class Palette256 {
      * </p>
      *
      * <p>
-     * {@link LinkedHashMap} in access-order mode is not thread-safe on its
-     * own (its internal linked list is mutated on both reads and writes), so
-     * it is wrapped with {@link Collections#synchronizedMap(Map)} to make
-     * every access atomic. Access is expected to be brief (a hash lookup and
-     * a linked-list splice), so the small critical section this introduces is
-     * not expected to be a contention bottleneck.
+     * A plain {@link java.util.concurrent.ConcurrentHashMap} cannot be used
+     * here because it provides neither a size bound nor least-recently-used
+     * eviction, both of which this cache requires. Instead an access-order
+     * {@link LinkedHashMap} (which is not thread-safe on its own, as its
+     * internal linked list is mutated on both reads and writes) is wrapped
+     * with {@link Collections#synchronizedMap(Map)}. Lookups go through
+     * {@link Map#computeIfAbsent}, which the synchronized wrapper runs under
+     * its monitor, so the check-compute-store sequence is a single atomic
+     * operation rather than a racy get-then-put. Access is brief (a hash
+     * lookup and a linked-list splice), so the critical section is not
+     * expected to be a contention bottleneck.
      * </p>
      */
     private static final Map<Integer, Integer> FROM_RGB_CACHE =
@@ -265,14 +270,9 @@ public final class Palette256 {
     public static int fromRgb(final int rgb) {
         // Most callers repeatedly request the same handful of RGB values
         // (e.g. the colors of the active theme), so serve those from a
-        // bounded LRU cache and only run the search on a miss.
-        Integer cached = FROM_RGB_CACHE.get(rgb);
-        if (cached != null) {
-            return cached;
-        }
-        int index = computeFromRgb(rgb);
-        FROM_RGB_CACHE.put(rgb, index);
-        return index;
+        // bounded LRU cache and only run the search on a miss. computeIfAbsent
+        // is atomic on the synchronized map, avoiding a racy get-then-put.
+        return FROM_RGB_CACHE.computeIfAbsent(rgb, Palette256::computeFromRgb);
     }
 
     /**
