@@ -119,4 +119,19 @@ class Palette256Test {
                 "Mismatch at palette index " + i);
         }
     }
+
+    @Test
+    @DisplayName("fromRgb returns the same index whether cached or freshly "
+        + "computed")
+    void fromRgbCacheIsConsistent() {
+        // The first call populates the cache; subsequent calls must return
+        // the exact same index. Exercise more than the cache capacity so the
+        // LRU eviction path is also covered.
+        for (int rgb = 0; rgb <= 0xFFFFFF; rgb += 5003) {
+            int first = Palette256.fromRgb(rgb);
+            int second = Palette256.fromRgb(rgb);
+            assertEquals(first, second,
+                "Cached result differs for #" + Integer.toHexString(rgb));
+        }
+    }
 }

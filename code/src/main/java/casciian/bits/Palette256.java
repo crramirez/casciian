@@ -263,6 +263,26 @@ public final class Palette256 {
      * @return the palette index (16–255) whose color is closest to {@code rgb}
      */
     public static int fromRgb(final int rgb) {
+        // Most callers repeatedly request the same handful of RGB values
+        // (e.g. the colors of the active theme), so serve those from a
+        // bounded LRU cache and only run the search on a miss.
+        Integer cached = FROM_RGB_CACHE.get(rgb);
+        if (cached != null) {
+            return cached;
+        }
+        int index = computeFromRgb(rgb);
+        FROM_RGB_CACHE.put(rgb, index);
+        return index;
+    }
+
+    /**
+     * Compute the closest 256-color palette index for a 24-bit RGB value,
+     * without consulting the cache.
+     *
+     * @param rgb a 24-bit RGB value (0xRRGGBB)
+     * @return the palette index (16–255) whose color is closest to {@code rgb}
+     */
+    private static int computeFromRgb(final int rgb) {
         int red = (rgb >>> 16) & 0xFF;
         int green = (rgb >>> 8) & 0xFF;
         int blue = rgb & 0xFF;
