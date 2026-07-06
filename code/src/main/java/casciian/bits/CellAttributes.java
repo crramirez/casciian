@@ -538,11 +538,17 @@ public class CellAttributes {
      * exclusive with the RGB foreground color: setting a palette index clears
      * any RGB foreground color.
      *
-     * @param foreColorPalette new foreColor palette index (0-255)
+     * @param foreColorPalette new foreColor palette index (0-255), or a
+     * negative value to unset
+     * @throws IllegalArgumentException if foreColorPalette is greater than 255
      * @see Palette256
      */
     public final void setForeColorPalette(final int foreColorPalette) {
-        this.foreColorPalette = (foreColorPalette < 0) ? -1 : (foreColorPalette & 0xFF);
+        if (foreColorPalette > 255) {
+            throw new IllegalArgumentException("foreColorPalette must be "
+                + "0-255, or negative to unset");
+        }
+        this.foreColorPalette = (foreColorPalette < 0) ? -1 : foreColorPalette;
         this.foreColorRGB = -1;
         this.foreColor = Color.WHITE;
     }
@@ -562,11 +568,17 @@ public class CellAttributes {
      * exclusive with the RGB background color: setting a palette index clears
      * any RGB background color.
      *
-     * @param backColorPalette new backColor palette index (0-255)
+     * @param backColorPalette new backColor palette index (0-255), or a
+     * negative value to unset
+     * @throws IllegalArgumentException if backColorPalette is greater than 255
      * @see Palette256
      */
     public final void setBackColorPalette(final int backColorPalette) {
-        this.backColorPalette = (backColorPalette < 0) ? -1 : (backColorPalette & 0xFF);
+        if (backColorPalette > 255) {
+            throw new IllegalArgumentException("backColorPalette must be "
+                + "0-255, or negative to unset");
+        }
+        this.backColorPalette = (backColorPalette < 0) ? -1 : backColorPalette;
         this.backColorRGB = -1;
         this.backColor = Color.BLACK;
     }

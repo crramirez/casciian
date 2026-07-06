@@ -2740,16 +2740,18 @@ public class ECMA48Terminal extends LogicalScreen
     private void setPaletteOrRgbColorIfNotConfigured() {
         if (!SystemProperties.isUseTerminalPalette()) {
 
-            if(SystemProperties.isTranslucence()) {
-                String rgbColorProperty = System.getProperty(
-                    SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
-                if (rgbColorProperty == null) {
+            String rgbColorProperty = System.getProperty(
+                SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
+            String paletteColorProperty = System.getProperty(
+                SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR);
+
+            // Only force a color mode when the user has not explicitly
+            // configured either property, so we never enable both modes at
+            // once or override the user's choice.
+            if ((rgbColorProperty == null) && (paletteColorProperty == null)) {
+                if (SystemProperties.isTranslucence()) {
                     SystemProperties.setRgbColor(true);
-                }
-            } else {
-                String paletteColorProperty = System.getProperty(
-                    SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR);
-                if (paletteColorProperty == null) {
+                } else {
                     SystemProperties.setPaletteColor(true);
                 }
             }
@@ -4544,7 +4546,11 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String paletteColor(final boolean bold, final Color color,
                                 final boolean foreground) {
-        if (!SystemProperties.isPaletteColor()) {
+        if (!SystemProperties.isPaletteColor()
+            || SystemProperties.isRgbColor()
+        ) {
+            // RGB color takes precedence over the 256-color palette; do not
+            // emit an indexed-color sequence that would override it.
             return "";
         }
         if (bold) {
