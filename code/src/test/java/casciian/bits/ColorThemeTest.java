@@ -77,12 +77,12 @@ class ColorThemeTest {
     }
 
     @Test
-    void testFemmeThemeUsesPaletteColors() {
+    void testFemmeThemeUsesRgbColors() {
         ColorTheme theme = new ColorTheme();
         theme.setFemme();
 
         CellAttributes attr = theme.getColor(ColorTheme.TWINDOW_BACKGROUND);
-        assertTrue(attr.getBackColorPalette() >= 0);
-        assertEquals(-1, attr.getBackColorRGB());
+        assertTrue(attr.getBackColorRGB() >= 0);
+        assertEquals(-1, attr.getBackColorPalette());
     }
 }
