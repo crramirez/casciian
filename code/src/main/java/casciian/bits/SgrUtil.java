@@ -387,7 +387,10 @@ public final class SgrUtil {
          *
          * @param value the sub-parameter value
          * @param attr the attributes to apply color to when complete
-         * @param palette color index lookup (index→RGB)
+         * @param palette color index lookup (index→RGB), unused for
+         *        indexed (38/48;5;n) sequences since those are now applied
+         *        directly as a 256-color palette index; retained for RGB
+         *        sub-sequences' shared method signature
          */
         public void feedValue(final int value,
                 final CellAttributes attr,
@@ -398,9 +401,10 @@ public final class SgrUtil {
             }
 
             if (indexed) {
-                // We have the color index
-                int rgbVal = palette.applyAsInt(value);
-                applyColor(rgbVal, attr);
+                // Apply the 256-color palette index directly instead of
+                // resolving it to RGB, so downstream rendering can emit a
+                // compact "38;5;n"/"48;5;n" sequence.
+                applyPaletteColor(value & 0xFF, attr);
                 reset();
                 return;
             }
@@ -434,6 +438,17 @@ public final class SgrUtil {
                 attr.setDefaultColor(true, false);
             } else {
                 attr.setBackColorRGB(rgbVal);
+                attr.setDefaultColor(false, false);
+            }
+        }
+
+        private void applyPaletteColor(final int index,
+                final CellAttributes attr) {
+            if (mode == 38) {
+                attr.setForeColorPalette(index);
+                attr.setDefaultColor(true, false);
+            } else {
+                attr.setBackColorPalette(index);
                 attr.setDefaultColor(false, false);
             }
         }

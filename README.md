@@ -233,3 +233,8 @@ mirroring `casciian.ECMA48.rgbColor` for 24-bit RGB. Only the 16 named colors
 are affected; cells that already carry a true RGB color are left untouched.
 This is enabled automatically for terminals such as Konsole whose default
 16-color palette has low contrast between normal and bright colors.
+
+On the input side, `AnsiParser` and the ECMA-48 terminal emulator apply
+received `38;5;n` / `48;5;n` sequences as a palette index directly (rather
+than resolving the index to RGB), so parsed cells preserve the compact
+palette representation end-to-end.
