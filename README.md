@@ -193,3 +193,48 @@ property).
 Note that the built-in ECMA-48 terminal emulator always treats a received bold
 attribute transparently (as if this property were `false`), so terminal
 sessions are reproduced faithfully regardless of the setting.
+
+### 256-color palette (color cube)
+
+In addition to the 16 ANSI colors and 24-bit RGB (`ESC[38;2;r;g;b`), Casciian
+can emit colors from the terminal's 256-color palette (the "color cube") using
+the compact indexed form `ESC[38;5;n` / `ESC[48;5;n`. Because an indexed color
+is a single small number rather than a full RGB triple, it produces shorter
+escape sequences and is cheaper to render, which is useful when an approximate
+color is acceptable.
+
+To use it, set a palette index on a cell's attributes:
+
+```java
+CellAttributes attr = new CellAttributes();
+attr.setForeColorPalette(196);   // bright red from the color cube
+attr.setBackColorPalette(21);    // blue from the color cube
+```
+
+The `casciian.bits.Palette256` helper makes it easy to obtain indices:
+
+* `Palette256.fromColor(Color)` returns the palette index (0–15) for one of
+  the 16 CGA/ANSI colors, with an optional `bright` variant.
+* `Palette256.fromCgaColor(Color)` maps one of the 16 CGA/ANSI colors to the
+  closest fixed color-cube / grayscale index (16–255), giving a
+  terminal-independent color even when the terminal's base 16 palette is
+  remapped, with an optional `bright` variant.
+* `Palette256.fromRgb(int rgb)` returns the closest palette index for an
+  arbitrary 24-bit RGB value, searching both the 6×6×6 color cube and the
+  grayscale ramp.
+* `Palette256.toRgb(int index)` returns the RGB value for a palette index.
+
+Palette, RGB, and named colors are mutually exclusive per channel: setting one
+clears the others.
+
+The system property `casciian.ECMA48.paletteColor` (default `false`) forces the
+16 named system colors to be emitted as fixed color-cube palette indices,
+mirroring `casciian.ECMA48.rgbColor` for 24-bit RGB. Only the 16 named colors
+are affected; cells that already carry a true RGB color are left untouched.
+This is enabled automatically for terminals such as Konsole whose default
+16-color palette has low contrast between normal and bright colors.
+
+On the input side, `AnsiParser` and the ECMA-48 terminal emulator apply
+received `38;5;n` / `48;5;n` sequences as a palette index directly (rather
+than resolving the index to RGB), so parsed cells preserve the compact
+palette representation end-to-end.

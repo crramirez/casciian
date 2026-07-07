@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import casciian.backend.Backend;
 import casciian.backend.HeadlessBackend;
+import casciian.bits.ComplexCell;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -429,6 +430,39 @@ class ECMA48Test {
             } catch (Exception e) {
                 // Ignore
             }
+            emulator.close();
+        }
+    }
+
+    /**
+     * Test that SGR 38;5;n / 48;5;n (256-color palette) sequences are
+     * applied as a palette index directly instead of being resolved to an
+     * RGB value.
+     */
+    @Test
+    @DisplayName("SGR 38;5;n / 48;5;n should set the palette index directly")
+    void shouldApply256ColorAsPaletteIndex() throws Exception {
+        Backend backend = new HeadlessBackend();
+
+        String sequence = "\033[38;5;196;48;5;21mA";
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(
+            sequence.getBytes("UTF-8"));
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
+            outputStream, null, backend);
+
+        try {
+            emulator.waitForOutput(1000);
+
+            TerminalState state = emulator.captureState();
+            ComplexCell cell = state.getDisplayBuffer().get(0).charAt(0);
+
+            assertEquals(196, cell.getForeColorPalette());
+            assertEquals(21, cell.getBackColorPalette());
+            assertEquals(-1, cell.getForeColorRGB());
+            assertEquals(-1, cell.getBackColorRGB());
+        } finally {
             emulator.close();
         }
     }

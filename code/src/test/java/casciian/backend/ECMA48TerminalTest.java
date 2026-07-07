@@ -934,6 +934,217 @@ class ECMA48TerminalTest {
             escapeForDisplay(output));
     }
 
+    // 256-color palette tests
+
+    @Test
+    @DisplayName("Palette foreground color emits an indexed (38;5;n) sequence")
+    void shouldEmitIndexedSequenceForPaletteForeground() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColorPalette(196);
+        attr.setBackColor(Color.BLACK);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertTrue(output.contains("\033[38;5;196m"),
+            "Palette foreground should emit indexed sequence. Output: " +
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Palette background color emits an indexed (48;5;n) sequence")
+    void shouldEmitIndexedSequenceForPaletteBackground() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColor(Color.WHITE);
+        attr.setBackColorPalette(21);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertTrue(output.contains("\033[48;5;21m"),
+            "Palette background should emit indexed sequence. Output: " +
+            escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Palette colors do not emit RGB (38;2/48;2) sequences")
+    void paletteColorsDoNotEmitRgbSequences() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColorPalette(200);
+        attr.setBackColorPalette(20);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertFalse(output.contains("38;2;"),
+            "Palette foreground should not emit RGB sequence. Output: " +
+            escapeForDisplay(output));
+        assertFalse(output.contains("48;2;"),
+            "Palette background should not emit RGB sequence. Output: " +
+            escapeForDisplay(output));
+        assertTrue(output.contains("\033[38;5;200m"),
+            "Expected indexed foreground. Output: " + escapeForDisplay(output));
+        assertTrue(output.contains("\033[48;5;20m"),
+            "Expected indexed background. Output: " + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("A run of identical palette cells keeps the palette color and is not reset to a named placeholder")
+    void adjacentIdenticalPaletteCellsDoNotResetColor() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // A themed window background is a run of many identical palette cells.
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColorPalette(221);
+        attr.setBackColorPalette(234);
+
+        terminal.putCharXY(0, 0, 'P', attr);
+        terminal.putCharXY(1, 0, 'Q', attr);
+        terminal.putCharXY(2, 0, 'R', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        // The palette color must be emitted once and remain active for the
+        // whole run; the subsequent identical cells must not fall through to
+        // the named-color branch and reset to the Color.WHITE / Color.BLACK
+        // placeholder left by the palette setters.
+        assertTrue(output.contains("\033[38;5;221m"),
+            "Expected indexed foreground. Output: " + escapeForDisplay(output));
+        assertTrue(output.contains("\033[48;5;234m"),
+            "Expected indexed background. Output: " + escapeForDisplay(output));
+        // SGR 37 (named white) / SGR 40 (named black) would be the placeholder
+        // reset emitted by the bug for cells after the first.
+        assertFalse(output.contains("\033[37m"),
+            "Identical palette cells must not reset foreground to named white. "
+            + "Output: " + escapeForDisplay(output));
+        assertFalse(output.contains("\033[40m"),
+            "Identical palette cells must not reset background to named black. "
+            + "Output: " + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("A run of blank palette-background cells is painted, not erased to the default background")
+    void trailingBlankPaletteBackgroundCellsAreNotErasedToDefault() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // A themed window/desktop background is a run of blank (space) cells
+        // that carry a palette background.  These must be painted with the
+        // palette background rather than being treated as empty trailing
+        // cells and erased to the terminal default (which shows as black).
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColorPalette(221);
+        attr.setBackColorPalette(234);
+
+        // A single non-blank cell followed by a run of blank palette cells.
+        terminal.putCharXY(0, 0, 'X', attr);
+        for (int x = 1; x <= 9; x++) {
+            terminal.putCharXY(x, 0, ' ', attr);
+        }
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        // The palette background must be emitted, and the trailing blank
+        // cells must be painted as spaces under that background.  Before the
+        // fix, isBlank() considered a palette space cell "blank", so the run
+        // was dropped and clearRemainingLine() erased it to the default
+        // background.
+        assertTrue(output.contains("\033[48;5;234m"),
+            "Expected indexed background. Output: " + escapeForDisplay(output));
+        assertTrue(output.matches("(?s).*\\033\\[48;5;234m.* {9}.*"),
+            "Trailing blank palette cells must be painted with the palette "
+            + "background, not erased to default. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("putBackgroundAttrXY preserves a palette background instead of erasing it to black")
+    void putBackgroundAttrXYPreservesPaletteBackground() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Themed window/widget backgrounds are applied with
+        // putBackgroundAttrXY.  A palette background must be carried through;
+        // before the fix it fell through to the Color.BLACK placeholder left
+        // by setBackColorPalette and rendered as a black background.
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColor(Color.MAGENTA);
+        attr.setBackColorPalette(234);
+
+        for (int x = 0; x < 5; x++) {
+            terminal.putBackgroundAttrXY(x, 0, attr);
+        }
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertTrue(output.contains("\033[48;5;234m"),
+            "putBackgroundAttrXY must preserve the palette background. "
+            + "Output: " + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("putForegroundCharXY preserves an existing palette background under drawn text")
+    void putForegroundCharXYPreservesPaletteBackground() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        // Label text is drawn with putForegroundCharXY, which keeps the
+        // background of the cell already on screen.  When that background is a
+        // palette color it must be preserved; before the fix it fell through
+        // to the Color.BLACK placeholder and the text got a black background.
+        CellAttributes bg = new CellAttributes();
+        bg.setForeColor(Color.MAGENTA);
+        bg.setBackColorPalette(234);
+        for (int x = 0; x < 5; x++) {
+            terminal.putCharXY(x, 0, ' ', bg);
+        }
+
+        CellAttributes fg = new CellAttributes();
+        fg.setForeColor(Color.WHITE);
+        terminal.putForegroundCharXY(1, 0, 'H', fg);
+        terminal.putForegroundCharXY(2, 0, 'i', fg);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        assertTrue(output.contains("\033[48;5;234m"),
+            "putForegroundCharXY must keep the underlying palette background. "
+            + "Output: " + escapeForDisplay(output));
+    }
+
     // Helper methods
 
     private ECMA48Terminal createTerminal() {

@@ -62,4 +62,27 @@ class ColorThemeTest {
         assertTrue(attr.isBlink());
         assertEquals(Color.BRIGHT_RED, attr.getForeColor());
     }
+
+    @Test
+    void testDarkThemeUsesPaletteColors() {
+        ColorTheme theme = new ColorTheme();
+        theme.setDarkDefault();
+
+        CellAttributes attr = theme.getColor(ColorTheme.TWINDOW_BORDER);
+        assertTrue(attr.isPalette());
+        assertTrue(attr.getForeColorPalette() >= 0);
+        assertTrue(attr.getBackColorPalette() >= 0);
+        assertEquals(-1, attr.getForeColorRGB());
+        assertEquals(-1, attr.getBackColorRGB());
+    }
+
+    @Test
+    void testFemmeThemeUsesRgbColors() {
+        ColorTheme theme = new ColorTheme();
+        theme.setFemme();
+
+        CellAttributes attr = theme.getColor(ColorTheme.TWINDOW_BACKGROUND);
+        assertTrue(attr.getBackColorRGB() >= 0);
+        assertEquals(-1, attr.getBackColorPalette());
+    }
 }

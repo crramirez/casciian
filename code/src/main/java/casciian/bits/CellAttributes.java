@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.bits;
 
@@ -125,6 +130,22 @@ public class CellAttributes {
      * Background color as 24-bit RGB value.  Negative value means not set.
      */
     private int backColorRGB = -1;
+
+    /**
+     * Foreground color as a 256-color palette index (0-255).  Negative value
+     * means not set.
+     *
+     * @see Palette256
+     */
+    private int foreColorPalette = -1;
+
+    /**
+     * Background color as a 256-color palette index (0-255).  Negative value
+     * means not set.
+     *
+     * @see Palette256
+     */
+    private int backColorPalette = -1;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -394,6 +415,7 @@ public class CellAttributes {
     public final void setForeColor(final Color foreColor) {
         this.foreColor = foreColor;
         this.foreColorRGB = -1;
+        this.foreColorPalette = -1;
     }
 
     /**
@@ -413,6 +435,7 @@ public class CellAttributes {
     public final void setBackColor(final Color backColor) {
         this.backColor = backColor;
         this.backColorRGB = -1;
+        this.backColorPalette = -1;
     }
 
     /**
@@ -476,6 +499,7 @@ public class CellAttributes {
     public final void setForeColorRGB(final int foreColorRGB) {
         this.foreColorRGB = foreColorRGB & 0xFFFFFF;
         this.foreColor = Color.WHITE;
+        this.foreColorPalette = -1;
     }
 
     /**
@@ -496,6 +520,67 @@ public class CellAttributes {
     public final void setBackColorRGB(final int backColorRGB) {
         this.backColorRGB = backColorRGB & 0xFFFFFF;
         this.backColor = Color.BLACK;
+        this.backColorPalette = -1;
+    }
+
+    /**
+     * Getter for foreColor 256-color palette index.
+     *
+     * @return foreColor palette index (0-255).  Negative means unset.
+     * @see Palette256
+     */
+    public final int getForeColorPalette() {
+        return foreColorPalette;
+    }
+
+    /**
+     * Setter for foreColor 256-color palette index.  This is mutually
+     * exclusive with the RGB foreground color: setting a palette index clears
+     * any RGB foreground color.
+     *
+     * @param foreColorPalette new foreColor palette index (0-255), or a
+     * negative value to unset
+     * @throws IllegalArgumentException if foreColorPalette is greater than 255
+     * @see Palette256
+     */
+    public final void setForeColorPalette(final int foreColorPalette) {
+        if (foreColorPalette > 255) {
+            throw new IllegalArgumentException("foreColorPalette must be "
+                + "0-255, or negative to unset");
+        }
+        this.foreColorPalette = (foreColorPalette < 0) ? -1 : foreColorPalette;
+        this.foreColorRGB = -1;
+        this.foreColor = Color.WHITE;
+    }
+
+    /**
+     * Getter for backColor 256-color palette index.
+     *
+     * @return backColor palette index (0-255).  Negative means unset.
+     * @see Palette256
+     */
+    public final int getBackColorPalette() {
+        return backColorPalette;
+    }
+
+    /**
+     * Setter for backColor 256-color palette index.  This is mutually
+     * exclusive with the RGB background color: setting a palette index clears
+     * any RGB background color.
+     *
+     * @param backColorPalette new backColor palette index (0-255), or a
+     * negative value to unset
+     * @throws IllegalArgumentException if backColorPalette is greater than 255
+     * @see Palette256
+     */
+    public final void setBackColorPalette(final int backColorPalette) {
+        if (backColorPalette > 255) {
+            throw new IllegalArgumentException("backColorPalette must be "
+                + "0-255, or negative to unset");
+        }
+        this.backColorPalette = (backColorPalette < 0) ? -1 : backColorPalette;
+        this.backColorRGB = -1;
+        this.backColor = Color.BLACK;
     }
 
     /**
@@ -508,6 +593,17 @@ public class CellAttributes {
     }
 
     /**
+     * See if this cell uses a 256-color palette index for either its
+     * foreground or background color.
+     *
+     * @return true if this cell has a 256-color palette color
+     * @see Palette256
+     */
+    public final boolean isPalette() {
+        return (foreColorPalette >= 0) || (backColorPalette >= 0);
+    }
+
+    /**
      * Set to default: white foreground on black background, no
      * bold/underline/blink/rever/protect.
      */
@@ -517,6 +613,8 @@ public class CellAttributes {
         backColor       = Color.BLACK;
         foreColorRGB    = -1;
         backColorRGB    = -1;
+        foreColorPalette = -1;
+        backColorPalette = -1;
     }
 
     /**
@@ -535,7 +633,9 @@ public class CellAttributes {
             && (foreColor == that.foreColor)
             && (backColor == that.backColor)
             && (foreColorRGB == that.foreColorRGB)
-            && (backColorRGB == that.backColorRGB));
+            && (backColorRGB == that.backColorRGB)
+            && (foreColorPalette == that.foreColorPalette)
+            && (backColorPalette == that.backColorPalette));
     }
 
     /**
@@ -553,6 +653,8 @@ public class CellAttributes {
         hash = (b * hash) + backColor.hashCode();
         hash = (b * hash) + foreColorRGB;
         hash = (b * hash) + backColorRGB;
+        hash = (b * hash) + foreColorPalette;
+        hash = (b * hash) + backColorPalette;
         return hash;
     }
 
@@ -569,6 +671,8 @@ public class CellAttributes {
         this.backColor          = that.backColor;
         this.foreColorRGB       = that.foreColorRGB;
         this.backColorRGB       = that.backColorRGB;
+        this.foreColorPalette   = that.foreColorPalette;
+        this.backColorPalette   = that.backColorPalette;
     }
 
     /**
@@ -578,6 +682,26 @@ public class CellAttributes {
      */
     @Override
     public String toString() {
+        if ((foreColorPalette >= 0) || (backColorPalette >= 0)) {
+            StringBuilder sb = new StringBuilder("Palette: ");
+
+            if (foreColorPalette >= 0) {
+                sb.append(foreColorPalette);
+            } else if (foreColorRGB >= 0) {
+                sb.append(String.format("#%06x", (foreColorRGB & 0xFFFFFF)));
+            } else {
+                sb.append(foreColor.toString());
+            }
+            sb.append(" on ");
+            if (backColorPalette >= 0) {
+                sb.append(backColorPalette);
+            } else if (backColorRGB >= 0) {
+                sb.append(String.format("#%06x", (backColorRGB & 0xFFFFFF)));
+            } else {
+                sb.append(backColor.toString());
+            }
+            return sb.toString();
+        }
         if ((foreColorRGB >= 0) || (backColorRGB >= 0)) {
             StringBuilder sb = new StringBuilder("RGB: ");
 
@@ -868,6 +992,30 @@ public class CellAttributes {
          */
         public Builder backColorRGB(final int backColorRGB) {
             attributes.setBackColorRGB(backColorRGB);
+            return this;
+        }
+
+        /**
+         * Set the foreground 256-color palette index.
+         *
+         * @param foreColorPalette new foreground palette index (0-255)
+         * @return this builder
+         * @see Palette256
+         */
+        public Builder foreColorPalette(final int foreColorPalette) {
+            attributes.setForeColorPalette(foreColorPalette);
+            return this;
+        }
+
+        /**
+         * Set the background 256-color palette index.
+         *
+         * @param backColorPalette new background palette index (0-255)
+         * @return this builder
+         * @see Palette256
+         */
+        public Builder backColorPalette(final int backColorPalette) {
+            attributes.setBackColorPalette(backColorPalette);
             return this;
         }
 

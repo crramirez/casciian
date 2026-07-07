@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.backend;
 
@@ -39,6 +44,7 @@ import casciian.bits.Color;
 import casciian.bits.ComplexCell;
 import casciian.bits.ImageRGB;
 import casciian.bits.ArrayImageRGB;
+import casciian.bits.Palette256;
 import casciian.bits.StringUtils;
 import casciian.bits.UnicodeGlyphImage;
 import casciian.event.TCommandEvent;
@@ -1764,6 +1770,16 @@ public class ECMA48Terminal extends LogicalScreen
                         System.err.println("3a set foreColorRGB");
                     }
                     sb.append(colorRGB(foreColorRGB, true));
+                } else if ((lCell.getForeColorPalette() >= 0)
+                    && !lCell.isDefaultColor(true)
+                    && ((lCell.getForeColorPalette()
+                        != lastAttr.getForeColorPalette())
+                    || (lastAttr.getForeColorPalette() < 0))
+                ) {
+                    if (DEBUG_TO_STDERR && reallyDebug) {
+                        System.err.println("3p set foreColorPalette");
+                    }
+                    sb.append(colorPalette(lCell.getForeColorPalette(), true));
                 } else if (lCell.isDefaultColor(true)) {
                     if (!lastAttr.isDefaultColor(true)) {
                         if (DEBUG_TO_STDERR && reallyDebug) {
@@ -1773,7 +1789,9 @@ public class ECMA48Terminal extends LogicalScreen
                     }
                 } else {
                     if ((lCell.getForeColorRGB() < 0)
+                        && (lCell.getForeColorPalette() < 0)
                         && ((lastAttr.getForeColorRGB() >= 0)
+                        || (lastAttr.getForeColorPalette() >= 0)
                         || !lCell.getForeColor().equals(lastAttr.getForeColor())
                         || lastAttr.isDefaultColor(true)
                         || lCellBoldAsBright != lastBoldAsBright
@@ -1798,12 +1816,21 @@ public class ECMA48Terminal extends LogicalScreen
                             // reflects the terminal's native colors once it
                             // responds -- the same trust model rgbColor()
                             // already relies on.
-                            sb.append(forcedRgbColor(false,
-                                lCell.getForeColor(), true));
+                            if (SystemProperties.isPaletteColor()
+                                && !SystemProperties.isRgbColor()
+                            ) {
+                                sb.append(forcedPaletteColor(false,
+                                    lCell.getForeColor(), true));
+                            } else {
+                                sb.append(forcedRgbColor(false,
+                                    lCell.getForeColor(), true));
+                            }
                         } else {
                             sb.append(color(lCell.getForeColor(), true, true,
                                 lCellBoldAsBright));
                             sb.append(rgbColor(lCellBoldAsBright,
+                                lCell.getForeColor(), true));
+                            sb.append(paletteColor(lCellBoldAsBright,
                                 lCell.getForeColor(), true));
                         }
                     }
@@ -1819,6 +1846,17 @@ public class ECMA48Terminal extends LogicalScreen
                         System.err.println("5 set backColorRGB");
                     }
                     sb.append(colorRGB(lCell.getBackColorRGB(), false));
+                } else if ((lCell.getBackColorPalette() >= 0)
+                    && !lCell.isDefaultColor(false)
+                    && ((lCell.getBackColorPalette()
+                        != lastAttr.getBackColorPalette())
+                    || (lastAttr.getBackColorPalette() < 0))
+                ) {
+                    //noinspection ConstantValue
+                    if (DEBUG_TO_STDERR && reallyDebug) {
+                        System.err.println("5p set backColorPalette");
+                    }
+                    sb.append(colorPalette(lCell.getBackColorPalette(), false));
                 } else if (lCell.isDefaultColor(false)) {
                     if (!lastAttr.isDefaultColor(false)) {
                         //noinspection ConstantValue
@@ -1829,7 +1867,9 @@ public class ECMA48Terminal extends LogicalScreen
                     }
                 } else {
                     if ((lCell.getBackColorRGB() < 0)
+                        && (lCell.getBackColorPalette() < 0)
                         && ((lastAttr.getBackColorRGB() >= 0)
+                        || (lastAttr.getBackColorPalette() >= 0)
                         || !lCell.getBackColor().equals(lastAttr.getBackColor())
                         || lastAttr.isDefaultColor(false))
                     ) {
@@ -1838,6 +1878,8 @@ public class ECMA48Terminal extends LogicalScreen
                         }
                         sb.append(color(lCell.getBackColor(), false, true));
                         sb.append(rgbColor(false,
+                            lCell.getBackColor(), false));
+                        sb.append(paletteColor(false,
                             lCell.getBackColor(), false));
                     }
                 }
@@ -2676,31 +2718,42 @@ public class ECMA48Terminal extends LogicalScreen
             }
 
             // Konsole doesn't support changing the palette, and the contrast between regular and bright colors
-            // is too low in the default profile. So, we force sending full rgb colors, unless the user has
-            // explicitly configured casciian.ECMA48.rgbColor.
-            setRgbColorIfNotConfigured();
+            // is too low in the default profile. So, we force sending fixed 256-color palette (color cube)
+            // colors, unless the user has explicitly configured casciian.ECMA48.paletteColor or casciian.ECMA48.rgbColor.
+            setPaletteOrRgbColorIfNotConfigured();
         }
 
         if (text.contains(XTVERSION_FOR_WARP)) {
             // Warp doesn't support changing the palette, and the contrast between regular and bright colors
             // is too low in the default profile. So, we force sending full rgb colors, unless the user has
             // explicitly configured casciian.ECMA48.rgbColor.
-            setRgbColorIfNotConfigured();
+            setPaletteOrRgbColorIfNotConfigured();
         }
 
         setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
     }
 
     /**
-     * Enable RGB color mode if the terminal palette is not in use and the
+     * Enable 256-color palette mode or RGB color mode if the terminal palette is not in use and the
      * user has not explicitly configured the system property.
      */
-    private void setRgbColorIfNotConfigured() {
-        if (!SystemProperties.isUseTerminalPalette() || SystemProperties.isTranslucence()) {
+    private void setPaletteOrRgbColorIfNotConfigured() {
+        if (!SystemProperties.isUseTerminalPalette()) {
+
             String rgbColorProperty = System.getProperty(
-                    SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
-            if (rgbColorProperty == null) {
-                SystemProperties.setRgbColor(true);
+                SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
+            String paletteColorProperty = System.getProperty(
+                SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR);
+
+            // Only force a color mode when the user has not explicitly
+            // configured either property, so we never enable both modes at
+            // once or override the user's choice.
+            if ((rgbColorProperty == null) && (paletteColorProperty == null)) {
+                if (SystemProperties.isTranslucence()) {
+                    SystemProperties.setRgbColor(true);
+                } else {
+                    SystemProperties.setPaletteColor(true);
+                }
             }
         }
     }
@@ -4265,6 +4318,11 @@ public class ECMA48Terminal extends LogicalScreen
             return rgb;
         }
 
+        int paletteIndex = attr.getForeColorPalette();
+        if (paletteIndex >= 0) {
+            return Palette256.toRgb(paletteIndex);
+        }
+
         Color foreColor = attr.getForeColor();
         // A bright color (Color.BRIGHT_*) selects the high-intensity palette
         // entry.  The bold attribute does so only when treatBoldAsBright is
@@ -4309,6 +4367,11 @@ public class ECMA48Terminal extends LogicalScreen
         int rgb = attr.getBackColorRGB();
         if (rgb >= 0) {
             return rgb;
+        }
+
+        int paletteIndex = attr.getBackColorPalette();
+        if (paletteIndex >= 0) {
+            return Palette256.toRgb(paletteIndex);
         }
 
         Color backColor = attr.getBackColor();
@@ -4383,6 +4446,22 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Create a SGR indexed-color (256-color palette) parameter sequence for a
+     * single color change.
+     *
+     * @param index      a 256-color palette index (0-255)
+     * @param foreground if true, this is a foreground color
+     * @return the string to emit to an ANSI / ECMA-style terminal,
+     * e.g. "\033[38;5;Nm"
+     */
+    private String colorPalette(final int index, final boolean foreground) {
+        if (foreground) {
+            return String.format("\033[38;5;%dm", index & 0xFF);
+        }
+        return String.format("\033[48;5;%dm", index & 0xFF);
+    }
+
+    /**
      * Get the palette color for a Color constant.
      *
      * @param color the Color constant
@@ -4429,6 +4508,56 @@ public class ECMA48Terminal extends LogicalScreen
     private String forcedRgbColor(final boolean bold, final Color color,
                             final boolean foreground) {
         return colorRGB(getPaletteColor(color, bold), foreground);
+    }
+
+    /**
+     * Create a SGR indexed-color (256-color palette) parameter sequence for a
+     * palette color, unconditionally, regardless of the
+     * {@code casciian.ECMA48.paletteColor} system property.  The terminal-
+     * neutral xterm color cube entry closest to the named color is used, so
+     * the exact color is pinned even on terminals whose 16-color palette is
+     * remapped or low-contrast.
+     *
+     * @param bold       if true, use the bright palette variant
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param foreground if true, this is a foreground color
+     * @return the string to emit to an ANSI/ECMA-style terminal,
+     * e.g. "\033[38;5;Nm"
+     */
+    private String forcedPaletteColor(final boolean bold, final Color color,
+                            final boolean foreground) {
+        return colorPalette(Palette256.fromRgb(getPaletteColor(color, bold)), foreground);
+    }
+
+    /**
+     * Create a SGR indexed-color (256-color palette) parameter sequence for a
+     * single color change, but only when the
+     * {@code casciian.ECMA48.paletteColor} system property is enabled.  This
+     * mirrors {@link #rgbColor(boolean, Color, boolean)}: the terminal-neutral
+     * xterm color cube entry closest to the named color is emitted so that
+     * terminals with a low-contrast or remapped 16-color palette still render
+     * a well-defined color.
+     *
+     * @param bold       if true, use the bright palette variant
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param foreground if true, this is a foreground color
+     * @return the string to emit to an ANSI/ECMA-style terminal,
+     * e.g. "\033[38;5;Nm", or "" if palette color mode is disabled
+     */
+    private String paletteColor(final boolean bold, final Color color,
+                                final boolean foreground) {
+        if (!SystemProperties.isPaletteColor()
+            || SystemProperties.isRgbColor()
+        ) {
+            // RGB color takes precedence over the 256-color palette; do not
+            // emit an indexed-color sequence that would override it.
+            return "";
+        }
+        if (bold) {
+            // Bold implies foreground only
+            return colorPalette(Palette256.fromRgb(getPaletteColor(color, true)), true);
+        }
+        return colorPalette(Palette256.fromRgb(getPaletteColor(color, false)), foreground);
     }
 
     /**

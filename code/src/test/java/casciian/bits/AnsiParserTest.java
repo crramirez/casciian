@@ -328,7 +328,9 @@ class AnsiParserTest {
             "\033[38;5;196mA", 80);
         Cell cell = lines.get(0).getCells().get(0);
         assertFalse(cell.isDefaultColor(true));
-        assertTrue(cell.getForeColorRGB() >= 0);
+        assertTrue(cell.getForeColorPalette() >= 0);
+        assertEquals(196, cell.getForeColorPalette());
+        assertEquals(-1, cell.getForeColorRGB());
     }
 
     @Test
@@ -338,7 +340,9 @@ class AnsiParserTest {
             "\033[48;5;21mA", 80);
         Cell cell = lines.get(0).getCells().get(0);
         assertFalse(cell.isDefaultColor(false));
-        assertTrue(cell.getBackColorRGB() >= 0);
+        assertTrue(cell.getBackColorPalette() >= 0);
+        assertEquals(21, cell.getBackColorPalette());
+        assertEquals(-1, cell.getBackColorRGB());
     }
 
     // -----------------------------------------------------------------------
@@ -375,7 +379,8 @@ class AnsiParserTest {
         List<AnsiParser.Line> lines = AnsiParser.parse("\033[91mA", 80);
         Cell cell = lines.get(0).getCells().get(0);
         assertFalse(cell.isDefaultColor(true));
-        assertTrue(cell.getForeColorRGB() >= 0);
+        assertEquals(casciian.bits.Color.BRIGHT_RED, cell.getForeColor());
+        assertEquals(-1, cell.getForeColorRGB());
     }
 
     @Test
@@ -384,7 +389,8 @@ class AnsiParserTest {
         List<AnsiParser.Line> lines = AnsiParser.parse("\033[101mA", 80);
         Cell cell = lines.get(0).getCells().get(0);
         assertFalse(cell.isDefaultColor(false));
-        assertTrue(cell.getBackColorRGB() >= 0);
+        assertEquals(casciian.bits.Color.BRIGHT_RED, cell.getBackColor());
+        assertEquals(-1, cell.getBackColorRGB());
     }
 
     // -----------------------------------------------------------------------

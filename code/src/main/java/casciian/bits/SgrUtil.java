@@ -187,17 +187,18 @@ public final class SgrUtil {
      * (39, 49), and high-intensity colors (90–97, 100–107).
      *
      * <p>
-     * For high-intensity and indexed colors, the provided {@code palette}
-     * function maps a color index (0–255) to an RGB value. This allows
-     * callers with custom/mutable palettes (e.g., terminal emulators) to
-     * supply their own lookup.
+     * High-intensity colors (90–97, 100–107) are now applied directly as
+     * the corresponding BRIGHT_* named color (SGR indices 8–15), since
+     * {@link CellAttributes} natively supports bright colors. There is no
+     * need to resolve them to RGB, so the {@code palette} parameter is not
+     * used for those codes; it is retained for signature compatibility with
+     * callers that also drive indexed/RGB extended color sequences.
      * </p>
      *
      * @param code the SGR parameter value
      * @param attr the attributes to modify
-     * @param palette maps a color index (0–255) to an RGB int; used for
-     *        high-intensity colors (indices 8–15). May be {@code null},
-     *        in which case the default xterm palette is used.
+     * @param palette unused by this method; retained for shared
+     *        signature/API compatibility with callers
      * @return {@code true} if the code was handled, {@code false} if it
      *         was not recognized (caller may handle it specially)
      */
@@ -205,8 +206,6 @@ public final class SgrUtil {
     public static boolean applySgrCode(final int code,
             final CellAttributes attr, final IntUnaryOperator palette) {
 
-        IntUnaryOperator pal = (palette != null)
-            ? palette : SgrUtil::getDefaultIndexedColor;
 
         switch (code) {
         // --- Attribute toggles ---
@@ -315,7 +314,7 @@ public final class SgrUtil {
              SGR_FG_BRIGHT_BASE + 5,
              SGR_FG_BRIGHT_BASE + 6,
              SGR_FG_BRIGHT_BASE + 7:
-            attr.setForeColorRGB(pal.applyAsInt(code - SGR_FG_BRIGHT_BASE + 8));
+            attr.setForeColor(Color.getSgrColor(code - SGR_FG_BRIGHT_BASE + 8));
             attr.setDefaultColor(true, false);
             return true;
 
@@ -328,7 +327,7 @@ public final class SgrUtil {
              SGR_BG_BRIGHT_BASE + 5,
              SGR_BG_BRIGHT_BASE + 6,
              SGR_BG_BRIGHT_BASE + 7:
-            attr.setBackColorRGB(pal.applyAsInt(code - SGR_BG_BRIGHT_BASE + 8));
+            attr.setBackColor(Color.getSgrColor(code - SGR_BG_BRIGHT_BASE + 8));
             attr.setDefaultColor(false, false);
             return true;
 
@@ -387,7 +386,10 @@ public final class SgrUtil {
          *
          * @param value the sub-parameter value
          * @param attr the attributes to apply color to when complete
-         * @param palette color index lookup (index→RGB)
+         * @param palette color index lookup (index→RGB), unused for
+         *        indexed (38/48;5;n) sequences since those are now applied
+         *        directly as a 256-color palette index; retained for RGB
+         *        sub-sequences' shared method signature
          */
         public void feedValue(final int value,
                 final CellAttributes attr,
@@ -398,9 +400,10 @@ public final class SgrUtil {
             }
 
             if (indexed) {
-                // We have the color index
-                int rgbVal = palette.applyAsInt(value);
-                applyColor(rgbVal, attr);
+                // Apply the 256-color palette index directly instead of
+                // resolving it to RGB, so downstream rendering can emit a
+                // compact "38;5;n"/"48;5;n" sequence.
+                applyPaletteColor(value & 0xFF, attr);
                 reset();
                 return;
             }
@@ -434,6 +437,17 @@ public final class SgrUtil {
                 attr.setDefaultColor(true, false);
             } else {
                 attr.setBackColorRGB(rgbVal);
+                attr.setDefaultColor(false, false);
+            }
+        }
+
+        private void applyPaletteColor(final int index,
+                final CellAttributes attr) {
+            if (mode == 38) {
+                attr.setForeColorPalette(index);
+                attr.setDefaultColor(true, false);
+            } else {
+                attr.setBackColorPalette(index);
                 attr.setDefaultColor(false, false);
             }
         }
