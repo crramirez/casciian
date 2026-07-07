@@ -2753,10 +2753,7 @@ public class ColorTheme {
         final int bgInactive = 0x2a2a2a; // inactive window (slightly lighter)
         final int bgPanel = 0x252526; // panel / menu surface
         final int bgModal = 0x1a3a66; // modal surface (muted blue)
-        // input field idle; nudged from 0x0a3a6e so it lands in a distinct
-        // 256-color cube cell from bgModal (both previously quantized to the
-        // same palette index, making the two surfaces indistinguishable).
-        final int bgField = 0x0a2f74;
+        final int bgField = 0x0a3a6e; // input field idle
         final int bgFieldHot = 0x0f5aa8; // input field / active selection
         final int bgSelect = 0x264f78; // list / editor selection
         final int fgText = 0xe0e0e0;
