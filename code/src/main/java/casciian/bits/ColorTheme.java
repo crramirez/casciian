@@ -34,6 +34,7 @@ import java.util.SortedMap;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 
+import casciian.backend.SystemProperties;
 import static casciian.backend.SystemProperties.CASCIAN_PROPERTY_PREFIX;
 import static casciian.backend.SystemProperties.CASCIIANRC_ENV_VAR;
 import static casciian.bits.Color.*;
@@ -2702,10 +2703,15 @@ public class ColorTheme {
 
     /**
      * Build a CellAttributes with 256-color palette fore/back colors mapped
-     * from 24-bit RGB values.
+     * from 24-bit RGB values.  When {@code casciian.ECMA48.rgbColor} is
+     * enabled, emits full 24-bit RGB instead so themes stay faithful when
+     * the user has forced RGB output.
      */
     private static CellAttributes rgbToPalette(final int fgRGB, final int bgRGB,
                                       final boolean bold) {
+        if (SystemProperties.isRgbColor()) {
+            return rgb(fgRGB, bgRGB, bold);
+        }
         return CellAttributes.builder()
             .foreColorPalette(Palette256.fromRgb(fgRGB))
             .backColorPalette(Palette256.fromRgb(bgRGB))
@@ -2715,9 +2721,14 @@ public class ColorTheme {
 
     /**
      * Build a CellAttributes with 256-color palette fore/back colors mapped
-     * from 24-bit RGB values.
+     * from 24-bit RGB values.  When {@code casciian.ECMA48.rgbColor} is
+     * enabled, emits full 24-bit RGB instead so themes stay faithful when
+     * the user has forced RGB output.
      */
     private static CellAttributes rgbToPalette(final int fgRGB, final int bgRGB) {
+        if (SystemProperties.isRgbColor()) {
+            return rgb(fgRGB, bgRGB);
+        }
         return CellAttributes.builder()
             .foreColorPalette(Palette256.fromRgb(fgRGB))
             .backColorPalette(Palette256.fromRgb(bgRGB))
