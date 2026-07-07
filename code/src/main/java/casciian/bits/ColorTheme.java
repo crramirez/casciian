@@ -1845,26 +1845,32 @@ public class ColorTheme {
         color.setForeColor(BRIGHT_RED);
         color.setBackColorRGB(pink);
         colors.put(TBUTTON_ACTIVE, color);
+        colors.put(TBUTTON_ACTIVE_MODAL, color);
         color = new CellAttributes();
         color.setForeColor(BLACK);
         color.setBackColorRGB(pink);
         colors.put(TBUTTON_INACTIVE, color);
+        colors.put(TBUTTON_INACTIVE_MODAL, color);
         color = new CellAttributes();
         color.setForeColor(BRIGHT_BLACK);
         color = new CellAttributes();
         color.setForeColorRGB(blue);
         color.setBackColorRGB(pink);
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, color);
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, color);
         color = new CellAttributes();
         color.setForeColorRGB(blue);
         color.setBackColorRGB(pink);
         colors.put(TBUTTON_MNEMONIC, color);
+        colors.put(TBUTTON_MNEMONIC_MODAL, color);
         color = new CellAttributes();
         color.setForeColor(RED);
         colors.put(TBUTTON_PULSE, color);
+        colors.put(TBUTTON_PULSE_MODAL, color);
         color = new CellAttributes();
         color.setForeColorRGB(blue);
         colors.put(TBUTTON_MNEMONIC_PULSE, color);
+        colors.put(TBUTTON_MNEMONIC_PULSE_MODAL, color);
 
         color = new CellAttributes();
         color.setForeColor(BRIGHT_BLUE);
@@ -1874,10 +1880,15 @@ public class ColorTheme {
         color.setForeColor(WHITE);
         color.setBackColorRGB(pink2);
         colors.put(TPROGRESSBAR_INCOMPLETE, color);
-        color = new CellAttributes();
-        color.setForeColor(BRIGHT_MAGENTA);
         colors.put(TPROGRESSBAR_BORDER, color);
         colors.put(TPROGRESSBAR_BORDER_MODAL, color);
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_WHITE);
+        color.setBackColorRGB(pink2);
+        color.setBold(true);
+        colors.put(TLABEL, color);
+        colors.put(TLABEL_MODAL, color);
+        colors.put(TLABEL_ACTIVE_MODAL, color);
 
         color = new CellAttributes();
         color.setForeColor(BRIGHT_MAGENTA);
@@ -2752,8 +2763,8 @@ public class ColorTheme {
         final int bgWindow = 0x1e1e1e; // main window surface (was pure black)
         final int bgInactive = 0x2a2a2a; // inactive window (slightly lighter)
         final int bgPanel = 0x252526; // panel / menu surface
-        final int bgModal = 0x1a3a66; // modal surface (muted blue)
-        final int bgField = 0x0a3a6e; // input field idle
+        final int bgModal = 0x000087; // modal surface (muted blue)
+        final int bgField = 0x00005f; // input field idle
         final int bgFieldHot = 0x0f5aa8; // input field / active selection
         final int bgSelect = 0x264f78; // list / editor selection
         final int fgText = 0xe0e0e0;
@@ -3087,7 +3098,7 @@ public class ColorTheme {
         // Flat dark palette: everything on pure black with vibrant accents.
         final int bgBlack = 0x000000; // main surface
         final int bgSubtle = 0x0a0a0a; // extremely subtle lift for inputs
-        final int bgSelection = 0x1f3a5f; // selection blue (muted, readable)
+        final int bgSelection = 0x00005f; // selection blue (muted, readable)
         final int bgAccentDim = 0x1a1a1a; // pressed / disabled surface
         final int fgText = 0xd0d0d0; // main foreground
         final int fgMuted = 0x808080; // secondary text / borders
