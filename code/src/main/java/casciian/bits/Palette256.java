@@ -263,6 +263,28 @@ public final class Palette256 {
     }
 
     /**
+     * Find the exact 256-color palette index for a 24-bit RGB value.
+     *
+     * <p>
+     * Scans all 256 palette entries and returns the first index whose RGB
+     * value matches {@code rgb} exactly.  Returns {@code -1} if no entry
+     * matches.
+     * </p>
+     *
+     * @param rgb a 24-bit RGB value (0xRRGGBB)
+     * @return the palette index (0–255) whose exact color equals {@code rgb},
+     *         or {@code -1} if no entry matches
+     */
+    public static int findExact(final int rgb) {
+        for (int i = 0; i < SIZE; i++) {
+            if (toRgb(i) == rgb) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * Find the closest 256-color palette index for a 24-bit RGB value.
      *
      * <p>

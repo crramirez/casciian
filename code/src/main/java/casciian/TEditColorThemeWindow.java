@@ -28,6 +28,7 @@ import casciian.bits.Color;
 import casciian.bits.ColorTheme;
 import casciian.bits.CellAttributes;
 import casciian.bits.GraphicsChars;
+import casciian.bits.Palette256;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import static casciian.TKeypress.*;
@@ -880,6 +881,9 @@ public class TEditColorThemeWindow extends TWindow {
         if (attr.getForeColorRGB() >= 0) {
             foreground.rgb.setText(String.format("%06x",
                     attr.getForeColorRGB()));
+        } else if (attr.getForeColorPalette() >= 0) {
+            foreground.rgb.setText(String.format("%06x",
+                    Palette256.toRgb(attr.getForeColorPalette())));
         } else {
             foreground.rgb.setText("");
         }
@@ -893,6 +897,9 @@ public class TEditColorThemeWindow extends TWindow {
         if (attr.getBackColorRGB() >= 0) {
             background.rgb.setText(String.format("%06x",
                     attr.getBackColorRGB()));
+        } else if (attr.getBackColorPalette() >= 0) {
+            background.rgb.setText(String.format("%06x",
+                    Palette256.toRgb(attr.getBackColorPalette())));
         } else {
             background.rgb.setText("");
         }
@@ -917,7 +924,12 @@ public class TEditColorThemeWindow extends TWindow {
             if (text.length() > 0) {
                 int foreColorRGB = Integer.parseInt(text, 16);
                 if (foreColorRGB >= 0) {
-                    attr.setForeColorRGB(foreColorRGB);
+                    int paletteIndex = Palette256.findExact(foreColorRGB);
+                    if (paletteIndex >= 0) {
+                        attr.setForeColorPalette(paletteIndex);
+                    } else {
+                        attr.setForeColorRGB(foreColorRGB);
+                    }
                 }
             }
         } catch (NumberFormatException e) {
@@ -926,7 +938,8 @@ public class TEditColorThemeWindow extends TWindow {
         // A bright selection is stored as the bright foreground color
         // directly, independent of the bold attribute (which this editor
         // does not expose).
-        if ((attr.getForeColorRGB() < 0) && foreground.bright) {
+        if ((attr.getForeColorRGB() < 0) && (attr.getForeColorPalette() < 0)
+                && foreground.bright) {
             attr.setForeColor(foreground.color.toBright());
         }
 
@@ -939,7 +952,12 @@ public class TEditColorThemeWindow extends TWindow {
             if (text.length() > 0) {
                 int backColorRGB = Integer.parseInt(text, 16);
                 if (backColorRGB >= 0) {
-                    attr.setBackColorRGB(backColorRGB);
+                    int paletteIndex = Palette256.findExact(backColorRGB);
+                    if (paletteIndex >= 0) {
+                        attr.setBackColorPalette(paletteIndex);
+                    } else {
+                        attr.setBackColorRGB(backColorRGB);
+                    }
                 }
             }
         } catch (NumberFormatException e) {
