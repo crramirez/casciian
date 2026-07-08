@@ -16,6 +16,11 @@
 package casciian.bits;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -84,5 +89,149 @@ class ColorThemeTest {
         CellAttributes attr = theme.getColor(ColorTheme.TWINDOW_BACKGROUND);
         assertTrue(attr.getBackColorRGB() >= 0);
         assertEquals(-1, attr.getBackColorPalette());
+    }
+
+    @Test
+    void testMixedRgbForegroundNamedBackground() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString("test.color", "#ffcc00 on blue");
+
+        CellAttributes attr = theme.getColor("test.color");
+        assertEquals(0xffcc00, attr.getForeColorRGB());
+        assertEquals(-1, attr.getForeColorPalette());
+        assertEquals(-1, attr.getBackColorRGB());
+        assertEquals(Color.BLUE, attr.getBackColor());
+    }
+
+    @Test
+    void testMixedNamedForegroundRgbBackground() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString("test.color", "red on #112233");
+
+        CellAttributes attr = theme.getColor("test.color");
+        assertEquals(Color.RED, attr.getForeColor());
+        assertEquals(-1, attr.getForeColorRGB());
+        assertEquals(0x112233, attr.getBackColorRGB());
+    }
+
+    @Test
+    void testMixedPaletteForegroundRgbBackground() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString("test.color", "pal:220 on #1e1e1e");
+
+        CellAttributes attr = theme.getColor("test.color");
+        assertEquals(220, attr.getForeColorPalette());
+        assertEquals(-1, attr.getForeColorRGB());
+        assertEquals(0x1e1e1e, attr.getBackColorRGB());
+    }
+
+    @Test
+    void testMixedNamedForegroundPaletteBackground() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString("test.color", "bright yellow on pal:236");
+
+        CellAttributes attr = theme.getColor("test.color");
+        assertEquals(Color.BRIGHT_YELLOW, attr.getForeColor());
+        assertEquals(236, attr.getBackColorPalette());
+        assertEquals(-1, attr.getBackColorRGB());
+    }
+
+    @Test
+    void testBrightBackgroundNamedColor() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString("test.color", "white on bright black");
+
+        CellAttributes attr = theme.getColor("test.color");
+        assertEquals(Color.WHITE, attr.getForeColor());
+        assertEquals(Color.BRIGHT_BLACK, attr.getBackColor());
+    }
+
+    @Test
+    void testLegacyRgbLineStillLoads() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString("test.color", "rgb: #ffcc00 on #112233");
+
+        CellAttributes attr = theme.getColor("test.color");
+        assertEquals(0xffcc00, attr.getForeColorRGB());
+        assertEquals(0x112233, attr.getBackColorRGB());
+    }
+
+    @Test
+    void testInvalidLineIsIgnored() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString("test.color", "just some text");
+
+        assertNull(theme.getColor("test.color"));
+    }
+
+    @Test
+    void testSaveConvertsPaletteToRgb(@TempDir Path tempDir) throws IOException {
+        ColorTheme theme = new ColorTheme();
+        CellAttributes attr = CellAttributes.builder()
+            .foreColorPalette(220)
+            .backColorPalette(236)
+            .build();
+        theme.setColor("test.color", attr);
+
+        Path file = tempDir.resolve("theme.dat");
+        theme.save(file.toString());
+        String content = Files.readString(file);
+
+        // Palette colors must be serialized as their RGB equivalent.
+        assertFalse(content.contains("pal:"));
+        assertFalse(content.contains("Palette"));
+        String expected = "test.color = #%06x on #%06x".formatted(
+            Palette256.toRgb(220) & 0xFFFFFF,
+            Palette256.toRgb(236) & 0xFFFFFF);
+        assertTrue(content.contains(expected),
+            "Expected line <" + expected + "> in:\n" + content);
+    }
+
+    @Test
+    void testSaveLoadRoundTripMixed(@TempDir Path tempDir) throws IOException {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString("k.rgbOnNamed", "#ffcc00 on blue");
+        theme.setColorFromString("k.namedOnRgb", "bold red on #112233");
+        theme.setColorFromString("k.brightNamed", "white on bright black");
+
+        Path file = tempDir.resolve("theme.dat");
+        theme.save(file.toString());
+
+        ColorTheme loaded = new ColorTheme();
+        loaded.load(file.toString());
+
+        CellAttributes a = loaded.getColor("k.rgbOnNamed");
+        assertEquals(0xffcc00, a.getForeColorRGB());
+        assertEquals(Color.BLUE, a.getBackColor());
+
+        CellAttributes b = loaded.getColor("k.namedOnRgb");
+        assertTrue(b.isBold());
+        assertEquals(Color.RED, b.getForeColor());
+        assertEquals(0x112233, b.getBackColorRGB());
+
+        CellAttributes c = loaded.getColor("k.brightNamed");
+        assertEquals(Color.WHITE, c.getForeColor());
+        assertEquals(Color.BRIGHT_BLACK, c.getBackColor());
+    }
+
+    @Test
+    void testSaveLoadRoundTripPaletteBecomesRgb(@TempDir Path tempDir)
+        throws IOException {
+
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString("k.palette", "pal:220 on pal:236");
+
+        Path file = tempDir.resolve("theme.dat");
+        theme.save(file.toString());
+
+        ColorTheme loaded = new ColorTheme();
+        loaded.load(file.toString());
+
+        CellAttributes a = loaded.getColor("k.palette");
+        // Palette became RGB on save, so it loads back as RGB.
+        assertEquals(Palette256.toRgb(220) & 0xFFFFFF, a.getForeColorRGB());
+        assertEquals(Palette256.toRgb(236) & 0xFFFFFF, a.getBackColorRGB());
+        assertEquals(-1, a.getForeColorPalette());
+        assertEquals(-1, a.getBackColorPalette());
     }
 }
