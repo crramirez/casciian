@@ -134,6 +134,40 @@ class Palette256Test {
     }
 
     @Test
+    @DisplayName("findExact returns the palette index for a known cube color")
+    void findExactReturnsCubeIndex() {
+        // Index 196 is pure red (0xFF0000) in the 6×6×6 cube.
+        assertEquals(196, Palette256.findExact(0xFF0000));
+        // Index 21 is pure blue (0x0000FF).
+        assertEquals(21, Palette256.findExact(0x0000FF));
+    }
+
+    @Test
+    @DisplayName("findExact returns -1 for a non-palette RGB value")
+    void findExactReturnsMinusOneForNonMatch() {
+        // 0x123456 is extremely unlikely to be an exact palette entry.
+        assertEquals(-1, Palette256.findExact(0x123456));
+    }
+
+    @Test
+    @DisplayName("findExact never returns an index below 16")
+    void findExactSkipsBaseColors() {
+        // Black (0x000000) exists as both index 0 (CGA black) and index 16
+        // (cube origin). findExact must return 16, not 0.
+        int index = Palette256.findExact(0x000000);
+        assertTrue(index >= 16,
+            "findExact must not return a base-16 index, got " + index);
+        assertEquals(16, index);
+    }
+
+    @Test
+    @DisplayName("findExact normalizes extra bits before comparing")
+    void findExactNormalizesInput() {
+        // A value with bits above 0xFFFFFF set should still match index 21.
+        assertEquals(21, Palette256.findExact(0xFF0000FF));
+    }
+
+    @Test
     @DisplayName("fromRgb returns the same index whether cached or freshly "
         + "computed")
     void fromRgbCacheIsConsistent() {
