@@ -117,23 +117,31 @@ class ColorThemeTest {
     @Test
     void testMixedPaletteForegroundRgbBackground() {
         ColorTheme theme = new ColorTheme();
-        theme.setColorFromString("test.color", "pal:220 on #1e1e1e");
+        CellAttributes attr = CellAttributes.builder()
+            .foreColorPalette(220)
+            .backColorRGB(0x1e1e1e)
+            .build();
+        theme.setColor("test.color", attr);
 
-        CellAttributes attr = theme.getColor("test.color");
-        assertEquals(220, attr.getForeColorPalette());
-        assertEquals(-1, attr.getForeColorRGB());
-        assertEquals(0x1e1e1e, attr.getBackColorRGB());
+        CellAttributes stored = theme.getColor("test.color");
+        assertEquals(220, stored.getForeColorPalette());
+        assertEquals(-1, stored.getForeColorRGB());
+        assertEquals(0x1e1e1e, stored.getBackColorRGB());
     }
 
     @Test
     void testMixedNamedForegroundPaletteBackground() {
         ColorTheme theme = new ColorTheme();
-        theme.setColorFromString("test.color", "bright yellow on pal:236");
+        CellAttributes attr = CellAttributes.builder()
+            .foreColor(Color.BRIGHT_YELLOW)
+            .backColorPalette(236)
+            .build();
+        theme.setColor("test.color", attr);
 
-        CellAttributes attr = theme.getColor("test.color");
-        assertEquals(Color.BRIGHT_YELLOW, attr.getForeColor());
-        assertEquals(236, attr.getBackColorPalette());
-        assertEquals(-1, attr.getBackColorRGB());
+        CellAttributes stored = theme.getColor("test.color");
+        assertEquals(Color.BRIGHT_YELLOW, stored.getForeColor());
+        assertEquals(236, stored.getBackColorPalette());
+        assertEquals(-1, stored.getBackColorRGB());
     }
 
     @Test
@@ -219,7 +227,11 @@ class ColorThemeTest {
         throws IOException {
 
         ColorTheme theme = new ColorTheme();
-        theme.setColorFromString("k.palette", "pal:220 on pal:236");
+        CellAttributes attr = CellAttributes.builder()
+            .foreColorPalette(220)
+            .backColorPalette(236)
+            .build();
+        theme.setColor("k.palette", attr);
 
         Path file = tempDir.resolve("theme.dat");
         theme.save(file.toString());

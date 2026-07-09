@@ -1028,15 +1028,15 @@ public class ColorTheme {
      * <ul>
      *   <li>a named color, optionally prefixed by {@code bright}
      *       (e.g. {@code red}, {@code bright blue});</li>
-     *   <li>a 24-bit RGB color as {@code #rrggbb} (or {@code rgb:#rrggbb});</li>
-     *   <li>a 256-color palette index as {@code pal:N} (0-255).</li>
+     *   <li>a 24-bit RGB color as {@code #rrggbb} (or {@code rgb:#rrggbb}).</li>
      * </ul>
      *
      * <p>
      * This means the two channels can mix representations freely, e.g.
-     * {@code #ffcc00 on blue} or {@code red on pal:236}.  For backward
-     * compatibility a legacy line-wide {@code rgb:} marker is accepted and
-     * ignored, since RGB colors are now detected per-channel.
+     * {@code #ffcc00 on blue}.  For backward compatibility a legacy line-wide
+     * {@code rgb:} marker is accepted and ignored, since RGB colors are now
+     * detected per-channel.  Palette colors are converted to RGB when a theme
+     * is saved, so they never appear in a theme file and are not parsed here.
      * </p>
      *
      * @param key  the color key string
@@ -1095,8 +1095,8 @@ public class ColorTheme {
 
     /**
      * Apply a single color token to one channel of a CellAttributes.  The
-     * token may be a named color, a 24-bit RGB color ({@code #rrggbb} or
-     * {@code rgb:#rrggbb}), or a palette color ({@code pal:N}).
+     * token may be a named color or a 24-bit RGB color ({@code #rrggbb} or
+     * {@code rgb:#rrggbb}).
      *
      * @param color the attributes to update
      * @param token the color token
@@ -1108,20 +1108,6 @@ public class ColorTheme {
         final String token, final boolean bright, final boolean foreground) {
 
         String lower = token.toLowerCase();
-
-        // Palette color: pal:N
-        if (lower.startsWith("pal:")) {
-            int index = parsePaletteIndex(lower.substring("pal:".length()));
-            if (index >= 0) {
-                if (foreground) {
-                    color.setForeColorPalette(index);
-                } else {
-                    color.setBackColorPalette(index);
-                }
-                return;
-            }
-            // Unparseable palette index: fall through to a named color.
-        }
 
         // RGB color: #rrggbb or rgb:#rrggbb
         String hex = lower;
@@ -1150,24 +1136,6 @@ public class ColorTheme {
             color.setForeColor(named);
         } else {
             color.setBackColor(named);
-        }
-    }
-
-    /**
-     * Parse a palette index string (0-255).
-     *
-     * @param text the text to parse
-     * @return the palette index, or a negative value if invalid
-     */
-    private static int parsePaletteIndex(final String text) {
-        try {
-            int index = Integer.parseInt(text.trim());
-            if ((index < 0) || (index > 255)) {
-                return -1;
-            }
-            return index;
-        } catch (NumberFormatException e) {
-            return -1;
         }
     }
 
