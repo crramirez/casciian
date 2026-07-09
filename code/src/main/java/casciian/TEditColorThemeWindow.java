@@ -29,6 +29,7 @@ import casciian.bits.ColorTheme;
 import casciian.bits.CellAttributes;
 import casciian.bits.GraphicsChars;
 import casciian.bits.Palette256;
+import casciian.bits.Rgb;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import static casciian.TKeypress.*;
@@ -276,7 +277,18 @@ public class TEditColorThemeWindow extends TWindow {
             if (rgbColor >= 0) {
                 attr.reset();
                 attr.setForeColorRGB(rgbColor);
-                putStringXY(1, 6, "\u2588\u25D8\u2588", attr);
+                // If the swatch color is too dark to be visible against the
+                // default (black) background, switch the background to white.
+                var rgb = Rgb.fromPackedRgb(rgbColor);
+                int luminance = (rgb.r() * 299 + rgb.g() * 587 + rgb.b() * 114) / 1000;
+                if (luminance < 48) {
+                    putStringXY(1, 6, "\u2588\u2588\u2588", attr);
+                    attr.reset();
+                    attr.setBackColorRGB(rgbColor);
+                    putCharXY(2, 6, GraphicsChars.CP437[0x07], attr);
+                } else {
+                    putStringXY(1, 6, "\u2588\u25D8\u2588", attr);
+                }
             } else {
                 int dotX = getXColorPosition(color);
                 int dotY = getYColorPosition(color, bright);
