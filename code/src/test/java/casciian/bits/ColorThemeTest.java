@@ -115,6 +115,18 @@ class ColorThemeTest {
     }
 
     @Test
+    void testExactPaletteRgbLoadsAsPaletteColor() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString("test.color", "#ff0000 on #808080");
+
+        CellAttributes attr = theme.getColor("test.color");
+        assertEquals(196, attr.getForeColorPalette());
+        assertEquals(-1, attr.getForeColorRGB());
+        assertEquals(244, attr.getBackColorPalette());
+        assertEquals(-1, attr.getBackColorRGB());
+    }
+
+    @Test
     void testMixedPaletteForegroundRgbBackground() {
         ColorTheme theme = new ColorTheme();
         CellAttributes attr = CellAttributes.builder()
@@ -240,10 +252,9 @@ class ColorThemeTest {
         loaded.load(file.toString());
 
         CellAttributes a = loaded.getColor("k.palette");
-        // Palette became RGB on save, so it loads back as RGB.
-        assertEquals(Palette256.toRgb(220) & 0xFFFFFF, a.getForeColorRGB());
-        assertEquals(Palette256.toRgb(236) & 0xFFFFFF, a.getBackColorRGB());
-        assertEquals(-1, a.getForeColorPalette());
-        assertEquals(-1, a.getBackColorPalette());
+        assertEquals(220, a.getForeColorPalette());
+        assertEquals(236, a.getBackColorPalette());
+        assertEquals(-1, a.getForeColorRGB());
+        assertEquals(-1, a.getBackColorRGB());
     }
 }

@@ -1036,7 +1036,8 @@ public class ColorTheme {
      * {@code #ffcc00 on blue}.  For backward compatibility a legacy line-wide
      * {@code rgb:} marker is accepted and ignored, since RGB colors are now
      * detected per-channel.  Palette colors are converted to RGB when a theme
-     * is saved, so they never appear in a theme file and are not parsed here.
+     * is saved, and exact palette RGB values are restored to palette indices
+     * when a theme is loaded.
      * </p>
      *
      * @param key  the color key string
@@ -1123,11 +1124,27 @@ public class ColorTheme {
             while (hex.startsWith("#")) {
                 hex = hex.substring(1);
             }
-            int rgb = parseHex(hex, foreground ? 0xFFFFFF : 0x000000);
+            int defaultRGB = foreground ? 0xFFFFFF : 0x000000;
+            boolean parsed = true;
+            int rgb = defaultRGB;
+            try {
+                rgb = Integer.parseInt(hex, 16) & 0xFFFFFF;
+            } catch (NumberFormatException e) {
+                parsed = false;
+            }
+            int paletteIndex = parsed ? Palette256.findExact(rgb) : -1;
             if (foreground) {
-                color.setForeColorRGB(rgb);
+                if (paletteIndex >= 0) {
+                    color.setForeColorPalette(paletteIndex);
+                } else {
+                    color.setForeColorRGB(rgb);
+                }
             } else {
-                color.setBackColorRGB(rgb);
+                if (paletteIndex >= 0) {
+                    color.setBackColorPalette(paletteIndex);
+                } else {
+                    color.setBackColorRGB(rgb);
+                }
             }
             return;
         }
@@ -1141,21 +1158,6 @@ public class ColorTheme {
             color.setForeColor(named);
         } else {
             color.setBackColor(named);
-        }
-    }
-
-    /**
-     * Parse a hexadecimal RGB string.
-     *
-     * @param text the hex text (without a leading '#')
-     * @param defaultRGB the value to return if parsing fails
-     * @return the 24-bit RGB value
-     */
-    private static int parseHex(final String text, final int defaultRGB) {
-        try {
-            return Integer.parseInt(text, 16) & 0xFFFFFF;
-        } catch (NumberFormatException e) {
-            return defaultRGB;
         }
     }
 
