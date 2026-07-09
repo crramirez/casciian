@@ -945,9 +945,65 @@ public class ColorTheme {
         try (FileWriter file = new FileWriter(filename)) {
             for (String key : colors.keySet()) {
                 CellAttributes color = getColor(key);
-                file.write("%s = %s%n".formatted(key, color));
+                file.write("%s = %s%n".formatted(key,
+                    colorToThemeString(color)));
             }
         }
+    }
+
+    /**
+     * Serialize a CellAttributes to the theme-file color syntax.  The
+     * foreground and background are emitted independently so that each side
+     * can be a named color, a 24-bit RGB color ({@code #rrggbb}), or a
+     * palette color.  Palette colors are converted to their RGB equivalent so
+     * saved themes stay portable and re-loadable.
+     *
+     * @param color the attributes to serialize
+     * @return a string like "bold #ffcc00 on blue"
+     */
+    private static String colorToThemeString(final CellAttributes color) {
+        StringBuilder sb = new StringBuilder();
+        if (color.isBold()) {
+            sb.append("bold ");
+        }
+        if (color.isBlink()) {
+            sb.append("blink ");
+        }
+        sb.append(channelToThemeString(color, true));
+        sb.append(" on ");
+        sb.append(channelToThemeString(color, false));
+        return sb.toString();
+    }
+
+    /**
+     * Serialize a single color channel (foreground or background) to the
+     * theme-file syntax.  Palette colors are converted to their RGB
+     * equivalent.
+     *
+     * @param color the attributes to read from
+     * @param foreground if true, serialize the foreground channel; otherwise
+     * the background channel
+     * @return a single color token, e.g. "#ffcc00", "bright red", or "blue"
+     */
+    private static String channelToThemeString(final CellAttributes color,
+        final boolean foreground) {
+
+        int palette = foreground ? color.getForeColorPalette()
+                                 : color.getBackColorPalette();
+        int rgb = foreground ? color.getForeColorRGB()
+                             : color.getBackColorRGB();
+
+        // Palette colors are serialized as their RGB equivalent so the saved
+        // theme remains portable and re-loadable without palette support.
+        if (palette >= 0) {
+            rgb = Palette256.toRgb(palette) & 0xFFFFFF;
+        }
+        if (rgb >= 0) {
+            return String.format("#%06x", rgb);
+        }
+        Color named = foreground ? color.getForeColor()
+                                 : color.getBackColor();
+        return named.toString();
     }
 
     /**
@@ -961,112 +1017,148 @@ public class ColorTheme {
     }
 
     /**
-     * Set a color based on a text string.  Color text string is of the form:
-     * <code>[ bold ] [ blink ] { foreground on background }</code>
+     * Set a color based on a text string.  The color text string is of the
+     * form:
+     * <code>[ bold ] [ blink ] foreground on background</code>
+     *
+     * <p>
+     * Each of {@code foreground} and {@code background} is parsed
+     * independently and may be any of:
+     * </p>
+     * <ul>
+     *   <li>a named color, optionally prefixed by {@code bright}
+     *       (e.g. {@code red}, {@code bright blue});</li>
+     *   <li>a 24-bit RGB color as {@code #rrggbb} (or {@code rgb:#rrggbb}).</li>
+     * </ul>
+     *
+     * <p>
+     * This means the two channels can mix representations freely, e.g.
+     * {@code #ffcc00 on blue}.  For backward compatibility a legacy line-wide
+     * {@code rgb:} marker is accepted and ignored, since RGB colors are now
+     * detected per-channel.  Palette colors are converted to RGB when a theme
+     * is saved, and exact palette RGB values are restored to palette indices
+     * when a theme is loaded.
+     * </p>
      *
      * @param key  the color key string
      * @param text the text string
      */
     public void setColorFromString(final String key, final String text) {
-        boolean bold = false;
+        CellAttributes color = new CellAttributes();
         boolean bright = false;
-        boolean blink = false;
-        String foreColor;
-        String backColor;
-        String token;
+        boolean background = false;
+        boolean foreSet = false;
+        boolean backSet = false;
 
         StringTokenizer tokenizer = new StringTokenizer(text);
-        token = tokenizer.nextToken();
+        while (tokenizer.hasMoreTokens()) {
+            String token = tokenizer.nextToken();
+            String lower = token.toLowerCase();
 
-        if (token.equalsIgnoreCase("rgb:")) {
-            setRgbColorFromString(key, tokenizer);
-            return;
-        }
-
-        while (token.equals("bold")
-            || token.equals("bright")
-            || token.equals("blink")
-        ) {
-            if (token.equals("bold")) {
-                bold = true;
-                token = tokenizer.nextToken();
-            }
-            if (token.equals("bright")) {
+            switch (lower) {
+            case "bold":
+                color.setBold(true);
+                continue;
+            case "blink":
+                color.setBlink(true);
+                continue;
+            case "bright":
+                // Applies to the next named color token.
                 bright = true;
-                token = tokenizer.nextToken();
+                continue;
+            case "rgb:":
+                // Backward-compatibility: legacy line-wide RGB marker.  RGB
+                // colors are now detected per-channel, so this is ignored.
+                continue;
+            case "on":
+                background = true;
+                continue;
+            default:
+                break;
             }
-            if (token.equals("blink")) {
-                blink = true;
-                token = tokenizer.nextToken();
+
+            // This token is a color spec for one channel.
+            if ((!background && foreSet) || (background && backSet)) {
+                // Extra color tokens are ignored (e.g. trailing comments) to keep
+                // the grammar as "foreground on background".
+                break;
             }
+            applyColorToken(color, token, bright, !background);
+            if (background) {
+                backSet = true;
+            } else {
+                foreSet = true;
+            }
+            bright = false;
         }
 
-        // What's left is "blah on blah"
-        foreColor = token.toLowerCase();
-
-        if (!tokenizer.nextToken().equalsIgnoreCase("on")) {
-            // Invalid line.
+        if (!foreSet || !backSet) {
+            // Invalid line: need both a foreground and a background.
             return;
-        }
-        backColor = tokenizer.nextToken().toLowerCase();
-
-        CellAttributes color = new CellAttributes();
-        if (blink) {
-            color.setBlink(true);
-        }
-        // "bold" sets the bold attribute; whether that is rendered as a
-        // bright (high-intensity) color is governed by the
-        // casciian.treatBoldAsBright system property (default false).
-        // "bright" always selects the bright foreground color directly,
-        // independent of that property.
-        Color fore = Color.getColor(foreColor);
-        if (bright) {
-            fore = fore.toBright();
-        }
-        color.setForeColor(fore);
-        color.setBackColor(Color.getColor(backColor));
-        if (bold) {
-            color.setBold(true);
         }
         colors.put(key, color);
     }
 
-    private void setRgbColorFromString(String key, StringTokenizer tokenizer) {
-        // Foreground
-        int foreColorRGB;
-        try {
-            String rgbText = tokenizer.nextToken();
-            while (rgbText.startsWith("#")) {
-                rgbText = rgbText.substring(1);
-            }
-            foreColorRGB = Integer.parseInt(rgbText, 16);
-        } catch (NumberFormatException e) {
-            // Default to white on black
-            foreColorRGB = 0xFFFFFF;
-        }
+    /**
+     * Apply a single color token to one channel of a CellAttributes.  The
+     * token may be a named color or a 24-bit RGB color ({@code #rrggbb} or
+     * {@code rgb:#rrggbb}).
+     *
+     * @param color the attributes to update
+     * @param token the color token
+     * @param bright if true, a named color is promoted to its bright variant
+     * @param foreground if true, set the foreground channel; otherwise the
+     * background channel
+     */
+    private static void applyColorToken(final CellAttributes color,
+        final String token, final boolean bright, final boolean foreground) {
 
-        // "on"
-        if (!tokenizer.nextToken().equalsIgnoreCase("on")) {
-            // Invalid line.
+        String lower = token.toLowerCase();
+
+        // RGB color: #rrggbb or rgb:#rrggbb
+        String hex = lower;
+        if (hex.startsWith("rgb:")) {
+            hex = hex.substring("rgb:".length());
+        }
+        if (hex.startsWith("#")) {
+            while (hex.startsWith("#")) {
+                hex = hex.substring(1);
+            }
+            int defaultRGB = foreground ? 0xFFFFFF : 0x000000;
+            boolean parsed = true;
+            int rgb = defaultRGB;
+            try {
+                rgb = Integer.parseInt(hex, 16) & 0xFFFFFF;
+            } catch (NumberFormatException e) {
+                parsed = false;
+            }
+            int paletteIndex = parsed ? Palette256.findExact(rgb) : -1;
+            if (foreground) {
+                if (paletteIndex >= 0) {
+                    color.setForeColorPalette(paletteIndex);
+                } else {
+                    color.setForeColorRGB(rgb);
+                }
+            } else {
+                if (paletteIndex >= 0) {
+                    color.setBackColorPalette(paletteIndex);
+                } else {
+                    color.setBackColorRGB(rgb);
+                }
+            }
             return;
         }
 
-        // Background
-        int backColorRGB;
-        try {
-            String rgbText = tokenizer.nextToken();
-            while (rgbText.startsWith("#")) {
-                rgbText = rgbText.substring(1);
-            }
-            backColorRGB = Integer.parseInt(rgbText, 16);
-        } catch (NumberFormatException e) {
-            backColorRGB = 0;
+        // Named color.
+        Color named = Color.getColor(lower);
+        if (bright) {
+            named = named.toBright();
         }
-
-        CellAttributes color = new CellAttributes();
-        color.setForeColorRGB(foreColorRGB);
-        color.setBackColorRGB(backColorRGB);
-        colors.put(key, color);
+        if (foreground) {
+            color.setForeColor(named);
+        } else {
+            color.setBackColor(named);
+        }
     }
 
     /**
