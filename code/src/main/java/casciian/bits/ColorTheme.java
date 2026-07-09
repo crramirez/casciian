@@ -1077,6 +1077,11 @@ public class ColorTheme {
             }
 
             // This token is a color spec for one channel.
+            if ((!background && foreSet) || (background && backSet)) {
+                // Extra color tokens are ignored (e.g. trailing comments) to keep
+                // the grammar as "foreground on background".
+                break;
+            }
             applyColorToken(color, token, bright, !background);
             if (background) {
                 backSet = true;
