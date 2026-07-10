@@ -1145,6 +1145,234 @@ class ECMA48TerminalTest {
             + "Output: " + escapeForDisplay(output));
     }
 
+    // -----------------------------------------------------------------------
+    // Faint / italic / hidden / strikethrough attribute rendering tests
+    // -----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Faint attribute emits SGR 2")
+    void shouldEmitSgr2ForFaint() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setFaint(true);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains("\033[2m") || output.contains(";2m"),
+            "Faint cell should emit SGR 2. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Faint attribute is cleared with SGR 22")
+    void shouldEmitSgr22WhenFaintCleared() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes faint = new CellAttributes();
+        faint.setFaint(true);
+        CellAttributes normal = new CellAttributes();
+
+        terminal.putCharXY(0, 0, 'A', faint);
+        terminal.putCharXY(1, 0, 'B', normal);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains("\033[22m") || output.contains(";22m"),
+            "Clearing faint should emit SGR 22. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Bold and faint are mutually exclusive at the SGR level")
+    void boldToFaintTransitionEmitsCorrectSgr() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes bold = new CellAttributes();
+        bold.setBold(true);
+        terminal.putCharXY(0, 0, 'A', bold);
+        terminal.flushPhysical();
+
+        CellAttributes faint = new CellAttributes();
+        faint.setFaint(true);
+        terminal.putCharXY(0, 0, 'B', faint);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains(";2m") || output.contains("\033[2m"),
+            "Transition from bold to faint should emit SGR 2. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Italic attribute emits SGR 3")
+    void shouldEmitSgr3ForItalic() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setItalic(true);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains(";3m") || output.contains("\033[3m"),
+            "Italic cell should emit SGR 3. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Italic attribute is cleared with SGR 23")
+    void shouldEmitSgr23WhenItalicCleared() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes italic = new CellAttributes();
+        italic.setItalic(true);
+        CellAttributes normal = new CellAttributes();
+
+        terminal.putCharXY(0, 0, 'A', italic);
+        terminal.putCharXY(1, 0, 'B', normal);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains(";23m") || output.contains("\033[23m"),
+            "Clearing italic should emit SGR 23. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Hidden attribute emits SGR 8")
+    void shouldEmitSgr8ForHidden() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setHidden(true);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains(";8m") || output.contains("\033[8m"),
+            "Hidden cell should emit SGR 8. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Hidden attribute is cleared with SGR 28")
+    void shouldEmitSgr28WhenHiddenCleared() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes hidden = new CellAttributes();
+        hidden.setHidden(true);
+        CellAttributes normal = new CellAttributes();
+
+        terminal.putCharXY(0, 0, 'A', hidden);
+        terminal.putCharXY(1, 0, 'B', normal);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains(";28m") || output.contains("\033[28m"),
+            "Clearing hidden should emit SGR 28. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Strikethrough attribute emits SGR 9")
+    void shouldEmitSgr9ForStrikethrough() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setStrikethrough(true);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains(";9m") || output.contains("\033[9m"),
+            "Strikethrough cell should emit SGR 9. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Strikethrough attribute is cleared with SGR 29")
+    void shouldEmitSgr29WhenStrikethroughCleared() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes strike = new CellAttributes();
+        strike.setStrikethrough(true);
+        CellAttributes normal = new CellAttributes();
+
+        terminal.putCharXY(0, 0, 'A', strike);
+        terminal.putCharXY(1, 0, 'B', normal);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains(";29m") || output.contains("\033[29m"),
+            "Clearing strikethrough should emit SGR 29. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("All new text styles can be combined in a single cell")
+    void allNewStylesCanBeCombined() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setFaint(true);
+        attr.setItalic(true);
+        attr.setHidden(true);
+        attr.setStrikethrough(true);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains(";2") || output.contains("\033[2"),
+            "Output should contain faint code. Output: "
+            + escapeForDisplay(output));
+        assertTrue(output.contains(";3") || output.contains("\033[3"),
+            "Output should contain italic code. Output: "
+            + escapeForDisplay(output));
+        assertTrue(output.contains(";8") || output.contains("\033[8"),
+            "Output should contain hidden code. Output: "
+            + escapeForDisplay(output));
+        assertTrue(output.contains(";9") || output.contains("\033[9"),
+            "Output should contain strikethrough code. Output: "
+            + escapeForDisplay(output));
+    }
+
     // Helper methods
 
     private ECMA48Terminal createTerminal() {

@@ -182,9 +182,10 @@ public final class SgrUtil {
 
     /**
      * Apply a single SGR code to the given attributes. Handles the standard
-     * attribute codes (bold, underline, blink, reverse), standard 8
-     * foreground/background colors (30–37, 40–47), default color restore
-     * (39, 49), and high-intensity colors (90–97, 100–107).
+     * attribute codes (bold, faint, italic, underline, blink, reverse,
+     * hidden, strikethrough), standard 8 foreground/background colors
+     * (30–37, 40–47), default color restore (39, 49), and high-intensity
+     * colors (90–97, 100–107).
      *
      * <p>
      * High-intensity colors (90–97, 100–107) are now applied directly as
@@ -216,11 +217,11 @@ public final class SgrUtil {
             attr.setBold(true);
             return true;
         case SGR_DIM:
-            // Dim/faint — treat as not-bold
-            attr.setBold(false);
+            // Faint / decreased intensity.
+            attr.setFaint(true);
             return true;
         case SGR_ITALIC:
-            // Italic — not supported, but recognized
+            attr.setItalic(true);
             return true;
         case SGR_UNDERLINE:
             attr.setUnderline(true);
@@ -232,16 +233,18 @@ public final class SgrUtil {
             attr.setReverse(true);
             return true;
         case SGR_HIDDEN:
-            // Hidden/invisible — not supported, but recognized
+            attr.setHidden(true);
             return true;
         case SGR_STRIKETHROUGH:
-            // Strikethrough — not supported, but recognized
+            attr.setStrikethrough(true);
             return true;
         case SGR_NORMAL_INTENSITY:
+            // Cancels both bold and faint.
             attr.setBold(false);
+            attr.setFaint(false);
             return true;
         case SGR_ITALIC_OFF:
-            // Not italic — no-op because italic is not supported
+            attr.setItalic(false);
             return true;
         case SGR_UNDERLINE_OFF:
             attr.setUnderline(false);
@@ -253,10 +256,10 @@ public final class SgrUtil {
             attr.setReverse(false);
             return true;
         case SGR_HIDDEN_OFF:
-            // Not hidden
+            attr.setHidden(false);
             return true;
         case SGR_STRIKETHROUGH_OFF:
-            // Not strikethrough
+            attr.setStrikethrough(false);
             return true;
 
         // --- Standard foreground colors (30–37) ---

@@ -22,6 +22,9 @@ package casciian.bits;
 import casciian.backend.Backend;
 import casciian.backend.SystemProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * The attributes used by a Cell: color, bold, blink, etc.
  */
@@ -75,6 +78,26 @@ public class CellAttributes {
      * faithfully.
      */
     private static final int BOLD_TRANSPARENT     = 0x80;
+
+    /**
+     * Faint (decreased intensity / dim) attribute.
+     */
+    private static final int FAINT                = 0x100;
+
+    /**
+     * Italic attribute.
+     */
+    private static final int ITALIC               = 0x200;
+
+    /**
+     * Hidden (invisible) attribute.
+     */
+    private static final int HIDDEN               = 0x400;
+
+    /**
+     * Strikethrough (crossed-out) attribute.
+     */
+    private static final int STRIKETHROUGH        = 0x800;
 
     /**
      * Animation bits for time-dependent transforms.
@@ -317,6 +340,94 @@ public class CellAttributes {
             flags |= UNDERLINE;
         } else {
             flags &= ~UNDERLINE;
+        }
+    }
+
+    /**
+     * Getter for faint.
+     *
+     * @return faint value
+     */
+    public final boolean isFaint() {
+        return ((flags & FAINT) != 0);
+    }
+
+    /**
+     * Setter for faint.
+     *
+     * @param faint new faint value
+     */
+    public final void setFaint(final boolean faint) {
+        if (faint) {
+            flags |= FAINT;
+        } else {
+            flags &= ~FAINT;
+        }
+    }
+
+    /**
+     * Getter for italic.
+     *
+     * @return italic value
+     */
+    public final boolean isItalic() {
+        return ((flags & ITALIC) != 0);
+    }
+
+    /**
+     * Setter for italic.
+     *
+     * @param italic new italic value
+     */
+    public final void setItalic(final boolean italic) {
+        if (italic) {
+            flags |= ITALIC;
+        } else {
+            flags &= ~ITALIC;
+        }
+    }
+
+    /**
+     * Getter for hidden.
+     *
+     * @return hidden value
+     */
+    public final boolean isHidden() {
+        return ((flags & HIDDEN) != 0);
+    }
+
+    /**
+     * Setter for hidden.
+     *
+     * @param hidden new hidden value
+     */
+    public final void setHidden(final boolean hidden) {
+        if (hidden) {
+            flags |= HIDDEN;
+        } else {
+            flags &= ~HIDDEN;
+        }
+    }
+
+    /**
+     * Getter for strikethrough.
+     *
+     * @return strikethrough value
+     */
+    public final boolean isStrikethrough() {
+        return ((flags & STRIKETHROUGH) != 0);
+    }
+
+    /**
+     * Setter for strikethrough.
+     *
+     * @param strikethrough new strikethrough value
+     */
+    public final void setStrikethrough(final boolean strikethrough) {
+        if (strikethrough) {
+            flags |= STRIKETHROUGH;
+        } else {
+            flags &= ~STRIKETHROUGH;
         }
     }
 
@@ -720,8 +831,12 @@ public class CellAttributes {
             }
             return sb.toString();
         }
-        return String.format("%s%s%s on %s", (isBold() ? "bold " : ""),
-            (isBlink() ? "blink " : ""), foreColor, backColor);
+        return String.format("%s%s%s%s%s%s%s on %s", (isBold() ? "bold " : ""),
+            (isFaint() ? "faint " : ""), (isItalic() ? "italic " : ""),
+            (isUnderline() ? "underline " : ""), (isBlink() ? "blink " : ""),
+            (isStrikethrough() ? "strikethrough " : ""),
+            (isHidden() ? "hidden " : ""), foreColor)
+            + " on " + backColor;
     }
 
     /**
@@ -736,17 +851,23 @@ public class CellAttributes {
         // bold font weight so the appearance is left to the reader.
         boolean boldBright = isBoldAsBright();
         String fontWeight = (isBold() && !boldBright) ? "bold" : "normal";
-        String textDecoration = "none";
+        String fontStyle = isItalic() ? "italic" : "normal";
         String fgText;
         String bgText;
 
-        if (isBlink() && isUnderline()) {
-            textDecoration = "blink, underline";
-        } else if (isUnderline()) {
-            textDecoration = "underline";
-        } else if (isBlink()) {
-            textDecoration = "blink";
+        List<String> decorations = new ArrayList<>();
+        if (isUnderline()) {
+            decorations.add("underline");
         }
+        if (isStrikethrough()) {
+            decorations.add("line-through");
+        }
+        if (isBlink()) {
+            decorations.add("blink");
+        }
+        String textDecoration = decorations.isEmpty()
+            ? "none" : String.join(" ", decorations);
+
         if (isReverse()) {
             fgText = backColor.toRgbString(false);
             if (boldBright) {
@@ -763,9 +884,14 @@ public class CellAttributes {
             }
         }
 
+        String visibility = isHidden() ? "hidden" : "visible";
+        String opacity = isFaint() ? "0.5" : "1";
+
         return String.format("style=\"color: %s; background-color: %s; " +
-            "text-decoration: %s; font-weight: %s\"",
-            fgText, bgText, textDecoration, fontWeight);
+            "text-decoration: %s; font-weight: %s; font-style: %s; " +
+            "visibility: %s; opacity: %s\"",
+            fgText, bgText, textDecoration, fontWeight, fontStyle,
+            visibility, opacity);
     }
 
     /**
@@ -937,6 +1063,50 @@ public class CellAttributes {
          */
         public Builder underline(final boolean underline) {
             attributes.setUnderline(underline);
+            return this;
+        }
+
+        /**
+         * Set the faint flag.
+         *
+         * @param faint new faint flag
+         * @return this builder
+         */
+        public Builder faint(final boolean faint) {
+            attributes.setFaint(faint);
+            return this;
+        }
+
+        /**
+         * Set the italic flag.
+         *
+         * @param italic new italic flag
+         * @return this builder
+         */
+        public Builder italic(final boolean italic) {
+            attributes.setItalic(italic);
+            return this;
+        }
+
+        /**
+         * Set the hidden flag.
+         *
+         * @param hidden new hidden flag
+         * @return this builder
+         */
+        public Builder hidden(final boolean hidden) {
+            attributes.setHidden(hidden);
+            return this;
+        }
+
+        /**
+         * Set the strikethrough flag.
+         *
+         * @param strikethrough new strikethrough flag
+         * @return this builder
+         */
+        public Builder strikethrough(final boolean strikethrough) {
+            attributes.setStrikethrough(strikethrough);
             return this;
         }
 

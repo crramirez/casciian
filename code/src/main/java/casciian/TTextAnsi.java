@@ -158,6 +158,10 @@ public class TTextAnsi extends TScrollable {
                         themed.setUnderline(cell.isUnderline());
                         themed.setBlink(cell.isBlink());
                         themed.setReverse(cell.isReverse());
+                        themed.setFaint(cell.isFaint());
+                        themed.setItalic(cell.isItalic());
+                        themed.setHidden(cell.isHidden());
+                        themed.setStrikethrough(cell.isStrikethrough());
                         putCharXY(col, topY, cell.getChar(), themed);
                     } else if (cell.isDefaultColor(true)) {
                         CellAttributes base = cell.isBoldAsBright()
