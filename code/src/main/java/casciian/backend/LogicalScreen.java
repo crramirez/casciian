@@ -1533,6 +1533,51 @@ public class LogicalScreen implements Screen {
     }
 
     /**
+     * Repair any full-width cells that were left orphaned inside (or on the
+     * borders of) a rectangular region that was directly composited into the
+     * {@code logical} buffer (for example by {@link #blendScreen} or
+     * {@link #copyScreen}).  Those routines write cells one column at a time
+     * without maintaining the {@code LEFT}/{@code RIGHT} pairing invariant, so
+     * an overlay that lands on only one half of a wide grapheme leaves a
+     * dangling half that the render pass would emit as a broken wide glyph.
+     * A dangling {@code LEFT} (no {@code RIGHT} to its right) or dangling
+     * {@code RIGHT} (no {@code LEFT} to its left) is replaced with a blank
+     * single-width cell.  The scan extends one column on each side of the
+     * region because a wide grapheme can straddle its edges.
+     *
+     * @param x      left column of the region.  0 is the left-most column.
+     * @param y      top row of the region.  0 is the top-most row.
+     * @param width  number of columns in the region
+     * @param height number of rows in the region
+     */
+    private void repairOrphanedHalves(final int x, final int y,
+                                      final int width, final int height) {
+
+        int colStart = Math.max(0, x - 1);
+        int colEnd = Math.min(this.width - 1, x + width);
+        for (int row = Math.max(0, y);
+             (row < y + height) && (row < this.height); row++) {
+
+            for (int col = colStart; col <= colEnd; col++) {
+                Cell cell = logical[col][row];
+                if (cell.getWidth() == Cell.Width.LEFT) {
+                    if ((col + 1 >= this.width)
+                        || (logical[col + 1][row].getWidth() != Cell.Width.RIGHT)
+                    ) {
+                        blankOrphanedHalf(col, row);
+                    }
+                } else if (cell.getWidth() == Cell.Width.RIGHT) {
+                    if ((col - 1 < 0)
+                        || (logical[col - 1][row].getWidth() != Cell.Width.LEFT)
+                    ) {
+                        blankOrphanedHalf(col, row);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Render one fullwidth character with attributes.
      *
      * @param x    column coordinate.  0 is the left-most column.
@@ -1962,6 +2007,7 @@ public class LogicalScreen implements Screen {
                         thisCell.setDefaultColor(false, false);
                     }
                 }
+                repairOrphanedHalves(x, y, width, height);
             }
             return;
         }
@@ -2157,6 +2203,7 @@ public class LogicalScreen implements Screen {
                     // for each case.
                 }
             }
+            repairOrphanedHalves(x, y, width, height);
         }
     }
 

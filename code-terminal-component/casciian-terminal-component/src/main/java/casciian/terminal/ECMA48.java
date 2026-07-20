@@ -1742,6 +1742,44 @@ public class ECMA48 implements Runnable {
     }
 
     /**
+     * Print a full-width (two-column) grapheme currently held in
+     * repCodePoints, reserving both columns on the display buffer.  The two
+     * columns are advanced first (as spaces) so that line-wrap and
+     * right-margin handling is applied exactly once, then both halves of the
+     * grapheme are written into the freshly-advanced cells.  This mirrors the
+     * VT100 line-wrap behavior used by REP.
+     *
+     * @param wcWidth on-screen width of the grapheme (expected to be 2)
+     */
+    private void printFullwidthCharacter(final int wcWidth) {
+        int x0 = currentState.cursorX;
+        int y0 = currentState.cursorY;
+        printCharacter(' ');
+        printCharacter(' ');
+        if ((currentState.cursorX == x0 + 2)
+            && (currentState.cursorY == y0)
+        ) {
+            // We can draw both halves of the character.
+            printEmojiXY(x0, y0, wcWidth);
+        } else if ((currentState.cursorX == x0 + 1)
+            && (currentState.cursorY == y0)
+        ) {
+            // VT100 line wrap behavior: we should be at the right margin.  We
+            // can draw both halves of the character.
+            printEmojiXY(x0, y0, wcWidth);
+        } else {
+            // The character splits across the line.  Draw the entire
+            // character on the new line, giving one more space for it.
+            x0 = currentState.cursorX - 1;
+            y0 = currentState.cursorY;
+            printCharacter(' ');
+            printEmojiXY(x0, y0, wcWidth);
+        }
+        lastEmojiX = x0;
+        lastEmojiY = y0;
+    }
+
+    /**
      * Prints one character to the display buffer.
      *
      * @param ch character to display
@@ -4133,31 +4171,7 @@ public class ECMA48 implements Runnable {
             if ((repCodePoints.size() > 1)
                 || (wcWidth == 2)
             ) {
-                int x0 = currentState.cursorX;
-                int y0 = currentState.cursorY;
-                printCharacter(' ');
-                printCharacter(' ');
-                if ((currentState.cursorX == x0 + 2)
-                    && (currentState.cursorY == y0)
-                ) {
-                    // We can draw both halves of the character.
-                    printEmojiXY(x0, y0, wcWidth);
-                } else if ((currentState.cursorX == x0 + 1)
-                    && (currentState.cursorY == y0)
-                ) {
-                    // VT100 line wrap behavior: we should be at the right
-                    // margin.  We can draw both halves of the character.
-                    printEmojiXY(x0, y0, wcWidth);
-                } else {
-                    // The character splits across the line.  Draw the entire
-                    // character on the new line, giving one more space for it.
-                    x0 = currentState.cursorX - 1;
-                    y0 = currentState.cursorY;
-                    printCharacter(' ');
-                    printEmojiXY(x0, y0, wcWidth);
-                }
-                lastEmojiX = x0;
-                lastEmojiY = y0;
+                printFullwidthCharacter(wcWidth);
             } else {
                 assert (repCodePoints.size() == 1);
                 printCharacter(repCodePoints.getFirst());
@@ -5515,8 +5529,15 @@ public class ECMA48 implements Runnable {
                     repCodePoints.add(mapCharacter(ch));
                     assert (repCodePoints.size() == 1);
 
-                    // Print single-codepoint character.
-                    printCharacter(mapCharacter(ch));
+                    int wcWidth = StringUtils.width(repCodePoints);
+                    if (wcWidth == 2) {
+                        // Full-width character (e.g. CJK): reserve two
+                        // columns so both halves are rendered.
+                        printFullwidthCharacter(wcWidth);
+                    } else {
+                        // Print single-codepoint character.
+                        printCharacter(mapCharacter(ch));
+                    }
                 }
             }
             return;
