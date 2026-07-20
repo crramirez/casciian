@@ -1574,6 +1574,45 @@ class ECMA48TerminalTest {
         assertNull(threadException.get(), 
             "Concurrent access should not throw: " + threadException.get());
     }
-    
-    
+
+    @Test
+    @DisplayName("Wide glyph re-anchors on its LEFT half when only the RIGHT "
+        + "half is dirtied")
+    void testWideCharPairedRedrawOnRightHalfChange() {
+        terminal = createTerminal();
+
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColor(Color.WHITE);
+        attr.setBackColor(Color.BLUE);
+
+        // Place a double-width CJK glyph.  The LEFT half occupies column 0
+        // and the RIGHT half occupies column 1.
+        String wide = "\uF900"; // CJK Compatibility Ideograph, width 2
+        terminal.putStringXY(0, 0, wide, attr);
+        terminal.flushPhysical();
+
+        // Dirty only the RIGHT half of the glyph (its background), leaving
+        // the LEFT half unchanged.  This mimics an effect (e.g. the mouse
+        // glow gradient) that touches a single cell of a wide glyph.
+        outputStream.reset();
+        CellAttributes redBg = new CellAttributes();
+        redBg.setBackColor(Color.RED);
+        terminal.putBackgroundAttrXY(1, 0, redBg);
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        // The glyph must be re-emitted, anchored on its LEFT column.  Before
+        // the fix, only the RIGHT half changed, so the terminal was
+        // positioned onto the right-half column (\033[1;2H) and emitted no
+        // glyph, which Windows Terminal renders with a one-column drift.
+        assertTrue(output.contains(wide),
+            "Wide glyph should be re-emitted as a unit: " + output);
+        assertTrue(output.contains("\033[1;1H"),
+            "Cursor should be positioned on the LEFT half column: " + output);
+        assertFalse(output.contains("\033[1;2H"),
+            "Cursor must not be positioned onto the RIGHT half column: "
+            + output);
+    }
+
 }
