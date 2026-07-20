@@ -128,4 +128,60 @@ class LogicalScreenWideCharTest {
         assertEquals(Cell.Width.SINGLE, screen.getCharXY(4, 0).getWidth());
         assertEquals(' ', screen.getCharXY(4, 0).getChar());
     }
+
+    @Test
+    @DisplayName("Translucent overlay on the RIGHT half of a wide char repairs the orphaned LEFT half")
+    void blendOverlayRepairsOrphanedLeftHalf() {
+        // Wide char at columns 2-3 (LEFT/RIGHT).
+        screen.putCharXY(2, 0, 0x4E2D, attr);
+        assertEquals(Cell.Width.LEFT, screen.getCharXY(2, 0).getWidth());
+        assertEquals(Cell.Width.RIGHT, screen.getCharXY(3, 0).getWidth());
+
+        // Overlay a visible glyph over columns 3-4 (only the RIGHT half).
+        TestableLogicalScreen over = new TestableLogicalScreen(2, 1);
+        over.putCharXY(0, 0, 'X', attr);
+        over.putCharXY(1, 0, 'Y', attr);
+        screen.blendScreen(over, 3, 0, 2, 1, 128, false);
+
+        // The RIGHT half was overwritten; the now-orphaned LEFT half at
+        // column 2 must be blanked so no stale wide glyph is emitted.
+        assertEquals('X', screen.getCharXY(3, 0).getChar());
+        assertEquals(Cell.Width.SINGLE, screen.getCharXY(2, 0).getWidth());
+        assertEquals(' ', screen.getCharXY(2, 0).getChar());
+    }
+
+    @Test
+    @DisplayName("Translucent overlay on the LEFT half of a wide char repairs the orphaned RIGHT half")
+    void blendOverlayRepairsOrphanedRightHalf() {
+        // Wide char at columns 2-3 (LEFT/RIGHT).
+        screen.putCharXY(2, 0, 0x4E2D, attr);
+
+        // Overlay a visible glyph over columns 1-2 (only the LEFT half).
+        TestableLogicalScreen over = new TestableLogicalScreen(2, 1);
+        over.putCharXY(0, 0, 'X', attr);
+        over.putCharXY(1, 0, 'Z', attr);
+        screen.blendScreen(over, 1, 0, 2, 1, 128, false);
+
+        // The LEFT half was overwritten; the orphaned RIGHT half at column 3
+        // must be blanked.
+        assertEquals('Z', screen.getCharXY(2, 0).getChar());
+        assertNotEquals(Cell.Width.RIGHT, screen.getCharXY(3, 0).getWidth());
+        assertEquals(' ', screen.getCharXY(3, 0).getChar());
+    }
+
+    @Test
+    @DisplayName("Invisible (space) translucent overlay preserves a fully covered wide char")
+    void blendInvisibleOverlayPreservesWideChar() {
+        // Wide char at columns 2-3 (LEFT/RIGHT).
+        screen.putCharXY(2, 0, 0x4E2D, attr);
+
+        // Overlay two invisible space cells fully over the wide char.
+        TestableLogicalScreen over = new TestableLogicalScreen(2, 1);
+        screen.blendScreen(over, 2, 0, 2, 1, 128, false);
+
+        // Both halves must remain intact so the wide char shows through.
+        assertEquals(Cell.Width.LEFT, screen.getCharXY(2, 0).getWidth());
+        assertEquals(0x4E2D, screen.getCharXY(2, 0).getChar());
+        assertEquals(Cell.Width.RIGHT, screen.getCharXY(3, 0).getWidth());
+    }
 }
