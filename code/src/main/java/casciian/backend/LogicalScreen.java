@@ -1435,6 +1435,20 @@ public class LogicalScreen implements Screen {
     private void putFullwidthCharXY(final int x, final int y,
                                     final ComplexCell cell) {
 
+        // If the RIGHT half cannot be placed (clipped at the right edge of
+        // the screen or the current clip region), the LEFT half would be
+        // orphaned.  A stranded LEFT half emits a full-width glyph in a
+        // single column, which the terminal renders as an overflowing or
+        // broken glyph.  Draw a blank single-width cell instead so no half
+        // glyph is emitted.
+        if (!isCellDrawable(x + 1, y)) {
+            ComplexCell blank = new ComplexCell(cell);
+            blank.setChar(' ');
+            blank.setWidth(Cell.Width.SINGLE);
+            putCharXY(x, y, blank, true);
+            return;
+        }
+
         ComplexCell left = new ComplexCell(cell);
         left.setWidth(Cell.Width.LEFT);
         putCharXY(x, y, left, true);
@@ -1443,6 +1457,30 @@ public class LogicalScreen implements Screen {
         right.setWidth(Cell.Width.RIGHT);
 //        right.setChar(0xFE0F); //VS16
         putCharXY(x + 1, y, right, true);
+    }
+
+    /**
+     * Determine whether a cell at the given coordinates would actually be
+     * stored, applying the same clip and bounds checks used by
+     * {@link #putCharXY(int, int, Cell, boolean)}.
+     *
+     * @param x column coordinate.  0 is the left-most column.
+     * @param y row coordinate.  0 is the top-most row.
+     * @return true if a cell written at (x, y) would be visible
+     */
+    private boolean isCellDrawable(final int x, final int y) {
+        if ((x < clipLeft)
+            || (x >= clipRight)
+            || (y < clipTop)
+            || (y >= clipBottom)
+            || (x + offsetX < relativeClipLeft)
+            || (y + offsetY < relativeClipTop)
+        ) {
+            return false;
+        }
+        final int X = x + offsetX;
+        final int Y = y + offsetY;
+        return (X >= 0) && (X < width) && (Y >= 0) && (Y < height);
     }
 
     /**

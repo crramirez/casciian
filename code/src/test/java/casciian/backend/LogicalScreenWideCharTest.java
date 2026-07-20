@@ -116,4 +116,16 @@ class LogicalScreenWideCharTest {
         assertEquals(Cell.Width.LEFT, screen.getCharXY(0, 0).getWidth());
         assertEquals(Cell.Width.RIGHT, screen.getCharXY(1, 0).getWidth());
     }
+
+    @Test
+    @DisplayName("Wide char whose right half is clipped at the screen edge is blanked, not stranded")
+    void wideCharRightHalfClippedIsBlanked() {
+        // Place a wide char directly at the final column: its RIGHT half
+        // would fall at x == width, off the screen.  A stranded LEFT half
+        // would make the terminal emit an overflowing half glyph, so it must
+        // be replaced with a blank single-width cell instead.
+        screen.putCharXY(4, 0, 0x4E2D, attr);
+        assertEquals(Cell.Width.SINGLE, screen.getCharXY(4, 0).getWidth());
+        assertEquals(' ', screen.getCharXY(4, 0).getChar());
+    }
 }
