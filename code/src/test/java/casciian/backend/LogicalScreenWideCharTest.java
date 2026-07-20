@@ -170,6 +170,28 @@ class LogicalScreenWideCharTest {
     }
 
     @Test
+    @DisplayName("Translucent overlay straddling a wide char boundary blanks the whole char")
+    void blendStraddlingBoundaryBlanksWholeWideChar() {
+        // Wide char at columns 1-2 (LEFT/RIGHT).
+        screen.putCharXY(1, 0, 0x4E2D, attr);
+        assertEquals(Cell.Width.LEFT, screen.getCharXY(1, 0).getWidth());
+        assertEquals(Cell.Width.RIGHT, screen.getCharXY(2, 0).getWidth());
+
+        // Overlay two invisible (translucent) space cells over columns 2-3, so
+        // only the RIGHT half (column 2) is inside the composited region while
+        // the LEFT half (column 1) stays outside.  The wide glyph would spill
+        // across the region edge and paint over the overlay; both halves must
+        // be blanked instead.
+        TestableLogicalScreen over = new TestableLogicalScreen(2, 1);
+        screen.blendScreen(over, 2, 0, 2, 1, 128, false);
+
+        assertEquals(Cell.Width.SINGLE, screen.getCharXY(1, 0).getWidth());
+        assertEquals(' ', screen.getCharXY(1, 0).getChar());
+        assertEquals(Cell.Width.SINGLE, screen.getCharXY(2, 0).getWidth());
+        assertEquals(' ', screen.getCharXY(2, 0).getChar());
+    }
+
+    @Test
     @DisplayName("Invisible (space) translucent overlay preserves a fully covered wide char")
     void blendInvisibleOverlayPreservesWideChar() {
         // Wide char at columns 2-3 (LEFT/RIGHT).

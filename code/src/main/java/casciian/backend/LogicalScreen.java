@@ -1545,6 +1545,16 @@ public class LogicalScreen implements Screen {
      * single-width cell.  The scan extends one column on each side of the
      * region because a wide grapheme can straddle its edges.
      *
+     * <p>A wide grapheme whose two halves are still paired but that
+     * <em>straddles</em> a region boundary (one half inside the composited
+     * region, the other half outside) is also blanked outright.  Its inside
+     * half was composited (for example blended under a translucent dialog)
+     * while its outside half was left untouched, so the terminal would emit a
+     * single two-column glyph that spills across the region edge and paints
+     * over the overlay (for example a dialog/button border), losing a piece of
+     * that border.  Blanking both halves keeps the wide glyph from being drawn
+     * where it is only partially covered.
+     *
      * @param x      left column of the region.  0 is the left-most column.
      * @param y      top row of the region.  0 is the top-most row.
      * @param width  number of columns in the region
@@ -1557,6 +1567,12 @@ public class LogicalScreen implements Screen {
         int colEnd = Math.min(this.width - 1, x + width);
         for (int row = Math.max(0, y);
              (row < y + height) && (row < this.height); row++) {
+
+            // Blank wide graphemes that straddle either boundary of the
+            // composited region (LEFT just outside, RIGHT just inside, or
+            // vice versa).
+            blankBoundaryStraddler(x, row);
+            blankBoundaryStraddler(x + width, row);
 
             for (int col = colStart; col <= colEnd; col++) {
                 Cell cell = logical[col][row];
@@ -1574,6 +1590,28 @@ public class LogicalScreen implements Screen {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Blank a full-width grapheme that straddles the vertical boundary that
+     * runs between columns {@code boundary - 1} and {@code boundary}, i.e. a
+     * paired {@code LEFT} at {@code boundary - 1} and {@code RIGHT} at
+     * {@code boundary}.  Both halves are replaced with blank single-width
+     * cells so the terminal cannot emit a two-column glyph that spills across
+     * a composited region edge.
+     *
+     * @param boundary the column immediately to the right of the boundary line
+     * @param row      logical row.  0 is the top-most row.
+     */
+    private void blankBoundaryStraddler(final int boundary, final int row) {
+        if ((boundary - 1 >= 0)
+            && (boundary < this.width)
+            && (logical[boundary - 1][row].getWidth() == Cell.Width.LEFT)
+            && (logical[boundary][row].getWidth() == Cell.Width.RIGHT)
+        ) {
+            blankOrphanedHalf(boundary - 1, row);
+            blankOrphanedHalf(boundary, row);
         }
     }
 
