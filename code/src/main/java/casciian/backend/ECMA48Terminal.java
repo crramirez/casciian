@@ -1716,10 +1716,17 @@ public class ECMA48Terminal extends LogicalScreen
                 int lastIntensity = lastSgrBold ? 1
                     : (lastAttr.isFaint() ? 2 : 0);
                 if (lCellIntensity != lastIntensity) {
+                    if ((lCellIntensity != 0) && (lastIntensity != 0)) {
+                        attrSgr.append(";22");
+                    }
                     switch (lCellIntensity) {
                         case 1 -> attrSgr.append(";1");
                         case 2 -> attrSgr.append(";2");
-                        default -> attrSgr.append(";22");
+                        default -> {
+                            if (lastIntensity != 0) {
+                                attrSgr.append(";22");
+                            }
+                        }
                     }
                 }
                 if (lCell.isItalic() != lastAttr.isItalic()) {

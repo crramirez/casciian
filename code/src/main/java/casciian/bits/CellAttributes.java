@@ -831,12 +831,11 @@ public class CellAttributes {
             }
             return sb.toString();
         }
-        return String.format("%s%s%s%s%s%s%s on %s", (isBold() ? "bold " : ""),
+        return String.format("%s%s%s%s%s%s%s%s on %s", (isBold() ? "bold " : ""),
             (isFaint() ? "faint " : ""), (isItalic() ? "italic " : ""),
             (isUnderline() ? "underline " : ""), (isBlink() ? "blink " : ""),
             (isStrikethrough() ? "strikethrough " : ""),
-            (isHidden() ? "hidden " : ""), foreColor)
-            + " on " + backColor;
+            (isHidden() ? "hidden " : ""), foreColor, backColor);
     }
 
     /**
@@ -884,14 +883,14 @@ public class CellAttributes {
             }
         }
 
-        String visibility = isHidden() ? "hidden" : "visible";
+        if (isHidden()) {
+            fgText = "transparent";
+        }
         String opacity = isFaint() ? "0.5" : "1";
 
         return String.format("style=\"color: %s; background-color: %s; " +
-            "text-decoration: %s; font-weight: %s; font-style: %s; " +
-            "visibility: %s; opacity: %s\"",
-            fgText, bgText, textDecoration, fontWeight, fontStyle,
-            visibility, opacity);
+            "text-decoration: %s; font-weight: %s; font-style: %s; opacity: %s\"",
+            fgText, bgText, textDecoration, fontWeight, fontStyle, opacity);
     }
 
     /**

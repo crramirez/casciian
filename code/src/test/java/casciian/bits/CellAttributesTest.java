@@ -81,6 +81,33 @@ class CellAttributesTest {
     }
 
     @Test
+    void testToStringUsesSingleOnSeparator() {
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(true);
+        attr.setForeColor(Color.RED);
+        attr.setBackColor(Color.BLUE);
+
+        assertEquals("bold red on blue", attr.toString());
+    }
+
+    @Test
+    void testToHtmlHiddenKeepsBackgroundVisible() {
+        CellAttributes attr = new CellAttributes();
+        attr.setHidden(true);
+        attr.setForeColor(Color.RED);
+        attr.setBackColor(Color.BLUE);
+
+        String html = attr.toHtml();
+
+        assertTrue(html.contains("color: transparent"),
+            "Hidden text should use a transparent foreground.");
+        assertTrue(html.contains("background-color: " + Color.BLUE.toRgbString(false)),
+            "Hidden text should preserve the background color.");
+        assertFalse(html.contains("visibility: hidden"),
+            "Hidden text should not hide the entire cell.");
+    }
+
+    @Test
     void testBuilderRGB() {
         CellAttributes attr = CellAttributes.builder()
             .foreColorRGB(0x123456)

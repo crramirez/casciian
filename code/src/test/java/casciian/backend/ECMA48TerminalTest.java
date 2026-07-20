@@ -1200,18 +1200,16 @@ class ECMA48TerminalTest {
         CellAttributes bold = new CellAttributes();
         bold.setBold(true);
         terminal.putCharXY(0, 0, 'A', bold);
-        terminal.flushPhysical();
-
         CellAttributes faint = new CellAttributes();
         faint.setFaint(true);
-        terminal.putCharXY(0, 0, 'B', faint);
+        terminal.putCharXY(1, 0, 'B', faint);
 
-        outputStream.reset();
         terminal.flushPhysical();
 
         String output = outputStream.toString();
-        assertTrue(output.contains(";2m") || output.contains("\033[2m"),
-            "Transition from bold to faint should emit SGR 2. Output: "
+        assertTrue(output.contains("[22;2m") || output.contains(";22;2m"),
+            "Transition from bold to faint should reset intensity before "
+            + "emitting faint. Output: "
             + escapeForDisplay(output));
     }
 
