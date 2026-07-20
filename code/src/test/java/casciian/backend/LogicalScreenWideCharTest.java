@@ -170,25 +170,33 @@ class LogicalScreenWideCharTest {
     }
 
     @Test
-    @DisplayName("Translucent overlay straddling a wide char boundary blanks the whole char")
-    void blendStraddlingBoundaryBlanksWholeWideChar() {
-        // Wide char at columns 1-2 (LEFT/RIGHT).
-        screen.putCharXY(1, 0, 0x4E2D, attr);
-        assertEquals(Cell.Width.LEFT, screen.getCharXY(1, 0).getWidth());
-        assertEquals(Cell.Width.RIGHT, screen.getCharXY(2, 0).getWidth());
+    @DisplayName("Translucent overlay giving a wide char two different backgrounds blanks it")
+    void blendMismatchedBackgroundBlanksWholeWideChar() {
+        // Wide char at columns 2-3 (LEFT/RIGHT).
+        screen.putCharXY(2, 0, 0x4E2D, attr);
+        assertEquals(Cell.Width.LEFT, screen.getCharXY(2, 0).getWidth());
+        assertEquals(Cell.Width.RIGHT, screen.getCharXY(3, 0).getWidth());
 
-        // Overlay two invisible (translucent) space cells over columns 2-3, so
-        // only the RIGHT half (column 2) is inside the composited region while
-        // the LEFT half (column 1) stays outside.  The wide glyph would spill
-        // across the region edge and paint over the overlay; both halves must
-        // be blanked instead.
+        // Overlay two invisible (translucent) space cells over columns 2-3,
+        // but with DIFFERENT backgrounds: the LEFT half lands on a dialog-body
+        // coloured space, the RIGHT half on a button-edge coloured space.  Both
+        // spaces are invisible, so the wide char shows through and stays paired
+        // -- but its two halves now have different backgrounds, so a single
+        // glyph would spill the LEFT half's colour across the RIGHT column
+        // (losing a piece of the button edge).  Both halves must be blanked.
         TestableLogicalScreen over = new TestableLogicalScreen(2, 1);
+        CellAttributes body = new CellAttributes();
+        body.setBackColorRGB(0xC0C0C0);
+        CellAttributes edge = new CellAttributes();
+        edge.setBackColorRGB(0x008000);
+        over.putCharXY(0, 0, ' ', body);
+        over.putCharXY(1, 0, ' ', edge);
         screen.blendScreen(over, 2, 0, 2, 1, 128, false);
 
-        assertEquals(Cell.Width.SINGLE, screen.getCharXY(1, 0).getWidth());
-        assertEquals(' ', screen.getCharXY(1, 0).getChar());
         assertEquals(Cell.Width.SINGLE, screen.getCharXY(2, 0).getWidth());
         assertEquals(' ', screen.getCharXY(2, 0).getChar());
+        assertEquals(Cell.Width.SINGLE, screen.getCharXY(3, 0).getWidth());
+        assertEquals(' ', screen.getCharXY(3, 0).getChar());
     }
 
     @Test
@@ -205,5 +213,33 @@ class LogicalScreenWideCharTest {
         assertEquals(Cell.Width.LEFT, screen.getCharXY(2, 0).getWidth());
         assertEquals(0x4E2D, screen.getCharXY(2, 0).getChar());
         assertEquals(Cell.Width.RIGHT, screen.getCharXY(3, 0).getWidth());
+    }
+
+    @Test
+    @DisplayName("Wide char straddling a region edge (blended half vs untouched half) is blanked")
+    void blendStraddlingRegionEdgeBlanksWholeWideChar() {
+        // Wide char at columns 1-2 (LEFT/RIGHT) with a distinct background.
+        CellAttributes blue = new CellAttributes();
+        blue.setBackColorRGB(0x000080);
+        screen.putCharXY(1, 0, 0x4E2D, blue);
+        assertEquals(Cell.Width.LEFT, screen.getCharXY(1, 0).getWidth());
+        assertEquals(Cell.Width.RIGHT, screen.getCharXY(2, 0).getWidth());
+
+        // Blend a translucent overlay over columns 2-3 only, so the RIGHT half
+        // (column 2) is composited while the LEFT half (column 1) stays
+        // untouched.  The two halves now differ in background (untouched blue
+        // vs blended), so the wide glyph would spill across the region edge and
+        // paint over whatever is outside; both halves must be blanked.
+        TestableLogicalScreen over = new TestableLogicalScreen(2, 1);
+        CellAttributes gray = new CellAttributes();
+        gray.setBackColorRGB(0xC0C0C0);
+        over.putCharXY(0, 0, ' ', gray);
+        over.putCharXY(1, 0, ' ', gray);
+        screen.blendScreen(over, 2, 0, 2, 1, 128, false);
+
+        assertEquals(Cell.Width.SINGLE, screen.getCharXY(1, 0).getWidth());
+        assertEquals(' ', screen.getCharXY(1, 0).getChar());
+        assertEquals(Cell.Width.SINGLE, screen.getCharXY(2, 0).getWidth());
+        assertEquals(' ', screen.getCharXY(2, 0).getChar());
     }
 }

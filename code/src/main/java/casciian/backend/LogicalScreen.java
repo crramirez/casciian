@@ -1545,15 +1545,18 @@ public class LogicalScreen implements Screen {
      * single-width cell.  The scan extends one column on each side of the
      * region because a wide grapheme can straddle its edges.
      *
-     * <p>A wide grapheme whose two halves are still paired but that
-     * <em>straddles</em> a region boundary (one half inside the composited
-     * region, the other half outside) is also blanked outright.  Its inside
-     * half was composited (for example blended under a translucent dialog)
-     * while its outside half was left untouched, so the terminal would emit a
-     * single two-column glyph that spills across the region edge and paints
-     * over the overlay (for example a dialog/button border), losing a piece of
-     * that border.  Blanking both halves keeps the wide glyph from being drawn
-     * where it is only partially covered.
+     * <p>A wide grapheme whose two halves are still paired but whose halves end
+     * up with <em>different backgrounds</em> is also blanked outright.  A wide
+     * glyph is emitted only once (at its {@code LEFT} half) using that half's
+     * attributes and physically spans both columns, so its two halves must
+     * share a background.  After compositing, mismatched half backgrounds mean
+     * the grapheme straddles a boundary between two different overlay elements
+     * (for example a translucent dialog body on one side and an opaque button
+     * edge, border, or the untouched screen outside the region on the other):
+     * the single glyph would paint the {@code LEFT} half's background over the
+     * {@code RIGHT} half's column, spilling across the boundary and losing a
+     * piece of the overlay.  Blanking both halves keeps the wide glyph from
+     * being drawn where it is only partially covered.
      *
      * @param x      left column of the region.  0 is the left-most column.
      * @param y      top row of the region.  0 is the top-most row.
@@ -1568,19 +1571,20 @@ public class LogicalScreen implements Screen {
         for (int row = Math.max(0, y);
              (row < y + height) && (row < this.height); row++) {
 
-            // Blank wide graphemes that straddle either boundary of the
-            // composited region (LEFT just outside, RIGHT just inside, or
-            // vice versa).
-            blankBoundaryStraddler(x, row);
-            blankBoundaryStraddler(x + width, row);
-
             for (int col = colStart; col <= colEnd; col++) {
                 Cell cell = logical[col][row];
                 if (cell.getWidth() == Cell.Width.LEFT) {
                     if ((col + 1 >= this.width)
                         || (logical[col + 1][row].getWidth() != Cell.Width.RIGHT)
                     ) {
+                        // Dangling LEFT half with no RIGHT to pair with.
                         blankOrphanedHalf(col, row);
+                    } else if (!sameBackground(cell, logical[col + 1][row])) {
+                        // A paired wide grapheme whose halves have different
+                        // backgrounds straddles an overlay-element boundary;
+                        // blank both halves so the single glyph cannot spill.
+                        blankOrphanedHalf(col, row);
+                        blankOrphanedHalf(col + 1, row);
                     }
                 } else if (cell.getWidth() == Cell.Width.RIGHT) {
                     if ((col - 1 < 0)
@@ -1594,25 +1598,35 @@ public class LogicalScreen implements Screen {
     }
 
     /**
-     * Blank a full-width grapheme that straddles the vertical boundary that
-     * runs between columns {@code boundary - 1} and {@code boundary}, i.e. a
-     * paired {@code LEFT} at {@code boundary - 1} and {@code RIGHT} at
-     * {@code boundary}.  Both halves are replaced with blank single-width
-     * cells so the terminal cannot emit a two-column glyph that spills across
-     * a composited region edge.
+     * Determine whether two cells have the same effective background color.
+     * A negative RGB background is resolved through the backend (or the
+     * default ECMA-48 mapping) so that named/palette and RGB backgrounds are
+     * compared on the same footing.
      *
-     * @param boundary the column immediately to the right of the boundary line
-     * @param row      logical row.  0 is the top-most row.
+     * @param a the first cell
+     * @param b the second cell
+     * @return true if both cells resolve to the same background color
      */
-    private void blankBoundaryStraddler(final int boundary, final int row) {
-        if ((boundary - 1 >= 0)
-            && (boundary < this.width)
-            && (logical[boundary - 1][row].getWidth() == Cell.Width.LEFT)
-            && (logical[boundary][row].getWidth() == Cell.Width.RIGHT)
-        ) {
-            blankOrphanedHalf(boundary - 1, row);
-            blankOrphanedHalf(boundary, row);
+    private boolean sameBackground(final Cell a, final Cell b) {
+        return resolveBackground(a) == resolveBackground(b);
+    }
+
+    /**
+     * Resolve a cell's background to a concrete 24-bit RGB value.
+     *
+     * @param cell the cell
+     * @return the background color as 0xRRGGBB
+     */
+    private int resolveBackground(final Cell cell) {
+        int rgb = cell.getBackColorRGB();
+        if (rgb < 0) {
+            if (backend != null) {
+                rgb = backend.attrToBackgroundColor(cell);
+            } else {
+                rgb = ECMA48Terminal.attrToBackgroundColor(cell);
+            }
         }
+        return rgb & 0xFFFFFF;
     }
 
     /**
