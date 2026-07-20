@@ -41,6 +41,7 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 
 import casciian.backend.SystemProperties;
+import casciian.bits.Cell;
 import casciian.bits.Clipboard;
 import casciian.bits.ComplexCell;
 import casciian.bits.ControlSequences;
@@ -652,6 +653,16 @@ public class TTerminal extends TScrollable
             }
             for (int i = 0; i < widthMax; i++) {
                 ComplexCell ch = line.charAt(i);
+
+                // The RIGHT half of a full-width grapheme is emitted as part
+                // of drawing its LEFT half (putCharXY expands a two-column
+                // cell into both screen columns).  Skip it here; otherwise it
+                // would be re-drawn as a full-width cell and clobber the
+                // neighbouring column.
+                if (ch.getWidth() == Cell.Width.RIGHT) {
+                    continue;
+                }
+
                 ComplexCell newCell = new ComplexCell(ch);
                 boolean reverse = line.isReverseColor() ^ ch.isReverse();
                 newCell.setReverse(false);

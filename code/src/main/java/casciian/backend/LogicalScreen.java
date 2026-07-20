@@ -30,6 +30,7 @@ import casciian.bits.CellTransform;
 import casciian.bits.Color;
 import casciian.bits.ComplexCell;
 import casciian.bits.Clipboard;
+import casciian.bits.ExtendedGraphemeClusterUtils;
 import casciian.bits.ImageUtils;
 import casciian.bits.Palette256;
 import casciian.bits.StringUtils;
@@ -614,6 +615,48 @@ public class LogicalScreen implements Screen {
     }
 
     /**
+     * Render one multi-codepoint grapheme cluster, using only the foreground
+     * attributes.  The background color will not be changed.
+     *
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
+     * @param ch   the grapheme cluster to draw
+     * @param attr attributes to use (bold, foreColor, backColor)
+     */
+    private void putForegroundComplexCharXY(final int x, final int y,
+                                            final ComplexCell ch,
+                                            final CellAttributes attr) {
+
+        if ((x < clipLeft)
+            || (x >= clipRight)
+            || (y < clipTop)
+            || (y >= clipBottom)
+            || (x + offsetX < relativeClipLeft)
+            || (y + offsetY < relativeClipTop)
+        ) {
+            return;
+        }
+
+        int X = x + offsetX;
+        int Y = y + offsetY;
+
+        if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
+            ComplexCell cell = new ComplexCell(ch);
+            cell.setAttr(attr);
+            CellAttributes backAttr = logical[X][Y];
+
+            if (backAttr.getBackColorRGB() >= 0) {
+                cell.setBackColorRGB(backAttr.getBackColorRGB());
+            } else if (backAttr.getBackColorPalette() >= 0) {
+                cell.setBackColorPalette(backAttr.getBackColorPalette());
+            } else {
+                cell.setBackColor(backAttr.getBackColor());
+            }
+            putCharXY(x, y, cell);
+        }
+    }
+
+    /**
      * Render one character with attributes.
      *
      * @param x  column coordinate.  0 is the left-most column.
@@ -655,6 +698,7 @@ public class LogicalScreen implements Screen {
                 assert (ch.getChar() != 0x7F);
             }
             logical[X][Y].setTo(ch);
+            clearOrphanedHalves(X, Y, logical[X][Y].getWidth());
 
             // If this happens to be the cursor position, make the position
             // dirty.
@@ -706,6 +750,7 @@ public class LogicalScreen implements Screen {
 
             logical[X][Y].setTo(attr);
             logical[X][Y].setChar(ch);
+            clearOrphanedHalves(X, Y, Cell.Width.SINGLE);
 
             // If this happens to be the cursor position, make the position
             // dirty.
@@ -748,6 +793,7 @@ public class LogicalScreen implements Screen {
 
         if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
             logical[X][Y].setChar(ch);
+            clearOrphanedHalves(X, Y, Cell.Width.SINGLE);
 
             // If this happens to be the cursor position, make the position
             // dirty.
@@ -773,12 +819,20 @@ public class LogicalScreen implements Screen {
                                   final CellAttributes attr) {
 
         int i = x;
-        for (int j = 0; j < str.length(); ) {
-            int ch = str.codePointAt(j);
-            j += Character.charCount(ch);
-            putCharXY(i, y, ch, attr);
-            i += StringUtils.width(ch);
-            if (i == width) {
+        for (ComplexCell cell
+            : ExtendedGraphemeClusterUtils.toComplexCells(str)
+        ) {
+            int w = cell.getDisplayWidth();
+            // Never partially place a two-cell cluster: if there is not
+            // enough room for the whole cluster, stop.
+            if (i + w > width) {
+                break;
+            }
+            ComplexCell placed = new ComplexCell(cell);
+            placed.setAttr(attr);
+            putCharXY(i, y, placed);
+            i += w;
+            if (i >= width) {
                 break;
             }
         }
@@ -798,12 +852,22 @@ public class LogicalScreen implements Screen {
                                       final String str, final CellAttributes attr) {
 
         int i = x;
-        for (int j = 0; j < str.length(); ) {
-            int ch = str.codePointAt(j);
-            j += Character.charCount(ch);
-            putForegroundCharXY(i, y, ch, attr);
-            i += StringUtils.width(ch);
-            if (i == width) {
+        for (ComplexCell cell
+            : ExtendedGraphemeClusterUtils.toComplexCells(str)
+        ) {
+            int w = cell.getDisplayWidth();
+            // Never partially place a two-cell cluster: if there is not
+            // enough room for the whole cluster, stop.
+            if (i + w > width) {
+                break;
+            }
+            if (cell.getCodePointCount() == 1) {
+                putForegroundCharXY(i, y, cell.getChar(), attr);
+            } else {
+                putForegroundComplexCharXY(i, y, cell, attr);
+            }
+            i += w;
+            if (i >= width) {
                 break;
             }
         }
@@ -820,12 +884,20 @@ public class LogicalScreen implements Screen {
     public final void putStringXY(final int x, final int y, final String str) {
 
         int i = x;
-        for (int j = 0; j < str.length(); ) {
-            int ch = str.codePointAt(j);
-            j += Character.charCount(ch);
-            putCharXY(i, y, ch);
-            i += StringUtils.width(ch);
-            if (i == width) {
+        for (ComplexCell cell
+            : ExtendedGraphemeClusterUtils.toComplexCells(str)
+        ) {
+            int w = cell.getDisplayWidth();
+            // Never partially place a two-cell cluster: if there is not
+            // enough room for the whole cluster, stop.
+            if (i + w > width) {
+                break;
+            }
+            ComplexCell placed = new ComplexCell(cell);
+            placed.setAttr(getAttrXY(i, y));
+            putCharXY(i, y, placed);
+            i += w;
+            if (i >= width) {
                 break;
             }
         }
@@ -1363,6 +1435,20 @@ public class LogicalScreen implements Screen {
     private void putFullwidthCharXY(final int x, final int y,
                                     final ComplexCell cell) {
 
+        // If the RIGHT half cannot be placed (clipped at the right edge of
+        // the screen or the current clip region), the LEFT half would be
+        // orphaned.  A stranded LEFT half emits a full-width glyph in a
+        // single column, which the terminal renders as an overflowing or
+        // broken glyph.  Draw a blank single-width cell instead so no half
+        // glyph is emitted.
+        if (!isCellDrawable(x + 1, y)) {
+            ComplexCell blank = new ComplexCell(cell);
+            blank.setChar(' ');
+            blank.setWidth(Cell.Width.SINGLE);
+            putCharXY(x, y, blank, true);
+            return;
+        }
+
         ComplexCell left = new ComplexCell(cell);
         left.setWidth(Cell.Width.LEFT);
         putCharXY(x, y, left, true);
@@ -1371,6 +1457,176 @@ public class LogicalScreen implements Screen {
         right.setWidth(Cell.Width.RIGHT);
 //        right.setChar(0xFE0F); //VS16
         putCharXY(x + 1, y, right, true);
+    }
+
+    /**
+     * Determine whether a cell at the given coordinates would actually be
+     * stored, applying the same clip and bounds checks used by
+     * {@link #putCharXY(int, int, Cell, boolean)}.
+     *
+     * @param x column coordinate.  0 is the left-most column.
+     * @param y row coordinate.  0 is the top-most row.
+     * @return true if a cell written at (x, y) would be visible
+     */
+    private boolean isCellDrawable(final int x, final int y) {
+        if ((x < clipLeft)
+            || (x >= clipRight)
+            || (y < clipTop)
+            || (y >= clipBottom)
+            || (x + offsetX < relativeClipLeft)
+            || (y + offsetY < relativeClipTop)
+        ) {
+            return false;
+        }
+        final int X = x + offsetX;
+        final int Y = y + offsetY;
+        return (X >= 0) && (X < width) && (Y >= 0) && (Y < height);
+    }
+
+    /**
+     * Clear any half of a full-width cell that has been orphaned by writing
+     * a new cell at logical coordinates (X, Y).  A {@code LEFT} half must be
+     * immediately followed by a {@code RIGHT} half and vice versa; when a new
+     * cell breaks that pairing, the dangling half is replaced with a blank so
+     * that the render pass cannot emit a stale wide glyph.
+     *
+     * @param X    logical column (already offset)
+     * @param Y    logical row (already offset)
+     * @param newWidth the width of the cell just written at (X, Y)
+     */
+    private void clearOrphanedHalves(final int X, final int Y,
+                                     final Cell.Width newWidth) {
+
+        // A LEFT half to our left is orphaned unless we are its RIGHT half.
+        if ((X - 1 >= 0)
+            && (logical[X - 1][Y].getWidth() == Cell.Width.LEFT)
+            && (newWidth != Cell.Width.RIGHT)
+        ) {
+            blankOrphanedHalf(X - 1, Y);
+        }
+
+        // A RIGHT half to our right is orphaned unless we are its LEFT half.
+        if ((X + 1 < width)
+            && (logical[X + 1][Y].getWidth() == Cell.Width.RIGHT)
+            && (newWidth != Cell.Width.LEFT)
+        ) {
+            blankOrphanedHalf(X + 1, Y);
+        }
+    }
+
+    /**
+     * Replace an orphaned half of a full-width cell with a blank single-width
+     * cell, preserving its attributes.
+     *
+     * @param X logical column (already offset)
+     * @param Y logical row (already offset)
+     */
+    private void blankOrphanedHalf(final int X, final int Y) {
+        logical[X][Y].setChar(' ');
+        logical[X][Y].setWidth(Cell.Width.SINGLE);
+        if ((cursorX == X) && (cursorY == Y)) {
+            synchronized (this) {
+                physical[cursorX][cursorY].unset();
+                unsetImageRow(cursorY);
+            }
+        }
+    }
+
+    /**
+     * Repair any full-width cells that were left orphaned inside (or on the
+     * borders of) a rectangular region that was directly composited into the
+     * {@code logical} buffer (for example by {@link #blendScreen} or
+     * {@link #copyScreen}).  Those routines write cells one column at a time
+     * without maintaining the {@code LEFT}/{@code RIGHT} pairing invariant, so
+     * an overlay that lands on only one half of a wide grapheme leaves a
+     * dangling half that the render pass would emit as a broken wide glyph.
+     * A dangling {@code LEFT} (no {@code RIGHT} to its right) or dangling
+     * {@code RIGHT} (no {@code LEFT} to its left) is replaced with a blank
+     * single-width cell.  The scan extends one column on each side of the
+     * region because a wide grapheme can straddle its edges.
+     *
+     * <p>A wide grapheme whose two halves are still paired but whose halves end
+     * up with <em>different backgrounds</em> is also blanked outright.  A wide
+     * glyph is emitted only once (at its {@code LEFT} half) using that half's
+     * attributes and physically spans both columns, so its two halves must
+     * share a background.  After compositing, mismatched half backgrounds mean
+     * the grapheme straddles a boundary between two different overlay elements
+     * (for example a translucent dialog body on one side and an opaque button
+     * edge, border, or the untouched screen outside the region on the other):
+     * the single glyph would paint the {@code LEFT} half's background over the
+     * {@code RIGHT} half's column, spilling across the boundary and losing a
+     * piece of the overlay.  Blanking both halves keeps the wide glyph from
+     * being drawn where it is only partially covered.
+     *
+     * @param x      left column of the region.  0 is the left-most column.
+     * @param y      top row of the region.  0 is the top-most row.
+     * @param width  number of columns in the region
+     * @param height number of rows in the region
+     */
+    private void repairOrphanedHalves(final int x, final int y,
+                                      final int width, final int height) {
+
+        int colStart = Math.max(0, x - 1);
+        int colEnd = Math.min(this.width - 1, x + width);
+        for (int row = Math.max(0, y);
+             (row < y + height) && (row < this.height); row++) {
+
+            for (int col = colStart; col <= colEnd; col++) {
+                Cell cell = logical[col][row];
+                if (cell.getWidth() == Cell.Width.LEFT) {
+                    if ((col + 1 >= this.width)
+                        || (logical[col + 1][row].getWidth() != Cell.Width.RIGHT)
+                    ) {
+                        // Dangling LEFT half with no RIGHT to pair with.
+                        blankOrphanedHalf(col, row);
+                    } else if (!sameBackground(cell, logical[col + 1][row])) {
+                        // A paired wide grapheme whose halves have different
+                        // backgrounds straddles an overlay-element boundary;
+                        // blank both halves so the single glyph cannot spill.
+                        blankOrphanedHalf(col, row);
+                        blankOrphanedHalf(col + 1, row);
+                    }
+                } else if (cell.getWidth() == Cell.Width.RIGHT) {
+                    if ((col - 1 < 0)
+                        || (logical[col - 1][row].getWidth() != Cell.Width.LEFT)
+                    ) {
+                        blankOrphanedHalf(col, row);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Determine whether two cells have the same effective background color.
+     * A negative RGB background is resolved through the backend (or the
+     * default ECMA-48 mapping) so that named/palette and RGB backgrounds are
+     * compared on the same footing.
+     *
+     * @param a the first cell
+     * @param b the second cell
+     * @return true if both cells resolve to the same background color
+     */
+    private boolean sameBackground(final Cell a, final Cell b) {
+        return resolveBackground(a) == resolveBackground(b);
+    }
+
+    /**
+     * Resolve a cell's background to a concrete 24-bit RGB value.
+     *
+     * @param cell the cell
+     * @return the background color as 0xRRGGBB
+     */
+    private int resolveBackground(final Cell cell) {
+        int rgb = cell.getBackColorRGB();
+        if (rgb < 0) {
+            if (backend != null) {
+                rgb = backend.attrToBackgroundColor(cell);
+            } else {
+                rgb = ECMA48Terminal.attrToBackgroundColor(cell);
+            }
+        }
+        return rgb & 0xFFFFFF;
     }
 
     /**
@@ -1803,6 +2059,7 @@ public class LogicalScreen implements Screen {
                         thisCell.setDefaultColor(false, false);
                     }
                 }
+                repairOrphanedHalves(x, y, width, height);
             }
             return;
         }
@@ -1998,6 +2255,7 @@ public class LogicalScreen implements Screen {
                     // for each case.
                 }
             }
+            repairOrphanedHalves(x, y, width, height);
         }
     }
 

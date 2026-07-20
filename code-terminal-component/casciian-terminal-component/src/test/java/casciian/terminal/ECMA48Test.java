@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import casciian.backend.Backend;
 import casciian.backend.HeadlessBackend;
+import casciian.bits.Cell;
 import casciian.bits.ComplexCell;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -462,6 +463,53 @@ class ECMA48Test {
             assertEquals(21, cell.getBackColorPalette());
             assertEquals(-1, cell.getForeColorRGB());
             assertEquals(-1, cell.getBackColorRGB());
+        } finally {
+            emulator.close();
+        }
+    }
+
+    /**
+     * A standalone full-width (CJK) character must occupy two display-buffer
+     * columns: a LEFT half followed by a RIGHT half.  If it were stored in a
+     * single column, the next character would orphan the wide glyph and the
+     * widget would render nothing for it.
+     */
+    @Test
+    @DisplayName("Standalone CJK character occupies two columns as LEFT/RIGHT halves")
+    void shouldStoreCjkAsLeftRightHalves() throws Exception {
+        Backend backend = new HeadlessBackend();
+
+        // "中文A" -> two wide chars followed by a narrow one.
+        String sequence = "\u4E2D\u6587A";
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(
+            sequence.getBytes("UTF-8"));
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
+            outputStream, null, backend);
+
+        try {
+            emulator.waitForOutput(1000);
+
+            TerminalState state = emulator.captureState();
+            var line = state.getDisplayBuffer().get(0);
+
+            ComplexCell c0 = line.charAt(0);
+            ComplexCell c1 = line.charAt(1);
+            ComplexCell c2 = line.charAt(2);
+            ComplexCell c3 = line.charAt(3);
+            ComplexCell c4 = line.charAt(4);
+
+            assertEquals(0x4E2D, c0.getChar());
+            assertEquals(Cell.Width.LEFT, c0.getWidth());
+            assertEquals(Cell.Width.RIGHT, c1.getWidth());
+
+            assertEquals(0x6587, c2.getChar());
+            assertEquals(Cell.Width.LEFT, c2.getWidth());
+            assertEquals(Cell.Width.RIGHT, c3.getWidth());
+
+            assertEquals('A', c4.getChar());
+            assertEquals(Cell.Width.SINGLE, c4.getWidth());
         } finally {
             emulator.close();
         }

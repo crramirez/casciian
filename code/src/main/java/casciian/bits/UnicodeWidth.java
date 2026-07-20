@@ -79,12 +79,15 @@ public class UnicodeWidth {
 
     /**
      * Check if a codepoint is a control character (width 0).
+     * <p>
+     * Delegates to {@link Character#isISOControl(int)}, which covers exactly
+     * the C0 (U+0000..U+001F) and C1 (U+007F..U+009F) control ranges.
      *
      * @param ch the code point
      * @return true if control character
      */
     private static boolean isControlCharacter(final int ch) {
-        return (ch < 32) || ((ch >= 0x7f) && (ch < 0xa0));
+        return Character.isISOControl(ch);
     }
 
     /**
@@ -104,39 +107,22 @@ public class UnicodeWidth {
     }
 
     /**
-     * Check if a codepoint is a combining character.
+     * Check if a codepoint is a combining character (width 0).
+     * <p>
+     * Rather than a hand-maintained table of Unicode ranges, this defers to
+     * {@link Character#getType(int)} and treats non-spacing marks (Mn) and
+     * enclosing marks (Me) as zero-width. This keeps the classification in
+     * sync with the Unicode version bundled with the running JDK. Spacing
+     * combining marks (Mc) are intentionally excluded because they occupy a
+     * display cell.
      *
      * @param ch the code point
      * @return true if combining character
      */
     private static boolean isCombiningCharacter(final int ch) {
-        return ((ch >= 0x0300) && (ch <= 0x036f))      // Combining Diacritical Marks
-            || ((ch >= 0x0483) && (ch <= 0x0489))      // Cyrillic combining
-            || ((ch >= 0x0591) && (ch <= 0x05bd))      // Hebrew combining
-            || ((ch >= 0x05bf) && (ch <= 0x05c7))      // Hebrew combining
-            || ((ch >= 0x0610) && (ch <= 0x061a))      // Arabic combining
-            || ((ch >= 0x064b) && (ch <= 0x065f))      // Arabic combining
-            || (ch == 0x670)                           // Arabic combining
-            || ((ch >= 0x06d6) && (ch <= 0x06ed))      // Arabic combining
-            || (ch == 0x711)                           // Syriac combining
-            || ((ch >= 0x0730) && (ch <= 0x074a))      // Syriac combining
-            || ((ch >= 0x07a6) && (ch <= 0x07b0))      // Thaana combining
-            || ((ch >= 0x07eb) && (ch <= 0x07f3))      // NKo combining
-            || ((ch >= 0x0816) && (ch <= 0x0819))      // Samaritan combining
-            || ((ch >= 0x081b) && (ch <= 0x0823))      // Samaritan combining
-            || ((ch >= 0x0825) && (ch <= 0x0827))      // Samaritan combining
-            || ((ch >= 0x0829) && (ch <= 0x082d))      // Samaritan combining
-            || ((ch >= 0x0859) && (ch <= 0x085b))      // Mandaic combining
-            || ((ch >= 0x0900) && (ch <= 0x0902))      // Devanagari combining
-            || ((ch >= 0x093a) && (ch <= 0x093c))      // Devanagari combining
-            || ((ch >= 0x0941) && (ch <= 0x0948))      // Devanagari combining
-            || (ch == 0x94D)                           // Devanagari combining
-            || ((ch >= 0x0951) && (ch <= 0x0957))      // Devanagari combining
-            || ((ch >= 0x0962) && (ch <= 0x0963))      // Devanagari combining
-            || ((ch >= 0x1ab0) && (ch <= 0x1ace))      // More combining marks
-            || ((ch >= 0x1dc0) && (ch <= 0x1dff))      // Combining Diacritical Marks Supplement
-            || ((ch >= 0x20d0) && (ch <= 0x20f0))      // Combining Diacritical Marks for Symbols
-            || ((ch >= 0xfe20) && (ch <= 0xfe2f));     // Combining Half Marks
+        final int type = Character.getType(ch);
+        return (type == Character.NON_SPACING_MARK)
+            || (type == Character.ENCLOSING_MARK);
     }
 
     /**

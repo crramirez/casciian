@@ -28,6 +28,7 @@ import org.mockito.Mockito;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1398,6 +1399,60 @@ class ECMA48TerminalTest {
         }
         return sb.toString();
     }
+
+    private static int countOccurrences(final String haystack,
+            final String needle) {
+        int count = 0;
+        int idx = 0;
+        while ((idx = haystack.indexOf(needle, idx)) >= 0) {
+            count++;
+            idx += needle.length();
+        }
+        return count;
+    }
+
+    // Grapheme-cluster / wide-character output tests
+
+    @Test
+    @DisplayName("Wide CJK char is emitted once, right half suppressed")
+    void wideCharEmittedOnce() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        // 中 is a full-width CJK ideograph.
+        terminal.putStringXY(0, 0, "\u4E2D", attr);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString(StandardCharsets.UTF_8);
+        assertEquals(1, countOccurrences(output, "\u4E2D"),
+            "CJK char should be emitted exactly once (right half suppressed)."
+            + " Output: " + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("ZWJ emoji grapheme is emitted as one contiguous sequence once")
+    void zwjEmojiEmittedContiguously() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        // 👩‍💻 = woman + ZWJ + laptop.
+        String zwj = "\uD83D\uDC69\u200D\uD83D\uDCBB";
+        terminal.putStringXY(0, 0, "A" + zwj + "B", attr);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString(StandardCharsets.UTF_8);
+        assertTrue(output.contains(zwj),
+            "ZWJ emoji should be emitted as one contiguous sequence. Output: "
+            + escapeForDisplay(output));
+        assertEquals(1, countOccurrences(output, zwj),
+            "ZWJ emoji should be emitted exactly once.");
+        assertEquals(1, countOccurrences(output, "\u200D"),
+            "ZWJ codepoint should appear exactly once (no duplicated half).");
+    }
     
     // Thread safety tests
     
@@ -1520,6 +1575,45 @@ class ECMA48TerminalTest {
         assertNull(threadException.get(), 
             "Concurrent access should not throw: " + threadException.get());
     }
-    
-    
+
+    @Test
+    @DisplayName("Wide glyph re-anchors on its LEFT half when only the RIGHT "
+        + "half is dirtied")
+    void testWideCharPairedRedrawOnRightHalfChange() {
+        terminal = createTerminal();
+
+        CellAttributes attr = new CellAttributes();
+        attr.setForeColor(Color.WHITE);
+        attr.setBackColor(Color.BLUE);
+
+        // Place a double-width CJK glyph.  The LEFT half occupies column 0
+        // and the RIGHT half occupies column 1.
+        String wide = "\uF900"; // CJK Compatibility Ideograph, width 2
+        terminal.putStringXY(0, 0, wide, attr);
+        terminal.flushPhysical();
+
+        // Dirty only the RIGHT half of the glyph (its background), leaving
+        // the LEFT half unchanged.  This mimics an effect (e.g. the mouse
+        // glow gradient) that touches a single cell of a wide glyph.
+        outputStream.reset();
+        CellAttributes redBg = new CellAttributes();
+        redBg.setBackColor(Color.RED);
+        terminal.putBackgroundAttrXY(1, 0, redBg);
+        terminal.flushPhysical();
+
+        String output = outputStream.toString(StandardCharsets.UTF_8);
+
+        // The glyph must be re-emitted, anchored on its LEFT column.  Before
+        // the fix, only the RIGHT half changed, so the terminal was
+        // positioned onto the right-half column (\033[1;2H) and emitted no
+        // glyph, which Windows Terminal renders with a one-column drift.
+        assertTrue(output.contains(wide),
+            "Wide glyph should be re-emitted as a unit: " + output);
+        assertTrue(output.contains("\033[1;1H"),
+            "Cursor should be positioned on the LEFT half column: " + output);
+        assertFalse(output.contains("\033[1;2H"),
+            "Cursor must not be positioned onto the RIGHT half column: "
+            + output);
+    }
+
 }
