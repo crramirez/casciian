@@ -1588,6 +1588,37 @@ public class ECMA48Terminal extends LogicalScreen
         // Push textEnd to first column beyond the text area
         textEnd++;
 
+        // Wide-char glyphs occupy two cells: a LEFT half that carries the
+        // glyph and a RIGHT half that is never emitted on its own (the
+        // terminal auto-advances the cursor by two columns after the LEFT
+        // half is printed).  The diff loop below only re-emits cells that
+        // differ from the physical screen, so if just one half of a wide
+        // glyph changed it could position the cursor directly onto the
+        // RIGHT-half column (and then emit nothing there).  Some terminals
+        // -- notably Windows Terminal -- handle a cursor move onto the right
+        // half of a double-width glyph inconsistently, which shifts the rest
+        // of the line by one column and produces a ragged, drifting render.
+        // Keep wide glyphs anchored on their LEFT column by forcing both
+        // halves to be redrawn together whenever either half changed.
+        for (int x = 0; x < width - 1; x++) {
+            ComplexCell lLeft = logical[x][y];
+            ComplexCell lRight = logical[x + 1][y];
+            if ((lLeft.getWidth() == Cell.Width.LEFT)
+                && (lRight.getWidth() == Cell.Width.RIGHT)
+            ) {
+                boolean leftChanged = !lLeft.equals(physical[x][y]);
+                boolean rightChanged = !lRight.equals(physical[x + 1][y]);
+                if (leftChanged != rightChanged) {
+                    // Only one half differs.  Force the matching half to be
+                    // re-emitted as well so the pair is drawn as a unit
+                    // starting from the LEFT column, never landing the cursor
+                    // on the RIGHT half.
+                    physical[x][y].unset();
+                    physical[x + 1][y].unset();
+                }
+            }
+        }
+
         // DEBUG
         // reallyCleared = true;
 
