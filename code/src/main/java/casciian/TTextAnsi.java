@@ -142,57 +142,37 @@ public class TTextAnsi extends TScrollable {
 
             // Draw cells for this line
             int drawWidth = getWidth() - 1;
-            for (int col = 0; col < drawWidth; col++) {
+            int col = 0;
+            while (col < drawWidth) {
                 int srcCol = col + hOffset;
-                if (srcCol < cells.size()) {
-                    Cell cell = cells.get(srcCol);
-                    // Replace default terminal colors with theme colors
-                    if (cell.isDefaultColor(true)
-                            && cell.isDefaultColor(false)) {
-                        CellAttributes base = cell.isBoldAsBright()
-                            && defaultColor.getForeColorRGB() >= 0
-                            ? defaultColorBright : defaultColor;
-                        CellAttributes themed = new CellAttributes();
-                        themed.setTo(base);
-                        themed.setBold(cell.isBold());
-                        themed.setUnderline(cell.isUnderline());
-                        themed.setBlink(cell.isBlink());
-                        themed.setReverse(cell.isReverse());
-                        themed.setFaint(cell.isFaint());
-                        themed.setItalic(cell.isItalic());
-                        themed.setHidden(cell.isHidden());
-                        themed.setStrikethrough(cell.isStrikethrough());
-                        putCharXY(col, topY, cell.getChar(), themed);
-                    } else if (cell.isDefaultColor(true)) {
-                        CellAttributes base = cell.isBoldAsBright()
-                            && defaultColor.getForeColorRGB() >= 0
-                            ? defaultColorBright : defaultColor;
-                        CellAttributes themed = new CellAttributes();
-                        themed.setTo(cell);
-                        if (base.getForeColorRGB() >= 0) {
-                            themed.setForeColorRGB(
-                                base.getForeColorRGB());
-                        } else {
-                            themed.setForeColor(base.getForeColor());
-                        }
-                        themed.setDefaultColor(true, false);
-                        putCharXY(col, topY, cell.getChar(), themed);
-                    } else if (cell.isDefaultColor(false)) {
-                        CellAttributes themed = new CellAttributes();
-                        themed.setTo(cell);
-                        if (defaultColor.getBackColorRGB() >= 0) {
-                            themed.setBackColorRGB(
-                                defaultColor.getBackColorRGB());
-                        } else {
-                            themed.setBackColor(defaultColor.getBackColor());
-                        }
-                        themed.setDefaultColor(false, false);
-                        putCharXY(col, topY, cell.getChar(), themed);
-                    } else {
-                        putCharXY(col, topY, cells.get(srcCol));
-                    }
-                } else {
+                if (srcCol >= cells.size()) {
                     putCharXY(col, topY, ' ', defaultColor);
+                    col++;
+                    continue;
+                }
+
+                Cell cell = cells.get(srcCol);
+                boolean wide = (cell.getDisplayWidth() == 2) && !cell.isImage();
+
+                // Never partially place a two-cell cluster: if the right
+                // half would fall outside the visible area, draw a blank
+                // instead so the wide glyph cannot overflow the widget.
+                if (wide && (col + 1 >= drawWidth)) {
+                    putCharXY(col, topY, ' ', defaultColor);
+                    col++;
+                    continue;
+                }
+
+                drawCell(cell, col, topY, defaultColor, defaultColorBright);
+
+                if (wide) {
+                    // AnsiParser stores a padding cell for the right half of
+                    // a wide glyph.  putCharXY already rendered both halves,
+                    // so skip the padding cell to avoid overwriting the
+                    // right half.
+                    col += 2;
+                } else {
+                    col++;
                 }
             }
             topY++;
@@ -205,6 +185,67 @@ public class TTextAnsi extends TScrollable {
         // Pad remaining rows with blank lines
         for (int i = topY; i < (getHeight() - 1); i++) {
             hLineXY(0, i, getWidth() - 1, ' ', defaultColor);
+        }
+    }
+
+    /**
+     * Draw a single parsed cell at the given position, replacing default
+     * terminal colors with the widget's theme colors.
+     *
+     * @param cell              the parsed cell to draw
+     * @param col               column relative to the widget
+     * @param topY              row relative to the widget
+     * @param defaultColor      the theme's default color
+     * @param defaultColorBright the theme's default bright color
+     */
+    private void drawCell(final Cell cell, final int col, final int topY,
+            final CellAttributes defaultColor,
+            final CellAttributes defaultColorBright) {
+
+        // Replace default terminal colors with theme colors
+        if (cell.isDefaultColor(true)
+                && cell.isDefaultColor(false)) {
+            CellAttributes base = cell.isBoldAsBright()
+                && defaultColor.getForeColorRGB() >= 0
+                ? defaultColorBright : defaultColor;
+            CellAttributes themed = new CellAttributes();
+            themed.setTo(base);
+            themed.setBold(cell.isBold());
+            themed.setUnderline(cell.isUnderline());
+            themed.setBlink(cell.isBlink());
+            themed.setReverse(cell.isReverse());
+            themed.setFaint(cell.isFaint());
+            themed.setItalic(cell.isItalic());
+            themed.setHidden(cell.isHidden());
+            themed.setStrikethrough(cell.isStrikethrough());
+            putCharXY(col, topY, cell.getChar(), themed);
+        } else if (cell.isDefaultColor(true)) {
+            CellAttributes base = cell.isBoldAsBright()
+                && defaultColor.getForeColorRGB() >= 0
+                ? defaultColorBright : defaultColor;
+            CellAttributes themed = new CellAttributes();
+            themed.setTo(cell);
+            if (base.getForeColorRGB() >= 0) {
+                themed.setForeColorRGB(
+                    base.getForeColorRGB());
+            } else {
+                themed.setForeColor(base.getForeColor());
+            }
+            themed.setDefaultColor(true, false);
+            putCharXY(col, topY, cell.getChar(), themed);
+        } else if (cell.isDefaultColor(false)) {
+            CellAttributes themed = new CellAttributes();
+            themed.setTo(cell);
+            if (defaultColor.getBackColorRGB() >= 0) {
+                themed.setBackColorRGB(
+                    defaultColor.getBackColorRGB());
+            } else {
+                themed.setBackColor(defaultColor.getBackColor());
+            }
+            themed.setDefaultColor(false, false);
+            putCharXY(col, topY, cell.getChar(), themed);
+        } else {
+            putCharXY(col, topY, cell);
         }
     }
 

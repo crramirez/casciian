@@ -30,6 +30,7 @@ import casciian.bits.CellTransform;
 import casciian.bits.Color;
 import casciian.bits.ComplexCell;
 import casciian.bits.Clipboard;
+import casciian.bits.ExtendedGraphemeClusterUtils;
 import casciian.bits.ImageUtils;
 import casciian.bits.Palette256;
 import casciian.bits.StringUtils;
@@ -614,6 +615,48 @@ public class LogicalScreen implements Screen {
     }
 
     /**
+     * Render one multi-codepoint grapheme cluster, using only the foreground
+     * attributes.  The background color will not be changed.
+     *
+     * @param x    column coordinate.  0 is the left-most column.
+     * @param y    row coordinate.  0 is the top-most row.
+     * @param ch   the grapheme cluster to draw
+     * @param attr attributes to use (bold, foreColor, backColor)
+     */
+    private void putForegroundComplexCharXY(final int x, final int y,
+                                            final ComplexCell ch,
+                                            final CellAttributes attr) {
+
+        if ((x < clipLeft)
+            || (x >= clipRight)
+            || (y < clipTop)
+            || (y >= clipBottom)
+            || (x + offsetX < relativeClipLeft)
+            || (y + offsetY < relativeClipTop)
+        ) {
+            return;
+        }
+
+        int X = x + offsetX;
+        int Y = y + offsetY;
+
+        if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
+            ComplexCell cell = new ComplexCell(ch);
+            cell.setAttr(attr);
+            CellAttributes backAttr = logical[X][Y];
+
+            if (backAttr.getBackColorRGB() >= 0) {
+                cell.setBackColorRGB(backAttr.getBackColorRGB());
+            } else if (backAttr.getBackColorPalette() >= 0) {
+                cell.setBackColorPalette(backAttr.getBackColorPalette());
+            } else {
+                cell.setBackColor(backAttr.getBackColor());
+            }
+            putCharXY(x, y, cell);
+        }
+    }
+
+    /**
      * Render one character with attributes.
      *
      * @param x  column coordinate.  0 is the left-most column.
@@ -655,6 +698,7 @@ public class LogicalScreen implements Screen {
                 assert (ch.getChar() != 0x7F);
             }
             logical[X][Y].setTo(ch);
+            clearOrphanedHalves(X, Y, logical[X][Y].getWidth());
 
             // If this happens to be the cursor position, make the position
             // dirty.
@@ -706,6 +750,7 @@ public class LogicalScreen implements Screen {
 
             logical[X][Y].setTo(attr);
             logical[X][Y].setChar(ch);
+            clearOrphanedHalves(X, Y, Cell.Width.SINGLE);
 
             // If this happens to be the cursor position, make the position
             // dirty.
@@ -748,6 +793,7 @@ public class LogicalScreen implements Screen {
 
         if ((X >= 0) && (X < width) && (Y >= 0) && (Y < height)) {
             logical[X][Y].setChar(ch);
+            clearOrphanedHalves(X, Y, Cell.Width.SINGLE);
 
             // If this happens to be the cursor position, make the position
             // dirty.
@@ -773,12 +819,20 @@ public class LogicalScreen implements Screen {
                                   final CellAttributes attr) {
 
         int i = x;
-        for (int j = 0; j < str.length(); ) {
-            int ch = str.codePointAt(j);
-            j += Character.charCount(ch);
-            putCharXY(i, y, ch, attr);
-            i += StringUtils.width(ch);
-            if (i == width) {
+        for (ComplexCell cell
+            : ExtendedGraphemeClusterUtils.toComplexCells(str)
+        ) {
+            int w = cell.getDisplayWidth();
+            // Never partially place a two-cell cluster: if there is not
+            // enough room for the whole cluster, stop.
+            if (i + w > width) {
+                break;
+            }
+            ComplexCell placed = new ComplexCell(cell);
+            placed.setAttr(attr);
+            putCharXY(i, y, placed);
+            i += w;
+            if (i >= width) {
                 break;
             }
         }
@@ -798,12 +852,22 @@ public class LogicalScreen implements Screen {
                                       final String str, final CellAttributes attr) {
 
         int i = x;
-        for (int j = 0; j < str.length(); ) {
-            int ch = str.codePointAt(j);
-            j += Character.charCount(ch);
-            putForegroundCharXY(i, y, ch, attr);
-            i += StringUtils.width(ch);
-            if (i == width) {
+        for (ComplexCell cell
+            : ExtendedGraphemeClusterUtils.toComplexCells(str)
+        ) {
+            int w = cell.getDisplayWidth();
+            // Never partially place a two-cell cluster: if there is not
+            // enough room for the whole cluster, stop.
+            if (i + w > width) {
+                break;
+            }
+            if (cell.getCodePointCount() == 1) {
+                putForegroundCharXY(i, y, cell.getChar(), attr);
+            } else {
+                putForegroundComplexCharXY(i, y, cell, attr);
+            }
+            i += w;
+            if (i >= width) {
                 break;
             }
         }
@@ -820,12 +884,20 @@ public class LogicalScreen implements Screen {
     public final void putStringXY(final int x, final int y, final String str) {
 
         int i = x;
-        for (int j = 0; j < str.length(); ) {
-            int ch = str.codePointAt(j);
-            j += Character.charCount(ch);
-            putCharXY(i, y, ch);
-            i += StringUtils.width(ch);
-            if (i == width) {
+        for (ComplexCell cell
+            : ExtendedGraphemeClusterUtils.toComplexCells(str)
+        ) {
+            int w = cell.getDisplayWidth();
+            // Never partially place a two-cell cluster: if there is not
+            // enough room for the whole cluster, stop.
+            if (i + w > width) {
+                break;
+            }
+            ComplexCell placed = new ComplexCell(cell);
+            placed.setAttr(getAttrXY(i, y));
+            putCharXY(i, y, placed);
+            i += w;
+            if (i >= width) {
                 break;
             }
         }
@@ -1371,6 +1443,55 @@ public class LogicalScreen implements Screen {
         right.setWidth(Cell.Width.RIGHT);
 //        right.setChar(0xFE0F); //VS16
         putCharXY(x + 1, y, right, true);
+    }
+
+    /**
+     * Clear any half of a full-width cell that has been orphaned by writing
+     * a new cell at logical coordinates (X, Y).  A {@code LEFT} half must be
+     * immediately followed by a {@code RIGHT} half and vice versa; when a new
+     * cell breaks that pairing, the dangling half is replaced with a blank so
+     * that the render pass cannot emit a stale wide glyph.
+     *
+     * @param X    logical column (already offset)
+     * @param Y    logical row (already offset)
+     * @param newWidth the width of the cell just written at (X, Y)
+     */
+    private void clearOrphanedHalves(final int X, final int Y,
+                                     final Cell.Width newWidth) {
+
+        // A LEFT half to our left is orphaned unless we are its RIGHT half.
+        if ((X - 1 >= 0)
+            && (logical[X - 1][Y].getWidth() == Cell.Width.LEFT)
+            && (newWidth != Cell.Width.RIGHT)
+        ) {
+            blankOrphanedHalf(X - 1, Y);
+        }
+
+        // A RIGHT half to our right is orphaned unless we are its LEFT half.
+        if ((X + 1 < width)
+            && (logical[X + 1][Y].getWidth() == Cell.Width.RIGHT)
+            && (newWidth != Cell.Width.LEFT)
+        ) {
+            blankOrphanedHalf(X + 1, Y);
+        }
+    }
+
+    /**
+     * Replace an orphaned half of a full-width cell with a blank single-width
+     * cell, preserving its attributes.
+     *
+     * @param X logical column (already offset)
+     * @param Y logical row (already offset)
+     */
+    private void blankOrphanedHalf(final int X, final int Y) {
+        logical[X][Y].setChar(' ');
+        logical[X][Y].setWidth(Cell.Width.SINGLE);
+        if ((cursorX == X) && (cursorY == Y)) {
+            synchronized (this) {
+                physical[cursorX][cursorY].unset();
+                unsetImageRow(cursorY);
+            }
+        }
     }
 
     /**

@@ -405,8 +405,10 @@ public class StringUtils {
     }
 
     /**
-     * Determine display width of a string.  This ASSUMES that no characters
-     * are combining.  Hopefully no users will be impacted.
+     * Determine display width of a string.  Each extended grapheme cluster
+     * is measured as a single unit, so multi-codepoint clusters (accented
+     * letters, ZWJ emoji, flags, keycaps, ...) contribute the width of the
+     * whole cluster rather than the sum of their individual codepoints.
      *
      * @param str the string
      * @return the number of text cell columns required to display this string
@@ -417,10 +419,10 @@ public class StringUtils {
         }
 
         int n = 0;
-        for (int i = 0; i < str.length();) {
-            int ch = str.codePointAt(i);
-            n += width(ch);
-            i += Character.charCount(ch);
+        for (ComplexCell cell
+            : ExtendedGraphemeClusterUtils.toComplexCells(str)
+        ) {
+            n += cell.getDisplayWidth();
         }
         return n;
     }
@@ -431,38 +433,73 @@ public class StringUtils {
      *
      * @param codePoints the codepoints
      * @return the number of text cell columns required to display this
-     * grapheme, either 1 or 2
+     * grapheme, either 0, 1 or 2
      */
     public static int width(final List<Integer> codePoints) {
-        // Special case: 2-cell Regional Indicator codes return 2, not 1.
-        if ((codePoints.size() == 2)
-            && ExtendedGraphemeClusterUtils.isRegionalIndicator(codePoints.get(0))
-            && ExtendedGraphemeClusterUtils.isRegionalIndicator(codePoints.get(1))
-        ) {
-            return 2;
+        if ((codePoints == null) || codePoints.isEmpty()) {
+            return 0;
         }
-
-        int n = 0;
-        for (Integer ch: codePoints) {
-            n = Math.max(n, width(ch));
+        int [] array = new int[codePoints.size()];
+        for (int i = 0; i < array.length; i++) {
+            array[i] = codePoints.get(i);
         }
-        return n;
+        return width(array);
     }
 
     /**
      * Determine display width of an array of codepoints that will be
      * displayed as a single extended grapheme cluster.
      *
+     * <p>This is the single authoritative grapheme-cluster width
+     * calculation.  It applies these rules:</p>
+     *
+     * <ul>
+     *   <li>Regional-indicator flag pair -&gt; 2.</li>
+     *   <li>Cluster containing VS16 (U+FE0F, emoji presentation) -&gt; 2.</li>
+     *   <li>Keycap sequence (contains U+20E3) -&gt; 2.</li>
+     *   <li>Cluster containing VS15 (U+FE0E, text presentation) -&gt; the
+     *       text width of the base (never forced to 2).</li>
+     *   <li>Otherwise -&gt; the maximum width of the individual codepoints,
+     *       which keeps combining marks at the width of their base and East
+     *       Asian Wide/Fullwidth bases at 2.</li>
+     * </ul>
+     *
      * @param codePoints the codepoints
      * @return the number of text cell columns required to display this
-     * grapheme, either 1 or 2
+     * grapheme, either 0, 1 or 2
      */
     public static int width(final int [] codePoints) {
-        // Special case: 2-cell Regional Indicator codes return 2, not 1.
+        if ((codePoints == null) || (codePoints.length == 0)) {
+            return 0;
+        }
+
+        // Regional Indicator pair (flag) -> 2.
         if ((codePoints.length == 2)
             && ExtendedGraphemeClusterUtils.isRegionalIndicator(codePoints[0])
             && ExtendedGraphemeClusterUtils.isRegionalIndicator(codePoints[1])
         ) {
+            return 2;
+        }
+
+        boolean hasEmojiPresentation = false;
+        boolean hasTextPresentation = false;
+        for (int codePoint : codePoints) {
+            if (codePoint == 0xFE0F) {
+                // Variation Selector-16: emoji presentation.
+                hasEmojiPresentation = true;
+            } else if (codePoint == 0xFE0E) {
+                // Variation Selector-15: text presentation.
+                hasTextPresentation = true;
+            } else if (codePoint == 0x20E3) {
+                // Combining Enclosing Keycap: always renders emoji-wide.
+                hasEmojiPresentation = true;
+            }
+        }
+
+        // Emoji presentation forces a double-width glyph, regardless of the
+        // base codepoint's default text width.  Text presentation is handled
+        // by falling through to the base width below.
+        if (hasEmojiPresentation && !hasTextPresentation) {
             return 2;
         }
 
@@ -479,16 +516,11 @@ public class StringUtils {
      *
      * @param cell the cell
      * @return the number of text cell columns required to display this
-     * grapheme, either 1 or 2
+     * grapheme, either 0, 1 or 2
      */
     public static int width(final Cell cell) {
         if (cell instanceof ComplexCell) {
-            int [] codePoints = ((ComplexCell) cell).getCodePoints();
-            int n = 0;
-            for (int codePoint : codePoints) {
-                n = Math.max(n, width(codePoint));
-            }
-            return n;
+            return width(((ComplexCell) cell).getCodePoints());
         }
         return width(cell.getChar());
     }

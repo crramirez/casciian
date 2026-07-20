@@ -1974,7 +1974,26 @@ public class ExtendedGraphemeClusterUtils {
             return false;
         }
 
-        // GB3, GB4, GB9c, GB12, and GB13 - Will not implement
+        // GB11: do not break within emoji ZWJ sequences.  When the previous
+        // codepoint is a ZWJ that follows an emoji (guaranteed by GB9, which
+        // joins the emoji and any Extend* to the ZWJ), do not break before a
+        // following Extended_Pictographic codepoint.
+        if (isZWJ(firstCh)
+            && (isEmoji(secondCh) || isEmojiBMP(secondCh))
+        ) {
+            // System.err.println("GB11 false");
+            return false;
+        }
+
+        // GB12 and GB13: do not break between two Regional Indicator
+        // symbols.  As documented, "evenness" of previous RI symbols is not
+        // tracked; adjacent RIs are always joined.
+        if (isRegionalIndicator(firstCh) && isRegionalIndicator(secondCh)) {
+            // System.err.println("GB12 GB13 false");
+            return false;
+        }
+
+        // GB3, GB4, and GB9c - Will not implement
 
         if ((isEmoji(firstCh)
                 || isEmojiBMP(firstCh)

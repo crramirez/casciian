@@ -1398,6 +1398,60 @@ class ECMA48TerminalTest {
         }
         return sb.toString();
     }
+
+    private static int countOccurrences(final String haystack,
+            final String needle) {
+        int count = 0;
+        int idx = 0;
+        while ((idx = haystack.indexOf(needle, idx)) >= 0) {
+            count++;
+            idx += needle.length();
+        }
+        return count;
+    }
+
+    // Grapheme-cluster / wide-character output tests
+
+    @Test
+    @DisplayName("Wide CJK char is emitted once, right half suppressed")
+    void wideCharEmittedOnce() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        // 中 is a full-width CJK ideograph.
+        terminal.putStringXY(0, 0, "\u4E2D", attr);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertEquals(1, countOccurrences(output, "\u4E2D"),
+            "CJK char should be emitted exactly once (right half suppressed)."
+            + " Output: " + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("ZWJ emoji grapheme is emitted as one contiguous sequence once")
+    void zwjEmojiEmittedContiguously() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        // 👩‍💻 = woman + ZWJ + laptop.
+        String zwj = "\uD83D\uDC69\u200D\uD83D\uDCBB";
+        terminal.putStringXY(0, 0, "A" + zwj + "B", attr);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains(zwj),
+            "ZWJ emoji should be emitted as one contiguous sequence. Output: "
+            + escapeForDisplay(output));
+        assertEquals(1, countOccurrences(output, zwj),
+            "ZWJ emoji should be emitted exactly once.");
+        assertEquals(1, countOccurrences(output, "\u200D"),
+            "ZWJ codepoint should appear exactly once (no duplicated half).");
+    }
     
     // Thread safety tests
     
