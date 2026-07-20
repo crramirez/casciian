@@ -72,6 +72,19 @@ class GraphemeWidthTest {
         assertEquals(1, cells(s(0x2699, 0xFE0F)).size());
     }
 
+    @Test
+    @DisplayName("Regional indicators group into flag pairs")
+    void regionalIndicatorsGroupIntoPairs() {
+        String flags = s(0x1F1FA, 0x1F1F8, 0x1F1E8, 0x1F1E6);
+
+        List<ComplexCell> clusters = cells(flags);
+
+        assertEquals(2, clusters.size());
+        assertEquals(s(0x1F1FA, 0x1F1F8), clusters.get(0).toString());
+        assertEquals(s(0x1F1E8, 0x1F1E6), clusters.get(1).toString());
+        assertEquals(4, StringUtils.width(flags));
+    }
+
     // Width: authoritative grapheme-cluster width.
 
     @Test

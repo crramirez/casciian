@@ -28,6 +28,7 @@ import org.mockito.Mockito;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1424,7 +1425,7 @@ class ECMA48TerminalTest {
         outputStream.reset();
         terminal.flushPhysical();
 
-        String output = outputStream.toString();
+        String output = outputStream.toString(StandardCharsets.UTF_8);
         assertEquals(1, countOccurrences(output, "\u4E2D"),
             "CJK char should be emitted exactly once (right half suppressed)."
             + " Output: " + escapeForDisplay(output));
@@ -1443,7 +1444,7 @@ class ECMA48TerminalTest {
         outputStream.reset();
         terminal.flushPhysical();
 
-        String output = outputStream.toString();
+        String output = outputStream.toString(StandardCharsets.UTF_8);
         assertTrue(output.contains(zwj),
             "ZWJ emoji should be emitted as one contiguous sequence. Output: "
             + escapeForDisplay(output));
@@ -1600,7 +1601,7 @@ class ECMA48TerminalTest {
         terminal.putBackgroundAttrXY(1, 0, redBg);
         terminal.flushPhysical();
 
-        String output = outputStream.toString();
+        String output = outputStream.toString(StandardCharsets.UTF_8);
 
         // The glyph must be re-emitted, anchored on its LEFT column.  Before
         // the fix, only the RIGHT half changed, so the terminal was
