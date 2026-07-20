@@ -174,4 +174,39 @@ class ComplexCellTest {
         assertEquals(1, codePoints.length);
         assertEquals(' ', codePoints[0]);
     }
+
+    @Test
+    @DisplayName("unset() makes the cell unequal to a blank space cell")
+    void testUnsetIsNotEqualToBlank() {
+        // The physical-screen diff in ECMA48Terminal invalidates a cell by
+        // calling unset() so it is guaranteed to differ from the logical
+        // cell and be re-emitted.  A previous bug reset the cell to a blank
+        // space instead, so an unset physical cell could compare equal to a
+        // logical space -- leaving a stale wide glyph (CJK) on screen.
+        ComplexCell cell = new ComplexCell('X');
+        cell.unset();
+
+        assertNotEquals(new ComplexCell(' '), cell,
+            "An unset cell must not equal a blank space cell");
+        assertNotEquals(cell, new ComplexCell(' '),
+            "A blank space cell must not equal an unset cell");
+        // It must also not equal a full-width glyph half.
+        ComplexCell wide = new ComplexCell(0xF900);
+        wide.setWidth(Cell.Width.LEFT);
+        assertNotEquals(wide, cell,
+            "An unset cell must not equal a wide-glyph half");
+    }
+
+    @Test
+    @DisplayName("unset() marks the cell as unset via UNSET char")
+    void testUnsetReportsUnsetChar() {
+        ComplexCell blank = new ComplexCell(' ');
+        ComplexCell cell = new ComplexCell('X');
+        cell.unset();
+
+        // A freshly unset cell reports the same (UNSET) character as the base
+        // Cell.unset(), and therefore differs from an ordinary space cell.
+        assertNotEquals(blank.getChar(), cell.getChar(),
+            "Unset cell must not report a plain space character");
+    }
 }
