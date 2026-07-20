@@ -268,6 +268,98 @@ class AnsiParserTest {
         assertTrue(lines.get(0).getCells().get(0).isReverse());
     }
 
+    @Test
+    void testFaint() {
+        List<AnsiParser.Line> lines = AnsiParser.parse("\033[2mA", 80);
+        assertTrue(lines.get(0).getCells().get(0).isFaint());
+    }
+
+    @Test
+    void testFaintReset() {
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033[2mA\033[22mB", 80);
+        assertTrue(lines.get(0).getCells().get(0).isFaint());
+        assertFalse(lines.get(0).getCells().get(1).isFaint());
+    }
+
+    @Test
+    void testBoldAndFaintAreIndependentFlags() {
+        // SGR 22 cancels both bold and faint per ECMA-48.
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033[1;2mA\033[22mB", 80);
+        Cell boldFaint = lines.get(0).getCells().get(0);
+        assertTrue(boldFaint.isBold());
+        assertTrue(boldFaint.isFaint());
+
+        Cell cleared = lines.get(0).getCells().get(1);
+        assertFalse(cleared.isBold());
+        assertFalse(cleared.isFaint());
+    }
+
+    @Test
+    void testItalic() {
+        List<AnsiParser.Line> lines = AnsiParser.parse("\033[3mA", 80);
+        assertTrue(lines.get(0).getCells().get(0).isItalic());
+    }
+
+    @Test
+    void testItalicReset() {
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033[3mA\033[23mB", 80);
+        assertTrue(lines.get(0).getCells().get(0).isItalic());
+        assertFalse(lines.get(0).getCells().get(1).isItalic());
+    }
+
+    @Test
+    void testHidden() {
+        List<AnsiParser.Line> lines = AnsiParser.parse("\033[8mA", 80);
+        assertTrue(lines.get(0).getCells().get(0).isHidden());
+    }
+
+    @Test
+    void testHiddenReset() {
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033[8mA\033[28mB", 80);
+        assertTrue(lines.get(0).getCells().get(0).isHidden());
+        assertFalse(lines.get(0).getCells().get(1).isHidden());
+    }
+
+    @Test
+    void testStrikethrough() {
+        List<AnsiParser.Line> lines = AnsiParser.parse("\033[9mA", 80);
+        assertTrue(lines.get(0).getCells().get(0).isStrikethrough());
+    }
+
+    @Test
+    void testStrikethroughReset() {
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033[9mA\033[29mB", 80);
+        assertTrue(lines.get(0).getCells().get(0).isStrikethrough());
+        assertFalse(lines.get(0).getCells().get(1).isStrikethrough());
+    }
+
+    @Test
+    void testAllNewStylesCombined() {
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033[2;3;8;9mA", 80);
+        Cell cell = lines.get(0).getCells().get(0);
+        assertTrue(cell.isFaint());
+        assertTrue(cell.isItalic());
+        assertTrue(cell.isHidden());
+        assertTrue(cell.isStrikethrough());
+    }
+
+    @Test
+    void testResetClearsAllNewStyles() {
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033[2;3;8;9mA\033[0mB", 80);
+        Cell reset = lines.get(0).getCells().get(1);
+        assertFalse(reset.isFaint());
+        assertFalse(reset.isItalic());
+        assertFalse(reset.isHidden());
+        assertFalse(reset.isStrikethrough());
+    }
+
     // -----------------------------------------------------------------------
     // SGR foreground and background colors (standard 8)
     // -----------------------------------------------------------------------

@@ -13,6 +13,10 @@ class CellAttributesTest {
             .reverse(true)
             .underline(true)
             .protect(true)
+            .faint(true)
+            .italic(true)
+            .hidden(true)
+            .strikethrough(true)
             .foreColor(Color.RED)
             .backColor(Color.BLUE)
             .build();
@@ -22,8 +26,85 @@ class CellAttributesTest {
         assertTrue(attr.isReverse());
         assertTrue(attr.isUnderline());
         assertTrue(attr.isProtect());
+        assertTrue(attr.isFaint());
+        assertTrue(attr.isItalic());
+        assertTrue(attr.isHidden());
+        assertTrue(attr.isStrikethrough());
         assertEquals(Color.RED, attr.getForeColor());
         assertEquals(Color.BLUE, attr.getBackColor());
+    }
+
+    @Test
+    void testFaintItalicHiddenStrikethroughDefaultToFalse() {
+        CellAttributes attr = new CellAttributes();
+        assertFalse(attr.isFaint());
+        assertFalse(attr.isItalic());
+        assertFalse(attr.isHidden());
+        assertFalse(attr.isStrikethrough());
+    }
+
+    @Test
+    void testFaintItalicHiddenStrikethroughSettersAndReset() {
+        CellAttributes attr = new CellAttributes();
+        attr.setFaint(true);
+        attr.setItalic(true);
+        attr.setHidden(true);
+        attr.setStrikethrough(true);
+
+        assertTrue(attr.isFaint());
+        assertTrue(attr.isItalic());
+        assertTrue(attr.isHidden());
+        assertTrue(attr.isStrikethrough());
+
+        attr.reset();
+        assertFalse(attr.isFaint());
+        assertFalse(attr.isItalic());
+        assertFalse(attr.isHidden());
+        assertFalse(attr.isStrikethrough());
+    }
+
+    @Test
+    void testFaintItalicHiddenStrikethroughCopiedBySetTo() {
+        CellAttributes attr = new CellAttributes();
+        attr.setFaint(true);
+        attr.setItalic(true);
+        attr.setHidden(true);
+        attr.setStrikethrough(true);
+
+        CellAttributes copy = new CellAttributes(attr);
+        assertEquals(attr, copy);
+        assertEquals(attr.hashCode(), copy.hashCode());
+        assertTrue(copy.isFaint());
+        assertTrue(copy.isItalic());
+        assertTrue(copy.isHidden());
+        assertTrue(copy.isStrikethrough());
+    }
+
+    @Test
+    void testToStringUsesSingleOnSeparator() {
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(true);
+        attr.setForeColor(Color.RED);
+        attr.setBackColor(Color.BLUE);
+
+        assertEquals("bold red on blue", attr.toString());
+    }
+
+    @Test
+    void testToHtmlHiddenKeepsBackgroundVisible() {
+        CellAttributes attr = new CellAttributes();
+        attr.setHidden(true);
+        attr.setForeColor(Color.RED);
+        attr.setBackColor(Color.BLUE);
+
+        String html = attr.toHtml();
+
+        assertTrue(html.contains("color: transparent"),
+            "Hidden text should use a transparent foreground.");
+        assertTrue(html.contains("background-color: " + Color.BLUE.toRgbString(false)),
+            "Hidden text should preserve the background color.");
+        assertFalse(html.contains("visibility: hidden"),
+            "Hidden text should not hide the entire cell.");
     }
 
     @Test

@@ -1708,11 +1708,32 @@ public class ECMA48Terminal extends LogicalScreen
                 boolean lastBoldAsBright = lastAttr.isBoldAsBright();
                 boolean lCellSgrBold = lCell.isBold() && !lCellBoldAsBright;
                 boolean lastSgrBold = lastAttr.isBold() && !lastBoldAsBright;
-                if (lCellSgrBold != lastSgrBold) {
-                    if (lCellSgrBold) {
-                        attrSgr.append(";1");
-                    } else {
+                // Bold (SGR 1) and faint (SGR 2) share the same "normal
+                // intensity" reset code (SGR 22), so they must be resolved
+                // together: at most one of them can be active at a time.
+                int lCellIntensity = lCellSgrBold ? 1
+                    : (lCell.isFaint() ? 2 : 0);
+                int lastIntensity = lastSgrBold ? 1
+                    : (lastAttr.isFaint() ? 2 : 0);
+                if (lCellIntensity != lastIntensity) {
+                    if ((lCellIntensity != 0) && (lastIntensity != 0)) {
                         attrSgr.append(";22");
+                    }
+                    switch (lCellIntensity) {
+                        case 1 -> attrSgr.append(";1");
+                        case 2 -> attrSgr.append(";2");
+                        default -> {
+                            if (lastIntensity != 0) {
+                                attrSgr.append(";22");
+                            }
+                        }
+                    }
+                }
+                if (lCell.isItalic() != lastAttr.isItalic()) {
+                    if (lCell.isItalic()) {
+                        attrSgr.append(";3");
+                    } else {
+                        attrSgr.append(";23");
                     }
                 }
                 if (lCell.isUnderline() != lastAttr.isUnderline()) {
@@ -1734,6 +1755,20 @@ public class ECMA48Terminal extends LogicalScreen
                         attrSgr.append(";7");
                     } else {
                         attrSgr.append(";27");
+                    }
+                }
+                if (lCell.isHidden() != lastAttr.isHidden()) {
+                    if (lCell.isHidden()) {
+                        attrSgr.append(";8");
+                    } else {
+                        attrSgr.append(";28");
+                    }
+                }
+                if (lCell.isStrikethrough() != lastAttr.isStrikethrough()) {
+                    if (lCell.isStrikethrough()) {
+                        attrSgr.append(";9");
+                    } else {
+                        attrSgr.append(";29");
                     }
                 }
                 if (attrSgr.length() > 0) {
