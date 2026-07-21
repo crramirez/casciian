@@ -1576,10 +1576,8 @@ public class LogicalScreen implements Screen {
      * @param overlay the front overlay that was composited into the region, or
      *                null if none (for example a plain copy).  Used to detect
      *                wide glyphs owned by the front layer.
-     * @param offsetX the column in {@code overlay} that maps to region column
-     *                {@code x}
-     * @param offsetY the row in {@code overlay} that maps to region row
-     *                {@code y}
+     * @param offsetX the destination column where {@code overlay} column 0 was composited
+     * @param offsetY the destination row where {@code overlay} row 0 was composited
      */
     private void repairOrphanedHalves(final int x, final int y,
                                       final int width, final int height,
