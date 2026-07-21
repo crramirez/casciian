@@ -1,22 +1,28 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.LinkedList;
 
@@ -26,6 +32,12 @@ import casciian.backend.SystemProperties;
  * TDirectoryTreeItem is a single item in a disk directory tree view.
  */
 public class TDirectoryTreeItem extends TTreeItem {
+
+    /**
+     * Windows file systems are case-insensitive.
+     */
+    private static final boolean IS_WINDOWS =
+        System.getProperty("os.name", "").startsWith("Windows");
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -195,7 +207,25 @@ public class TDirectoryTreeItem extends TTreeItem {
                 }
             }
         }
-        Collections.sort(getChildren());
+        Collections.sort(getChildren(), new Comparator<TWidget>() {
+            public int compare(final TWidget leftWidget,
+                final TWidget rightWidget) {
+
+                TDirectoryTreeItem left = (TDirectoryTreeItem) leftWidget;
+                TDirectoryTreeItem right = (TDirectoryTreeItem) rightWidget;
+                String leftName = left.getFile().getName();
+                String rightName = right.getFile().getName();
+
+                if (IS_WINDOWS) {
+                    int compareIgnoreCase = leftName.compareToIgnoreCase(
+                        rightName);
+                    if (compareIgnoreCase != 0) {
+                        return compareIgnoreCase;
+                    }
+                }
+                return leftName.compareTo(rightName);
+            }
+        });
     }
 
 }
