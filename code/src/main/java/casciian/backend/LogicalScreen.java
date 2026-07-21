@@ -1558,13 +1558,27 @@ public class LogicalScreen implements Screen {
      * piece of the overlay.  Blanking both halves keeps the wide glyph from
      * being drawn where it is only partially covered.
      *
-     * @param x      left column of the region.  0 is the left-most column.
-     * @param y      top row of the region.  0 is the top-most row.
-     * @param width  number of columns in the region
-     * @param height number of rows in the region
+     * <p>Exception: if the overlay ({@code otherScreen}) itself supplied
+     * visible content on <em>both</em> columns of the pair, the overlay is
+     * the front-most element and takes priority over whatever is behind it
+     * -- the mismatch is then caused only by the underlying (covered) layer
+     * bleeding into the alpha-blended background of each half differently,
+     * not by the glyph straddling two different front-layer elements.  In
+     * that case the pair is left alone so the overlay's character is not
+     * dropped.
+     *
+     * @param x           left column of the region.  0 is the left-most
+     *                    column.
+     * @param y           top row of the region.  0 is the top-most row.
+     * @param width       number of columns in the region
+     * @param height      number of rows in the region
+     * @param otherScreen the overlay screen that was just composited into
+     *                    this region, or null if none (in which case the
+     *                    front-ownership exception above never applies)
      */
     private void repairOrphanedHalves(final int x, final int y,
-                                      final int width, final int height) {
+                                      final int width, final int height,
+                                      final Screen otherScreen) {
 
         int colStart = Math.max(0, x - 1);
         int colEnd = Math.min(this.width - 1, x + width);
@@ -1579,7 +1593,10 @@ public class LogicalScreen implements Screen {
                     ) {
                         // Dangling LEFT half with no RIGHT to pair with.
                         blankOrphanedHalf(col, row);
-                    } else if (!sameBackground(cell, logical[col + 1][row])) {
+                    } else if (!sameBackground(cell, logical[col + 1][row])
+                        && !isFrontOwnedPair(otherScreen, x, y, width, height,
+                            col, col + 1, row)
+                    ) {
                         // A paired wide grapheme whose halves have different
                         // backgrounds straddles an overlay-element boundary;
                         // blank both halves so the single glyph cannot spill.
@@ -1595,6 +1612,61 @@ public class LogicalScreen implements Screen {
                 }
             }
         }
+    }
+
+    /**
+     * Determine whether both columns of a wide-grapheme pair were given
+     * visible (non-show-through) content directly by the overlay that was
+     * just composited into this screen.  When true, the overlay is the
+     * front-most element for both halves and must keep priority over
+     * whatever is behind it, regardless of any background mismatch caused
+     * by that underlying layer.
+     *
+     * @param otherScreen the overlay screen, or null if none was used
+     * @param regionX     left column of the composited region
+     * @param regionY     top row of the composited region
+     * @param regionWidth number of columns in the composited region
+     * @param regionHeight number of rows in the composited region
+     * @param leftCol     logical column of the LEFT half
+     * @param rightCol    logical column of the RIGHT half
+     * @param row         logical row
+     * @return true if the overlay supplied visible content on both columns
+     */
+    private boolean isFrontOwnedPair(final Screen otherScreen,
+                                     final int regionX, final int regionY,
+                                     final int regionWidth,
+                                     final int regionHeight,
+                                     final int leftCol, final int rightCol,
+                                     final int row) {
+
+        if (otherScreen == null) {
+            return false;
+        }
+        if ((row < regionY) || (row >= regionY + regionHeight)) {
+            return false;
+        }
+        if ((leftCol < regionX) || (leftCol >= regionX + regionWidth)
+            || (rightCol < regionX) || (rightCol >= regionX + regionWidth)
+        ) {
+            return false;
+        }
+
+        Cell overLeft = otherScreen.getCharXY(leftCol - regionX, row - regionY);
+        Cell overRight = otherScreen.getCharXY(rightCol - regionX, row - regionY);
+        return hasVisibleContent(overLeft) && hasVisibleContent(overRight);
+    }
+
+    /**
+     * Determine whether an overlay cell provides visible content that would
+     * be composited over whatever is behind it, as opposed to being an
+     * invisible "show-through" space that lets the underlying cell remain
+     * visible.  This mirrors the show-through check in {@link #blendScreen}.
+     *
+     * @param cell the overlay cell
+     * @return true if the cell has visible content of its own
+     */
+    private boolean hasVisibleContent(final Cell cell) {
+        return cell.isImage() || !cell.isSpaceChar() || cell.isUnderline();
     }
 
     /**
@@ -2059,7 +2131,7 @@ public class LogicalScreen implements Screen {
                         thisCell.setDefaultColor(false, false);
                     }
                 }
-                repairOrphanedHalves(x, y, width, height);
+                repairOrphanedHalves(x, y, width, height, otherScreen);
             }
             return;
         }
@@ -2255,7 +2327,7 @@ public class LogicalScreen implements Screen {
                     // for each case.
                 }
             }
-            repairOrphanedHalves(x, y, width, height);
+            repairOrphanedHalves(x, y, width, height, otherScreen);
         }
     }
 

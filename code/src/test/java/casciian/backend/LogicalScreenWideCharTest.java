@@ -242,4 +242,39 @@ class LogicalScreenWideCharTest {
         assertEquals(Cell.Width.SINGLE, screen.getCharXY(2, 0).getWidth());
         assertEquals(' ', screen.getCharXY(2, 0).getChar());
     }
+
+    @Test
+    @DisplayName("Front overlay's own wide char is kept even when the covered "
+        + "backgrounds behind its two halves differ")
+    void blendFrontOverlayWideCharKeptOverMismatchedUnderlyingBackgrounds() {
+        // Two CJK wide chars behind, with different backgrounds, straddling
+        // the boundary where the front overlay's wide char will land.
+        CellAttributes red = new CellAttributes();
+        red.setBackColorRGB(0xFF0000);
+        CellAttributes blue = new CellAttributes();
+        blue.setBackColorRGB(0x000080);
+        screen.putCharXY(1, 0, 0x4E2D, red);
+        screen.putCharXY(3, 0, 0x4E00, blue);
+        assertEquals(Cell.Width.LEFT, screen.getCharXY(1, 0).getWidth());
+        assertEquals(Cell.Width.RIGHT, screen.getCharXY(2, 0).getWidth());
+        assertEquals(Cell.Width.LEFT, screen.getCharXY(3, 0).getWidth());
+        assertEquals(Cell.Width.RIGHT, screen.getCharXY(4, 0).getWidth());
+
+        // A translucent dialog box overlay draws its own wide (CJK) char
+        // exactly straddling columns 2-3: its LEFT half covers the RIGHT
+        // half of the red char behind, its RIGHT half covers the LEFT half
+        // of the blue char behind.  The dialog is the front-most element and
+        // must keep its glyph intact -- it must not be blanked just because
+        // the alpha-blended backgrounds differ due to what is behind it.
+        TestableLogicalScreen over = new TestableLogicalScreen(2, 1);
+        CellAttributes dialog = new CellAttributes();
+        dialog.setBackColorRGB(0xC0C0C0);
+        over.putCharXY(0, 0, 0x4E2D, dialog);
+        screen.blendScreen(over, 2, 0, 2, 1, 128, false);
+
+        assertEquals(Cell.Width.LEFT, screen.getCharXY(2, 0).getWidth());
+        assertEquals(0x4E2D, screen.getCharXY(2, 0).getChar());
+        assertEquals(Cell.Width.RIGHT, screen.getCharXY(3, 0).getWidth());
+        assertEquals(0x4E2D, screen.getCharXY(3, 0).getChar());
+    }
 }
