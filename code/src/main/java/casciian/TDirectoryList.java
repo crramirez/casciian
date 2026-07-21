@@ -207,16 +207,12 @@ public class TDirectoryList extends TList {
                         */
 
                         if (newFiles[i].getName().matches(pattern)) {
-                            String str = renderFile(newFiles[i]);
                             files.add(newFiles[i]);
-                            newStrings.add(str);
                             break;
                         }
                     }
                 } else {
-                    String str = renderFile(newFiles[i]);
                     files.add(newFiles[i]);
-                    newStrings.add(str);
                 }
             }
         }
