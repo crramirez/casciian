@@ -1661,8 +1661,8 @@ public class LogicalScreen implements Screen {
      * halves different blended backgrounds.
      *
      * @param overlay the front overlay that was composited, or null
-     * @param offsetX the overlay column that maps to region column {@code x}
-     * @param offsetY the overlay row that maps to region row {@code y}
+     * @param offsetX the destination column where {@code overlay} column 0 was composited
+     * @param offsetY the destination row where {@code overlay} row 0 was composited
      * @param col     the column of the LEFT half in the logical buffer
      * @param row     the row of the wide grapheme in the logical buffer
      * @return true if the front overlay drew a visible wide glyph on both
