@@ -1558,13 +1558,31 @@ public class LogicalScreen implements Screen {
      * piece of the overlay.  Blanking both halves keeps the wide glyph from
      * being drawn where it is only partially covered.
      *
-     * @param x      left column of the region.  0 is the left-most column.
-     * @param y      top row of the region.  0 is the top-most row.
-     * @param width  number of columns in the region
-     * @param height number of rows in the region
+     * <p><b>Exception:</b> when the wide grapheme was supplied by the front
+     * overlay ({@code otherScreen}) itself &mdash; that is, the frontmost
+     * window drew a visible wide glyph across both halves &mdash; the front
+     * layer has priority over whatever lies behind it.  Its two halves can
+     * legitimately end up with different <em>blended</em> backgrounds simply
+     * because different content lies behind each column, but the glyph is still
+     * the frontmost content and must be kept.  Blanking it here is what makes a
+     * translucent, CJK-filled window's characters vanish when it is the
+     * frontmost window over another window.  Such front-owned pairs are left
+     * intact.
+     *
+     * @param x       left column of the region.  0 is the left-most column.
+     * @param y       top row of the region.  0 is the top-most row.
+     * @param width   number of columns in the region
+     * @param height  number of rows in the region
+     * @param overlay the front overlay that was composited into the region, or
+     *                null if none (for example a plain copy).  Used to detect
+     *                wide glyphs owned by the front layer.
+     * @param offsetX the destination column where {@code overlay} column 0 was composited
+     * @param offsetY the destination row where {@code overlay} row 0 was composited
      */
     private void repairOrphanedHalves(final int x, final int y,
-                                      final int width, final int height) {
+                                      final int width, final int height,
+                                      final Screen overlay,
+                                      final int offsetX, final int offsetY) {
 
         int colStart = Math.max(0, x - 1);
         int colEnd = Math.min(this.width - 1, x + width);
@@ -1579,10 +1597,15 @@ public class LogicalScreen implements Screen {
                     ) {
                         // Dangling LEFT half with no RIGHT to pair with.
                         blankOrphanedHalf(col, row);
-                    } else if (!sameBackground(cell, logical[col + 1][row])) {
+                    } else if (!sameBackground(cell, logical[col + 1][row])
+                        && !isFrontOwnedPair(overlay, offsetX, offsetY,
+                            col, row)
+                    ) {
                         // A paired wide grapheme whose halves have different
                         // backgrounds straddles an overlay-element boundary;
                         // blank both halves so the single glyph cannot spill.
+                        // Front-owned glyphs are exempt: they are the frontmost
+                        // content and are kept even with mismatched backgrounds.
                         blankOrphanedHalf(col, row);
                         blankOrphanedHalf(col + 1, row);
                     }
@@ -1627,6 +1650,48 @@ public class LogicalScreen implements Screen {
             }
         }
         return rgb & 0xFFFFFF;
+    }
+
+    /**
+     * Determine whether a wide grapheme pair at ({@code col}, {@code row}) in
+     * the {@code logical} buffer was supplied by the front overlay itself
+     * (rather than being underlying content showing through a translucent
+     * space).  A front-owned pair is the frontmost, visible wide glyph the
+     * top window drew, so it must be kept even if compositing gave its two
+     * halves different blended backgrounds.
+     *
+     * @param overlay the front overlay that was composited, or null
+     * @param offsetX the destination column where {@code overlay} column 0 was composited
+     * @param offsetY the destination row where {@code overlay} row 0 was composited
+     * @param col     the column of the LEFT half in the logical buffer
+     * @param row     the row of the wide grapheme in the logical buffer
+     * @return true if the front overlay drew a visible wide glyph on both
+     *         halves at this position
+     */
+    private boolean isFrontOwnedPair(final Screen overlay, final int offsetX,
+                                     final int offsetY, final int col,
+                                     final int row) {
+
+        if (overlay == null) {
+            return false;
+        }
+        int leftX = col - offsetX;
+        int rightX = leftX + 1;
+        int oy = row - offsetY;
+        if ((oy < 0) || (oy >= overlay.getHeight())) {
+            return false;
+        }
+        if ((leftX < 0) || (rightX >= overlay.getWidth())) {
+            return false;
+        }
+        Cell left = overlay.getCharXY(leftX, oy);
+        Cell right = overlay.getCharXY(rightX, oy);
+        // The front layer owns the pair only when it drew a visible (non-space)
+        // wide glyph spanning both halves.  A translucent space that merely
+        // lets underlying content show through is not front-owned.
+        return (left.getWidth() == Cell.Width.LEFT)
+            && (right.getWidth() == Cell.Width.RIGHT)
+            && !left.isSpaceChar();
     }
 
     /**
@@ -2059,7 +2124,7 @@ public class LogicalScreen implements Screen {
                         thisCell.setDefaultColor(false, false);
                     }
                 }
-                repairOrphanedHalves(x, y, width, height);
+                repairOrphanedHalves(x, y, width, height, otherScreen, x, y);
             }
             return;
         }
@@ -2255,7 +2320,7 @@ public class LogicalScreen implements Screen {
                     // for each case.
                 }
             }
-            repairOrphanedHalves(x, y, width, height);
+            repairOrphanedHalves(x, y, width, height, otherScreen, x, y);
         }
     }
 

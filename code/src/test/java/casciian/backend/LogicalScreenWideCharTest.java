@@ -242,4 +242,32 @@ class LogicalScreenWideCharTest {
         assertEquals(Cell.Width.SINGLE, screen.getCharXY(2, 0).getWidth());
         assertEquals(' ', screen.getCharXY(2, 0).getChar());
     }
+
+    @Test
+    @DisplayName("Front overlay's own wide CJK glyph is kept even when its halves blend to different backgrounds")
+    void blendFrontOwnedWideCharKeptOverMismatchedUnderlyingBackgrounds() {
+        // The screen behind has two different backgrounds under columns 2 and
+        // 3 (for example, two overlapped windows or a body/border boundary).
+        CellAttributes navy = new CellAttributes();
+        navy.setBackColorRGB(0x000080);
+        CellAttributes green = new CellAttributes();
+        green.setBackColorRGB(0x008000);
+        screen.putCharXY(2, 0, ' ', navy);
+        screen.putCharXY(3, 0, ' ', green);
+
+        // The frontmost (translucent) window draws a CJK wide char over columns
+        // 2-3.  Because the underlying backgrounds differ, the two halves blend
+        // to different backgrounds -- but the front layer owns this glyph, so it
+        // must be kept, not blanked.
+        TestableLogicalScreen over = new TestableLogicalScreen(2, 1);
+        over.putCharXY(0, 0, 0x4E2D, attr);
+        assertEquals(Cell.Width.LEFT, over.getCharXY(0, 0).getWidth());
+        assertEquals(Cell.Width.RIGHT, over.getCharXY(1, 0).getWidth());
+        screen.blendScreen(over, 2, 0, 2, 1, 128, false);
+
+        // The front-owned wide glyph survives on both halves.
+        assertEquals(Cell.Width.LEFT, screen.getCharXY(2, 0).getWidth());
+        assertEquals(0x4E2D, screen.getCharXY(2, 0).getChar());
+        assertEquals(Cell.Width.RIGHT, screen.getCharXY(3, 0).getWidth());
+    }
 }
