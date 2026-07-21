@@ -4834,6 +4834,23 @@ public class ECMA48 implements Runnable {
                     }
                 }
 
+                if (p[0].equals("8")) {
+                    // OSC 8 hyperlink: 8 ; params ; URI.  The URI may itself
+                    // contain ';', so extract everything after the second
+                    // ';' rather than relying on the split above.  An empty
+                    // URI closes the current hyperlink.
+                    int firstSemi = args.indexOf(';');
+                    int secondSemi = (firstSemi < 0)
+                        ? -1 : args.indexOf(';', firstSemi + 1);
+                    if (secondSemi >= 0) {
+                        String uri = args.substring(secondSemi + 1);
+                        currentState.attr.setHyperlink(
+                            uri.isEmpty() ? null : uri);
+                    } else {
+                        currentState.attr.setHyperlink(null);
+                    }
+                }
+
                 if (p[0].equals("4")) {
                     if ((p.length >= 3) && (p[2].equals("?"))) {
                         // Query a color index value

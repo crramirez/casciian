@@ -2438,6 +2438,37 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
+     * Convenience function to add a hyperlink to this container/window.
+     *
+     * @param text visible text of the link
+     * @param uri hyperlink target URI
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @return the new hyperlink
+     */
+    public final THyperLink addHyperlink(final String text, final String uri,
+        final int x, final int y) {
+
+        return new THyperLink(this, text, uri, x, y);
+    }
+
+    /**
+     * Convenience function to add a hyperlink to this container/window.
+     *
+     * @param text visible text of the link
+     * @param uri hyperlink target URI
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param action action to perform when the link is clicked
+     * @return the new hyperlink
+     */
+    public final THyperLink addHyperlink(final String text, final String uri,
+        final int x, final int y, final TAction action) {
+
+        return new THyperLink(this, text, uri, x, y, action);
+    }
+
+    /**
      * Convenience function to add a label to this container/window.
      *
      * @param <F> the type of widget this label is for

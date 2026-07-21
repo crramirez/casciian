@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -1565,6 +1566,31 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Build an OSC 8 hyperlink control sequence.  Passing a non-null URI
+     * opens (or changes) the hyperlink; passing null closes it.  The URI is
+     * sanitized to strip control characters so it cannot inject arbitrary
+     * escape sequences into the terminal stream.
+     *
+     * @param uri the hyperlink URI, or null to close the current hyperlink
+     * @return the OSC 8 escape sequence
+     */
+    private String hyperlinkSequence(final String uri) {
+        StringBuilder sb = new StringBuilder("\033]8;;");
+        if (uri != null) {
+            for (int i = 0; i < uri.length(); i++) {
+                char c = uri.charAt(i);
+                // Strip C0/C1 control characters and DEL to prevent escape
+                // sequence injection.
+                if ((c >= 0x20) && (c != 0x7F) && !((c >= 0x80) && (c <= 0x9F))) {
+                    sb.append(c);
+                }
+            }
+        }
+        sb.append("\033\\");
+        return sb.toString();
+    }
+
+    /**
      * Perform a somewhat-optimal rendering of a line.
      *
      * @param y        row coordinate.  0 is the top-most row.
@@ -1699,6 +1725,10 @@ public class ECMA48Terminal extends LogicalScreen
                         System.err.println("2 gotoXY() " + x + " " + y +
                             " lastX " + lastX);
                         System.err.println("X: " + x + " clearRemainingLine()");
+                    }
+                    // Close any open OSC 8 hyperlink before clearing.
+                    if (lastAttr.getHyperlink() != null) {
+                        sb.append(hyperlinkSequence(null));
                     }
                     sb.append(gotoXY(x, y));
                     sb.append(clearRemainingLine());
@@ -1950,6 +1980,15 @@ public class ECMA48Terminal extends LogicalScreen
                     }
                 }
 
+                // OSC 8 hyperlink: open, change, or close the hyperlink as
+                // the cell's hyperlink URI changes relative to the last
+                // emitted cell.  An empty URI closes the current hyperlink.
+                if (!Objects.equals(lCell.getHyperlink(),
+                        lastAttr.getHyperlink())
+                ) {
+                    sb.append(hyperlinkSequence(lCell.getHyperlink()));
+                }
+
                 // Emit the character
                 if (lCell.getWidth() != Cell.Width.RIGHT) {
                     // Don't emit the right-half of full-width chars.
@@ -2163,6 +2202,13 @@ public class ECMA48Terminal extends LogicalScreen
         // Draw the text part now.
         for (int y = 0; y < height; y++) {
             flushLine(y, sb, attr);
+        }
+
+        // Close any OSC 8 hyperlink still open at the end of the flush so it
+        // does not bleed into subsequent output.
+        if ((attr != null) && (attr.getHyperlink() != null)) {
+            sb.append(hyperlinkSequence(null));
+            attr.setHyperlink(null);
         }
 
         reallyCleared = false;

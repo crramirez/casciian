@@ -115,6 +115,10 @@ public class DemoTextFieldWindow extends TWindow {
             addPasswordField(35, row++, 15, true, "hunter2"));
         TField selected = addLabelFor(i18n.getString("textField5"), 1, row,
             addField(35, row++, 40, false, i18n.getString("textField6")));
+
+        addLabel(i18n.getString("hyperlinkLabel"), 1, row);
+        addHyperlink(i18n.getString("hyperlinkText"),
+            "https://github.com/crramirez/casciian", 12, row);
         row += 1;
 
         calendar = addCalendar(1, row++,

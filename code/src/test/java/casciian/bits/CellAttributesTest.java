@@ -81,6 +81,44 @@ class CellAttributesTest {
     }
 
     @Test
+    void testHyperlinkDefaultsToNull() {
+        CellAttributes attr = new CellAttributes();
+        assertNull(attr.getHyperlink());
+        assertFalse(attr.isHyperlink());
+    }
+
+    @Test
+    void testHyperlinkSetterBuilderAndReset() {
+        CellAttributes attr = CellAttributes.builder()
+            .hyperlink("https://example.com")
+            .build();
+        assertEquals("https://example.com", attr.getHyperlink());
+        assertTrue(attr.isHyperlink());
+
+        attr.reset();
+        assertNull(attr.getHyperlink());
+    }
+
+    @Test
+    void testHyperlinkCopiedBySetToAndAffectsEquality() {
+        CellAttributes attr = new CellAttributes();
+        attr.setHyperlink("https://example.com");
+
+        CellAttributes copy = new CellAttributes(attr);
+        assertEquals("https://example.com", copy.getHyperlink());
+        assertEquals(attr, copy);
+        assertEquals(attr.hashCode(), copy.hashCode());
+
+        // Differing hyperlinks make cells unequal.
+        copy.setHyperlink("https://other.example.com");
+        assertNotEquals(attr, copy);
+
+        // Clearing makes them unequal to a linked cell.
+        copy.setHyperlink(null);
+        assertNotEquals(attr, copy);
+    }
+
+    @Test
     void testToStringUsesSingleOnSeparator() {
         CellAttributes attr = new CellAttributes();
         attr.setBold(true);

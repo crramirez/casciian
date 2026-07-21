@@ -508,6 +508,56 @@ class AnsiParserTest {
     }
 
     // -----------------------------------------------------------------------
+    // OSC 8 hyperlinks
+    // -----------------------------------------------------------------------
+
+    @Test
+    void testOsc8HyperlinkBel() {
+        // OSC 8 hyperlink terminated by BEL: link text tagged with URI
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033]8;;https://example.com\007Link\033]8;;\007 after", 80);
+        assertEquals(1, lines.size());
+        List<Cell> cells = lines.get(0).getCells();
+        assertEquals("Link after", lineText(lines.get(0)));
+        // "Link" cells carry the hyperlink
+        for (int i = 0; i < 4; i++) {
+            assertEquals("https://example.com", cells.get(i).getHyperlink());
+        }
+        // The space after the closing sequence has no hyperlink
+        assertNull(cells.get(4).getHyperlink());
+    }
+
+    @Test
+    void testOsc8HyperlinkST() {
+        // OSC 8 hyperlink terminated by ST (ESC \)
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033]8;;https://example.com\033\\Link\033]8;;\033\\", 80);
+        List<Cell> cells = lines.get(0).getCells();
+        assertEquals("Link", lineText(lines.get(0)));
+        assertEquals("https://example.com", cells.get(0).getHyperlink());
+        assertEquals("https://example.com", cells.get(3).getHyperlink());
+    }
+
+    @Test
+    void testOsc8HyperlinkWithParams() {
+        // OSC 8 with an id= parameter; URI is after the second semicolon
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033]8;id=abc;https://example.com\007Link\033]8;;\007", 80);
+        List<Cell> cells = lines.get(0).getCells();
+        assertEquals("https://example.com", cells.get(0).getHyperlink());
+    }
+
+    @Test
+    void testOsc8UriWithSemicolon() {
+        // A URI containing a semicolon must be preserved in full.
+        String uri = "https://example.com/path;matrix=1?a=b;c=d";
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033]8;;" + uri + "\007Link\033]8;;\007", 80);
+        List<Cell> cells = lines.get(0).getCells();
+        assertEquals(uri, cells.get(0).getHyperlink());
+    }
+
+    // -----------------------------------------------------------------------
     // Non-SGR CSI sequences should be ignored
     // -----------------------------------------------------------------------
 
