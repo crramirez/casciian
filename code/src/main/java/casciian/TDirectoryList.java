@@ -21,7 +21,6 @@ package casciian;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 import casciian.backend.SystemProperties;
@@ -32,12 +31,6 @@ import casciian.bits.StringUtils;
  */
 public class TDirectoryList extends TList {
 
-    /**
-     * Windows file systems are case-insensitive.
-     */
-    private static final boolean IS_WINDOWS =
-        System.getProperty("os.name", "").startsWith("Windows");
-
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -46,7 +39,7 @@ public class TDirectoryList extends TList {
      * Files in the directory, with the same index as the TList strings
      * variable.
      */
-    private List<File> files;
+    private final List<File> files;
 
     /**
      * Root path containing files to display.
@@ -56,7 +49,7 @@ public class TDirectoryList extends TList {
     /**
      * The list of filters that a file must match in order to be displayed.
      */
-    private List<String> filters;
+    private final List<String> filters;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -139,7 +132,7 @@ public class TDirectoryList extends TList {
         final TAction singleClickAction, final List<String> filters) {
 
         super(parent, null, x, y, width, height, action);
-        files = new ArrayList<File>();
+        files = new ArrayList<>();
         this.filters = filters;
         this.singleClickAction = singleClickAction;
 
@@ -184,21 +177,20 @@ public class TDirectoryList extends TList {
         }
         this.path = pathFile;
 
-        List<String> newStrings = new ArrayList<String>();
         files.clear();
 
         // Build a list of files in this directory
         File [] newFiles = this.path.listFiles();
         if (newFiles != null) {
-            for (int i = 0; i < newFiles.length; i++) {
-                if (newFiles[i].getName().startsWith(".")) {
+            for (File newFile : newFiles) {
+                if (newFile.getName().startsWith(".")) {
                     continue;
                 }
-                if (newFiles[i].isDirectory()) {
+                if (newFile.isDirectory()) {
                     continue;
                 }
                 if (filters != null) {
-                    for (String pattern: filters) {
+                    for (String pattern : filters) {
 
                         /*
                         System.err.println("newFiles[i] " +
@@ -206,31 +198,20 @@ public class TDirectoryList extends TList {
                             " " + newFiles[i].getName().matches(pattern));
                         */
 
-                        if (newFiles[i].getName().matches(pattern)) {
-                            files.add(newFiles[i]);
+                        if (newFile.getName().matches(pattern)) {
+                            files.add(newFile);
                             break;
                         }
                     }
                 } else {
-                    files.add(newFiles[i]);
+                    files.add(newFile);
                 }
             }
         }
 
-        files.sort(new Comparator<File>() {
-            public int compare(final File a, final File b) {
-                if (IS_WINDOWS) {
-                    int compareIgnoreCase = a.getName().compareToIgnoreCase(
-                        b.getName());
-                    if (compareIgnoreCase != 0) {
-                        return compareIgnoreCase;
-                    }
-                }
-                return a.getName().compareTo(b.getName());
-            }
-        });
+        files.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
 
-        newStrings.clear();
+        List<String> newStrings = new ArrayList<>();
         for (File file: files) {
             newStrings.add(renderFile(file));
         }
