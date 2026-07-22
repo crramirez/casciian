@@ -18,6 +18,7 @@ import casciian.bits.CellAttributes;
 import casciian.bits.ColorTheme;
 import casciian.bits.MnemonicString;
 import casciian.bits.StringUtils;
+import casciian.event.TMouseEvent;
 
 /**
  * TLabel implements a simple label, with an optional mnemonic hotkey action
@@ -186,6 +187,36 @@ public class TLabel<F extends TWidget> extends TWidget {
         this.matchWindowBackground = matchWindowBackground;
         this.action = action;
         this.labelFor = labelFor;
+    }
+
+    // ------------------------------------------------------------------------
+    // Event handlers ---------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+
+    /**
+     * Returns true if the mouse is currently on the label.
+     *
+     * @param mouse mouse event
+     * @return true if the mouse is over this label
+     */
+    private boolean mouseOnLabel(final TMouseEvent mouse) {
+        return (mouse.getY() == 0)
+            && (mouse.getX() >= 0)
+            && (mouse.getX() < getWidth());
+    }
+
+    /**
+     * Handle mouse button releases: clicking the label activates the labelFor widget.
+     *
+     * @param mouse mouse button release event
+     */
+    @Override
+    public void onMouseUp(final TMouseEvent mouse) {
+        if (mouseOnLabel(mouse) && mouse.isMouse1() && labelFor != null) {
+            labelFor.activate();
+        }
+        super.onMouseUp(mouse);
     }
 
     // ------------------------------------------------------------------------

@@ -190,20 +190,23 @@ public final class AnsiParser {
                     state = State.CSI_PARAM;
                     csiParams.setLength(0);
                 } else if (ch == ']') {
-                    // OSC sequence: skip until ST (BEL or ESC \)
+                    // OSC sequence: collect until ST (BEL or ESC \)
                     i += charCount;
+                    StringBuilder osc = new StringBuilder();
                     while (i < text.length()) {
-                        int osc = text.codePointAt(i);
-                        if (osc == 0x07) {
+                        int oscCh = text.codePointAt(i);
+                        if (oscCh == 0x07) {
                             break; // BEL terminates
                         }
-                        if (osc == 0x1B && i + 1 < text.length()
+                        if (oscCh == 0x1B && i + 1 < text.length()
                                 && text.charAt(i + 1) == '\\') {
                             i++; // skip the backslash
                             break;
                         }
-                        i += Character.charCount(osc);
+                        osc.appendCodePoint(oscCh);
+                        i += Character.charCount(oscCh);
                     }
+                    applyOsc(osc.toString(), currentAttr);
                     state = State.GROUND;
                 } else {
                     // Unknown escape sequence, ignore and return to ground
@@ -268,6 +271,38 @@ public final class AnsiParser {
         cell.setTo(attr);
         cell.setChar(ch);
         line.set(col, cell);
+    }
+
+    /**
+     * Apply an OSC (Operating System Command) sequence.  Only OSC 8
+     * hyperlinks are interpreted; all other OSC sequences are ignored.
+     *
+     * <p>
+     * OSC 8 has the form {@code 8 ; params ; URI}.  A non-empty URI opens (or
+     * changes) the hyperlink applied to subsequent cells; an empty URI closes
+     * the current hyperlink.
+     * </p>
+     *
+     * @param osc the OSC body (without the leading ESC ] and trailing ST)
+     * @param attr the attributes to modify
+     */
+    private static void applyOsc(final String osc,
+            final CellAttributes attr) {
+
+        // OSC 8 hyperlink.  Do not split on ';' generally, because the URI
+        // may itself contain ';'.  Extract the URI as everything after the
+        // second ';'.
+        if (osc.equals("8") || osc.startsWith("8;")) {
+            int firstSemi = osc.indexOf(';');
+            int secondSemi = (firstSemi < 0)
+                ? -1 : osc.indexOf(';', firstSemi + 1);
+            if (secondSemi >= 0) {
+                String uri = osc.substring(secondSemi + 1);
+                attr.setHyperlink(uri.isEmpty() ? null : uri);
+            } else {
+                attr.setHyperlink(null);
+            }
+        }
     }
 
     /**

@@ -569,6 +569,75 @@ class ECMA48TerminalTest {
     }
 
     @Test
+    @DisplayName("Cells with a hyperlink emit OSC 8 open and close sequences")
+    void shouldEmitOsc8ForHyperlinkCells() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes link = new CellAttributes();
+        link.setForeColor(Color.WHITE);
+        link.setBackColor(Color.BLACK);
+        link.setHyperlink("https://example.com");
+
+        CellAttributes plain = new CellAttributes();
+        plain.setForeColor(Color.WHITE);
+        plain.setBackColor(Color.BLACK);
+
+        terminal.putCharXY(0, 0, 'A', link);
+        terminal.putCharXY(1, 0, 'B', link);
+        terminal.putCharXY(2, 0, 'C', plain);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        // OSC 8 open with the URI
+        assertTrue(output.contains("\033]8;;https://example.com\033\\"),
+            "Should open OSC 8 hyperlink. Output: " + escapeForDisplay(output));
+        // OSC 8 close (empty URI)
+        assertTrue(output.contains("\033]8;;\033\\"),
+            "Should close OSC 8 hyperlink. Output: " + escapeForDisplay(output));
+        // The open sequence appears only once for two consecutive link cells
+        int firstOpen = output.indexOf("\033]8;;https://example.com");
+        int lastOpen = output.lastIndexOf("\033]8;;https://example.com");
+        assertEquals(firstOpen, lastOpen,
+            "Consecutive link cells should share a single OSC 8 open. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Hyperlink URIs are sanitized of control characters")
+    void shouldSanitizeControlCharactersInHyperlink() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes link = new CellAttributes();
+        link.setForeColor(Color.WHITE);
+        link.setBackColor(Color.BLACK);
+        // Attempt to inject an escape/BEL into the URI.
+        link.setHyperlink("https://evil\033]0;pwned\007.com");
+
+        terminal.putCharXY(0, 0, 'A', link);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+
+        // The injected OSC title change must not survive (ESC and BEL are
+        // stripped, so no new escape sequence can start).
+        assertFalse(output.contains("\033]0;pwned"),
+            "Injected escape must be stripped. Output: "
+            + escapeForDisplay(output));
+        // The remaining printable characters stay as a harmless part of the
+        // URI; the control characters (ESC, BEL) are removed.
+        assertTrue(output.contains("\033]8;;https://evil]0;pwned.com\033\\"),
+            "Control characters should be stripped from the URI. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
     @DisplayName("All bold foreground colors use correct bright codes when treatBoldAsBright enabled")
     void shouldUseCorrectBrightCodesForAllBoldColors() {
         terminal = createTerminal();

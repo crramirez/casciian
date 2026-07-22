@@ -24,6 +24,7 @@ import casciian.backend.SystemProperties;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The attributes used by a Cell: color, bold, blink, etc.
@@ -169,6 +170,14 @@ public class CellAttributes {
      * @see Palette256
      */
     private int backColorPalette = -1;
+
+    /**
+     * The OSC 8 hyperlink URI associated with this cell, or null if this cell
+     * is not part of a hyperlink.  Consecutive cells that share the same URI
+     * form a single clickable hyperlink when rendered to a terminal that
+     * supports OSC 8 hyperlinks.
+     */
+    private String hyperlink = null;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -715,6 +724,34 @@ public class CellAttributes {
     }
 
     /**
+     * Get the OSC 8 hyperlink URI associated with this cell.
+     *
+     * @return the hyperlink URI, or null if this cell is not part of a
+     * hyperlink
+     */
+    public final String getHyperlink() {
+        return hyperlink;
+    }
+
+    /**
+     * Set the OSC 8 hyperlink URI associated with this cell.
+     *
+     * @param hyperlink the hyperlink URI, or null to clear the hyperlink
+     */
+    public final void setHyperlink(final String hyperlink) {
+        this.hyperlink = hyperlink;
+    }
+
+    /**
+     * See if this cell is part of a hyperlink.
+     *
+     * @return true if this cell has an OSC 8 hyperlink URI
+     */
+    public final boolean isHyperlink() {
+        return (hyperlink != null);
+    }
+
+    /**
      * Set to default: white foreground on black background, no
      * bold/underline/blink/rever/protect.
      */
@@ -726,6 +763,7 @@ public class CellAttributes {
         backColorRGB    = -1;
         foreColorPalette = -1;
         backColorPalette = -1;
+        hyperlink       = null;
     }
 
     /**
@@ -746,7 +784,8 @@ public class CellAttributes {
             && (foreColorRGB == that.foreColorRGB)
             && (backColorRGB == that.backColorRGB)
             && (foreColorPalette == that.foreColorPalette)
-            && (backColorPalette == that.backColorPalette));
+            && (backColorPalette == that.backColorPalette)
+            && Objects.equals(hyperlink, that.hyperlink));
     }
 
     /**
@@ -766,6 +805,7 @@ public class CellAttributes {
         hash = (b * hash) + backColorRGB;
         hash = (b * hash) + foreColorPalette;
         hash = (b * hash) + backColorPalette;
+        hash = (b * hash) + (hyperlink != null ? hyperlink.hashCode() : 0);
         return hash;
     }
 
@@ -784,6 +824,7 @@ public class CellAttributes {
         this.backColorRGB       = that.backColorRGB;
         this.foreColorPalette   = that.foreColorPalette;
         this.backColorPalette   = that.backColorPalette;
+        this.hyperlink          = that.hyperlink;
     }
 
     /**
@@ -1199,6 +1240,17 @@ public class CellAttributes {
         public Builder defaultColor(final boolean foreground,
             final boolean defaultColor) {
             attributes.setDefaultColor(foreground, defaultColor);
+            return this;
+        }
+
+        /**
+         * Set the OSC 8 hyperlink URI.
+         *
+         * @param hyperlink new hyperlink URI, or null to clear
+         * @return this builder
+         */
+        public Builder hyperlink(final String hyperlink) {
+            attributes.setHyperlink(hyperlink);
             return this;
         }
 

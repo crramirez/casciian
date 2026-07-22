@@ -238,6 +238,26 @@ public class ColorTheme {
     public static final String TLABEL_DISABLED_MNEMONIC_MODAL = "tlabel.disabled.mnemonic.modal";
 
     /**
+     * Color key for THyperLink in its normal state.
+     */
+    public static final String THYPERLINK = "thyperlink";
+
+    /**
+     * Color key for THyperLink when the mouse is hovering over it.
+     */
+    public static final String THYPERLINK_HOVER = "thyperlink.hover";
+
+    /**
+     * Color key for THyperLink in modal mode.
+     */
+    public static final String THYPERLINK_MODAL = "thyperlink.modal";
+
+    /**
+     * Color key for THyperLink when hovered in modal mode.
+     */
+    public static final String THYPERLINK_HOVER_MODAL = "thyperlink.hover.modal";
+
+    /**
      * Color key for TText.
      */
     public static final String TTEXT = "ttext";
@@ -1371,6 +1391,28 @@ public class ColorTheme {
         colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
             .backColor(WHITE)
+            .build());
+
+        // THyperLink
+        colors.put(THYPERLINK, CellAttributes.builder()
+            .foreColor(BRIGHT_CYAN)
+            .backColor(BLUE)
+            .underline(true)
+            .build());
+        colors.put(THYPERLINK_HOVER, CellAttributes.builder()
+            .foreColor(BRIGHT_WHITE)
+            .backColor(BLUE)
+            .underline(true)
+            .build());
+        colors.put(THYPERLINK_MODAL, CellAttributes.builder()
+            .foreColor(BLUE)
+            .backColor(WHITE)
+            .underline(true)
+            .build());
+        colors.put(THYPERLINK_HOVER_MODAL, CellAttributes.builder()
+            .foreColor(BLACK)
+            .backColor(WHITE)
+            .underline(true)
             .build());
 
         // TText text
