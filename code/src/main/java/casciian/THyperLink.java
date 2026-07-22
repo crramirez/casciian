@@ -17,7 +17,10 @@ package casciian;
 
 import casciian.bits.CellAttributes;
 import casciian.bits.ColorTheme;
+import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
+import static casciian.TKeypress.kbEnter;
+import static casciian.TKeypress.kbSpace;
 
 /**
  * THyperLink implements a clickable hyperlink, based on {@link TLabel}.
@@ -33,7 +36,6 @@ import casciian.event.TMouseEvent;
  *
  * @see ColorTheme#THYPERLINK
  * @see ColorTheme#THYPERLINK_HOVER
- * @see ColorTheme#THYPERLINK_VISITED
  */
 public class THyperLink extends TLabel<TWidget> {
 
@@ -47,19 +49,9 @@ public class THyperLink extends TLabel<TWidget> {
     private String uri;
 
     /**
-     * If true, this link has been visited (clicked) at least once.
-     */
-    private boolean visited = false;
-
-    /**
      * If true, the mouse is currently hovering over this link.
      */
     private boolean hover = false;
-
-    /**
-     * Optional action to perform when the link is clicked.
-     */
-    private final TAction action;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -77,26 +69,8 @@ public class THyperLink extends TLabel<TWidget> {
     public THyperLink(final TWidget parent, final String text,
         final String uri, final int x, final int y) {
 
-        this(parent, text, uri, x, y, null);
-    }
-
-    /**
-     * Public constructor.
-     *
-     * @param parent parent widget
-     * @param text visible text of the link
-     * @param uri hyperlink target URI
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param action optional action to perform when the link is clicked
-     */
-    @SuppressWarnings("this-escape")
-    public THyperLink(final TWidget parent, final String text,
-        final String uri, final int x, final int y, final TAction action) {
-
         super(parent, text, x, y, ColorTheme.THYPERLINK, true, null, null);
         this.uri = uri;
-        this.action = action;
     }
 
     // ------------------------------------------------------------------------
@@ -126,23 +100,6 @@ public class THyperLink extends TLabel<TWidget> {
         super.onMouseMotion(mouse);
     }
 
-    /**
-     * Handle mouse button releases: clicking the link marks it visited and
-     * dispatches the optional action.
-     *
-     * @param mouse mouse button release event
-     */
-    @Override
-    public void onMouseUp(final TMouseEvent mouse) {
-        if (mouseOnLink(mouse) && mouse.isMouse1()) {
-            visited = true;
-            if (action != null) {
-                action.DO(this);
-            }
-        }
-        super.onMouseUp(mouse);
-    }
-
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -153,9 +110,7 @@ public class THyperLink extends TLabel<TWidget> {
     @Override
     public void draw() {
         String colorKey;
-        if (visited) {
-            colorKey = ColorTheme.THYPERLINK_VISITED;
-        } else if (hover) {
+        if (hover || isActive()) {
             colorKey = ColorTheme.THYPERLINK_HOVER;
         } else {
             colorKey = ColorTheme.THYPERLINK;
@@ -207,24 +162,6 @@ public class THyperLink extends TLabel<TWidget> {
      */
     public void setUri(final String uri) {
         this.uri = uri;
-    }
-
-    /**
-     * Get whether this link has been visited.
-     *
-     * @return true if the link has been clicked at least once
-     */
-    public boolean isVisited() {
-        return visited;
-    }
-
-    /**
-     * Set whether this link has been visited.
-     *
-     * @param visited new visited state
-     */
-    public void setVisited(final boolean visited) {
-        this.visited = visited;
     }
 
 }

@@ -293,7 +293,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      */
     public final boolean mouseWouldHit(final TMouseEvent mouse) {
 
-        if (!enabled) {
+        if (!enabled && !(this instanceof TLabel<?> label && label.getLabelFor() != null)) {
             return false;
         }
 
@@ -2446,26 +2446,11 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param y row relative to parent
      * @return the new hyperlink
      */
+    @SuppressWarnings("UnusedReturnValue")
     public final THyperLink addHyperlink(final String text, final String uri,
-        final int x, final int y) {
+                                         final int x, final int y) {
 
         return new THyperLink(this, text, uri, x, y);
-    }
-
-    /**
-     * Convenience function to add a hyperlink to this container/window.
-     *
-     * @param text visible text of the link
-     * @param uri hyperlink target URI
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param action action to perform when the link is clicked
-     * @return the new hyperlink
-     */
-    public final THyperLink addHyperlink(final String text, final String uri,
-        final int x, final int y, final TAction action) {
-
-        return new THyperLink(this, text, uri, x, y, action);
     }
 
     /**

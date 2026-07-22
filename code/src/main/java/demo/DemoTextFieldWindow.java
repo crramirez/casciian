@@ -116,12 +116,9 @@ public class DemoTextFieldWindow extends TWindow {
         TField selected = addLabelFor(i18n.getString("textField5"), 1, row,
             addField(35, row++, 40, false, i18n.getString("textField6")));
 
-        addLabel(i18n.getString("hyperlinkLabel"), 1, row);
-        addHyperlink(i18n.getString("hyperlinkText"),
-            "https://github.com/crramirez/casciian", 12, row);
-        row += 1;
+        row++;
 
-        calendar = addCalendar(1, row++,
+        calendar = addCalendar(1, row,
             new TAction() {
                 public void DO() {
                     getApplication().messageBox(i18n.getString("calendarTitle"),
@@ -132,12 +129,12 @@ public class DemoTextFieldWindow extends TWindow {
             }
         );
 
-        dayOfWeekLabel = addLabel("Wednesday-", 35, row - 1, "tmenu", false);
+        dayOfWeekLabel = addLabel("Wednesday-", 35, row, "tmenu", false);
         dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
                 dayOfWeekCalendar.getDisplayName(Calendar.DAY_OF_WEEK,
                     Calendar.LONG, Locale.getDefault())));
 
-        addSpinner(35 + dayOfWeekLabel.getWidth(), row - 1,
+        addSpinner(35 + dayOfWeekLabel.getWidth(), row,
             new TAction() {
                 public void DO() {
                     dayOfWeekCalendar.add(Calendar.DAY_OF_WEEK, 1);
@@ -158,6 +155,10 @@ public class DemoTextFieldWindow extends TWindow {
             }
         );
 
+        row += 2;
+
+        addHyperlink(i18n.getString("hyperlinkText"),
+            "https://github.com/crramirez/casciian", 35, row);
 
         addButton(i18n.getString("closeWindow"),
             (getWidth() - 14) / 2, getHeight() - 4,

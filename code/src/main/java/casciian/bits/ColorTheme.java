@@ -248,11 +248,6 @@ public class ColorTheme {
     public static final String THYPERLINK_HOVER = "thyperlink.hover";
 
     /**
-     * Color key for THyperLink after it has been visited (clicked).
-     */
-    public static final String THYPERLINK_VISITED = "thyperlink.visited";
-
-    /**
      * Color key for THyperLink in modal mode.
      */
     public static final String THYPERLINK_MODAL = "thyperlink.modal";
@@ -261,11 +256,6 @@ public class ColorTheme {
      * Color key for THyperLink when hovered in modal mode.
      */
     public static final String THYPERLINK_HOVER_MODAL = "thyperlink.hover.modal";
-
-    /**
-     * Color key for THyperLink after being visited in modal mode.
-     */
-    public static final String THYPERLINK_VISITED_MODAL = "thyperlink.visited.modal";
 
     /**
      * Color key for TText.
@@ -1414,11 +1404,6 @@ public class ColorTheme {
             .backColor(BLUE)
             .underline(true)
             .build());
-        colors.put(THYPERLINK_VISITED, CellAttributes.builder()
-            .foreColor(BRIGHT_MAGENTA)
-            .backColor(BLUE)
-            .underline(true)
-            .build());
         colors.put(THYPERLINK_MODAL, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(WHITE)
@@ -1426,11 +1411,6 @@ public class ColorTheme {
             .build());
         colors.put(THYPERLINK_HOVER_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
-            .backColor(WHITE)
-            .underline(true)
-            .build());
-        colors.put(THYPERLINK_VISITED_MODAL, CellAttributes.builder()
-            .foreColor(MAGENTA)
             .backColor(WHITE)
             .underline(true)
             .build());
