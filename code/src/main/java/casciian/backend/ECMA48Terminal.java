@@ -2005,6 +2005,19 @@ public class ECMA48Terminal extends LogicalScreen
             } // if (!lCell.equals(pCell) || (reallyCleared == true))
 
         } // for (int x = 0; x < width; x++)
+
+        // Close any OSC 8 hyperlink still open at the end of this row.  A
+        // hyperlink never spans rows, and the OSC 8 state is a stream-global
+        // toggle (unaffected by cursor moves), so if it is left open the next
+        // row's text -- and everything drawn afterwards -- would incorrectly
+        // become part of the link.  The clearRemainingLine() path above only
+        // closes the link when there is blank space to the right of the text
+        // (textEnd < width - 1); when the text reaches the right edge that
+        // path is skipped, so the close must happen here as well.
+        if ((lastAttr != null) && (lastAttr.getHyperlink() != null)) {
+            sb.append(hyperlinkSequence(null));
+            lastAttr.setHyperlink(null);
+        }
     }
 
     /**
