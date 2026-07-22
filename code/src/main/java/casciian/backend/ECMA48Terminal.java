@@ -1797,12 +1797,15 @@ public class ECMA48Terminal extends LogicalScreen
                         attrSgr.append(";23");
                     }
                 }
-                if (lCell.isUnderline() != lastAttr.isUnderline()) {
-                    if (lCell.isUnderline()) {
-                        attrSgr.append(";4");
-                    } else {
+                int lCellUnderlineStyle = lCell.getUnderlineStyle();
+                int lastUnderlineStyle = lastAttr.getUnderlineStyle();
+                if (lCellUnderlineStyle != lastUnderlineStyle) {
+                    if ((lastUnderlineStyle != CellAttributes.UNDERLINE_STYLE_NONE)
+                        && (lCellUnderlineStyle != CellAttributes.UNDERLINE_STYLE_NONE)
+                    ) {
                         attrSgr.append(";24");
                     }
+                    appendUnderlineSgr(attrSgr, lCellUnderlineStyle);
                 }
                 if (lCell.isBlink() != lastAttr.isBlink()) {
                     if (lCell.isBlink()) {
@@ -4779,6 +4782,40 @@ public class ECMA48Terminal extends LogicalScreen
                 ecmaColor += 100;
             } else {
                 ecmaColor += 40;
+            }
+        }
+
+        /**
+         * Append the SGR sequence for an underline style.
+         *
+         * @param attrSgr builder to append to
+         * @param underlineStyle underline style
+         */
+        private static void appendUnderlineSgr(final StringBuilder attrSgr,
+                final int underlineStyle) {
+
+            switch (underlineStyle) {
+            case CellAttributes.UNDERLINE_STYLE_NONE:
+                attrSgr.append(";24");
+                break;
+            case CellAttributes.UNDERLINE_STYLE_SINGLE:
+                attrSgr.append(";4");
+                break;
+            case CellAttributes.UNDERLINE_STYLE_DOUBLE:
+                attrSgr.append(";21");
+                break;
+            case CellAttributes.UNDERLINE_STYLE_CURLY:
+                attrSgr.append(";4:3");
+                break;
+            case CellAttributes.UNDERLINE_STYLE_DOTTED:
+                attrSgr.append(";4:4");
+                break;
+            case CellAttributes.UNDERLINE_STYLE_DASHED:
+                attrSgr.append(";4:5");
+                break;
+            default:
+                throw new IllegalArgumentException(
+                    "Invalid underline style: " + underlineStyle);
             }
         }
 

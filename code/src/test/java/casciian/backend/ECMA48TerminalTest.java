@@ -1326,6 +1326,69 @@ class ECMA48TerminalTest {
     }
 
     @Test
+    @DisplayName("Double underline emits SGR 21")
+    void shouldEmitSgr21ForDoubleUnderline() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setUnderlineStyle(CellAttributes.UNDERLINE_STYLE_DOUBLE);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains(";21m") || output.contains("\033[21m"),
+            "Double underline should emit SGR 21. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Curly underline emits SGR 4:3")
+    void shouldEmitSgr43ForCurlyUnderline() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        attr.setUnderlineStyle(CellAttributes.UNDERLINE_STYLE_CURLY);
+
+        terminal.putCharXY(0, 0, 'A', attr);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains(";4:3m") || output.contains("\033[4:3m"),
+            "Curly underline should emit SGR 4:3. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("Changing underline style resets underline before applying new style")
+    void shouldResetBeforeChangingUnderlineStyle() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes single = new CellAttributes();
+        single.setUnderlineStyle(CellAttributes.UNDERLINE_STYLE_SINGLE);
+        CellAttributes dotted = new CellAttributes();
+        dotted.setUnderlineStyle(CellAttributes.UNDERLINE_STYLE_DOTTED);
+
+        terminal.putCharXY(0, 0, 'A', single);
+        terminal.putCharXY(1, 0, 'B', dotted);
+
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String output = outputStream.toString();
+        assertTrue(output.contains("[24;4:4m") || output.contains(";24;4:4m"),
+            "Changing underline style should emit SGR 24 before SGR 4:4. Output: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
     @DisplayName("Hidden attribute emits SGR 8")
     void shouldEmitSgr8ForHidden() {
         terminal = createTerminal();

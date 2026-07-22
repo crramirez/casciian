@@ -144,6 +144,22 @@ class LogicalScreenTest {
     }
 
     @Test
+    @DisplayName("Blend screen preserves underline style")
+    void testBlendScreenPreservesUnderlineStyle() {
+        TestableLogicalScreen overlay = new TestableLogicalScreen(2, 1);
+        CellAttributes overlayAttr = new CellAttributes();
+        overlayAttr.setUnderlineStyle(CellAttributes.UNDERLINE_STYLE_DASHED);
+
+        screen.putCharXY(0, 0, 'X', defaultAttr);
+        overlay.putCharXY(0, 0, 'A', overlayAttr);
+
+        screen.blendScreen(overlay, 0, 0, 1, 1, 128, false);
+
+        assertEquals(CellAttributes.UNDERLINE_STYLE_DASHED,
+            screen.getCharXY(0, 0).getUnderlineStyle());
+    }
+
+    @Test
     @DisplayName("Vertical line draws correctly")
     void testVLineXY() {
         assertDoesNotThrow(() -> screen.vLineXY(5, 0, 10, '|', defaultAttr));

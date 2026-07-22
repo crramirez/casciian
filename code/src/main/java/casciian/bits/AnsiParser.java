@@ -321,32 +321,59 @@ public final class AnsiParser {
             return;
         }
 
-        // Split by ; or : (colon is used in some SGR subparameters)
-        String[] parts = params.split("[;:]");
         SgrUtil.ExtendedColorState extColor = new SgrUtil.ExtendedColorState();
+        String[] groups = params.split(";", -1);
 
-        for (String part : parts) {
-            int value;
-            try {
-                value = part.isEmpty() ? 0 : Integer.parseInt(part);
-            } catch (NumberFormatException e) {
-                continue;
+        for (String group : groups) {
+            String[] subParams = group.split(":", -1);
+            if (subParams.length > 1) {
+                int prefix;
+                try {
+                    prefix = subParams[0].isEmpty() ? 0
+                        : Integer.parseInt(subParams[0]);
+                } catch (NumberFormatException e) {
+                    continue;
+                }
+                if (prefix == 4) {
+                    int style = CellAttributes.UNDERLINE_STYLE_SINGLE;
+                    if (subParams.length >= 2 && !subParams[1].isEmpty()) {
+                        try {
+                            style = Integer.parseInt(subParams[1]);
+                        } catch (NumberFormatException e) {
+                            style = CellAttributes.UNDERLINE_STYLE_SINGLE;
+                        }
+                    }
+                    if (SgrUtil.applyUnderlineStyleCode(style, attr)) {
+                        continue;
+                    }
+                    attr.setUnderlineStyle(
+                        CellAttributes.UNDERLINE_STYLE_SINGLE);
+                    continue;
+                }
             }
+            for (String part : subParams) {
+                int value;
+                try {
+                    value = part.isEmpty() ? 0 : Integer.parseInt(part);
+                } catch (NumberFormatException e) {
+                    continue;
+                }
 
-            // Handle extended color sub-parameters (38;5;n or 38;2;r;g;b)
-            if (extColor.isActive()) {
-                extColor.feedValue(value, attr, DEFAULT_PALETTE);
-                continue;
-            }
+                // Handle extended color sub-parameters (38;5;n or 38;2;r;g;b)
+                if (extColor.isActive()) {
+                    extColor.feedValue(value, attr, DEFAULT_PALETTE);
+                    continue;
+                }
 
-            // Try the shared SGR handler
-            if (SgrUtil.applySgrCode(value, attr, DEFAULT_PALETTE)) {
-                continue;
-            }
+                // Try the shared SGR handler
+                if (SgrUtil.applySgrCode(value, attr, DEFAULT_PALETTE)) {
+                    continue;
+                }
 
-            // Codes 38/48 start an extended color sequence
-            if (value == 38 || value == 48) {
-                extColor.begin(value);
+                // Codes 38/48 start an extended color sequence
+                if (value == 38 || value == 48) {
+                    extColor.begin(value);
+                }
             }
         }
     }

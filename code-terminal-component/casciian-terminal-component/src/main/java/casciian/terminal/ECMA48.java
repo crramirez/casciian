@@ -483,6 +483,11 @@ public class ECMA48 implements Runnable {
     private StringBuilder collectBuffer = new StringBuilder(128);
 
     /**
+     * Raw CSI parameter characters.
+     */
+    private StringBuilder csiRawParams = new StringBuilder(32);
+
+    /**
      * When true, use the G1 character set.
      */
     private boolean shiftOut = false;
@@ -1390,6 +1395,7 @@ public class ECMA48 implements Runnable {
      */
     private void toGround() {
         csiParams.clear();
+        csiRawParams.setLength(0);
         collectBuffer.setLength(0);
         scanState = ScanState.GROUND;
     }
@@ -3073,6 +3079,7 @@ public class ECMA48 implements Runnable {
      * @param ch byte to save
      */
     private void param(final byte ch) {
+        csiRawParams.append((char) ch);
         if (csiParams.size() == 0) {
             csiParams.add(Integer.valueOf(0));
         }
@@ -4246,67 +4253,103 @@ public class ECMA48 implements Runnable {
         }
 
         SgrUtil.ExtendedColorState extColor = new SgrUtil.ExtendedColorState();
+        String[] groups = csiRawParams.toString().split(";", -1);
 
-        for (Integer i: csiParams) {
-
-            // Handle extended color sub-parameters (38/48 sequences)
-            if (extColor.isActive()) {
-                extColor.feedValue(i, currentState.attr, this::get88Color);
-                continue;
-            }
-
-            // ECMA48-specific: SGR 39 uses backend default foreground
-            if (i == 39) {
-                if (backend != null) {
-                    currentState.attr.setForeColorRGB(
-                        backend.getDefaultForeColorRGB());
-                } else {
-                    currentState.attr.setForeColor(Color.WHITE);
+        for (String group: groups) {
+            String[] subParams = group.split(":", -1);
+            if (!extColor.isActive() && subParams.length > 1) {
+                int prefix;
+                try {
+                    prefix = subParams[0].isEmpty() ? 0
+                        : Integer.parseInt(subParams[0]);
+                } catch (NumberFormatException e) {
+                    continue;
                 }
-                currentState.attr.setDefaultColor(true, true);
-                continue;
-            }
-
-            // ECMA48-specific: SGR 49 uses backend default background
-            if (i == 49) {
-                if (backend != null) {
-                    currentState.attr.setBackColorRGB(
-                        backend.getDefaultBackColorRGB());
-                } else {
-                    currentState.attr.setBackColor(Color.BLACK);
+                if (prefix == 4) {
+                    int style = CellAttributes.UNDERLINE_STYLE_SINGLE;
+                    if (subParams.length >= 2 && !subParams[1].isEmpty()) {
+                        try {
+                            style = Integer.parseInt(subParams[1]);
+                        } catch (NumberFormatException e) {
+                            style = CellAttributes.UNDERLINE_STYLE_SINGLE;
+                        }
+                    }
+                    if (SgrUtil.applyUnderlineStyleCode(style,
+                            currentState.attr)) {
+                        continue;
+                    }
+                    currentState.attr.setUnderlineStyle(
+                        CellAttributes.UNDERLINE_STYLE_SINGLE);
+                    continue;
                 }
-                currentState.attr.setDefaultColor(false, true);
-                continue;
             }
 
-            // ECMA48-specific: SGR 38/48 extended color requires XTERM
-            if (i == 38 || i == 48) {
-                if (type == DeviceType.XTERM) {
-                    extColor.begin(i);
+            for (String part: subParams) {
+                int i;
+                try {
+                    i = part.isEmpty() ? 0 : Integer.parseInt(part);
+                } catch (NumberFormatException e) {
+                    continue;
                 }
-                continue;
-            }
 
-            // ECMA48-specific: high-intensity colors require XTERM
-            if ((i >= 90 && i <= 97) || (i >= 100 && i <= 107)) {
-                if (type == DeviceType.XTERM) {
-                    SgrUtil.applySgrCode(i, currentState.attr,
-                        this::get88Color);
+                // Handle extended color sub-parameters (38/48 sequences)
+                if (extColor.isActive()) {
+                    extColor.feedValue(i, currentState.attr, this::get88Color);
+                    continue;
                 }
-                continue;
-            }
 
-            // ECMA48-specific: VT220+ attribute off codes
-            if (i == 22 || i == 24 || i == 25 || i == 27) {
-                if (type == DeviceType.VT220 || type == DeviceType.XTERM) {
-                    SgrUtil.applySgrCode(i, currentState.attr, null);
+                // ECMA48-specific: SGR 39 uses backend default foreground
+                if (i == 39) {
+                    if (backend != null) {
+                        currentState.attr.setForeColorRGB(
+                            backend.getDefaultForeColorRGB());
+                    } else {
+                        currentState.attr.setForeColor(Color.WHITE);
+                    }
+                    currentState.attr.setDefaultColor(true, true);
+                    continue;
                 }
-                continue;
-            }
 
-            // All other standard codes (0, 1, 4, 5, 7, 30-37, 40-47)
-            // are handled by the shared utility.
-            SgrUtil.applySgrCode(i, currentState.attr, this::get88Color);
+                // ECMA48-specific: SGR 49 uses backend default background
+                if (i == 49) {
+                    if (backend != null) {
+                        currentState.attr.setBackColorRGB(
+                            backend.getDefaultBackColorRGB());
+                    } else {
+                        currentState.attr.setBackColor(Color.BLACK);
+                    }
+                    currentState.attr.setDefaultColor(false, true);
+                    continue;
+                }
+
+                // ECMA48-specific: SGR 38/48 extended color requires XTERM
+                if (i == 38 || i == 48) {
+                    if (type == DeviceType.XTERM) {
+                        extColor.begin(i);
+                    }
+                    continue;
+                }
+
+                // ECMA48-specific: high-intensity colors require XTERM
+                if ((i >= 90 && i <= 97) || (i >= 100 && i <= 107)) {
+                    if (type == DeviceType.XTERM) {
+                        SgrUtil.applySgrCode(i, currentState.attr,
+                            this::get88Color);
+                    }
+                    continue;
+                }
+
+                // ECMA48-specific: VT220+ attribute off codes
+                if (i == 22 || i == 24 || i == 25 || i == 27) {
+                    if (type == DeviceType.VT220 || type == DeviceType.XTERM) {
+                        SgrUtil.applySgrCode(i, currentState.attr, null);
+                    }
+                    continue;
+                }
+
+                // All other standard codes are handled by the shared utility.
+                SgrUtil.applySgrCode(i, currentState.attr, this::get88Color);
+            }
         }
 
         // A bold attribute received from the incoming stream must be
@@ -6529,6 +6572,10 @@ public class ECMA48 implements Runnable {
                 param((byte) ch);
                 scanState = ScanState.CSI_PARAM;
             }
+            if (ch == ':') {
+                csiRawParams.append((char) ch);
+                scanState = ScanState.CSI_PARAM;
+            }
 
             // 3C-3F               --> collect, then switch to CSI_PARAM
             if ((ch >= 0x3C) && (ch <= 0x3F)) {
@@ -6793,9 +6840,9 @@ public class ECMA48 implements Runnable {
                 toGround();
             }
 
-            // 0x3A goes to CSI_IGNORE
+            // 0x3A is a CSI sub-parameter separator
             if (ch == 0x3A) {
-                scanState = ScanState.CSI_IGNORE;
+                csiRawParams.append((char) ch);
             }
             return;
 
@@ -6819,9 +6866,9 @@ public class ECMA48 implements Runnable {
                 param((byte) ch);
             }
 
-            // 0x3A goes to CSI_IGNORE
+            // 0x3A is a CSI sub-parameter separator
             if (ch == 0x3A) {
-                scanState = ScanState.CSI_IGNORE;
+                csiRawParams.append((char) ch);
             }
             // 0x3C-3F goes to CSI_IGNORE
             if ((ch >= 0x3C) && (ch <= 0x3F)) {

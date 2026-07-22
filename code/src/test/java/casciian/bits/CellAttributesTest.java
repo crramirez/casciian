@@ -35,6 +35,44 @@ class CellAttributesTest {
     }
 
     @Test
+    void testUnderlineStyles() {
+        CellAttributes attr = new CellAttributes();
+
+        attr.setUnderlineStyle(CellAttributes.UNDERLINE_STYLE_DOUBLE);
+        assertTrue(attr.isUnderline());
+        assertEquals(CellAttributes.UNDERLINE_STYLE_DOUBLE,
+            attr.getUnderlineStyle());
+
+        attr.setUnderline(false);
+        assertFalse(attr.isUnderline());
+        assertEquals(CellAttributes.UNDERLINE_STYLE_NONE,
+            attr.getUnderlineStyle());
+
+        attr.setUnderline(true);
+        assertEquals(CellAttributes.UNDERLINE_STYLE_SINGLE,
+            attr.getUnderlineStyle());
+    }
+
+    @Test
+    void testUnderlineStyleBuilderResetCopyAndToString() {
+        CellAttributes attr = CellAttributes.builder()
+            .underlineStyle(CellAttributes.UNDERLINE_STYLE_CURLY)
+            .build();
+
+        assertEquals(CellAttributes.UNDERLINE_STYLE_CURLY,
+            attr.getUnderlineStyle());
+        assertEquals("curly underline white on black", attr.toString());
+
+        CellAttributes copy = new CellAttributes(attr);
+        assertEquals(attr, copy);
+        assertEquals(attr.hashCode(), copy.hashCode());
+
+        attr.reset();
+        assertEquals(CellAttributes.UNDERLINE_STYLE_NONE,
+            attr.getUnderlineStyle());
+    }
+
+    @Test
     void testFaintItalicHiddenStrikethroughDefaultToFalse() {
         CellAttributes attr = new CellAttributes();
         assertFalse(attr.isFaint());
