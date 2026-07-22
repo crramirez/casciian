@@ -238,7 +238,7 @@ public class ColorTheme {
     public static final String TLABEL_DISABLED_MNEMONIC_MODAL = "tlabel.disabled.mnemonic.modal";
 
     /**
-     * Color key for THyperLink in its normal (unvisited) state.
+     * Color key for THyperLink in its normal state.
      */
     public static final String THYPERLINK = "thyperlink";
 

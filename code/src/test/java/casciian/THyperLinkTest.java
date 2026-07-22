@@ -18,6 +18,13 @@ package casciian;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Tests for {@link THyperLink}.
+ *
+ * <p>Note: link activation (e.g. Ctrl+Click) is handled entirely by the
+ * terminal via OSC 8 and is intentionally not tested here.
+ * </p>
+ */
 class THyperLinkTest {
 
     @Test

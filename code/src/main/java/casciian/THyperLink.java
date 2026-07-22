@@ -17,21 +17,18 @@ package casciian;
 
 import casciian.bits.CellAttributes;
 import casciian.bits.ColorTheme;
-import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
-import static casciian.TKeypress.kbEnter;
-import static casciian.TKeypress.kbSpace;
 
 /**
- * THyperLink implements a clickable hyperlink, based on {@link TLabel}.
+ * THyperLink implements a hyperlink widget, based on {@link TLabel}.
  *
  * <p>
  * The visible text is tagged with an OSC 8 hyperlink URI so that terminals
- * that understand OSC 8 hyperlinks render it as a real clickable link.  The
- * widget also changes color depending on its state: a normal color, a hover
- * color used while the mouse is over the link, and a visited color used once
- * the link has been clicked.  Each state has a corresponding {@code .modal}
- * variant used when the containing window is modal.
+ * that understand OSC 8 hyperlinks render it as a real clickable link.
+ * Activation (e.g. Ctrl+Click) is handled entirely by the terminal; this
+ * widget does not intercept or simulate link activation.  The widget
+ * changes color when the mouse hovers over it, with a corresponding
+ * {@code .modal} variant used when the containing window is modal.
  * </p>
  *
  * @see ColorTheme#THYPERLINK
