@@ -156,4 +156,24 @@ class LogicalScreenBlendStyleTest {
         assertTrue(screen.getCharXY(0, 0).isStrikethrough(),
             "strikethrough must be preserved on a space cell");
     }
+
+    @Test
+    @DisplayName("Translucent blend clears faint from underlying cell that shows through")
+    void blendClearsFaintFromShowThroughCell() {
+        CellAttributes underAttr = new CellAttributes();
+        underAttr.setFaint(true);
+        screen.putCharXY(0, 0, 'Z', underAttr);
+
+        // Overlay is a plain transparent space — background char will show
+        // through.  The faint flag must be cleared on the result so that SGR 2
+        // is not re-applied on top of the already-blended foreground color.
+        TestableLogicalScreen over = new TestableLogicalScreen(1, 1);
+        over.putCharXY(0, 0, ' ', baseAttr);
+
+        screen.blendScreen(over, 0, 0, 1, 1, 128, false);
+
+        assertEquals('Z', screen.getCharXY(0, 0).getChar());
+        assertFalse(screen.getCharXY(0, 0).isFaint(),
+            "faint must be cleared when the underlying cell shows through a translucent overlay");
+    }
 }

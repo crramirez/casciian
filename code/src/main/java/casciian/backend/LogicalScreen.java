@@ -2278,6 +2278,11 @@ public class LogicalScreen implements Screen {
                                 thisCell.setChar(' ');
                                 thisCell.setWidth(Cell.Width.SINGLE);
                             }
+                            // The alpha blend bitmaps use nominal (un-dimmed)
+                            // foreground colors, so clearing faint here
+                            // prevents SGR 2 from being re-applied on top of
+                            // the already-blended color.
+                            thisCell.setFaint(false);
                             continue;
                         }
                     }
