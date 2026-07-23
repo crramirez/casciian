@@ -3090,7 +3090,7 @@ public class ECMA48 implements Runnable {
             csiParams.set(csiParams.size() - 1, x);
         }
 
-        if ((ch == ';') && (csiParams.size() < 16)) {
+        if (((ch == ';') || (ch == ':')) && (csiParams.size() < 16)) {
             csiParams.add(Integer.valueOf(0));
         }
     }
@@ -6573,7 +6573,7 @@ public class ECMA48 implements Runnable {
                 scanState = ScanState.CSI_PARAM;
             }
             if (ch == ':') {
-                csiRawParams.append((char) ch);
+                param((byte) ch);
                 scanState = ScanState.CSI_PARAM;
             }
 
@@ -6868,7 +6868,7 @@ public class ECMA48 implements Runnable {
 
             // 0x3A is a CSI sub-parameter separator
             if (ch == 0x3A) {
-                csiRawParams.append((char) ch);
+                param((byte) ch);
             }
             // 0x3C-3F goes to CSI_IGNORE
             if ((ch >= 0x3C) && (ch <= 0x3F)) {

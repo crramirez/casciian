@@ -268,7 +268,8 @@ class AnsiParserTest {
     @Test
     void testUnderlineVariants() {
         List<AnsiParser.Line> lines = AnsiParser.parse(
-            "\033[4:1mA\033[4:3mB\033[4:4mC\033[4:5mD\033[24mE", 80);
+            "\033[4:1mA\033[4:3mB\033[4:4mC\033[4:5mD\033[4:0mE\033[24mF",
+            80);
         List<Cell> cells = lines.get(0).getCells();
 
         assertEquals(CellAttributes.UNDERLINE_STYLE_SINGLE,
@@ -281,6 +282,8 @@ class AnsiParserTest {
             cells.get(3).getUnderlineStyle());
         assertEquals(CellAttributes.UNDERLINE_STYLE_NONE,
             cells.get(4).getUnderlineStyle());
+        assertEquals(CellAttributes.UNDERLINE_STYLE_NONE,
+            cells.get(5).getUnderlineStyle());
     }
 
     @Test

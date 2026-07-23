@@ -475,7 +475,8 @@ class ECMA48Test {
         Backend backend = new HeadlessBackend();
 
         String sequence =
-            "\033[21mA\033[4:1mB\033[4:2mC\033[4:3mD\033[4:4mE\033[4:5mF";
+            "\033[21mA\033[4:1mB\033[4:2mC\033[4:3mD\033[4:4mE\033[4:5mF"
+            + "\033[4:0mG";
         ByteArrayInputStream inputStream = new ByteArrayInputStream(
             sequence.getBytes("UTF-8"));
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -499,6 +500,33 @@ class ECMA48Test {
                 state.getDisplayBuffer().get(0).charAt(4).getUnderlineStyle());
             assertEquals(CellAttributes.UNDERLINE_STYLE_DASHED,
                 state.getDisplayBuffer().get(0).charAt(5).getUnderlineStyle());
+            assertEquals(CellAttributes.UNDERLINE_STYLE_NONE,
+                state.getDisplayBuffer().get(0).charAt(6).getUnderlineStyle());
+        } finally {
+            emulator.close();
+        }
+    }
+
+    @Test
+    @DisplayName("CSI colon separator should split numeric params")
+    void shouldTreatColonAsCsiParamSeparator() throws Exception {
+        Backend backend = new HeadlessBackend();
+
+        String sequence = "\033[1:2HX";
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(
+            sequence.getBytes("UTF-8"));
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
+            outputStream, null, backend);
+
+        try {
+            emulator.waitForOutput(1000);
+
+            TerminalState state = emulator.captureState();
+            assertEquals('X', state.getDisplayBuffer().get(0).charAt(1).getChar());
+            assertNotEquals('X',
+                state.getDisplayBuffer().get(11).charAt(0).getChar());
         } finally {
             emulator.close();
         }

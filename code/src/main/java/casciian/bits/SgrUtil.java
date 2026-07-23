@@ -354,7 +354,8 @@ public final class SgrUtil {
             final CellAttributes attr) {
 
         switch (subCode) {
-        case CellAttributes.UNDERLINE_STYLE_SINGLE,
+        case CellAttributes.UNDERLINE_STYLE_NONE,
+             CellAttributes.UNDERLINE_STYLE_SINGLE,
              CellAttributes.UNDERLINE_STYLE_DOUBLE,
              CellAttributes.UNDERLINE_STYLE_CURLY,
              CellAttributes.UNDERLINE_STYLE_DOTTED,
