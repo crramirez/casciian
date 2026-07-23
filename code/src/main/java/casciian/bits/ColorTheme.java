@@ -852,6 +852,14 @@ public class ColorTheme {
      */
     private final SortedMap<String, CellAttributes> colors;
 
+    /**
+     * Cached result of {@link #isDarkTheme()}.  Themes rarely change once
+     * loaded, so the (somewhat expensive) luminance computation is only
+     * performed once per theme and reused on subsequent calls.  It is
+     * invalidated whenever the theme's colors are modified.
+     */
+    private Boolean isDarkThemeCache;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -898,19 +906,30 @@ public class ColorTheme {
     // ------------------------------------------------------------------------
 
     /**
-     * Retrieve the CellAttributes for a named theme color.
+     * Retrieve a defensive copy of the CellAttributes for a named theme color.
+     *
+     * <p>The returned object is a fresh copy; callers may freely mutate it
+     * without affecting the theme's internal state.  To persist a change,
+     * call {@link #setColor(String, CellAttributes)} with the modified copy.</p>
      *
      * @param name theme color name, e.g. "twindow.border"
-     * @return color associated with name, e.g. bold yellow on blue
+     * @return a copy of the color associated with name, or {@code null} if
+     *         the name is not registered
      */
     public CellAttributes getColor(final String name) {
-        return colors.get(name);
+        CellAttributes stored = colors.get(name);
+        if (stored == null) {
+            return null;
+        }
+        CellAttributes copy = new CellAttributes();
+        copy.setTo(stored);
+        return copy;
     }
 
     /**
-     * Retrieve the CellAttributes for a named theme color, optionally preferring
-     * the {@code .modal} variant when the widget is painted inside a modal
-     * window.
+     * Retrieve a defensive copy of the CellAttributes for a named theme color,
+     * optionally preferring the {@code .modal} variant when the widget is
+     * painted inside a modal window.
      * <p>
      * If {@code modal} is {@code true} and a {@code name + ".modal"} entry is
      * registered, that value is returned.  Otherwise the base {@code name}
@@ -918,18 +937,113 @@ public class ColorTheme {
      * appearance independently of non-modal appearance, while keeping the
      * lookup safe when only the base key is registered.
      *
+     * <p>The returned object is a fresh copy; callers may freely mutate it
+     * without affecting the theme's internal state.  To persist a change,
+     * call {@link #setColor(String, CellAttributes)} with the modified copy.</p>
+     *
      * @param name  theme color name, e.g. "tbutton.active"
      * @param modal true to prefer the {@code .modal} variant of {@code name}
-     * @return color associated with name (or its modal variant when present)
+     * @return a copy of the color associated with name (or its modal variant
+     *         when present), or {@code null} if the name is not registered
      */
     public CellAttributes getColor(final String name, final boolean modal) {
+        CellAttributes stored = null;
         if (modal && (name != null) && !name.endsWith(".modal")) {
-            CellAttributes modalColor = colors.get(name + ".modal");
-            if (modalColor != null) {
-                return modalColor;
-            }
+            stored = colors.get(name + ".modal");
         }
-        return colors.get(name);
+        if (stored == null) {
+            stored = colors.get(name);
+        }
+        if (stored == null) {
+            return null;
+        }
+        CellAttributes copy = new CellAttributes();
+        copy.setTo(stored);
+        return copy;
+    }
+
+    /**
+     * Determine whether the current theme is a "dark" theme, i.e. one whose
+     * default text is lighter than its background.
+     *
+     * <p>
+     * This is estimated from the {@link #TLABEL} color: the perceptual
+     * luminance of its background is compared against the perceptual
+     * luminance of its foreground.  A theme is considered dark when its
+     * background is darker (lower luminance) than its foreground, which is
+     * the common case for most themes (light text on a dark background).
+     * </p>
+     *
+     * @return true if the theme's background is darker than its foreground
+     */
+    public boolean isDarkTheme() {
+        if (isDarkThemeCache != null) {
+            return isDarkThemeCache;
+        }
+
+        CellAttributes label = getColor(TLABEL);
+        boolean result;
+        if (label == null) {
+            result = true;
+        } else {
+            result = channelLuminance(label, false) < channelLuminance(label, true);
+        }
+        isDarkThemeCache = result;
+        return result;
+    }
+
+    /**
+     * Invalidate the cached {@link #isDarkTheme()} result.  Must be called
+     * whenever the theme's colors are modified so that the cache does not
+     * return a stale value.
+     */
+    private void invalidateIsDarkThemeCache() {
+        isDarkThemeCache = null;
+    }
+
+    /**
+     * Compute the perceptual luminance (ITU-R BT.601 weights, 0-255) of a
+     * color channel of a CellAttributes, resolving named and palette colors
+     * to RGB first.
+     *
+     * @param color the attributes to read from
+     * @param foreground if true, read the foreground channel; otherwise the
+     * background channel
+     * @return the channel's perceptual luminance, from 0 (black) to 255
+     * (white)
+     */
+    private static int channelLuminance(final CellAttributes color,
+        final boolean foreground) {
+
+        Rgb rgb = Rgb.fromPackedRgb(resolveChannelRgb(color, foreground));
+        return (rgb.r() * 299 + rgb.g() * 587 + rgb.b() * 114) / 1000;
+    }
+
+    /**
+     * Resolve a color channel (foreground or background) of a
+     * CellAttributes to a packed 24-bit RGB value, regardless of whether it
+     * is stored as a named color, a palette index, or an explicit RGB value.
+     *
+     * @param color the attributes to read from
+     * @param foreground if true, resolve the foreground channel; otherwise
+     * the background channel
+     * @return the resolved packed RGB value
+     */
+    private static int resolveChannelRgb(final CellAttributes color,
+        final boolean foreground) {
+
+        int palette = foreground ? color.getForeColorPalette()
+                                 : color.getBackColorPalette();
+        if (palette >= 0) {
+            return Palette256.toRgb(palette) & 0xFFFFFF;
+        }
+        int rgb = foreground ? color.getForeColorRGB()
+                             : color.getBackColorRGB();
+        if (rgb >= 0) {
+            return rgb & 0xFFFFFF;
+        }
+        Color named = foreground ? color.getForeColor() : color.getBackColor();
+        return Palette256.toRgb(Palette256.fromColor(named));
     }
 
     /**
@@ -947,12 +1061,19 @@ public class ColorTheme {
     /**
      * Set the color for a named theme color.
      *
+     * <p>A defensive copy of {@code color} is stored so that subsequent
+     * mutations to the caller's object do not affect the theme's internal
+     * state.</p>
+     *
      * @param name  theme color name, e.g. "twindow.border"
      * @param color the new color to associate with name, e.g. bold yellow on
      *              blue
      */
     public void setColor(final String name, final CellAttributes color) {
-        colors.put(name, color);
+        CellAttributes copy = new CellAttributes();
+        copy.setTo(color);
+        colors.put(name, copy);
+        invalidateIsDarkThemeCache();
     }
 
     /**
@@ -1117,6 +1238,7 @@ public class ColorTheme {
             return;
         }
         colors.put(key, color);
+        invalidateIsDarkThemeCache();
     }
 
     /**
@@ -1216,6 +1338,7 @@ public class ColorTheme {
      * Sets to defaults that resemble the Borland IDE colors.
      */
     public void setDefaultTheme() {
+        invalidateIsDarkThemeCache();
 
         // TWindow border
         colors.put(TWINDOW_BORDER, CellAttributes.builder()
@@ -2098,6 +2221,7 @@ public class ColorTheme {
      * Sets to colors that resemble the "Custom" colors of Qmodem 5.0.
      */
     public void setQmodem5() {
+        invalidateIsDarkThemeCache();
         CellAttributes color;
 
         // TWindow border

@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static casciian.bits.Color.BLACK;
+import static casciian.bits.Color.WHITE;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ColorThemeTest {
@@ -256,5 +258,84 @@ class ColorThemeTest {
         assertEquals(236, a.getBackColorPalette());
         assertEquals(-1, a.getForeColorRGB());
         assertEquals(-1, a.getBackColorRGB());
+    }
+
+    // -------------------------------------------------------------------
+    // isDarkTheme()
+    // -------------------------------------------------------------------
+
+    @Test
+    void testIsDarkThemeDefaultThemeIsDark() {
+        ColorTheme theme = new ColorTheme();
+        // Default theme is white text on a blue background.
+        assertTrue(theme.isDarkTheme());
+    }
+
+    @Test
+    void testIsDarkThemeDetectsLightBackground() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        assertFalse(theme.isDarkTheme());
+    }
+
+    @Test
+    void testIsDarkThemeDetectsDarkBackground() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString(ColorTheme.TLABEL, "white on black");
+        assertTrue(theme.isDarkTheme());
+    }
+
+    @Test
+    void testIsDarkThemeUsesRgbColors() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString(ColorTheme.TLABEL, "#eeeeee on #111111");
+        assertTrue(theme.isDarkTheme());
+
+        theme.setColorFromString(ColorTheme.TLABEL, "#111111 on #eeeeee");
+        assertFalse(theme.isDarkTheme());
+    }
+
+    @Test
+    void testIsDarkThemeUsesPaletteColors() {
+        ColorTheme theme = new ColorTheme();
+        CellAttributes attr = CellAttributes.builder()
+            .foreColorPalette(15)
+            .backColorPalette(0)
+            .build();
+        theme.setColor(ColorTheme.TLABEL, attr);
+        assertTrue(theme.isDarkTheme());
+
+        attr = CellAttributes.builder()
+            .foreColorPalette(0)
+            .backColorPalette(15)
+            .build();
+        theme.setColor(ColorTheme.TLABEL, attr);
+        assertFalse(theme.isDarkTheme());
+    }
+
+    @Test
+    void testIsDarkThemeIsCachedUntilColorsChange() {
+        ColorTheme theme = new ColorTheme();
+
+        // First call computes and caches the result.
+        assertTrue(theme.isDarkTheme());
+        // Repeated calls without changes should return the same cached value.
+        assertTrue(theme.isDarkTheme());
+
+        // Changing an unrelated color must not affect the cached value, but
+        // changing TLABEL should invalidate the cache so the next call
+        // recomputes it.
+        theme.setColorFromString(ColorTheme.TWINDOW_BORDER, "black on white");
+        assertTrue(theme.isDarkTheme());
+
+        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        assertFalse(theme.isDarkTheme());
+        assertFalse(theme.isDarkTheme());
+
+        theme.setColor(ColorTheme.TLABEL, CellAttributes.builder()
+            .foreColor(WHITE)
+            .backColor(BLACK)
+            .build());
+        assertTrue(theme.isDarkTheme());
     }
 }
