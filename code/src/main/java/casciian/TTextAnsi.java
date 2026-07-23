@@ -202,6 +202,8 @@ public class TTextAnsi extends TScrollable {
             final CellAttributes defaultColor,
             final CellAttributes defaultColorBright) {
 
+        boolean darkTheme = getTheme().isDarkTheme();
+
         // Replace default terminal colors with theme colors
         if (cell.isDefaultColor(true)
                 && cell.isDefaultColor(false)) {
@@ -219,6 +221,7 @@ public class TTextAnsi extends TScrollable {
             themed.setHidden(cell.isHidden());
             themed.setStrikethrough(cell.isStrikethrough());
             themed.setHyperlink(cell.getHyperlink());
+            applyBoldAsBright(themed, darkTheme);
             putCharXY(col, topY, cell.getChar(), themed);
         } else if (cell.isDefaultColor(true)) {
             CellAttributes base = cell.isBoldAsBright()
@@ -233,6 +236,7 @@ public class TTextAnsi extends TScrollable {
                 themed.setForeColor(base.getForeColor());
             }
             themed.setDefaultColor(true, false);
+            applyBoldAsBright(themed, darkTheme);
             putCharXY(col, topY, cell.getChar(), themed);
         } else if (cell.isDefaultColor(false)) {
             CellAttributes themed = new CellAttributes();
@@ -244,10 +248,42 @@ public class TTextAnsi extends TScrollable {
                 themed.setBackColor(defaultColor.getBackColor());
             }
             themed.setDefaultColor(false, false);
+            applyBoldAsBright(themed, darkTheme);
             putCharXY(col, topY, cell.getChar(), themed);
         } else {
-            putCharXY(col, topY, cell);
+            CellAttributes themed = new CellAttributes();
+            themed.setTo(cell);
+            applyBoldAsBright(themed, darkTheme);
+            putCharXY(col, topY, cell.getChar(), themed);
         }
+    }
+
+    /**
+     * Treat the bold attribute as a bright color on dark themes, matching
+     * the classic terminal convention where bold text is rendered using the
+     * high-intensity color palette rather than an actual bold font weight.
+     * On a dark theme, a bold cell with a named (non-RGB, non-palette)
+     * foreground color has that color brightened and the bold attribute
+     * cleared, since the brightness now carries the emphasis that bold used
+     * to convey. Non-dark themes and cells with RGB or palette foreground
+     * colors are left unchanged.
+     *
+     * @param attrs     the attributes to potentially modify in place
+     * @param darkTheme true if the current theme is a dark theme, as
+     *                  determined by {@link ColorTheme#isDarkTheme()}
+     */
+    static void applyBoldAsBright(final CellAttributes attrs,
+            final boolean darkTheme) {
+
+        if (!darkTheme || !attrs.isBold()) {
+            return;
+        }
+        if ((attrs.getForeColorRGB() >= 0)
+                || (attrs.getForeColorPalette() >= 0)) {
+            return;
+        }
+        attrs.setForeColor(attrs.getForeColor().toBright());
+        attrs.setBold(false);
     }
 
     /**

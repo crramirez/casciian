@@ -257,4 +257,57 @@ class ColorThemeTest {
         assertEquals(-1, a.getForeColorRGB());
         assertEquals(-1, a.getBackColorRGB());
     }
+
+    // -------------------------------------------------------------------
+    // isDarkTheme()
+    // -------------------------------------------------------------------
+
+    @Test
+    void testIsDarkThemeDefaultThemeIsDark() {
+        ColorTheme theme = new ColorTheme();
+        // Default theme is white text on a blue background.
+        assertTrue(theme.isDarkTheme());
+    }
+
+    @Test
+    void testIsDarkThemeDetectsLightBackground() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        assertFalse(theme.isDarkTheme());
+    }
+
+    @Test
+    void testIsDarkThemeDetectsDarkBackground() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString(ColorTheme.TLABEL, "white on black");
+        assertTrue(theme.isDarkTheme());
+    }
+
+    @Test
+    void testIsDarkThemeUsesRgbColors() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString(ColorTheme.TLABEL, "#eeeeee on #111111");
+        assertTrue(theme.isDarkTheme());
+
+        theme.setColorFromString(ColorTheme.TLABEL, "#111111 on #eeeeee");
+        assertFalse(theme.isDarkTheme());
+    }
+
+    @Test
+    void testIsDarkThemeUsesPaletteColors() {
+        ColorTheme theme = new ColorTheme();
+        CellAttributes attr = CellAttributes.builder()
+            .foreColorPalette(15)
+            .backColorPalette(0)
+            .build();
+        theme.setColor(ColorTheme.TLABEL, attr);
+        assertTrue(theme.isDarkTheme());
+
+        attr = CellAttributes.builder()
+            .foreColorPalette(0)
+            .backColorPalette(15)
+            .build();
+        theme.setColor(ColorTheme.TLABEL, attr);
+        assertFalse(theme.isDarkTheme());
+    }
 }

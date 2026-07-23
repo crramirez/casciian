@@ -933,6 +933,74 @@ public class ColorTheme {
     }
 
     /**
+     * Determine whether the current theme is a "dark" theme, i.e. one whose
+     * default text is lighter than its background.
+     *
+     * <p>
+     * This is estimated from the {@link #TLABEL} color: the perceptual
+     * luminance of its background is compared against the perceptual
+     * luminance of its foreground.  A theme is considered dark when its
+     * background is darker (lower luminance) than its foreground, which is
+     * the common case for most themes (light text on a dark background).
+     * </p>
+     *
+     * @return true if the theme's background is darker than its foreground
+     */
+    public boolean isDarkTheme() {
+        CellAttributes label = getColor(TLABEL);
+        if (label == null) {
+            return true;
+        }
+        return channelLuminance(label, false) < channelLuminance(label, true);
+    }
+
+    /**
+     * Compute the perceptual luminance (ITU-R BT.601 weights, 0-255) of a
+     * color channel of a CellAttributes, resolving named and palette colors
+     * to RGB first.
+     *
+     * @param color the attributes to read from
+     * @param foreground if true, read the foreground channel; otherwise the
+     * background channel
+     * @return the channel's perceptual luminance, from 0 (black) to 255
+     * (white)
+     */
+    private static int channelLuminance(final CellAttributes color,
+        final boolean foreground) {
+
+        Rgb rgb = Rgb.fromPackedRgb(resolveChannelRgb(color, foreground));
+        return (rgb.r() * 299 + rgb.g() * 587 + rgb.b() * 114) / 1000;
+    }
+
+    /**
+     * Resolve a color channel (foreground or background) of a
+     * CellAttributes to a packed 24-bit RGB value, regardless of whether it
+     * is stored as a named color, a palette index, or an explicit RGB value.
+     *
+     * @param color the attributes to read from
+     * @param foreground if true, resolve the foreground channel; otherwise
+     * the background channel
+     * @return the resolved packed RGB value
+     */
+    private static int resolveChannelRgb(final CellAttributes color,
+        final boolean foreground) {
+
+        int palette = foreground ? color.getForeColorPalette()
+                                 : color.getBackColorPalette();
+        if (palette >= 0) {
+            return Palette256.toRgb(palette) & 0xFFFFFF;
+        }
+        int rgb = foreground ? color.getForeColorRGB()
+                             : color.getBackColorRGB();
+        if (rgb >= 0) {
+            return rgb & 0xFFFFFF;
+        }
+        Color named = foreground ? color.getForeColor() : color.getBackColor();
+        int index = named.getValue() + (named.isBright() ? 8 : 0);
+        return SgrUtil.getDefaultIndexedColor(index);
+    }
+
+    /**
      * Retrieve all the names in the theme.
      *
      * @return a list of names
