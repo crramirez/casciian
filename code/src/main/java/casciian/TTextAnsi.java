@@ -202,6 +202,8 @@ public class TTextAnsi extends TScrollable {
             final CellAttributes defaultColor,
             final CellAttributes defaultColorBright) {
 
+        boolean darkTheme = getTheme().isDarkTheme();
+
         // Replace default terminal colors with theme colors
         if (cell.isDefaultColor(true)
                 && cell.isDefaultColor(false)) {
@@ -219,6 +221,7 @@ public class TTextAnsi extends TScrollable {
             themed.setHidden(cell.isHidden());
             themed.setStrikethrough(cell.isStrikethrough());
             themed.setHyperlink(cell.getHyperlink());
+            applyBoldAsBright(themed, darkTheme, defaultColorBright);
             putCharXY(col, topY, cell.getChar(), themed);
         } else if (cell.isDefaultColor(true)) {
             CellAttributes base = cell.isBoldAsBright()
@@ -233,6 +236,7 @@ public class TTextAnsi extends TScrollable {
                 themed.setForeColor(base.getForeColor());
             }
             themed.setDefaultColor(true, false);
+            applyBoldAsBright(themed, darkTheme, defaultColorBright);
             putCharXY(col, topY, cell.getChar(), themed);
         } else if (cell.isDefaultColor(false)) {
             CellAttributes themed = new CellAttributes();
@@ -244,10 +248,62 @@ public class TTextAnsi extends TScrollable {
                 themed.setBackColor(defaultColor.getBackColor());
             }
             themed.setDefaultColor(false, false);
+            applyBoldAsBright(themed, darkTheme, defaultColorBright);
             putCharXY(col, topY, cell.getChar(), themed);
         } else {
-            putCharXY(col, topY, cell);
+            CellAttributes themed = new CellAttributes();
+            themed.setTo(cell);
+            applyBoldAsBright(themed, darkTheme, defaultColorBright);
+            putCharXY(col, topY, cell.getChar(), themed);
         }
+    }
+
+    /**
+     * Treat the bold attribute as a bright color on dark themes, matching
+     * the classic terminal convention where bold text is rendered using the
+     * high-intensity color palette rather than an actual bold font weight.
+     *
+     * <p>On a dark theme with a bold cell:
+     * <ul>
+     *   <li>Named (non-RGB, non-palette) foreground: brightened via
+     *       {@link casciian.bits.Color#toBright()}, bold cleared.</li>
+     *   <li>RGB or palette foreground: replaced with the foreground of
+     *       {@code defaultColorBright} (the theme's active-label color),
+     *       bold cleared.</li>
+     * </ul>
+     * Non-dark themes are left unchanged.
+     * </p>
+     *
+     * @param attrs             the attributes to potentially modify in place
+     * @param darkTheme         true if the current theme is a dark theme, as
+     *                          determined by {@link ColorTheme#isDarkTheme()}
+     * @param defaultColorBright the theme's "active" label color, used as the
+     *                          bright substitution for RGB/palette foregrounds
+     */
+    static void applyBoldAsBright(final CellAttributes attrs,
+            final boolean darkTheme,
+            final CellAttributes defaultColorBright) {
+
+        if (!darkTheme || !attrs.isBold()) {
+            return;
+        }
+        if ((attrs.getForeColorRGB() >= 0)
+                || (attrs.getForeColorPalette() >= 0)) {
+            // For RGB/palette foregrounds there is no natural "bright"
+            // variant, so use the theme's active-label foreground instead.
+            if (defaultColorBright.getForeColorPalette() >= 0) {
+                attrs.setForeColorPalette(
+                    defaultColorBright.getForeColorPalette());
+            } else if (defaultColorBright.getForeColorRGB() >= 0) {
+                attrs.setForeColorRGB(defaultColorBright.getForeColorRGB());
+            } else {
+                attrs.setForeColor(defaultColorBright.getForeColor());
+            }
+            attrs.setBold(false);
+            return;
+        }
+        attrs.setForeColor(attrs.getForeColor().toBright());
+        attrs.setBold(false);
     }
 
     /**

@@ -2245,6 +2245,8 @@ public class LogicalScreen implements Screen {
 
                     if (!overCell.isImage() && overCell.isSpaceChar()
                         && !overCell.isUnderline()
+                        && !overCell.isReverse()
+                        && !overCell.isStrikethrough()
                     ) {
                         // The overlaying cell is invisible.
                         if (!thisCell.isImage()) {
@@ -2276,6 +2278,11 @@ public class LogicalScreen implements Screen {
                                 thisCell.setChar(' ');
                                 thisCell.setWidth(Cell.Width.SINGLE);
                             }
+                            // The alpha blend bitmaps use nominal (un-dimmed)
+                            // foreground colors, so clearing faint here
+                            // prevents SGR 2 from being re-applied on top of
+                            // the already-blended color.
+                            thisCell.setFaint(false);
                             continue;
                         }
                     }
@@ -2284,9 +2291,17 @@ public class LogicalScreen implements Screen {
                     thisCell.setChar(overCell);
                     thisCell.setForeColorRGB(overFg);
                     thisCell.setBold(overCell.isBold());
+                    thisCell.setFaint(overCell.isFaint());
+                    thisCell.setItalic(overCell.isItalic());
                     thisCell.setBlink(overCell.isBlink());
+                    thisCell.setUnderline(overCell.isUnderline());
+                    thisCell.setStrikethrough(overCell.isStrikethrough());
+                    thisCell.setReverse(overCell.isReverse());
                     thisCell.setUnderlineStyle(overCell.getUnderlineStyle());
                     thisCell.setProtect(overCell.isProtect());
+                    thisCell.setHidden(overCell.isHidden());
+                    thisCell.setHyperlink(overCell.getHyperlink());
+                    thisCell.setBoldTransparent(overCell.isBoldTransparent());
                     thisCell.setAnimations(overCell.getAnimations());
                     thisCell.setPulse(false, false, 0);
                     thisCell.setWidth(overCell.getWidth());
