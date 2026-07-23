@@ -126,13 +126,19 @@ class TTextAnsiTest {
     // applyBoldAsBright(): treat bold as bright on dark themes
     // -----------------------------------------------------------------------
 
+    private static CellAttributes makeBrightDefault() {
+        CellAttributes bright = new CellAttributes();
+        bright.setForeColor(Color.BRIGHT_WHITE);
+        return bright;
+    }
+
     @Test
     void testApplyBoldAsBrightBrightensOnDarkTheme() {
         CellAttributes attrs = new CellAttributes();
         attrs.setForeColor(Color.RED);
         attrs.setBold(true);
 
-        TTextAnsi.applyBoldAsBright(attrs, true);
+        TTextAnsi.applyBoldAsBright(attrs, true, makeBrightDefault());
 
         assertEquals(Color.BRIGHT_RED, attrs.getForeColor());
         assertFalse(attrs.isBold());
@@ -144,7 +150,7 @@ class TTextAnsiTest {
         attrs.setForeColor(Color.RED);
         attrs.setBold(true);
 
-        TTextAnsi.applyBoldAsBright(attrs, false);
+        TTextAnsi.applyBoldAsBright(attrs, false, makeBrightDefault());
 
         assertEquals(Color.RED, attrs.getForeColor());
         assertTrue(attrs.isBold());
@@ -156,33 +162,54 @@ class TTextAnsiTest {
         attrs.setForeColor(Color.RED);
         attrs.setBold(false);
 
-        TTextAnsi.applyBoldAsBright(attrs, true);
+        TTextAnsi.applyBoldAsBright(attrs, true, makeBrightDefault());
 
         assertEquals(Color.RED, attrs.getForeColor());
         assertFalse(attrs.isBold());
     }
 
     @Test
-    void testApplyBoldAsBrightIgnoresRgbForeground() {
+    void testApplyBoldAsBrightRgbForegroundUsesDefaultColorBright() {
         CellAttributes attrs = new CellAttributes();
         attrs.setForeColorRGB(0xff0000);
         attrs.setBold(true);
 
-        TTextAnsi.applyBoldAsBright(attrs, true);
+        CellAttributes defaultColorBright = new CellAttributes();
+        defaultColorBright.setForeColor(Color.BRIGHT_WHITE);
 
-        assertEquals(0xff0000, attrs.getForeColorRGB());
-        assertTrue(attrs.isBold());
+        TTextAnsi.applyBoldAsBright(attrs, true, defaultColorBright);
+
+        // RGB foreground replaced by defaultColorBright foreground; bold cleared
+        assertEquals(Color.BRIGHT_WHITE, attrs.getForeColor());
+        assertTrue(attrs.getForeColorRGB() < 0);
+        assertFalse(attrs.isBold());
     }
 
     @Test
-    void testApplyBoldAsBrightIgnoresPaletteForeground() {
+    void testApplyBoldAsBrightPaletteForegroundUsesDefaultColorBright() {
         CellAttributes attrs = new CellAttributes();
         attrs.setForeColorPalette(196);
         attrs.setBold(true);
 
-        TTextAnsi.applyBoldAsBright(attrs, true);
+        CellAttributes defaultColorBright = new CellAttributes();
+        defaultColorBright.setForeColorPalette(15);  // bright-white palette index
 
-        assertEquals(196, attrs.getForeColorPalette());
+        TTextAnsi.applyBoldAsBright(attrs, true, defaultColorBright);
+
+        // Palette foreground replaced by defaultColorBright palette index; bold cleared
+        assertEquals(15, attrs.getForeColorPalette());
+        assertFalse(attrs.isBold());
+    }
+
+    @Test
+    void testApplyBoldAsBrightRgbForegroundLightThemeUnchanged() {
+        CellAttributes attrs = new CellAttributes();
+        attrs.setForeColorRGB(0xff0000);
+        attrs.setBold(true);
+
+        TTextAnsi.applyBoldAsBright(attrs, false, makeBrightDefault());
+
+        assertEquals(0xff0000, attrs.getForeColorRGB());
         assertTrue(attrs.isBold());
     }
 }

@@ -906,19 +906,30 @@ public class ColorTheme {
     // ------------------------------------------------------------------------
 
     /**
-     * Retrieve the CellAttributes for a named theme color.
+     * Retrieve a defensive copy of the CellAttributes for a named theme color.
+     *
+     * <p>The returned object is a fresh copy; callers may freely mutate it
+     * without affecting the theme's internal state.  To persist a change,
+     * call {@link #setColor(String, CellAttributes)} with the modified copy.</p>
      *
      * @param name theme color name, e.g. "twindow.border"
-     * @return color associated with name, e.g. bold yellow on blue
+     * @return a copy of the color associated with name, or {@code null} if
+     *         the name is not registered
      */
     public CellAttributes getColor(final String name) {
-        return colors.get(name);
+        CellAttributes stored = colors.get(name);
+        if (stored == null) {
+            return null;
+        }
+        CellAttributes copy = new CellAttributes();
+        copy.setTo(stored);
+        return copy;
     }
 
     /**
-     * Retrieve the CellAttributes for a named theme color, optionally preferring
-     * the {@code .modal} variant when the widget is painted inside a modal
-     * window.
+     * Retrieve a defensive copy of the CellAttributes for a named theme color,
+     * optionally preferring the {@code .modal} variant when the widget is
+     * painted inside a modal window.
      * <p>
      * If {@code modal} is {@code true} and a {@code name + ".modal"} entry is
      * registered, that value is returned.  Otherwise the base {@code name}
@@ -926,18 +937,29 @@ public class ColorTheme {
      * appearance independently of non-modal appearance, while keeping the
      * lookup safe when only the base key is registered.
      *
+     * <p>The returned object is a fresh copy; callers may freely mutate it
+     * without affecting the theme's internal state.  To persist a change,
+     * call {@link #setColor(String, CellAttributes)} with the modified copy.</p>
+     *
      * @param name  theme color name, e.g. "tbutton.active"
      * @param modal true to prefer the {@code .modal} variant of {@code name}
-     * @return color associated with name (or its modal variant when present)
+     * @return a copy of the color associated with name (or its modal variant
+     *         when present), or {@code null} if the name is not registered
      */
     public CellAttributes getColor(final String name, final boolean modal) {
+        CellAttributes stored = null;
         if (modal && (name != null) && !name.endsWith(".modal")) {
-            CellAttributes modalColor = colors.get(name + ".modal");
-            if (modalColor != null) {
-                return modalColor;
-            }
+            stored = colors.get(name + ".modal");
         }
-        return colors.get(name);
+        if (stored == null) {
+            stored = colors.get(name);
+        }
+        if (stored == null) {
+            return null;
+        }
+        CellAttributes copy = new CellAttributes();
+        copy.setTo(stored);
+        return copy;
     }
 
     /**
@@ -1021,8 +1043,7 @@ public class ColorTheme {
             return rgb & 0xFFFFFF;
         }
         Color named = foreground ? color.getForeColor() : color.getBackColor();
-        int index = named.getValue() + (named.isBright() ? 8 : 0);
-        return SgrUtil.getDefaultIndexedColor(index);
+        return Palette256.toRgb(Palette256.fromColor(named));
     }
 
     /**
@@ -1040,12 +1061,18 @@ public class ColorTheme {
     /**
      * Set the color for a named theme color.
      *
+     * <p>A defensive copy of {@code color} is stored so that subsequent
+     * mutations to the caller's object do not affect the theme's internal
+     * state.</p>
+     *
      * @param name  theme color name, e.g. "twindow.border"
      * @param color the new color to associate with name, e.g. bold yellow on
      *              blue
      */
     public void setColor(final String name, final CellAttributes color) {
-        colors.put(name, color);
+        CellAttributes copy = new CellAttributes();
+        copy.setTo(color);
+        colors.put(name, copy);
         invalidateIsDarkThemeCache();
     }
 
