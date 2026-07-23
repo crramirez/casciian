@@ -2,9 +2,8 @@
 
 Hyperlinks (OSC 8):
   ]8;;https://example.comExample.com]8;;
-  ]8;;https://github.com/WhitewaterFoundryWhitewater Foundry on GitHub]8;;
-  ]8;;https://learn.microsoft.com/windows/wsl/Microsoft WSL documentation]8;;
-  Styled link: [1;4;38;2;80;160;255m]8;;https://github.com/WhitewaterFoundryBold + underlined + RGB link]8;;[0m
+  ]8;;https://github.com/crramirez/casciianCasciian on GitHub]8;;
+  Styled link: [1;4;38;2;80;160;255m]8;;https://github.com/crramirez/casciian-springBold + underlined + RGB link]8;;[0m
 
 Basic SGR styles:
   [0mReset[0m  (SGR 0)
