@@ -119,4 +119,41 @@ class LogicalScreenBlendStyleTest {
         assertFalse(screen.getCharXY(0, 0).isBoldTransparent(),
             "boldTransparent must not leak from underlying cell");
     }
+
+    @Test
+    @DisplayName("Translucent blend preserves reverse on a space cell")
+    void blendPreservesReverseOnSpace() {
+        screen.putCharXY(0, 0, 'A', baseAttr);
+
+        CellAttributes overAttr = new CellAttributes();
+        overAttr.setReverse(true);
+
+        TestableLogicalScreen over = new TestableLogicalScreen(1, 1);
+        over.putCharXY(0, 0, ' ', overAttr);
+
+        // A reversed space is NOT transparent — it renders as a solid colored
+        // block.  The reverse flag must survive the translucent blend.
+        screen.blendScreen(over, 0, 0, 1, 1, 128, false);
+
+        assertTrue(screen.getCharXY(0, 0).isReverse(),
+            "reverse must be preserved on a space cell");
+    }
+
+    @Test
+    @DisplayName("Translucent blend preserves strikethrough on a space cell")
+    void blendPreservesStrikethroughOnSpace() {
+        screen.putCharXY(0, 0, 'A', baseAttr);
+
+        CellAttributes overAttr = new CellAttributes();
+        overAttr.setStrikethrough(true);
+
+        TestableLogicalScreen over = new TestableLogicalScreen(1, 1);
+        over.putCharXY(0, 0, ' ', overAttr);
+
+        // A space with strikethrough draws a line — it is not transparent.
+        screen.blendScreen(over, 0, 0, 1, 1, 128, false);
+
+        assertTrue(screen.getCharXY(0, 0).isStrikethrough(),
+            "strikethrough must be preserved on a space cell");
+    }
 }

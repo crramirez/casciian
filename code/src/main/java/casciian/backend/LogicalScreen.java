@@ -2245,6 +2245,8 @@ public class LogicalScreen implements Screen {
 
                     if (!overCell.isImage() && overCell.isSpaceChar()
                         && !overCell.isUnderline()
+                        && !overCell.isReverse()
+                        && !overCell.isStrikethrough()
                     ) {
                         // The overlaying cell is invisible.
                         if (!thisCell.isImage()) {
