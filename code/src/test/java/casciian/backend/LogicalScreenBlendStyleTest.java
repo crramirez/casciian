@@ -65,6 +65,9 @@ class LogicalScreenBlendStyleTest {
         overAttr.setBlink(true);
         overAttr.setUnderline(true);
         overAttr.setProtect(true);
+        overAttr.setHidden(true);
+        overAttr.setHyperlink("https://example.com");
+        overAttr.setBoldTransparent(true);
 
         TestableLogicalScreen over = new TestableLogicalScreen(1, 1);
         over.putCharXY(0, 0, 'X', overAttr);
@@ -82,5 +85,38 @@ class LogicalScreenBlendStyleTest {
         assertTrue(screen.getCharXY(0, 0).isBlink(), "blink should survive blend");
         assertTrue(screen.getCharXY(0, 0).isUnderline(), "underline should survive blend");
         assertTrue(screen.getCharXY(0, 0).isProtect(), "protect should survive blend");
+        assertTrue(screen.getCharXY(0, 0).isHidden(), "hidden should survive blend");
+        assertEquals("https://example.com", screen.getCharXY(0, 0).getHyperlink(),
+            "hyperlink should survive blend");
+        assertTrue(screen.getCharXY(0, 0).isBoldTransparent(),
+            "boldTransparent should survive blend");
+    }
+
+    @Test
+    @DisplayName("Translucent blend does not leak hidden/hyperlink/boldTransparent from underlying cell")
+    void blendDoesNotLeakUnderlyingAttributes() {
+        CellAttributes underAttr = new CellAttributes();
+        underAttr.setHidden(true);
+        underAttr.setHyperlink("https://leaked.example.com");
+        underAttr.setBoldTransparent(true);
+        screen.putCharXY(0, 0, ' ', underAttr);
+
+        CellAttributes overAttr = new CellAttributes();
+        // overAttr has none of the above flags set
+
+        TestableLogicalScreen over = new TestableLogicalScreen(1, 1);
+        over.putCharXY(0, 0, 'Y', overAttr);
+
+        // Translucent blend must take hidden/hyperlink/boldTransparent from
+        // the overlay, not the underlying cell.
+        screen.blendScreen(over, 0, 0, 1, 1, 128, false);
+
+        assertEquals('Y', screen.getCharXY(0, 0).getChar());
+        assertFalse(screen.getCharXY(0, 0).isHidden(),
+            "hidden must not leak from underlying cell");
+        assertNull(screen.getCharXY(0, 0).getHyperlink(),
+            "hyperlink must not leak from underlying cell");
+        assertFalse(screen.getCharXY(0, 0).isBoldTransparent(),
+            "boldTransparent must not leak from underlying cell");
     }
 }
