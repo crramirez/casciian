@@ -2284,8 +2284,12 @@ public class LogicalScreen implements Screen {
                     thisCell.setChar(overCell);
                     thisCell.setForeColorRGB(overFg);
                     thisCell.setBold(overCell.isBold());
+                    thisCell.setFaint(overCell.isFaint());
+                    thisCell.setItalic(overCell.isItalic());
                     thisCell.setBlink(overCell.isBlink());
                     thisCell.setUnderline(overCell.isUnderline());
+                    thisCell.setStrikethrough(overCell.isStrikethrough());
+                    thisCell.setReverse(overCell.isReverse());
                     thisCell.setProtect(overCell.isProtect());
                     thisCell.setAnimations(overCell.getAnimations());
                     thisCell.setPulse(false, false, 0);
