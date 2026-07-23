@@ -155,6 +155,7 @@ public final class SgrUtil {
     private static final int SGR_DIM                = 2;
     private static final int SGR_ITALIC             = 3;
     private static final int SGR_UNDERLINE          = 4;
+    private static final int SGR_DOUBLE_UNDERLINE   = 21;
     private static final int SGR_BLINK_SLOW         = 5;
     private static final int SGR_BLINK_RAPID        = 6;
     private static final int SGR_REVERSE            = 7;
@@ -224,7 +225,10 @@ public final class SgrUtil {
             attr.setItalic(true);
             return true;
         case SGR_UNDERLINE:
-            attr.setUnderline(true);
+            attr.setUnderlineStyle(CellAttributes.UNDERLINE_STYLE_SINGLE);
+            return true;
+        case SGR_DOUBLE_UNDERLINE:
+            attr.setUnderlineStyle(CellAttributes.UNDERLINE_STYLE_DOUBLE);
             return true;
         case SGR_BLINK_SLOW, SGR_BLINK_RAPID:
             attr.setBlink(true);
@@ -247,7 +251,7 @@ public final class SgrUtil {
             attr.setItalic(false);
             return true;
         case SGR_UNDERLINE_OFF:
-            attr.setUnderline(false);
+            attr.setUnderlineStyle(CellAttributes.UNDERLINE_STYLE_NONE);
             return true;
         case SGR_BLINK_OFF:
             attr.setBlink(false);
@@ -334,6 +338,30 @@ public final class SgrUtil {
             attr.setDefaultColor(false, false);
             return true;
 
+        default:
+            return false;
+        }
+    }
+
+    /**
+     * Apply an SGR sub-parameterized underline style (SGR 4:n).
+     *
+     * @param subCode underline style selector
+     * @param attr the attributes to modify
+     * @return {@code true} if the underline style selector was recognized
+     */
+    public static boolean applyUnderlineStyleCode(final int subCode,
+            final CellAttributes attr) {
+
+        switch (subCode) {
+        case CellAttributes.UNDERLINE_STYLE_NONE,
+             CellAttributes.UNDERLINE_STYLE_SINGLE,
+             CellAttributes.UNDERLINE_STYLE_DOUBLE,
+             CellAttributes.UNDERLINE_STYLE_CURLY,
+             CellAttributes.UNDERLINE_STYLE_DOTTED,
+             CellAttributes.UNDERLINE_STYLE_DASHED:
+            attr.setUnderlineStyle(subCode);
+            return true;
         default:
             return false;
         }

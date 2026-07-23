@@ -254,6 +254,36 @@ class AnsiParserTest {
     void testUnderline() {
         List<AnsiParser.Line> lines = AnsiParser.parse("\033[4mA", 80);
         assertTrue(lines.get(0).getCells().get(0).isUnderline());
+        assertEquals(CellAttributes.UNDERLINE_STYLE_SINGLE,
+            lines.get(0).getCells().get(0).getUnderlineStyle());
+    }
+
+    @Test
+    void testDoubleUnderline() {
+        List<AnsiParser.Line> lines = AnsiParser.parse("\033[21mA", 80);
+        assertEquals(CellAttributes.UNDERLINE_STYLE_DOUBLE,
+            lines.get(0).getCells().get(0).getUnderlineStyle());
+    }
+
+    @Test
+    void testUnderlineVariants() {
+        List<AnsiParser.Line> lines = AnsiParser.parse(
+            "\033[4:1mA\033[4:3mB\033[4:4mC\033[4:5mD\033[4:0mE\033[24mF",
+            80);
+        List<Cell> cells = lines.get(0).getCells();
+
+        assertEquals(CellAttributes.UNDERLINE_STYLE_SINGLE,
+            cells.get(0).getUnderlineStyle());
+        assertEquals(CellAttributes.UNDERLINE_STYLE_CURLY,
+            cells.get(1).getUnderlineStyle());
+        assertEquals(CellAttributes.UNDERLINE_STYLE_DOTTED,
+            cells.get(2).getUnderlineStyle());
+        assertEquals(CellAttributes.UNDERLINE_STYLE_DASHED,
+            cells.get(3).getUnderlineStyle());
+        assertEquals(CellAttributes.UNDERLINE_STYLE_NONE,
+            cells.get(4).getUnderlineStyle());
+        assertEquals(CellAttributes.UNDERLINE_STYLE_NONE,
+            cells.get(5).getUnderlineStyle());
     }
 
     @Test

@@ -51,14 +51,39 @@ public class CellAttributes {
     private static final int REVERSE    = 0x04;
 
     /**
-     * Underline attribute.
+     * No underline.
      */
-    private static final int UNDERLINE  = 0x08;
+    public static final int UNDERLINE_STYLE_NONE = 0;
+
+    /**
+     * Single underline.
+     */
+    public static final int UNDERLINE_STYLE_SINGLE = 1;
+
+    /**
+     * Double underline.
+     */
+    public static final int UNDERLINE_STYLE_DOUBLE = 2;
+
+    /**
+     * Curly underline.
+     */
+    public static final int UNDERLINE_STYLE_CURLY = 3;
+
+    /**
+     * Dotted underline.
+     */
+    public static final int UNDERLINE_STYLE_DOTTED = 4;
+
+    /**
+     * Dashed underline.
+     */
+    public static final int UNDERLINE_STYLE_DASHED = 5;
 
     /**
      * Protected attribute.
      */
-    private static final int PROTECT    = 0x10;
+    private static final int PROTECT    = 0x08;
 
     /**
      * Default foreground color.
@@ -134,6 +159,11 @@ public class CellAttributes {
      * Boolean flags.
      */
     private int flags = 0;
+
+    /**
+     * Underline style.
+     */
+    private int underlineStyle = UNDERLINE_STYLE_NONE;
 
     /**
      * Foreground color.  Color.WHITE, Color.RED, etc.
@@ -336,7 +366,7 @@ public class CellAttributes {
      * @return underline value
      */
     public final boolean isUnderline() {
-        return ((flags & UNDERLINE) != 0);
+        return (underlineStyle != UNDERLINE_STYLE_NONE);
     }
 
     /**
@@ -345,11 +375,40 @@ public class CellAttributes {
      * @param underline new underline value
      */
     public final void setUnderline(final boolean underline) {
-        if (underline) {
-            flags |= UNDERLINE;
-        } else {
-            flags &= ~UNDERLINE;
+        if (!underline) {
+            underlineStyle = UNDERLINE_STYLE_NONE;
+            return;
         }
+        if (underlineStyle == UNDERLINE_STYLE_NONE) {
+            underlineStyle = UNDERLINE_STYLE_SINGLE;
+        }
+    }
+
+    /**
+     * Getter for underline style.
+     *
+     * @return underline style
+     */
+    public final int getUnderlineStyle() {
+        return underlineStyle;
+    }
+
+    /**
+     * Setter for underline style.
+     *
+     * @param underlineStyle new underline style
+     */
+    public final void setUnderlineStyle(final int underlineStyle) {
+        this.underlineStyle = switch (underlineStyle) {
+        case UNDERLINE_STYLE_NONE,
+             UNDERLINE_STYLE_SINGLE,
+             UNDERLINE_STYLE_DOUBLE,
+             UNDERLINE_STYLE_CURLY,
+             UNDERLINE_STYLE_DOTTED,
+             UNDERLINE_STYLE_DASHED -> underlineStyle;
+        default -> throw new IllegalArgumentException(
+            "Invalid underline style: " + underlineStyle);
+        };
     }
 
     /**
@@ -757,6 +816,7 @@ public class CellAttributes {
      */
     public void reset() {
         flags           = 0;
+        underlineStyle  = UNDERLINE_STYLE_NONE;
         foreColor       = Color.WHITE;
         backColor       = Color.BLACK;
         foreColorRGB    = -1;
@@ -779,6 +839,7 @@ public class CellAttributes {
         }
 
         return ((flags == that.flags)
+            && (underlineStyle == that.underlineStyle)
             && (foreColor == that.foreColor)
             && (backColor == that.backColor)
             && (foreColorRGB == that.foreColorRGB)
@@ -799,6 +860,7 @@ public class CellAttributes {
         int b = 23;
         int hash = a;
         hash = (b * hash) + flags;
+        hash = (b * hash) + underlineStyle;
         hash = (b * hash) + foreColor.hashCode();
         hash = (b * hash) + backColor.hashCode();
         hash = (b * hash) + foreColorRGB;
@@ -818,6 +880,7 @@ public class CellAttributes {
         CellAttributes that = (CellAttributes) rhs;
 
         this.flags              = that.flags;
+        this.underlineStyle     = that.underlineStyle;
         this.foreColor          = that.foreColor;
         this.backColor          = that.backColor;
         this.foreColorRGB       = that.foreColorRGB;
@@ -874,7 +937,7 @@ public class CellAttributes {
         }
         return String.format("%s%s%s%s%s%s%s%s on %s", (isBold() ? "bold " : ""),
             (isFaint() ? "faint " : ""), (isItalic() ? "italic " : ""),
-            (isUnderline() ? "underline " : ""), (isBlink() ? "blink " : ""),
+            getUnderlineDescription(), (isBlink() ? "blink " : ""),
             (isStrikethrough() ? "strikethrough " : ""),
             (isHidden() ? "hidden " : ""), foreColor, backColor);
     }
@@ -907,6 +970,7 @@ public class CellAttributes {
         }
         String textDecoration = decorations.isEmpty()
             ? "none" : String.join(" ", decorations);
+        String textDecorationStyle = getUnderlineCssStyle();
 
         if (isReverse()) {
             fgText = backColor.toRgbString(false);
@@ -930,8 +994,41 @@ public class CellAttributes {
         String opacity = isFaint() ? "0.5" : "1";
 
         return String.format("style=\"color: %s; background-color: %s; " +
-            "text-decoration: %s; font-weight: %s; font-style: %s; opacity: %s\"",
-            fgText, bgText, textDecoration, fontWeight, fontStyle, opacity);
+            "text-decoration: %s; text-decoration-style: %s; font-weight: %s; "
+            + "font-style: %s; opacity: %s\"",
+            fgText, bgText, textDecoration, textDecorationStyle, fontWeight,
+            fontStyle, opacity);
+    }
+
+    /**
+     * Get a human-readable underline description.
+     *
+     * @return underline description with trailing space, or empty string
+     */
+    private String getUnderlineDescription() {
+        return switch (underlineStyle) {
+        case UNDERLINE_STYLE_SINGLE -> "underline ";
+        case UNDERLINE_STYLE_DOUBLE -> "double underline ";
+        case UNDERLINE_STYLE_CURLY -> "curly underline ";
+        case UNDERLINE_STYLE_DOTTED -> "dotted underline ";
+        case UNDERLINE_STYLE_DASHED -> "dashed underline ";
+        default -> "";
+        };
+    }
+
+    /**
+     * Get the CSS text-decoration-style value for this underline style.
+     *
+     * @return CSS text-decoration-style value
+     */
+    private String getUnderlineCssStyle() {
+        return switch (underlineStyle) {
+        case UNDERLINE_STYLE_DOUBLE -> "double";
+        case UNDERLINE_STYLE_CURLY -> "wavy";
+        case UNDERLINE_STYLE_DOTTED -> "dotted";
+        case UNDERLINE_STYLE_DASHED -> "dashed";
+        default -> "solid";
+        };
     }
 
     /**
@@ -1103,6 +1200,17 @@ public class CellAttributes {
          */
         public Builder underline(final boolean underline) {
             attributes.setUnderline(underline);
+            return this;
+        }
+
+        /**
+         * Set the underline style.
+         *
+         * @param underlineStyle new underline style
+         * @return this builder
+         */
+        public Builder underlineStyle(final int underlineStyle) {
+            attributes.setUnderlineStyle(underlineStyle);
             return this;
         }
 

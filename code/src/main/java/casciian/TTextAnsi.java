@@ -213,7 +213,7 @@ public class TTextAnsi extends TScrollable {
             CellAttributes themed = new CellAttributes();
             themed.setTo(base);
             themed.setBold(cell.isBold());
-            themed.setUnderline(cell.isUnderline());
+            themed.setUnderlineStyle(cell.getUnderlineStyle());
             themed.setBlink(cell.isBlink());
             themed.setReverse(cell.isReverse());
             themed.setFaint(cell.isFaint());

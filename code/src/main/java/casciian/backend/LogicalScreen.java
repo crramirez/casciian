@@ -2297,6 +2297,7 @@ public class LogicalScreen implements Screen {
                     thisCell.setUnderline(overCell.isUnderline());
                     thisCell.setStrikethrough(overCell.isStrikethrough());
                     thisCell.setReverse(overCell.isReverse());
+                    thisCell.setUnderlineStyle(overCell.getUnderlineStyle());
                     thisCell.setProtect(overCell.isProtect());
                     thisCell.setHidden(overCell.isHidden());
                     thisCell.setHyperlink(overCell.getHyperlink());

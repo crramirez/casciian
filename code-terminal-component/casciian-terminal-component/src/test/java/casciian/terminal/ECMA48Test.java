@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import casciian.backend.Backend;
 import casciian.backend.HeadlessBackend;
 import casciian.bits.Cell;
+import casciian.bits.CellAttributes;
 import casciian.bits.ComplexCell;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -463,6 +464,69 @@ class ECMA48Test {
             assertEquals(21, cell.getBackColorPalette());
             assertEquals(-1, cell.getForeColorRGB());
             assertEquals(-1, cell.getBackColorRGB());
+        } finally {
+            emulator.close();
+        }
+    }
+
+    @Test
+    @DisplayName("SGR underline variants should update the captured cell style")
+    void shouldParseUnderlineVariants() throws Exception {
+        Backend backend = new HeadlessBackend();
+
+        String sequence =
+            "\033[21mA\033[4:1mB\033[4:2mC\033[4:3mD\033[4:4mE\033[4:5mF"
+            + "\033[4:0mG";
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(
+            sequence.getBytes("UTF-8"));
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
+            outputStream, null, backend);
+
+        try {
+            emulator.waitForOutput(1000);
+
+            TerminalState state = emulator.captureState();
+            assertEquals(CellAttributes.UNDERLINE_STYLE_DOUBLE,
+                state.getDisplayBuffer().get(0).charAt(0).getUnderlineStyle());
+            assertEquals(CellAttributes.UNDERLINE_STYLE_SINGLE,
+                state.getDisplayBuffer().get(0).charAt(1).getUnderlineStyle());
+            assertEquals(CellAttributes.UNDERLINE_STYLE_DOUBLE,
+                state.getDisplayBuffer().get(0).charAt(2).getUnderlineStyle());
+            assertEquals(CellAttributes.UNDERLINE_STYLE_CURLY,
+                state.getDisplayBuffer().get(0).charAt(3).getUnderlineStyle());
+            assertEquals(CellAttributes.UNDERLINE_STYLE_DOTTED,
+                state.getDisplayBuffer().get(0).charAt(4).getUnderlineStyle());
+            assertEquals(CellAttributes.UNDERLINE_STYLE_DASHED,
+                state.getDisplayBuffer().get(0).charAt(5).getUnderlineStyle());
+            assertEquals(CellAttributes.UNDERLINE_STYLE_NONE,
+                state.getDisplayBuffer().get(0).charAt(6).getUnderlineStyle());
+        } finally {
+            emulator.close();
+        }
+    }
+
+    @Test
+    @DisplayName("CSI colon separator should split numeric params")
+    void shouldTreatColonAsCsiParamSeparator() throws Exception {
+        Backend backend = new HeadlessBackend();
+
+        String sequence = "\033[1:2HX";
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(
+            sequence.getBytes("UTF-8"));
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
+            outputStream, null, backend);
+
+        try {
+            emulator.waitForOutput(1000);
+
+            TerminalState state = emulator.captureState();
+            assertEquals('X', state.getDisplayBuffer().get(0).charAt(1).getChar());
+            assertNotEquals('X',
+                state.getDisplayBuffer().get(11).charAt(0).getChar());
         } finally {
             emulator.close();
         }
