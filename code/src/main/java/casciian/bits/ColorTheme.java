@@ -852,6 +852,14 @@ public class ColorTheme {
      */
     private final SortedMap<String, CellAttributes> colors;
 
+    /**
+     * Cached result of {@link #isDarkTheme()}.  Themes rarely change once
+     * loaded, so the (somewhat expensive) luminance computation is only
+     * performed once per theme and reused on subsequent calls.  It is
+     * invalidated whenever the theme's colors are modified.
+     */
+    private Boolean isDarkThemeCache;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -947,11 +955,28 @@ public class ColorTheme {
      * @return true if the theme's background is darker than its foreground
      */
     public boolean isDarkTheme() {
-        CellAttributes label = getColor(TLABEL);
-        if (label == null) {
-            return true;
+        if (isDarkThemeCache != null) {
+            return isDarkThemeCache;
         }
-        return channelLuminance(label, false) < channelLuminance(label, true);
+
+        CellAttributes label = getColor(TLABEL);
+        boolean result;
+        if (label == null) {
+            result = true;
+        } else {
+            result = channelLuminance(label, false) < channelLuminance(label, true);
+        }
+        isDarkThemeCache = result;
+        return result;
+    }
+
+    /**
+     * Invalidate the cached {@link #isDarkTheme()} result.  Must be called
+     * whenever the theme's colors are modified so that the cache does not
+     * return a stale value.
+     */
+    private void invalidateIsDarkThemeCache() {
+        isDarkThemeCache = null;
     }
 
     /**
@@ -1021,6 +1046,7 @@ public class ColorTheme {
      */
     public void setColor(final String name, final CellAttributes color) {
         colors.put(name, color);
+        invalidateIsDarkThemeCache();
     }
 
     /**
@@ -1185,6 +1211,7 @@ public class ColorTheme {
             return;
         }
         colors.put(key, color);
+        invalidateIsDarkThemeCache();
     }
 
     /**
@@ -1284,6 +1311,7 @@ public class ColorTheme {
      * Sets to defaults that resemble the Borland IDE colors.
      */
     public void setDefaultTheme() {
+        invalidateIsDarkThemeCache();
 
         // TWindow border
         colors.put(TWINDOW_BORDER, CellAttributes.builder()
@@ -2166,6 +2194,7 @@ public class ColorTheme {
      * Sets to colors that resemble the "Custom" colors of Qmodem 5.0.
      */
     public void setQmodem5() {
+        invalidateIsDarkThemeCache();
         CellAttributes color;
 
         // TWindow border

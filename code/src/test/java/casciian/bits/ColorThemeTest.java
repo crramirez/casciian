@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static casciian.bits.Color.BLACK;
+import static casciian.bits.Color.WHITE;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ColorThemeTest {
@@ -309,5 +311,31 @@ class ColorThemeTest {
             .build();
         theme.setColor(ColorTheme.TLABEL, attr);
         assertFalse(theme.isDarkTheme());
+    }
+
+    @Test
+    void testIsDarkThemeIsCachedUntilColorsChange() {
+        ColorTheme theme = new ColorTheme();
+
+        // First call computes and caches the result.
+        assertTrue(theme.isDarkTheme());
+        // Repeated calls without changes should return the same cached value.
+        assertTrue(theme.isDarkTheme());
+
+        // Changing an unrelated color must not affect the cached value, but
+        // changing TLABEL should invalidate the cache so the next call
+        // recomputes it.
+        theme.setColorFromString(ColorTheme.TWINDOW_BORDER, "black on white");
+        assertTrue(theme.isDarkTheme());
+
+        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        assertFalse(theme.isDarkTheme());
+        assertFalse(theme.isDarkTheme());
+
+        theme.setColor(ColorTheme.TLABEL, CellAttributes.builder()
+            .foreColor(WHITE)
+            .backColor(BLACK)
+            .build());
+        assertTrue(theme.isDarkTheme());
     }
 }
