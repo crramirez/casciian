@@ -1006,17 +1006,13 @@ public class ColorTheme {
             if (isDarkThemeModalCache != null) {
                 return isDarkThemeModalCache;
             }
-            CellAttributes label = getColor(TLABEL_MODAL);
-            if (label == null) {
-                label = getColor(TLABEL);
-            }
-            isDarkThemeModalCache = computeIsDarkTheme(label);
+            isDarkThemeModalCache = computeIsDarkTheme(getColor(TLABEL, modal));
             return isDarkThemeModalCache;
         } else {
             if (isDarkThemeCache != null) {
                 return isDarkThemeCache;
             }
-            isDarkThemeCache = computeIsDarkTheme(getColor(TLABEL));
+            isDarkThemeCache = computeIsDarkTheme(getColor(TLABEL, modal));
             return isDarkThemeCache;
         }
     }

@@ -367,8 +367,8 @@ class ColorThemeTest {
         assertFalse(theme.isDarkTheme(false));
         assertTrue(theme.isDarkTheme(true));
 
-        // Changing TLABEL_MODAL should invalidate the modal cache but the
-        // modeless result is still false.
+        // Changing TLABEL_MODAL invalidates both caches; re-evaluating
+        // modeless still returns false since TLABEL is unchanged.
         theme.setColorFromString(ColorTheme.TLABEL_MODAL, "black on white");
         assertFalse(theme.isDarkTheme(false));
         assertFalse(theme.isDarkTheme(true));
