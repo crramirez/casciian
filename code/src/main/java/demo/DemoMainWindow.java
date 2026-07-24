@@ -21,6 +21,8 @@ package demo;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 
@@ -33,6 +35,7 @@ import casciian.TEditorWindow;
 import casciian.TLabel;
 import casciian.TProgressBar;
 import casciian.TTableWindow;
+import casciian.TTextAnsiWindow;
 import casciian.TTimer;
 import casciian.TWindow;
 import casciian.backend.SystemProperties;
@@ -58,6 +61,7 @@ public class DemoMainWindow extends TWindow {
      * The name of the resource bundle for this class.
      */
     public static final String RESOURCE_BUNDLE_NAME = DemoMainWindow.class.getName() + "Bundle";
+    private static final String ANSI_DEMO_RESOURCE = "/demo/ansi-demo.ansi";
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -222,6 +226,8 @@ public class DemoMainWindow extends TWindow {
                 }
             }
         );
+        addButton(i18n.getString("textAreaAnsiButton"), col + 13, row,
+            this::openAnsiTextDemo);
         row += 2;
 
         addLabel(i18n.getString("ttableLabel"), 1, row);
@@ -394,6 +400,26 @@ public class DemoMainWindow extends TWindow {
         } else {
             setDrawPreTransform(null);
             setDrawPostTransform(null);
+        }
+    }
+
+    private void openAnsiTextDemo() {
+        try (InputStream inputStream = DemoMainWindow.class.
+                getResourceAsStream(ANSI_DEMO_RESOURCE)) {
+            if (inputStream == null) {
+                messageBox(i18n.getString("errorTitle"),
+                    MessageFormat.format(i18n.getString("errorReadingFile"),
+                        ANSI_DEMO_RESOURCE));
+                return;
+            }
+            String content = new String(inputStream.readAllBytes(),
+                StandardCharsets.UTF_8);
+            new TTextAnsiWindow(getApplication(),
+                i18n.getString("textAreaAnsiTitle"), content);
+        } catch (IOException e) {
+            messageBox(i18n.getString("errorTitle"),
+                MessageFormat.format(i18n.getString("errorReadingFile"),
+                    e.getMessage()));
         }
     }
 

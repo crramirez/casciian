@@ -38,6 +38,9 @@
             "pattern": "\\Qhelp.xml\\E"
         },
         {
+            "pattern": "\\Qdemo/ansi-demo.ansi\\E"
+        },
+        {
             "bundle": "demo.Demo2Bundle"
         },
         {
