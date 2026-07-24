@@ -6,6 +6,9 @@
             },
             {
                 "pattern": "\\Qhelp.xml\\E"
+            },
+            {
+                "pattern": "\\Qdemo/ansi-demo.ansi\\E"
             }
         ]
     },
