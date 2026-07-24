@@ -1010,28 +1010,29 @@ public class ColorTheme {
             if (label == null) {
                 label = getColor(TLABEL);
             }
-            boolean result;
-            if (label == null) {
-                result = true;
-            } else {
-                result = channelLuminance(label, false) < channelLuminance(label, true);
-            }
-            isDarkThemeModalCache = result;
-            return result;
+            isDarkThemeModalCache = computeIsDarkTheme(label);
+            return isDarkThemeModalCache;
         } else {
             if (isDarkThemeCache != null) {
                 return isDarkThemeCache;
             }
-            CellAttributes label = getColor(TLABEL);
-            boolean result;
-            if (label == null) {
-                result = true;
-            } else {
-                result = channelLuminance(label, false) < channelLuminance(label, true);
-            }
-            isDarkThemeCache = result;
-            return result;
+            isDarkThemeCache = computeIsDarkTheme(getColor(TLABEL));
+            return isDarkThemeCache;
         }
+    }
+
+    /**
+     * Determine whether the given label color represents a dark theme, i.e.
+     * the background is darker than the foreground.
+     *
+     * @param label the label color to evaluate, or {@code null}
+     * @return {@code true} if the theme is dark (or if {@code label} is null)
+     */
+    private boolean computeIsDarkTheme(final CellAttributes label) {
+        if (label == null) {
+            return true;
+        }
+        return channelLuminance(label, false) < channelLuminance(label, true);
     }
 
     /**
