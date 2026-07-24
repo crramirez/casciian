@@ -202,7 +202,9 @@ public class TTextAnsi extends TScrollable {
             final CellAttributes defaultColor,
             final CellAttributes defaultColorBright) {
 
-        boolean darkTheme = getTheme().isDarkTheme();
+        TWindow w = getWindow();
+        boolean modal = (w != null) && w.isModal();
+        boolean darkTheme = getTheme().isDarkTheme(modal);
 
         // Replace default terminal colors with theme colors
         if (cell.isDefaultColor(true)
