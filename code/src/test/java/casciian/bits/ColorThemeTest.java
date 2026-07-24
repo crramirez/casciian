@@ -274,24 +274,24 @@ class ColorThemeTest {
     @Test
     void testIsDarkThemeDetectsLightBackground() {
         ColorTheme theme = new ColorTheme();
-        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        theme.setColorFromString(ColorTheme.TTEXT, "black on white");
         assertFalse(theme.isDarkTheme());
     }
 
     @Test
     void testIsDarkThemeDetectsDarkBackground() {
         ColorTheme theme = new ColorTheme();
-        theme.setColorFromString(ColorTheme.TLABEL, "white on black");
+        theme.setColorFromString(ColorTheme.TTEXT, "white on black");
         assertTrue(theme.isDarkTheme());
     }
 
     @Test
     void testIsDarkThemeUsesRgbColors() {
         ColorTheme theme = new ColorTheme();
-        theme.setColorFromString(ColorTheme.TLABEL, "#eeeeee on #111111");
+        theme.setColorFromString(ColorTheme.TTEXT, "#eeeeee on #111111");
         assertTrue(theme.isDarkTheme());
 
-        theme.setColorFromString(ColorTheme.TLABEL, "#111111 on #eeeeee");
+        theme.setColorFromString(ColorTheme.TTEXT, "#111111 on #eeeeee");
         assertFalse(theme.isDarkTheme());
     }
 
@@ -302,14 +302,14 @@ class ColorThemeTest {
             .foreColorPalette(15)
             .backColorPalette(0)
             .build();
-        theme.setColor(ColorTheme.TLABEL, attr);
+        theme.setColor(ColorTheme.TTEXT, attr);
         assertTrue(theme.isDarkTheme());
 
         attr = CellAttributes.builder()
             .foreColorPalette(0)
             .backColorPalette(15)
             .build();
-        theme.setColor(ColorTheme.TLABEL, attr);
+        theme.setColor(ColorTheme.TTEXT, attr);
         assertFalse(theme.isDarkTheme());
     }
 
@@ -323,16 +323,16 @@ class ColorThemeTest {
         assertTrue(theme.isDarkTheme());
 
         // Changing an unrelated color must not affect the cached value, but
-        // changing TLABEL should invalidate the cache so the next call
+        // changing TTEXT should invalidate the cache so the next call
         // recomputes it.
         theme.setColorFromString(ColorTheme.TWINDOW_BORDER, "black on white");
         assertTrue(theme.isDarkTheme());
 
-        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        theme.setColorFromString(ColorTheme.TTEXT, "black on white");
         assertFalse(theme.isDarkTheme());
         assertFalse(theme.isDarkTheme());
 
-        theme.setColor(ColorTheme.TLABEL, CellAttributes.builder()
+        theme.setColor(ColorTheme.TTEXT, CellAttributes.builder()
             .foreColor(WHITE)
             .backColor(BLACK)
             .build());
@@ -340,9 +340,9 @@ class ColorThemeTest {
     }
 
     @Test
-    void testIsDarkThemeWithModalFalseUsesTlabel() {
+    void testIsDarkThemeWithModalFalseUsesTtext() {
         ColorTheme theme = new ColorTheme();
-        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        theme.setColorFromString(ColorTheme.TTEXT, "black on white");
         assertFalse(theme.isDarkTheme(false));
     }
 
@@ -350,9 +350,9 @@ class ColorThemeTest {
     void testIsDarkThemeModalUsesModalVariant() {
         ColorTheme theme = new ColorTheme();
         // modeless: light bg
-        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        theme.setColorFromString(ColorTheme.TTEXT, "black on white");
         // modal: dark bg
-        theme.setColorFromString(ColorTheme.TLABEL_MODAL, "white on black");
+        theme.setColorFromString(ColorTheme.TTEXT_MODAL, "white on black");
         assertFalse(theme.isDarkTheme(false));
         assertTrue(theme.isDarkTheme(true));
     }
@@ -360,16 +360,16 @@ class ColorThemeTest {
     @Test
     void testIsDarkThemeModalCacheIsIndependent() {
         ColorTheme theme = new ColorTheme();
-        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
-        theme.setColorFromString(ColorTheme.TLABEL_MODAL, "white on black");
+        theme.setColorFromString(ColorTheme.TTEXT, "black on white");
+        theme.setColorFromString(ColorTheme.TTEXT_MODAL, "white on black");
 
         // Prime both caches.
         assertFalse(theme.isDarkTheme(false));
         assertTrue(theme.isDarkTheme(true));
 
-        // Changing TLABEL_MODAL invalidates both caches; re-evaluating
-        // modeless still returns false since TLABEL is unchanged.
-        theme.setColorFromString(ColorTheme.TLABEL_MODAL, "black on white");
+        // Changing TTEXT_MODAL invalidates both caches; re-evaluating
+        // modeless still returns false since TTEXT is unchanged.
+        theme.setColorFromString(ColorTheme.TTEXT_MODAL, "black on white");
         assertFalse(theme.isDarkTheme(false));
         assertFalse(theme.isDarkTheme(true));
     }
@@ -377,7 +377,7 @@ class ColorThemeTest {
     @Test
     void testIsDarkThemeNoArgDelegatesToModeless() {
         ColorTheme theme = new ColorTheme();
-        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        theme.setColorFromString(ColorTheme.TTEXT, "black on white");
         assertFalse(theme.isDarkTheme());
         assertFalse(theme.isDarkTheme(false));
     }

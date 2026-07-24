@@ -129,8 +129,8 @@ public class TTextAnsi extends TScrollable {
      */
     @Override
     public void draw() {
-        CellAttributes defaultColor = getWidgetColor(ColorTheme.TLABEL);
-        CellAttributes defaultColorBright = getWidgetColor(ColorTheme.TLABEL_ACTIVE);
+        CellAttributes defaultColor = getWidgetColor(ColorTheme.TTEXT);
+        CellAttributes defaultColorBright = getWidgetColor(ColorTheme.TTEXT_BOLD);
 
         int begin = vScroller.getValue();
         int hOffset = hScroller.getValue();
@@ -270,7 +270,7 @@ public class TTextAnsi extends TScrollable {
      *   <li>Named (non-RGB, non-palette) foreground: brightened via
      *       {@link casciian.bits.Color#toBright()}, bold cleared.</li>
      *   <li>RGB or palette foreground: replaced with the foreground of
-     *       {@code defaultColorBright} (the theme's active-label color),
+     *       {@code defaultColorBright} (the theme's bold-text color),
      *       bold cleared.</li>
      * </ul>
      * Non-dark themes are left unchanged.
@@ -279,7 +279,7 @@ public class TTextAnsi extends TScrollable {
      * @param attrs             the attributes to potentially modify in place
      * @param darkTheme         true if the current theme is a dark theme, as
      *                          determined by {@link ColorTheme#isDarkTheme()}
-     * @param defaultColorBright the theme's "active" label color, used as the
+     * @param defaultColorBright the theme's bold-text color, used as the
      *                          bright substitution for RGB/palette foregrounds
      */
     static void applyBoldAsBright(final CellAttributes attrs,
@@ -292,7 +292,7 @@ public class TTextAnsi extends TScrollable {
         if ((attrs.getForeColorRGB() >= 0)
                 || (attrs.getForeColorPalette() >= 0)) {
             // For RGB/palette foregrounds there is no natural "bright"
-            // variant, so use the theme's active-label foreground instead.
+            // variant, so use the theme's bold-text foreground instead.
             if (defaultColorBright.getForeColorPalette() >= 0) {
                 attrs.setForeColorPalette(
                     defaultColorBright.getForeColorPalette());

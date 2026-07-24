@@ -268,6 +268,16 @@ public class ColorTheme {
     public static final String TTEXT_MODAL = "ttext.modal";
 
     /**
+     * Color key for TText bold text.
+     */
+    public static final String TTEXT_BOLD = "ttext.bold";
+
+    /**
+     * Color key for TText bold text in modal mode.
+     */
+    public static final String TTEXT_BOLD_MODAL = "ttext.bold.modal";
+
+    /**
      * Color key for TField when inactive.
      */
     public static final String TFIELD_INACTIVE = "tfield.inactive";
@@ -973,7 +983,7 @@ public class ColorTheme {
      * default text is lighter than its background.
      *
      * <p>
-     * This is estimated from the {@link #TLABEL} color: the perceptual
+     * This is estimated from the {@link #TTEXT} color: the perceptual
      * luminance of its background is compared against the perceptual
      * luminance of its foreground.  A theme is considered dark when its
      * background is darker (lower luminance) than its foreground, which is
@@ -988,17 +998,17 @@ public class ColorTheme {
 
     /**
      * Determine whether the current theme is a "dark" theme, using either the
-     * standard or the modal variant of the {@link #TLABEL} color.
+     * standard or the modal variant of the {@link #TTEXT} color.
      *
      * <p>
-     * When {@code modal} is {@code true} the {@link #TLABEL_MODAL} color is
-     * used for the luminance comparison; otherwise {@link #TLABEL} is used.
+     * When {@code modal} is {@code true} the {@link #TTEXT_MODAL} color is
+     * used for the luminance comparison; otherwise {@link #TTEXT} is used.
      * If the modal variant is not registered in the theme the base
-     * {@link #TLABEL} color is used as a fallback.  Results are cached
+     * {@link #TTEXT} color is used as a fallback.  Results are cached
      * separately for each variant and invalidated whenever theme colors change.
      * </p>
      *
-     * @param modal {@code true} to use the modal variant of {@code tlabel}
+     * @param modal {@code true} to use the modal variant of {@code ttext}
      * @return true if the theme's background is darker than its foreground
      */
     public boolean isDarkTheme(final boolean modal) {
@@ -1006,29 +1016,29 @@ public class ColorTheme {
             if (isDarkThemeModalCache != null) {
                 return isDarkThemeModalCache;
             }
-            isDarkThemeModalCache = computeIsDarkTheme(getColor(TLABEL, modal));
+            isDarkThemeModalCache = computeIsDarkTheme(getColor(TTEXT, modal));
             return isDarkThemeModalCache;
         } else {
             if (isDarkThemeCache != null) {
                 return isDarkThemeCache;
             }
-            isDarkThemeCache = computeIsDarkTheme(getColor(TLABEL, modal));
+            isDarkThemeCache = computeIsDarkTheme(getColor(TTEXT, modal));
             return isDarkThemeCache;
         }
     }
 
     /**
-     * Determine whether the given label color represents a dark theme, i.e.
+     * Determine whether the given text color represents a dark theme, i.e.
      * the background is darker than the foreground.
      *
-     * @param label the label color to evaluate, or {@code null}
-     * @return {@code true} if the theme is dark (or if {@code label} is null)
+     * @param text the text color to evaluate, or {@code null}
+     * @return {@code true} if the theme is dark (or if {@code text} is null)
      */
-    private boolean computeIsDarkTheme(final CellAttributes label) {
-        if (label == null) {
+    private boolean computeIsDarkTheme(final CellAttributes text) {
+        if (text == null) {
             return true;
         }
-        return channelLuminance(label, false) < channelLuminance(label, true);
+        return channelLuminance(text, false) < channelLuminance(text, true);
     }
 
     /**
@@ -1583,9 +1593,18 @@ public class ColorTheme {
             .foreColor(WHITE)
             .backColor(BLUE)
             .build());
-        colors.put(TTEXT_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
+        colors.put(TTEXT_BOLD, CellAttributes.builder()
+            .foreColor(BRIGHT_WHITE)
             .backColor(BLUE)
+            .build());
+        colors.put(TTEXT_MODAL, CellAttributes.builder()
+            .foreColor(BLACK)
+            .backColor(WHITE)
+            .build());
+        colors.put(TTEXT_BOLD_MODAL, CellAttributes.builder()
+            .foreColor(BLACK)
+            .backColor(WHITE)
+            .bold(true)
             .build());
 
         // TField text
@@ -2449,6 +2468,15 @@ public class ColorTheme {
         color.setForeColor(WHITE);
         color.setBackColor(BLUE);
         colors.put(TTEXT_MODAL, color);
+        // Same as TLABEL_ACTIVE / TLABEL_ACTIVE_MODAL for now.
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_WHITE);
+        color.setBackColor(BLUE);
+        colors.put(TTEXT_BOLD, color);
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_WHITE);
+        color.setBackColor(BLUE);
+        colors.put(TTEXT_BOLD_MODAL, color);
 
         // TField text
         color = new CellAttributes();
@@ -3108,6 +3136,8 @@ public class ColorTheme {
         colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgbToPalette(fgYellow, bgModal));
         colors.put(TTEXT, rgbToPalette(fgText, bgWindow));
         colors.put(TTEXT_MODAL, rgbToPalette(fgText, bgModal));
+        colors.put(TTEXT_BOLD, rgbToPalette(fgWhite, bgWindow));
+        colors.put(TTEXT_BOLD_MODAL, rgbToPalette(fgWhite, bgModal));
 
         // Fields: dark input with a subtle highlight when active.
         colors.put(TFIELD_INACTIVE, rgbToPalette(fgInactiveText, bgField));
@@ -3278,8 +3308,10 @@ public class ColorTheme {
         colors.put(TLABEL_MNEMONIC_MODAL, attr(BLUE, WHITE));
         colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, attr(BLUE, WHITE));
         colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, attr(BRIGHT_BLACK, WHITE));
-        colors.put(TTEXT, attr(BLACK, BLUE));
+        colors.put(TTEXT, attr(WHITE, BLUE));
         colors.put(TTEXT_MODAL, attr(BLACK, WHITE));
+        colors.put(TTEXT_BOLD, attr(BRIGHT_WHITE, BLUE));
+        colors.put(TTEXT_BOLD_MODAL, attr(BLACK, WHITE, true));
 
         // Buttons: MC's "dfocus / dhotfocus" style - black/blue on cyan.
         colors.put(TBUTTON_INACTIVE, attr(BRIGHT_WHITE, BLUE));
@@ -3444,6 +3476,9 @@ public class ColorTheme {
         colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
         colors.put(TTEXT, rgbToPalette(fgText, bgBlack));
         colors.put(TTEXT_MODAL, rgbToPalette(fgText, bgBlack));
+        // Same as TLABEL_ACTIVE / TLABEL_ACTIVE_MODAL for now.
+        colors.put(TTEXT_BOLD, rgbToPalette(fgWhite, bgBlack));
+        colors.put(TTEXT_BOLD_MODAL, rgbToPalette(fgWhite, bgBlack));
 
         // Buttons: flat look - accent text on black, selection-blue when
         // focused, minimal contrast (no fake bevels).
@@ -3604,6 +3639,7 @@ public class ColorTheme {
         final int bgSelect = 0x264f78; // editor.selectionBackground
         final int bgListSel = 0x094771; // list.activeSelectionBackground
         final int fgText = 0xd4d4d4; // editor.foreground
+        final int fgBrightText = 0xffffff; // bright editor.foreground
         final int fgChrome = 0xcccccc; // sideBar.foreground
         final int fgMuted = 0x858585; // descriptionForeground
         final int accent = 0x007acc; // statusBar / focusBorder
@@ -3633,10 +3669,10 @@ public class ColorTheme {
         // when disabled.  Modal labels sit on the chrome surface to match
         // the modal window background.
         colors.put(TLABEL, rgb(fgText, bgPanel));
-        colors.put(TLABEL_ACTIVE, rgb(0xffffff, bgPanel));
+        colors.put(TLABEL_ACTIVE, rgb(fgBrightText, bgPanel));
         colors.put(TLABEL_DISABLED, rgb(fgMuted, bgPanel));
         colors.put(TLABEL_MODAL, rgb(fgText, bgChrome));
-        colors.put(TLABEL_ACTIVE_MODAL, rgb(0xffffff, bgChrome));
+        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgBrightText, bgChrome));
         colors.put(TLABEL_DISABLED_MODAL, rgb(fgMuted, bgChrome));
         colors.put(TLABEL_MNEMONIC, rgb(accent, bgPanel));
         colors.put(TLABEL_ACTIVE_MNEMONIC, rgb(accent, bgPanel));
@@ -3646,14 +3682,16 @@ public class ColorTheme {
         colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgb(accent, bgChrome));
         colors.put(TTEXT, rgb(fgText, bgPanel));
         colors.put(TTEXT_MODAL, rgb(fgText, bgChrome));
+        colors.put(TTEXT_BOLD, rgb(fgBrightText, bgPanel));
+        colors.put(TTEXT_BOLD_MODAL, rgb(fgBrightText, bgChrome));
 
         // Buttons use the VS Code primary button palette.  Mnemonics use a
         // bright amber so the underlined character is distinguishable from
         // the regular white button label.
-        colors.put(TBUTTON_INACTIVE, rgb(0xffffff, buttonBg));
-        colors.put(TBUTTON_INACTIVE_MODAL, rgb(0xffffff, buttonBg));
-        colors.put(TBUTTON_ACTIVE, rgb(0xffffff, accentHot));
-        colors.put(TBUTTON_ACTIVE_MODAL, rgb(0xffffff, accentHot));
+        colors.put(TBUTTON_INACTIVE, rgb(fgBrightText, buttonBg));
+        colors.put(TBUTTON_INACTIVE_MODAL, rgb(fgBrightText, buttonBg));
+        colors.put(TBUTTON_ACTIVE, rgb(fgBrightText, accentHot));
+        colors.put(TBUTTON_ACTIVE_MODAL, rgb(fgBrightText, accentHot));
         colors.put(TBUTTON_DISABLED, rgb(fgMuted, bgInput));
         colors.put(TBUTTON_DISABLED_MODAL, rgb(fgMuted, bgInput));
         colors.put(TBUTTON_MNEMONIC, rgb(0xffcc00, buttonBg));
@@ -3664,44 +3702,44 @@ public class ColorTheme {
         // Inputs.
         colors.put(TFIELD_INACTIVE, rgb(fgChrome, bgInput));
         colors.put(TFIELD_INACTIVE_MODAL, rgb(fgChrome, bgInput));
-        colors.put(TFIELD_ACTIVE, rgb(0xffffff, bgSelect));
-        colors.put(TFIELD_ACTIVE_MODAL, rgb(0xffffff, bgSelect));
+        colors.put(TFIELD_ACTIVE, rgb(fgBrightText, bgSelect));
+        colors.put(TFIELD_ACTIVE_MODAL, rgb(fgBrightText, bgSelect));
 
         // Check / radio / combo.
         colors.put(TCHECKBOX_INACTIVE, rgb(fgText, bgPanel));
         colors.put(TCHECKBOX_INACTIVE_MODAL, rgb(fgText, bgPanel));
-        colors.put(TCHECKBOX_ACTIVE, rgb(0xffffff, bgListSel));
-        colors.put(TCHECKBOX_ACTIVE_MODAL, rgb(0xffffff, bgListSel));
+        colors.put(TCHECKBOX_ACTIVE, rgb(fgBrightText, bgListSel));
+        colors.put(TCHECKBOX_ACTIVE_MODAL, rgb(fgBrightText, bgListSel));
         colors.put(TCHECKBOX_MNEMONIC, rgb(accent, bgPanel));
         colors.put(TCHECKBOX_MNEMONIC_MODAL, rgb(accent, bgPanel));
-        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, rgb(0xffffff, bgListSel));
-        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED_MODAL, rgb(0xffffff, bgListSel));
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, rgb(fgBrightText, bgListSel));
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED_MODAL, rgb(fgBrightText, bgListSel));
         colors.put(TRADIOBUTTON_INACTIVE, rgb(fgText, bgPanel));
         colors.put(TRADIOBUTTON_INACTIVE_MODAL, rgb(fgText, bgPanel));
-        colors.put(TRADIOBUTTON_ACTIVE, rgb(0xffffff, bgListSel));
-        colors.put(TRADIOBUTTON_ACTIVE_MODAL, rgb(0xffffff, bgListSel));
+        colors.put(TRADIOBUTTON_ACTIVE, rgb(fgBrightText, bgListSel));
+        colors.put(TRADIOBUTTON_ACTIVE_MODAL, rgb(fgBrightText, bgListSel));
         colors.put(TRADIOBUTTON_MNEMONIC, rgb(accent, bgPanel));
         colors.put(TRADIOBUTTON_MNEMONIC_MODAL, rgb(accent, bgPanel));
-        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, rgb(0xffffff, bgListSel));
-        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgb(0xffffff, bgListSel));
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, rgb(fgBrightText, bgListSel));
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgb(fgBrightText, bgListSel));
         colors.put(TRADIOGROUP_INACTIVE, rgb(fgText, bgPanel));
         colors.put(TRADIOGROUP_INACTIVE_MODAL, rgb(fgText, bgPanel));
         colors.put(TRADIOGROUP_ACTIVE, rgb(accent, bgPanel));
         colors.put(TRADIOGROUP_ACTIVE_MODAL, rgb(accent, bgPanel));
         colors.put(TCOMBOBOX_INACTIVE, rgb(fgChrome, bgInput));
         colors.put(TCOMBOBOX_INACTIVE_MODAL, rgb(fgChrome, bgInput));
-        colors.put(TCOMBOBOX_ACTIVE, rgb(0xffffff, bgListSel));
-        colors.put(TCOMBOBOX_ACTIVE_MODAL, rgb(0xffffff, bgListSel));
+        colors.put(TCOMBOBOX_ACTIVE, rgb(fgBrightText, bgListSel));
+        colors.put(TCOMBOBOX_ACTIVE_MODAL, rgb(fgBrightText, bgListSel));
         colors.put(TSPINNER_INACTIVE, rgb(fgChrome, bgInput));
         colors.put(TSPINNER_INACTIVE_MODAL, rgb(fgChrome, bgInput));
-        colors.put(TSPINNER_ACTIVE, rgb(0xffffff, bgListSel));
-        colors.put(TSPINNER_ACTIVE_MODAL, rgb(0xffffff, bgListSel));
+        colors.put(TSPINNER_ACTIVE, rgb(fgBrightText, bgListSel));
+        colors.put(TSPINNER_ACTIVE_MODAL, rgb(fgBrightText, bgListSel));
 
         // Lists / tree / editor / table.
         colors.put(TLIST, rgb(fgText, bgPanel));
         colors.put(TLIST_MODAL, rgb(fgText, bgPanel));
-        colors.put(TLIST_SELECTED, rgb(0xffffff, bgListSel));
-        colors.put(TLIST_SELECTED_MODAL, rgb(0xffffff, bgListSel));
+        colors.put(TLIST_SELECTED, rgb(fgBrightText, bgListSel));
+        colors.put(TLIST_SELECTED_MODAL, rgb(fgBrightText, bgListSel));
         colors.put(TLIST_INACTIVE, rgb(fgChrome, bgPanel));
         colors.put(TLIST_INACTIVE_MODAL, rgb(fgChrome, bgPanel));
         colors.put(TLIST_SELECTED_INACTIVE, rgb(fgChrome, bgInput));
@@ -3710,8 +3748,8 @@ public class ColorTheme {
         colors.put(TLIST_UNREADABLE_MODAL, rgb(0xf14c4c, bgPanel));
         colors.put(TTREEVIEW, rgb(fgText, bgPanel));
         colors.put(TTREEVIEW_MODAL, rgb(fgText, bgPanel));
-        colors.put(TTREEVIEW_SELECTED, rgb(0xffffff, bgListSel));
-        colors.put(TTREEVIEW_SELECTED_MODAL, rgb(0xffffff, bgListSel));
+        colors.put(TTREEVIEW_SELECTED, rgb(fgBrightText, bgListSel));
+        colors.put(TTREEVIEW_SELECTED_MODAL, rgb(fgBrightText, bgListSel));
         colors.put(TTREEVIEW_EXPANDBUTTON, rgb(accent, bgPanel));
         colors.put(TTREEVIEW_EXPANDBUTTON_MODAL, rgb(accent, bgPanel));
         colors.put(TTREEVIEW_UNREADABLE, rgb(0xf14c4c, bgPanel));
@@ -3722,20 +3760,20 @@ public class ColorTheme {
         colors.put(TTREEVIEW_SELECTED_INACTIVE_MODAL, rgb(fgChrome, bgInput));
         colors.put(TEDITOR, rgb(fgText, bgEditor));
         colors.put(TEDITOR_MODAL, rgb(fgText, bgEditor));
-        colors.put(TEDITOR_SELECTED, rgb(0xffffff, bgSelect));
-        colors.put(TEDITOR_SELECTED_MODAL, rgb(0xffffff, bgSelect));
+        colors.put(TEDITOR_SELECTED, rgb(fgBrightText, bgSelect));
+        colors.put(TEDITOR_SELECTED_MODAL, rgb(fgBrightText, bgSelect));
         colors.put(TEDITOR_MARGIN, rgb(fgMuted, bgEditor));
         colors.put(TEDITOR_MARGIN_MODAL, rgb(fgMuted, bgEditor));
         colors.put(TTABLE_INACTIVE, rgb(fgText, bgPanel));
         colors.put(TTABLE_INACTIVE_MODAL, rgb(fgText, bgPanel));
-        colors.put(TTABLE_ACTIVE, rgb(0xffffff, bgListSel));
-        colors.put(TTABLE_ACTIVE_MODAL, rgb(0xffffff, bgListSel));
-        colors.put(TTABLE_SELECTED, rgb(0xffffff, bgSelect));
-        colors.put(TTABLE_SELECTED_MODAL, rgb(0xffffff, bgSelect));
+        colors.put(TTABLE_ACTIVE, rgb(fgBrightText, bgListSel));
+        colors.put(TTABLE_ACTIVE_MODAL, rgb(fgBrightText, bgListSel));
+        colors.put(TTABLE_SELECTED, rgb(fgBrightText, bgSelect));
+        colors.put(TTABLE_SELECTED_MODAL, rgb(fgBrightText, bgSelect));
         colors.put(TTABLE_LABEL, rgb(fgChrome, bgChrome));
         colors.put(TTABLE_LABEL_MODAL, rgb(fgChrome, bgChrome));
-        colors.put(TTABLE_LABEL_SELECTED, rgb(0xffffff, accent));
-        colors.put(TTABLE_LABEL_SELECTED_MODAL, rgb(0xffffff, accent));
+        colors.put(TTABLE_LABEL_SELECTED, rgb(fgBrightText, accent));
+        colors.put(TTABLE_LABEL_SELECTED_MODAL, rgb(fgBrightText, accent));
         colors.put(TTABLE_BORDER, rgb(borderDim, bgPanel));
         colors.put(TTABLE_BORDER_MODAL, rgb(borderDim, bgPanel));
 
@@ -3744,18 +3782,18 @@ public class ColorTheme {
         colors.put(TCALENDAR_BACKGROUND_MODAL, rgb(fgText, bgPanel));
         colors.put(TCALENDAR_DAY, rgb(fgText, bgPanel));
         colors.put(TCALENDAR_DAY_MODAL, rgb(fgText, bgPanel));
-        colors.put(TCALENDAR_DAY_SELECTED, rgb(0xffffff, bgListSel));
-        colors.put(TCALENDAR_DAY_SELECTED_MODAL, rgb(0xffffff, bgListSel));
+        colors.put(TCALENDAR_DAY_SELECTED, rgb(fgBrightText, bgListSel));
+        colors.put(TCALENDAR_DAY_SELECTED_MODAL, rgb(fgBrightText, bgListSel));
         colors.put(TCALENDAR_ARROW, rgb(accent, bgPanel));
         colors.put(TCALENDAR_ARROW_MODAL, rgb(accent, bgPanel));
-        colors.put(TCALENDAR_TITLE, rgb(0xffffff, bgChrome));
-        colors.put(TCALENDAR_TITLE_MODAL, rgb(0xffffff, bgChrome));
+        colors.put(TCALENDAR_TITLE, rgb(fgBrightText, bgChrome));
+        colors.put(TCALENDAR_TITLE_MODAL, rgb(fgBrightText, bgChrome));
 
         // Scrollers
         colors.put(TSCROLLER_BAR, rgb(fgMuted, bgInput));
         colors.put(TSCROLLER_BAR_MODAL, rgb(fgMuted, bgInput));
-        colors.put(TSCROLLER_ARROWS, rgb(0xffffff, bgInput));
-        colors.put(TSCROLLER_ARROWS_MODAL, rgb(0xffffff, bgInput));
+        colors.put(TSCROLLER_ARROWS, rgb(fgBrightText, bgInput));
+        colors.put(TSCROLLER_ARROWS_MODAL, rgb(fgBrightText, bgInput));
 
         // Panel border
         colors.put(TPANEL_BORDER, rgb(borderDim, bgPanel));
@@ -3775,14 +3813,14 @@ public class ColorTheme {
 
         // Menu (command palette-like).
         colors.put(TMENU, rgb(fgChrome, bgPanel));
-        colors.put(TMENU_HIGHLIGHTED, rgb(0xffffff, bgListSel));
+        colors.put(TMENU_HIGHLIGHTED, rgb(fgBrightText, bgListSel));
         colors.put(TMENU_MNEMONIC, rgb(accent, bgPanel));
-        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, rgb(0xffffff, bgListSel));
+        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, rgb(fgBrightText, bgListSel));
         colors.put(TMENU_DISABLED, rgb(fgMuted, bgPanel));
 
         // Status bar (VS Code's signature accent blue).  Shortcut-key labels
         // use amber so they stand out against the white status text.
-        colors.put(TSTATUSBAR_TEXT, rgb(0xffffff, accent));
+        colors.put(TSTATUSBAR_TEXT, rgb(fgBrightText, accent));
         colors.put(TSTATUSBAR_BUTTON, rgb(0xffcc00, accent));
         colors.put(TSTATUSBAR_SELECTED, rgb(0xffcc00, accentHot));
 
@@ -3791,7 +3829,7 @@ public class ColorTheme {
         colors.put(THELPWINDOW_BORDER, rgb(accent, bgPanel));
         colors.put(THELPWINDOW_TEXT, rgb(fgText, bgPanel));
         colors.put(THELPWINDOW_LINK, rgb(accent, bgPanel));
-        colors.put(THELPWINDOW_LINK_ACTIVE, rgb(0xffffff, bgListSel));
+        colors.put(THELPWINDOW_LINK_ACTIVE, rgb(fgBrightText, bgListSel));
         colors.put(THELPWINDOW_WINDOWMOVE, rgb(accentHot, bgPanel));
     }
 
@@ -3841,17 +3879,19 @@ public class ColorTheme {
         colors.put(TLABEL, rgb(fgChrome, bgPanel));
         colors.put(TLABEL_ACTIVE, rgb(fgChrome, bgPanel, true));
         colors.put(TLABEL_DISABLED, rgb(fgChrome, bgPanel));
-        colors.put(TLABEL_MODAL, rgb(fgChrome, bgPanel));
-        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgChrome, bgPanel, true));
-        colors.put(TLABEL_DISABLED_MODAL, rgb(fgChrome, bgPanel));
+        colors.put(TLABEL_MODAL, rgb(fgChrome, bgEditor));
+        colors.put(TLABEL_ACTIVE_MODAL, rgb(fgChrome, bgEditor, true));
+        colors.put(TLABEL_DISABLED_MODAL, rgb(fgChrome, bgEditor));
         colors.put(TLABEL_MNEMONIC, rgb(accent, bgPanel));
         colors.put(TLABEL_ACTIVE_MNEMONIC, rgb(accent, bgPanel, true));
         colors.put(TLABEL_DISABLED_MNEMONIC, rgb(accent, bgPanel));
-        colors.put(TLABEL_MNEMONIC_MODAL, rgb(accent, bgPanel));
-        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgb(accent, bgPanel, true));
-        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgb(accent, bgPanel));
+        colors.put(TLABEL_MNEMONIC_MODAL, rgb(accent, bgEditor));
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgb(accent, bgEditor, true));
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgb(accent, bgEditor));
         colors.put(TTEXT, rgb(fgText, bgPanel));
-        colors.put(TTEXT_MODAL, rgb(fgText, bgPanel));
+        colors.put(TTEXT_MODAL, rgb(fgText, bgEditor));
+        colors.put(TTEXT_BOLD, rgb(fgText, bgPanel, true));
+        colors.put(TTEXT_BOLD_MODAL, rgb(fgText, bgEditor, true));
 
         // Buttons.  Mnemonics use a bright amber so the underlined character
         // is distinguishable from the regular white button label.
@@ -3925,7 +3965,7 @@ public class ColorTheme {
         colors.put(TTREEVIEW_INACTIVE_MODAL, rgb(fgText, bgPanel));
         colors.put(TTREEVIEW_SELECTED_INACTIVE, rgb(fgChrome, bgListHov));
         colors.put(TTREEVIEW_SELECTED_INACTIVE_MODAL, rgb(fgChrome, bgListHov));
-        colors.put(TEDITOR, rgb(fgText, bgEditor));
+        colors.put(TEDITOR, rgb(fgText, bgPanel));
         colors.put(TEDITOR_MODAL, rgb(fgText, bgEditor));
         colors.put(TEDITOR_SELECTED, rgb(fgChrome, bgSelect));
         colors.put(TEDITOR_SELECTED_MODAL, rgb(fgChrome, bgSelect));
