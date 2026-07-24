@@ -419,7 +419,7 @@ public class DemoMainWindow extends TWindow {
         } catch (IOException e) {
             messageBox(i18n.getString("errorTitle"),
                 MessageFormat.format(i18n.getString("errorReadingFile"),
-                    e.getMessage()));
+                    ANSI_DEMO_RESOURCE + ": " + e.getMessage()));
         }
     }
 
