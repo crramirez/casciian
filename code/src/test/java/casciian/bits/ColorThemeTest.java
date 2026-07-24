@@ -338,4 +338,47 @@ class ColorThemeTest {
             .build());
         assertTrue(theme.isDarkTheme());
     }
+
+    @Test
+    void testIsDarkThemeWithModalFalseUsesTlabel() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        assertFalse(theme.isDarkTheme(false));
+    }
+
+    @Test
+    void testIsDarkThemeModalUsesModalVariant() {
+        ColorTheme theme = new ColorTheme();
+        // modeless: light bg
+        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        // modal: dark bg
+        theme.setColorFromString(ColorTheme.TLABEL_MODAL, "white on black");
+        assertFalse(theme.isDarkTheme(false));
+        assertTrue(theme.isDarkTheme(true));
+    }
+
+    @Test
+    void testIsDarkThemeModalCacheIsIndependent() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        theme.setColorFromString(ColorTheme.TLABEL_MODAL, "white on black");
+
+        // Prime both caches.
+        assertFalse(theme.isDarkTheme(false));
+        assertTrue(theme.isDarkTheme(true));
+
+        // Changing TLABEL_MODAL should invalidate the modal cache but the
+        // modeless result is still false.
+        theme.setColorFromString(ColorTheme.TLABEL_MODAL, "black on white");
+        assertFalse(theme.isDarkTheme(false));
+        assertFalse(theme.isDarkTheme(true));
+    }
+
+    @Test
+    void testIsDarkThemeNoArgDelegatesToModeless() {
+        ColorTheme theme = new ColorTheme();
+        theme.setColorFromString(ColorTheme.TLABEL, "black on white");
+        assertFalse(theme.isDarkTheme());
+        assertFalse(theme.isDarkTheme(false));
+    }
 }

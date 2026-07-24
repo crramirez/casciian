@@ -853,12 +853,18 @@ public class ColorTheme {
     private final SortedMap<String, CellAttributes> colors;
 
     /**
-     * Cached result of {@link #isDarkTheme()}.  Themes rarely change once
-     * loaded, so the (somewhat expensive) luminance computation is only
-     * performed once per theme and reused on subsequent calls.  It is
-     * invalidated whenever the theme's colors are modified.
+     * Cached result of {@link #isDarkTheme()} for the modeless variant.
+     * Themes rarely change once loaded, so the (somewhat expensive) luminance
+     * computation is only performed once per theme and reused on subsequent
+     * calls.  It is invalidated whenever the theme's colors are modified.
      */
     private Boolean isDarkThemeCache;
+
+    /**
+     * Cached result of {@link #isDarkTheme(boolean)} for the modal variant
+     * (i.e. when {@code modal=true}).
+     */
+    private Boolean isDarkThemeModalCache;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -977,28 +983,65 @@ public class ColorTheme {
      * @return true if the theme's background is darker than its foreground
      */
     public boolean isDarkTheme() {
-        if (isDarkThemeCache != null) {
-            return isDarkThemeCache;
-        }
-
-        CellAttributes label = getColor(TLABEL);
-        boolean result;
-        if (label == null) {
-            result = true;
-        } else {
-            result = channelLuminance(label, false) < channelLuminance(label, true);
-        }
-        isDarkThemeCache = result;
-        return result;
+        return isDarkTheme(false);
     }
 
     /**
-     * Invalidate the cached {@link #isDarkTheme()} result.  Must be called
+     * Determine whether the current theme is a "dark" theme, using either the
+     * standard or the modal variant of the {@link #TLABEL} color.
+     *
+     * <p>
+     * When {@code modal} is {@code true} the {@link #TLABEL_MODAL} color is
+     * used for the luminance comparison; otherwise {@link #TLABEL} is used.
+     * If the modal variant is not registered in the theme the base
+     * {@link #TLABEL} color is used as a fallback.  Results are cached
+     * separately for each variant and invalidated whenever theme colors change.
+     * </p>
+     *
+     * @param modal {@code true} to use the modal variant of {@code tlabel}
+     * @return true if the theme's background is darker than its foreground
+     */
+    public boolean isDarkTheme(final boolean modal) {
+        if (modal) {
+            if (isDarkThemeModalCache != null) {
+                return isDarkThemeModalCache;
+            }
+            CellAttributes label = getColor(TLABEL_MODAL);
+            if (label == null) {
+                label = getColor(TLABEL);
+            }
+            boolean result;
+            if (label == null) {
+                result = true;
+            } else {
+                result = channelLuminance(label, false) < channelLuminance(label, true);
+            }
+            isDarkThemeModalCache = result;
+            return result;
+        } else {
+            if (isDarkThemeCache != null) {
+                return isDarkThemeCache;
+            }
+            CellAttributes label = getColor(TLABEL);
+            boolean result;
+            if (label == null) {
+                result = true;
+            } else {
+                result = channelLuminance(label, false) < channelLuminance(label, true);
+            }
+            isDarkThemeCache = result;
+            return result;
+        }
+    }
+
+    /**
+     * Invalidate the cached {@link #isDarkTheme()} results.  Must be called
      * whenever the theme's colors are modified so that the cache does not
      * return a stale value.
      */
     private void invalidateIsDarkThemeCache() {
         isDarkThemeCache = null;
+        isDarkThemeModalCache = null;
     }
 
     /**
