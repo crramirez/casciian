@@ -381,6 +381,10 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
+        if (handleClipboardKeypress(keypress)) {
+            return;
+        }
+
         if (keypress.getKey().isShift()) {
             if (keypress.equals(kbShiftLeft)
                 || keypress.equals(kbShiftRight)
@@ -561,6 +565,39 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     }
 
     /**
+     * Handle the clipboard keystrokes: Ctrl-C/Ctrl-Ins (copy),
+     * Ctrl-X/Shift-Del (cut) and Ctrl-V/Shift-Ins (paste).
+     *
+     * <p>
+     * TApplication turns these keys into command events when they are bound
+     * to the Edit menu, but that only happens on the primary event thread:
+     * the modal dialogs that run on the secondary event thread (like
+     * {@link TFileOpenBox}), and applications without an Edit menu, never
+     * see those command events.  Handling the keys here makes the clipboard
+     * work everywhere.
+     * </p>
+     *
+     * @param keypress keystroke event
+     * @return true if the keystroke was a clipboard operation
+     */
+    private boolean handleClipboardKeypress(final TKeypressEvent keypress) {
+        TCommand command = null;
+
+        if (keypress.equals(kbCtrlC) || keypress.equals(kbCtrlIns)) {
+            command = cmCopy;
+        } else if (keypress.equals(kbCtrlX) || keypress.equals(kbShiftDel)) {
+            command = cmCut;
+        } else if (keypress.equals(kbCtrlV) || keypress.equals(kbShiftIns)) {
+            command = cmPaste;
+        }
+        if (command == null) {
+            return false;
+        }
+        onCommand(new TCommandEvent(keypress.getBackend(), command));
+        return true;
+    }
+
+    /**
      * Handle posted command events.
      *
      * @param command command event
@@ -685,8 +722,8 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             Line line = document.getLine(topLine + i);
             int x = 0;
             for (Word word: line.getWords()) {
-                putTextXY(areaX + x - leftColumn, areaY + i, word.getText(),
-                    getTextColor(word));
+                putTextXY(areaX + x - leftColumn, areaY + i,
+                    getDisplayText(word), getTextColor(word));
                 x += word.getDisplayLength();
                 if (x - leftColumn > areaWidth) {
                     break;
@@ -772,6 +809,19 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         ) {
             putAttrXY(x, y, color);
         }
+    }
+
+    /**
+     * Get the text used to draw a word of the document.  Subclasses can
+     * override this to mask the contents of the document, as long as the
+     * returned text has the same display width as the word (see
+     * {@link TPasswordField}).
+     *
+     * @param word the word being drawn
+     * @return the text to draw
+     */
+    protected String getDisplayText(final Word word) {
+        return word.getText();
     }
 
     /**

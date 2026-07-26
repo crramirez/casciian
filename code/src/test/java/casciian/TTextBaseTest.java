@@ -17,11 +17,16 @@ package casciian;
 
 import org.junit.jupiter.api.Test;
 
+import casciian.backend.HeadlessBackend;
+import casciian.bits.Clipboard;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import static casciian.TCommand.cmClear;
 import static casciian.TCommand.cmPaste;
 import static casciian.TKeypress.kbBackspace;
+import static casciian.TKeypress.kbCtrlC;
+import static casciian.TKeypress.kbCtrlV;
+import static casciian.TKeypress.kbCtrlX;
 import static casciian.TKeypress.kbDel;
 import static casciian.TKeypress.kbEnter;
 import static casciian.TKeypress.kbLeft;
@@ -297,5 +302,75 @@ class TTextBaseTest {
         text.setText("three");
         assertEquals("three", text.getText());
         assertFalse(text.hasSelection());
+    }
+
+    // ------------------------------------------------------------------------
+    // Clipboard --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Create a window to hold a widget.  A widget needs a window to reach the
+     * application clipboard.
+     *
+     * @return the window
+     */
+    private TWindow makeWindow() {
+        return new TWindow(new TApplication(new HeadlessBackend()), "test",
+            0, 0, 40, 10);
+    }
+
+    /**
+     * The clipboard keys work without going through the Edit menu, so that
+     * they also work on the modal dialogs that run on the secondary event
+     * thread (TFileOpenBox, TMessageBox) and in applications with no menu.
+     */
+    @Test
+    void clipboardKeysWorkWithoutTheEditMenu() {
+        TWindow window = makeWindow();
+        Clipboard clipboard = window.getApplication().getClipboard();
+        TField field = new TField(window, 1, 1, 20, false, "hello world");
+
+        field.home();
+        for (int i = 0; i < 5; i++) {
+            press(field, kbShiftRight);
+        }
+        press(field, kbCtrlC);
+        assertEquals("hello ", clipboard.pasteText());
+        assertEquals("hello world", field.getText());
+
+        press(field, kbCtrlX);
+        assertEquals("hello ", clipboard.pasteText());
+        assertEquals("world", field.getText());
+
+        field.home();
+        press(field, kbCtrlV);
+        assertEquals("hello world", field.getText());
+    }
+
+    /**
+     * A password field never puts its text on the clipboard.
+     */
+    @Test
+    void passwordFieldDoesNotCopyToTheClipboard() {
+        TWindow window = makeWindow();
+        Clipboard clipboard = window.getApplication().getClipboard();
+        clipboard.copyText("other");
+        TPasswordField field = new TPasswordField(window, 1, 1, 20, false,
+            "secret");
+
+        field.selectAll();
+        press(field, kbCtrlC);
+        assertEquals("other", clipboard.pasteText());
+        press(field, kbCtrlX);
+        assertEquals("other", clipboard.pasteText());
+        assertEquals("secret", field.getText());
+
+        assertFalse(field.isEditMenuCopy());
+        assertFalse(field.isEditMenuCut());
+
+        // Pasting into it still works.
+        field.setText("");
+        press(field, kbCtrlV);
+        assertEquals("other", field.getText());
     }
 }

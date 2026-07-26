@@ -224,4 +224,38 @@ class TTextBaseRenderTest {
         assertTrue(field.getCursorX() < field.getWidth());
         assertEquals("abcde", field.getText());
     }
+
+    /**
+     * A password field masks its text with stars, whether it is active or
+     * not.
+     */
+    @Test
+    void passwordFieldAlwaysDrawsStars() {
+        TWindow w = makeWindow();
+        TPasswordField field = new TPasswordField(w, 1, 1, 10, false, "secret");
+        w.activate(field);
+
+        drawWidget(field);
+
+        int x = field.getAbsoluteX();
+        int y = field.getAbsoluteY();
+        assertEquals("******", screenText(x, y, 6));
+        assertEquals("secret", field.getText());
+    }
+
+    /**
+     * A password field highlights its selection, over the stars.
+     */
+    @Test
+    void passwordFieldHighlightsTheSelection() {
+        TWindow w = makeWindow();
+        TPasswordField field = new TPasswordField(w, 1, 1, 10, false, "secret");
+        field.setSelection(0, 0, 0, 2);
+
+        drawWidget(field);
+
+        int x = field.getAbsoluteX();
+        int y = field.getAbsoluteY();
+        assertNotEquals(screenAttr(x, y), screenAttr(x + 5, y));
+    }
 }

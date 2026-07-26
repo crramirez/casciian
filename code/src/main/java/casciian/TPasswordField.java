@@ -1,25 +1,39 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
-import casciian.bits.CellAttributes;
 import casciian.bits.StringUtils;
+import casciian.event.TCommandEvent;
+import casciian.texteditor.Word;
+import static casciian.TCommand.*;
 
 /**
  * TPasswordField implements an editable text field that displays
- * stars/asterisks when it is not active.
+ * stars/asterisks instead of the text it holds.
+ *
+ * <p>
+ * It behaves like {@link TField}: the text can be selected with the mouse or
+ * with shift + the navigation keys, and text can be pasted into it.  As is
+ * customary for password entry, the text is never copied to the clipboard:
+ * cut and copy do nothing.
+ * </p>
  */
 public class TPasswordField extends TField {
 
@@ -83,52 +97,63 @@ public class TPasswordField extends TField {
     // ------------------------------------------------------------------------
 
     /**
-     * Draw the text field.
+     * The password is never copied to the clipboard.
+     *
+     * @param command command event
      */
     @Override
-    public void draw() {
-        final CellAttributes fieldColor = new CellAttributes();
-
-        boolean showStars = false;
-        if (isAbsoluteActive()) {
-            fieldColor.setTo(getWidgetColor("tfield.active"));
-        } else {
-            fieldColor.setTo(getWidgetColor("tfield.inactive"));
-            showStars = true;
-        }
-        // Pulse color.
-        if (isActive() && getWindow().isActive()
-            && getApplication().hasAnimations()
-        ) {
-            fieldColor.setPulse(true, false, 0);
-            fieldColor.setPulseColorRGB(getScreen().getBackend().
-                attrToForegroundColor(getWidgetColor(
-                    "tfield.pulse")));
+    public void onCommand(final TCommandEvent command) {
+        if (command.equals(cmCopy) || command.equals(cmCut)) {
+            // Do not expose the password to the clipboard.
+            return;
         }
 
-        int end = windowStart + textAreaWidth();
-        if (end > StringUtils.width(text)) {
-            end = StringUtils.width(text);
-        }
+        super.onCommand(command);
+    }
 
-        if (padding > 0) {
-            // Paint the left and right padding cells in the field color.
-            for (int i = 0; i < padding; i++) {
-                putCharXY(i, 0, ' ', fieldColor);
-                putCharXY(getWidth() - 1 - i, 0, ' ', fieldColor);
-            }
-        }
-        hLineXY(padding, 0, textAreaWidth(), backgroundChar, fieldColor);
-        if (showStars) {
-            hLineXY(padding, 0, Math.max(0, textAreaWidth() - 2), '*',
-                fieldColor);
-        } else {
-            putStringXY(padding, 0, text.substring(screenToTextPosition(windowStart),
-                    screenToTextPosition(end)), fieldColor);
-        }
+    // ------------------------------------------------------------------------
+    // TTextBase --------------------------------------------------------------
+    // ------------------------------------------------------------------------
 
-        // Fix the cursor, it will be rendered by TApplication.drawAll().
-        updateCursor();
+    /**
+     * Draw stars instead of the text.  One star is drawn per display cell,
+     * so that the cursor and the selection line up with the real text.
+     *
+     * @param word the word being drawn
+     * @return as many stars as the word is wide
+     */
+    @Override
+    protected String getDisplayText(final Word word) {
+        int width = StringUtils.width(word.getText());
+        StringBuilder stars = new StringBuilder(width);
+        for (int i = 0; i < width; i++) {
+            stars.append('*');
+        }
+        return stars.toString();
+    }
+
+    // ------------------------------------------------------------------------
+    // EditMenuUser -----------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The password cannot be cut to the clipboard.
+     *
+     * @return false
+     */
+    @Override
+    public boolean isEditMenuCut() {
+        return false;
+    }
+
+    /**
+     * The password cannot be copied to the clipboard.
+     *
+     * @return false
+     */
+    @Override
+    public boolean isEditMenuCopy() {
+        return false;
     }
 
 }
