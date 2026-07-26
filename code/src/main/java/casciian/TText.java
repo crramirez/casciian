@@ -164,12 +164,12 @@ public class TText extends TTextBase {
 
         setMouseStyle("text");
 
-        lines = new ArrayList<String>();
+        lines = new ArrayList<>();
 
         vScroller = new TVScroller(this, getWidth() - 1, 0,
             Math.max(1, getHeight() - 1));
         hScroller = new THScroller(this, 0, getHeight() - 1,
-            Math.max(1, getWidth() - 1));
+            Math.max(1, calculateHScrollerWidth()));
         reflowData();
     }
 
@@ -220,7 +220,7 @@ public class TText extends TTextBase {
     public void setWidth(final int width) {
         super.setWidth(width);
         if (hScroller != null) {
-            hScroller.setWidth(getWidth() - 1);
+            hScroller.setWidth(calculateHScrollerWidth());
         }
         if (vScroller != null) {
             vScroller.setX(getWidth() - 1);

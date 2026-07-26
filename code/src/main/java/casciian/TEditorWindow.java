@@ -57,7 +57,7 @@ public class TEditorWindow extends TScrollableWindow {
     /**
      * Hang onto my TEditor so I can resize it with the window.
      */
-    private TEditor editField;
+    private final TEditor editField;
 
     /**
      * The fully-qualified name of the file being edited.

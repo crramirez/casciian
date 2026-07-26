@@ -124,7 +124,7 @@ public class TScrollable extends TWidget implements Scrollable {
     protected void placeScrollbars() {
         if (hScroller != null) {
             hScroller.setY(getHeight() - 1);
-            hScroller.setWidth(getWidth() - 1);
+            hScroller.setWidth(calculateHScrollerWidth());
             hScroller.setBigChange(getWidth() - 1);
         }
         if (vScroller != null) {
@@ -132,6 +132,11 @@ public class TScrollable extends TWidget implements Scrollable {
             vScroller.setHeight(getHeight() - 1);
             vScroller.setBigChange(getHeight() - 1);
         }
+    }
+
+    protected int calculateHScrollerWidth() {
+        boolean atTheBotton = getWindow().getHeight() == getY() + getHeight() + 1;
+        return getWidth() - (atTheBotton ? 2: 1);
     }
 
     /**
