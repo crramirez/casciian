@@ -55,6 +55,11 @@ public class TText extends TTextBase {
     // ------------------------------------------------------------------------
 
     /**
+     * The ColorTheme key used to highlight the selected text.
+     */
+    private static final String SELECTED_COLOR_KEY = "ttext.selected";
+
+    /**
      * Available text justifications.
      */
     public enum Justification {
@@ -163,6 +168,7 @@ public class TText extends TTextBase {
         this.colorKey = colorKey;
 
         setMouseStyle("text");
+        setSelectedColorKey(SELECTED_COLOR_KEY);
 
         lines = new ArrayList<>();
 

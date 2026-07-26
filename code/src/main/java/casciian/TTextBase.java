@@ -20,6 +20,7 @@ import java.util.List;
 
 import casciian.backend.Backend;
 import casciian.bits.CellAttributes;
+import casciian.bits.ColorTheme;
 import casciian.bits.ComplexCell;
 import casciian.bits.StringUtils;
 import casciian.event.TCommandEvent;
@@ -79,7 +80,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     /**
      * The ColorTheme key used to highlight the selected text.
      */
-    private String selectedColorKey = "teditor.selected";
+    private String selectedColorKey = ColorTheme.TEDITOR_SELECTED;
 
     /**
      * The topmost line number in the visible area.  0-based.
@@ -865,7 +866,9 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     protected CellAttributes getSelectedColor() {
         CellAttributes color = getWidgetColor(selectedColorKey);
         if (color == null) {
-            color = getWidgetColor("teditor.selected");
+            // The theme does not know this key: fall back on the editor's
+            // selection color, which every theme defines.
+            color = getWidgetColor(ColorTheme.TEDITOR_SELECTED);
         }
         if (color == null) {
             color = new CellAttributes();

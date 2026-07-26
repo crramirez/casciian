@@ -21,6 +21,7 @@ import casciian.backend.HeadlessBackend;
 import casciian.bits.Clipboard;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
+import casciian.event.TMouseEvent;
 import static casciian.TCommand.cmClear;
 import static casciian.TCommand.cmPaste;
 import static casciian.TKeypress.kbBackspace;
@@ -345,6 +346,74 @@ class TTextBaseTest {
         field.home();
         press(field, kbCtrlV);
         assertEquals("hello world", field.getText());
+    }
+
+    // ------------------------------------------------------------------------
+    // Focus ------------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Tabbing into a field selects its whole text, so that typing replaces the
+     * old value.
+     */
+    @Test
+    void fieldSelectsAllTextWhenItGainsFocus() {
+        TWindow window = makeWindow();
+        TField first = new TField(window, 1, 1, 20, false, "hello world");
+        TField second = new TField(window, 1, 2, 20, false, "second");
+
+        window.activate(first);
+        assertTrue(first.hasSelection());
+        assertEquals("hello world", first.getSelection());
+
+        window.activate(second);
+        assertEquals("second", second.getSelection());
+
+        // Typing replaces the whole value.
+        type(second, 'X');
+        assertEquals("X", second.getText());
+    }
+
+    /**
+     * An empty field has nothing to select when it gains the focus.
+     */
+    @Test
+    void fieldGainingFocusWithNoTextHasNoVisibleSelection() {
+        TWindow window = makeWindow();
+        TField other = new TField(window, 1, 1, 20, false, "other");
+        TField field = new TField(window, 1, 2, 20, false, "");
+
+        window.activate(other);
+        window.activate(field);
+
+        assertFalse(field.hasVisibleSelection());
+        type(field, 'a');
+        assertEquals("a", field.getText());
+    }
+
+    /**
+     * Clicking on a field to focus it puts the cursor where the mouse is
+     * instead of leaving the whole text selected.
+     */
+    @Test
+    void fieldClickCollapsesTheSelectionFromFocusing() {
+        TWindow window = makeWindow();
+        TField other = new TField(window, 1, 1, 20, false, "other");
+        TField field = new TField(window, 1, 2, 20, false, "hello world");
+
+        window.activate(other);
+        window.activate(field);
+        assertTrue(field.hasVisibleSelection());
+
+        // The click that comes with the focus change lands on the 3rd cell.
+        field.onMouseDown(new TMouseEvent(null, TMouseEvent.Type.MOUSE_DOWN,
+            field.getTextAreaX() + 2, 0,
+            field.getAbsoluteX() + field.getTextAreaX() + 2,
+            field.getAbsoluteY(), 0, 0,
+            true, false, false, false, false, false, false, false));
+
+        assertFalse(field.hasVisibleSelection());
+        assertEquals(3, field.getEditingColumnNumber());
     }
 
     /**

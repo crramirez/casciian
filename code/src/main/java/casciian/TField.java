@@ -111,6 +111,11 @@ public class TField extends TTextBase {
     private String inactiveColorKey = "tfield.inactive";
 
     /**
+     * The color to use for the selected text.
+     */
+    private static final String SELECTED_COLOR_KEY = "tfield.selected";
+
+    /**
      * The color used to draw the text on the last draw() call.
      */
     private CellAttributes fieldColor = null;
@@ -215,6 +220,7 @@ public class TField extends TTextBase {
 
         setCursorVisible(true);
         setMouseStyle("text");
+        setSelectedColorKey(SELECTED_COLOR_KEY);
 
         this.fixed = fixed;
         this.enterAction = enterAction;
@@ -301,6 +307,18 @@ public class TField extends TTextBase {
     }
 
     /**
+     * A field only shows its selection while it has the focus: an unfocused
+     * field draws its text plainly, even though the selection is remembered
+     * for when the focus comes back.
+     *
+     * @return true if the selection must be highlighted
+     */
+    @Override
+    protected boolean hasVisibleSelection() {
+        return isAbsoluteActive() && super.hasVisibleSelection();
+    }
+
+    /**
      * The text of a field is always drawn with the field color.
      *
      * @param word the word being drawn
@@ -348,6 +366,24 @@ public class TField extends TTextBase {
     // ------------------------------------------------------------------------
     // Event handlers ---------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Select the whole text when the field gains the focus, so that typing
+     * replaces the old value.  When the focus came from a mouse click, the
+     * click that follows collapses the selection to the clicked position,
+     * which is the expected behavior for a mouse.
+     */
+    @Override
+    protected void onActivate() {
+        super.onActivate();
+
+        if (document == null) {
+            // The parent activated us from TWidget's constructor: there is no
+            // document to select yet.
+            return;
+        }
+        selectAll();
+    }
 
     /**
      * Returns true if the mouse is currently on the field.

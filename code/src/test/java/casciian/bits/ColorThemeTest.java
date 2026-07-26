@@ -21,6 +21,9 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Consumer;
 
 import static casciian.bits.Color.BLACK;
 import static casciian.bits.Color.WHITE;
@@ -91,6 +94,51 @@ class ColorThemeTest {
         CellAttributes attr = theme.getColor(ColorTheme.TWINDOW_BACKGROUND);
         assertTrue(attr.getBackColorRGB() >= 0);
         assertEquals(-1, attr.getBackColorPalette());
+    }
+
+    /**
+     * Every built-in theme must define the field and read-only-text selection
+     * colors, and they must be distinguishable from the color the text is
+     * drawn with, otherwise the selection is invisible.
+     */
+    @Test
+    void testAllThemesDefineVisibleSelectionColors() {
+        Map<String, Consumer<ColorTheme>> themes = new LinkedHashMap<>();
+        themes.put("default", ColorTheme::setDefaultTheme);
+        themes.put("femme", ColorTheme::setFemme);
+        themes.put("qmodem5", ColorTheme::setQmodem5);
+        themes.put("darkDefault", ColorTheme::setDarkDefault);
+        themes.put("midnightCommander", ColorTheme::setMidnightCommander);
+        themes.put("flatDark", ColorTheme::setFlatDark);
+        themes.put("vsCodeDark", ColorTheme::setVSCodeDark);
+        themes.put("vsCodeLight", ColorTheme::setVSCodeLight);
+
+        for (Map.Entry<String, Consumer<ColorTheme>> entry : themes.entrySet()) {
+            String name = entry.getKey();
+            ColorTheme theme = new ColorTheme();
+            entry.getValue().accept(theme);
+
+            for (String key : new String[] {
+                    ColorTheme.TFIELD_SELECTED,
+                    ColorTheme.TFIELD_SELECTED_MODAL,
+                    ColorTheme.TTEXT_SELECTED,
+                    ColorTheme.TTEXT_SELECTED_MODAL,
+                }
+            ) {
+                assertNotNull(theme.getColor(key),
+                    name + " does not define " + key);
+            }
+
+            assertNotEquals(theme.getColor(ColorTheme.TFIELD_ACTIVE),
+                theme.getColor(ColorTheme.TFIELD_SELECTED),
+                name + ": the field selection is invisible when focused");
+            assertNotEquals(theme.getColor(ColorTheme.TFIELD_INACTIVE),
+                theme.getColor(ColorTheme.TFIELD_SELECTED),
+                name + ": the field selection is invisible when unfocused");
+            assertNotEquals(theme.getColor(ColorTheme.TTEXT),
+                theme.getColor(ColorTheme.TTEXT_SELECTED),
+                name + ": the text selection is invisible");
+        }
     }
 
     @Test

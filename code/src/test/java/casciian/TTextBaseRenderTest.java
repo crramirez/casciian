@@ -244,6 +244,52 @@ class TTextBaseRenderTest {
     }
 
     /**
+     * A field that lost the focus does not highlight its selection anymore,
+     * but it does remember it for when the focus comes back.
+     */
+    @Test
+    void fieldDoesNotHighlightTheSelectionWhenUnfocused() {
+        TWindow w = makeWindow();
+        TField field = new TField(w, 1, 1, 10, false, "abcdef");
+        TField other = new TField(w, 1, 2, 10, false, "other");
+        w.activate(field);
+        field.setSelection(0, 0, 0, 2);
+
+        w.activate(other);
+        drawWidget(field);
+
+        int x = field.getAbsoluteX();
+        int y = field.getAbsoluteY();
+        // Nothing is highlighted: the selected and unselected cells match.
+        assertEquals(screenAttr(x, y), screenAttr(x + 5, y));
+        assertTrue(field.hasSelection());
+
+        // Focus comes back: the selection shows up again.
+        w.activate(field);
+        field.setSelection(0, 0, 0, 2);
+        drawWidget(field);
+        assertNotEquals(screenAttr(x, y), screenAttr(x + 5, y));
+    }
+
+    /**
+     * A field highlights its selection with the tfield.selected theme color,
+     * not with the editor's.
+     */
+    @Test
+    void fieldUsesItsOwnSelectionColor() {
+        TWindow w = makeWindow();
+        TField field = new TField(w, 1, 1, 10, false, "abcdef");
+        w.activate(field);
+        field.setSelection(0, 0, 0, 2);
+
+        drawWidget(field);
+
+        CellAttributes expected = field.getWidgetColor("tfield.selected");
+        assertEquals(expected,
+            screenAttr(field.getAbsoluteX(), field.getAbsoluteY()));
+    }
+
+    /**
      * A password field highlights its selection, over the stars.
      */
     @Test
