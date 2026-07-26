@@ -20,6 +20,7 @@ import java.util.List;
 
 import casciian.backend.Backend;
 import casciian.bits.CellAttributes;
+import casciian.bits.ComplexCell;
 import casciian.bits.StringUtils;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
@@ -721,17 +722,18 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         int areaRight = areaX + getTextAreaWidth();
 
         int screenX = x;
-        for (int i = 0; i < text.length(); ) {
-            int ch = text.codePointAt(i);
-            i += Character.charCount(ch);
-            int chWidth = StringUtils.width(ch);
-            if ((screenX >= areaX) && (screenX + chWidth <= areaRight)) {
-                putCharXY(screenX, y, ch, color);
-            }
-            screenX += chWidth;
-            if (screenX >= areaRight) {
+        for (ComplexCell cell: StringUtils.toComplexCells(text)) {
+            int cellWidth = cell.getDisplayWidth();
+            if (screenX + cellWidth > areaRight) {
+                // Never partially place a two-cell cluster.
                 break;
             }
+            if (screenX >= areaX) {
+                ComplexCell placed = new ComplexCell(cell);
+                placed.setAttr(color);
+                putCharXY(screenX, y, placed);
+            }
+            screenX += cellWidth;
         }
     }
 
@@ -799,7 +801,61 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         if (color == null) {
             color = new CellAttributes();
         }
+        if ((defaultColor != null) && sameColors(color, defaultColor)) {
+            // The theme uses the same color for the text and the selection:
+            // the selection would be invisible, so reverse the text color.
+            color = reverseColor(defaultColor);
+        }
         return color;
+    }
+
+    /**
+     * Check if two attributes paint the same foreground and background
+     * colors, regardless of the other attributes.
+     *
+     * @param first the first attributes
+     * @param second the second attributes
+     * @return true if both paint the same colors
+     */
+    private static boolean sameColors(final CellAttributes first,
+        final CellAttributes second) {
+
+        return ((first.getForeColor() == second.getForeColor())
+            && (first.getBackColor() == second.getBackColor())
+            && (first.getForeColorRGB() == second.getForeColorRGB())
+            && (first.getBackColorRGB() == second.getBackColorRGB())
+            && (first.getForeColorPalette() == second.getForeColorPalette())
+            && (first.getBackColorPalette() == second.getBackColorPalette()));
+    }
+
+    /**
+     * Build the reverse-video version of a color: the foreground and
+     * background colors are swapped.
+     *
+     * @param color the color to reverse
+     * @return a new reversed color
+     */
+    private static CellAttributes reverseColor(final CellAttributes color) {
+        CellAttributes result = new CellAttributes();
+        result.setTo(color);
+        result.setPulse(false, false, 0);
+
+        if (color.getForeColorPalette() >= 0) {
+            result.setBackColorPalette(color.getForeColorPalette());
+        } else if (color.getForeColorRGB() >= 0) {
+            result.setBackColorRGB(color.getForeColorRGB());
+        } else {
+            result.setBackColor(color.getForeColor());
+        }
+
+        if (color.getBackColorPalette() >= 0) {
+            result.setForeColorPalette(color.getBackColorPalette());
+        } else if (color.getBackColorRGB() >= 0) {
+            result.setForeColorRGB(color.getBackColorRGB());
+        } else {
+            result.setForeColor(color.getBackColor());
+        }
+        return result;
     }
 
     /**
