@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import casciian.backend.HeadlessBackend;
 import casciian.backend.Screen;
 import casciian.bits.CellAttributes;
+import casciian.event.TKeypressEvent;
+import casciian.event.TMouseEvent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -165,5 +167,61 @@ class TTextBaseRenderTest {
         int x = text.getAbsoluteX();
         int y = text.getAbsoluteY();
         assertNotEquals(screenAttr(x, y), screenAttr(x + 6, y));
+    }
+
+    /**
+     * A single-line field must not swallow the vertical navigation keys: they
+     * move the focus to the next/previous widget, as they did before the
+     * refactor.
+     */
+    @Test
+    void fieldVerticalKeysSwitchWidgets() {
+        TWindow w = makeWindow();
+        TField field1 = new TField(w, 1, 1, 10, false, "one");
+        TField field2 = new TField(w, 1, 2, 10, false, "two");
+        w.activate(field1);
+        assertTrue(field1.isActive());
+
+        field1.onKeypress(new TKeypressEvent(null, TKeypress.kbDown));
+        assertTrue(field2.isActive());
+
+        field2.onKeypress(new TKeypressEvent(null, TKeypress.kbUp));
+        assertTrue(field1.isActive());
+    }
+
+    /**
+     * A field does not scroll with the mouse wheel, and a password field can
+     * still be drawn afterwards.
+     */
+    @Test
+    void fieldIgnoresMouseWheel() {
+        TWindow w = makeWindow();
+        TPasswordField field = new TPasswordField(w, 1, 1, 10, false, "abcde");
+        for (int i = 0; i < 10; i++) {
+            field.onMouseDown(new TMouseEvent(null,
+                TMouseEvent.Type.MOUSE_DOWN, 1, 0,
+                field.getAbsoluteX() + 1, field.getAbsoluteY(), 0, 0,
+                false, false, false, false, false, true, false, false,
+                false, false));
+        }
+        // Must not throw.
+        drawWidget(w);
+        assertEquals("abcde", field.getText());
+    }
+
+    /**
+     * On a fixed field the cursor never leaves the text area.
+     */
+    @Test
+    void fixedFieldKeepsCursorInsideTheField() {
+        TWindow w = makeWindow();
+        TField field = new TField(w, 1, 1, 5, true, "abcde");
+        for (int i = 0; i < 10; i++) {
+            field.onKeypress(new TKeypressEvent(null, TKeypress.kbRight));
+        }
+        assertTrue(field.getCursorX() < field.getWidth());
+        field.onKeypress(new TKeypressEvent(null, TKeypress.kbEnd));
+        assertTrue(field.getCursorX() < field.getWidth());
+        assertEquals("abcde", field.getText());
     }
 }

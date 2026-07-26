@@ -23,10 +23,12 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 
+import casciian.bits.CellAttributes;
 import casciian.bits.StringUtils;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.texteditor.Document;
+import casciian.texteditor.Word;
 import static casciian.TKeypress.kbDown;
 import static casciian.TKeypress.kbEnd;
 import static casciian.TKeypress.kbHome;
@@ -247,8 +249,25 @@ public class TText extends TTextBase {
      */
     @Override
     public void draw() {
+        CellAttributes color = getWidgetColor(colorKey);
+        if (color != null) {
+            // Pick up runtime theme changes.
+            setDefaultColor(color);
+        }
         syncFromScrollers();
         drawDocument();
+    }
+
+    /**
+     * The text of a read-only text box is always drawn with the current
+     * theme color.
+     *
+     * @param word the word being drawn
+     * @return the color to draw the word with
+     */
+    @Override
+    protected CellAttributes getTextColor(final Word word) {
+        return getDefaultColor();
     }
 
     /**

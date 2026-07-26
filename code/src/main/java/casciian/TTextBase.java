@@ -241,6 +241,13 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     @Override
     public void onMouseDown(final TMouseEvent mouse) {
+        if (isSingleLine()
+            && (mouse.isMouseWheelUp() || mouse.isMouseWheelDown()
+                || mouse.isMouseWheelLeft() || mouse.isMouseWheelRight())
+        ) {
+            // Single-line widgets do not scroll with the wheel.
+            return;
+        }
         if (mouse.isMouseWheelUp()) {
             for (int i = 0; i < wheelScrollSize; i++) {
                 if (topLine > 0) {
@@ -260,7 +267,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             return;
         }
         if (mouse.isMouseWheelLeft()) {
-            int maxColumn = document.getLineLengthMax();
+            int maxColumn = document.getLineLengthMax() - 1;
             for (int i = 0; i < wheelScrollSize; i++) {
                 if (leftColumn < maxColumn) {
                     leftColumn++;
@@ -438,23 +445,23 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         ) {
             document.forwardsWord();
             alignTopLine(true);
-        } else if (keypress.equals(kbUp)
-            || keypress.equals(kbShiftUp)
+        } else if (!isSingleLine()
+            && (keypress.equals(kbUp) || keypress.equals(kbShiftUp))
         ) {
             document.up();
             alignTopLine(false);
-        } else if (keypress.equals(kbDown)
-            || keypress.equals(kbShiftDown)
+        } else if (!isSingleLine()
+            && (keypress.equals(kbDown) || keypress.equals(kbShiftDown))
         ) {
             document.down();
             alignTopLine(true);
-        } else if (keypress.equals(kbPgUp)
-            || keypress.equals(kbShiftPgUp)
+        } else if (!isSingleLine()
+            && (keypress.equals(kbPgUp) || keypress.equals(kbShiftPgUp))
         ) {
             document.up(getTextAreaHeight() - 1);
             alignTopLine(false);
-        } else if (keypress.equals(kbPgDn)
-            || keypress.equals(kbShiftPgDn)
+        } else if (!isSingleLine()
+            && (keypress.equals(kbPgDn) || keypress.equals(kbShiftPgDn))
         ) {
             document.down(getTextAreaHeight() - 1);
             alignTopLine(true);
@@ -615,6 +622,18 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     // ------------------------------------------------------------------------
     // TTextBase --------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Check if this widget holds a single line of text.  Single-line widgets
+     * do not consume the vertical navigation keys (up, down, page up, page
+     * down) or the mouse wheel, so that they can be used to move focus
+     * between widgets.
+     *
+     * @return true if this widget holds exactly one line
+     */
+    protected boolean isSingleLine() {
+        return false;
+    }
 
     /**
      * Check if this widget breaks lines when Enter is pressed.  Single-line

@@ -241,6 +241,16 @@ public class TField extends TTextBase {
     }
 
     /**
+     * A field holds a single line.
+     *
+     * @return true
+     */
+    @Override
+    protected boolean isSingleLine() {
+        return true;
+    }
+
+    /**
      * A field holds a single line: Enter does not break the line.
      *
      * @return false
@@ -589,6 +599,12 @@ public class TField extends TTextBase {
      * Update the mirrored text/position values from the document.
      */
     private void syncFields() {
+        if (fixed && (textAreaWidth() > 0)
+            && (document.getCursor() > textAreaWidth() - 1)
+        ) {
+            // A fixed field cannot put the cursor past its last cell.
+            document.setCursor(textAreaWidth() - 1);
+        }
         text = document.getLine(0).getRawString();
         position = document.getCurrentLine().getRawCursor();
         screenPosition = document.getCursor();
@@ -692,8 +708,8 @@ public class TField extends TTextBase {
         int cursor = document.getCursor();
         int start = getLeftColumn();
 
-        if ((cursor > textAreaWidth()) && fixed) {
-            setCursorX(padding + textAreaWidth());
+        if ((cursor >= textAreaWidth()) && fixed) {
+            setCursorX(padding + Math.max(0, textAreaWidth() - 1));
         } else if ((cursor - start >= textAreaWidth()) && !fixed) {
             setCursorX(padding + textAreaWidth() - 1);
         } else {
