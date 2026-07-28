@@ -158,8 +158,9 @@ class TTextBaseTest {
             press(field, kbShiftRight);
         }
         assertTrue(field.hasSelection());
-        // The cell under the cursor is part of the selection, as in TEditor.
-        assertEquals("hello ", field.getSelection());
+        // The cursor position is a gap between cells: shift-right N times
+        // selects exactly N cells, matching standard editor behavior.
+        assertEquals("hello", field.getSelection());
 
         // A plain navigation key clears the selection.
         press(field, kbLeft);
@@ -174,7 +175,7 @@ class TTextBaseTest {
             press(field, kbShiftRight);
         }
         type(field, 'X');
-        assertEquals("Xworld", field.getText());
+        assertEquals("X world", field.getText());
         assertFalse(field.hasSelection());
     }
 
@@ -240,7 +241,7 @@ class TTextBaseTest {
     @Test
     void editorSelectionAcrossLines() {
         TEditor editor = new TEditor(null, "one\ntwo", 0, 0, 40, 10);
-        editor.setSelection(0, 0, 1, 2);
+        editor.setSelection(0, 0, 1, 3);
         assertTrue(editor.hasSelection());
         assertEquals("one\ntwo", editor.getSelection());
         assertEquals(0, editor.getSelectionStartRow());
@@ -281,7 +282,7 @@ class TTextBaseTest {
     @Test
     void textIsSelectable() {
         TText text = new TText(null, "hello world", 0, 0, 40, 10);
-        text.setSelection(0, 0, 0, 4);
+        text.setSelection(0, 0, 0, 5);
         assertTrue(text.hasSelection());
         assertEquals("hello", text.getSelection());
     }
@@ -336,12 +337,12 @@ class TTextBaseTest {
             press(field, kbShiftRight);
         }
         press(field, kbCtrlC);
-        assertEquals("hello ", clipboard.pasteText());
+        assertEquals("hello", clipboard.pasteText());
         assertEquals("hello world", field.getText());
 
         press(field, kbCtrlX);
-        assertEquals("hello ", clipboard.pasteText());
-        assertEquals("world", field.getText());
+        assertEquals("hello", clipboard.pasteText());
+        assertEquals(" world", field.getText());
 
         field.home();
         press(field, kbCtrlV);

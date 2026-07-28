@@ -95,7 +95,7 @@ public class DemoTextFieldWindow extends TWindow {
     DemoTextFieldWindow(final TApplication parent, final int flags) {
         // Construct a demo window.  X and Y don't matter because it
         // will be centered on screen.
-        super(parent, "", 0, 0, 60, 20, flags);
+        super(parent, "", 0, 0, 60, 24, flags);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -107,12 +107,16 @@ public class DemoTextFieldWindow extends TWindow {
 
         addLabel(i18n.getString("textField1"), 1, row,
             addField(35, row++, 15, false, i18n.getString("fieldText")));
+        row++;
         addLabel(i18n.getString("textField2"), 1, row,
             addField(35, row++, 15, true));
+        row++;
         addLabel(i18n.getString("textField3"), 1, row,
             addPasswordField(35, row++, 15, false));
+        row++;
         addLabel(i18n.getString("textField4"), 1, row,
             addPasswordField(35, row++, 15, true, "hunter2"));
+        row++;
         TField selected = addLabelFor(i18n.getString("textField5"), 1, row,
             addField(35, row++, 40, false, i18n.getString("textField6")));
 

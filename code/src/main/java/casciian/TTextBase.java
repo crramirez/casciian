@@ -735,7 +735,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             if (drawSelection) {
                 if (startRow == endRow) {
                     if (topLine + i == startRow) {
-                        for (x = startCol; x <= endCol; x++) {
+                        for (x = startCol; x < endCol; x++) {
                             putSelectionAttrXY(areaX + x - leftColumn,
                                 areaY + i, selectedColor);
                         }
@@ -747,7 +747,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
                                 areaY + i, selectedColor);
                         }
                     } else if (topLine + i == endRow) {
-                        for (x = 0; x <= endCol; x++) {
+                        for (x = 0; x < endCol; x++) {
                             putSelectionAttrXY(areaX + x - leftColumn,
                                 areaY + i, selectedColor);
                         }
@@ -1352,33 +1352,25 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             startRow = selectionLine1;
             endCol = selectionColumn0;
             endRow = selectionLine0;
-
-            if (endRow >= document.getLineCount()) {
-                // The selection started beyond EOF, trim it to EOF.
-                endRow = document.getLineCount() - 1;
-                endCol = document.getLine(endRow).getDisplayLength();
-            } else if (endRow == document.getLineCount() - 1) {
-                // The selection started beyond EOF, trim it to EOF.
-                if (endCol >= document.getLine(endRow).getDisplayLength()) {
-                    endCol = document.getLine(endRow).getDisplayLength() - 1;
-                }
-            }
         }
 
+        // The end column is the cursor position just past the last
+        // selected cell, i.e. it is exclusive.
         if (endRow >= document.getLineCount()) {
+            // The selection ran beyond EOF, trim it to EOF.
             endRow = document.getLineCount() - 1;
-        }
-        if (startRow >= document.getLineCount()) {
-            startRow = document.getLineCount() - 1;
-        }
-        if (endCol >= document.getLine(endRow).getDisplayLength()) {
-            endCol = document.getLine(endRow).getDisplayLength() - 1;
+            endCol = document.getLine(endRow).getDisplayLength();
+        } else if (endCol > document.getLine(endRow).getDisplayLength()) {
+            endCol = document.getLine(endRow).getDisplayLength();
         }
         if (endCol < 0) {
             endCol = 0;
         }
-        if (startCol >= document.getLine(startRow).getDisplayLength()) {
-            startCol = document.getLine(startRow).getDisplayLength() - 1;
+        if (startRow >= document.getLineCount()) {
+            startRow = document.getLineCount() - 1;
+        }
+        if (startCol > document.getLine(startRow).getDisplayLength()) {
+            startCol = document.getLine(startRow).getDisplayLength();
         }
         if (startCol < 0) {
             startCol = 0;
@@ -1387,7 +1379,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         // Place the cursor on the selection end, and "press backspace" until
         // the cursor matches the selection start.
         document.setLineNumber(endRow);
-        document.setCursor(endCol + 1);
+        document.setCursor(endCol);
         while (!((document.getLineNumber() == startRow)
                 && (document.getCursor() == startCol))
         ) {
@@ -1438,8 +1430,8 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      * @param startColumn the starting column number.  0-based: column 0 is
      * the first column.
      * @param endRow the ending row number.  0-based: row 0 is the first row.
-     * @param endColumn the ending column number.  0-based: column 0 is the
-     * first column.
+     * @param endColumn the ending column number, exclusive: it is one past
+     * the last selected column.  0-based: column 0 is the first column.
      */
     public void setSelection(final int startRow, final int startColumn,
         final int endRow, final int endColumn) {
@@ -1456,8 +1448,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     public void selectAll() {
         int lastRow = document.getLineCount() - 1;
-        int lastColumn = Math.max(0,
-            document.getLine(lastRow).getDisplayLength() - 1);
+        int lastColumn = document.getLine(lastRow).getDisplayLength();
         setSelection(0, 0, lastRow, lastColumn);
     }
 
@@ -1481,8 +1472,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         }
         if (endRow >= document.getLineCount()) {
             endRow = document.getLineCount() - 1;
-            endCol = Math.max(0,
-                document.getLine(endRow).getDisplayLength() - 1);
+            endCol = document.getLine(endRow).getDisplayLength();
         }
 
         StringBuilder sb = new StringBuilder();
@@ -1514,7 +1504,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             for (int i = 0; i < line.length(); ) {
                 int ch = line.codePointAt(i);
 
-                if (x > endCol) {
+                if (x >= endCol) {
                     break;
                 }
 
@@ -1531,7 +1521,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             for (int i = 0; i < line.length(); ) {
                 int ch = line.codePointAt(i);
 
-                if ((x >= startCol) && (x <= endCol)) {
+                if ((x >= startCol) && (x < endCol)) {
                     sb.append(Character.toChars(ch));
                 }
 
@@ -1582,7 +1572,8 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     }
 
     /**
-     * Get the selection ending column number.
+     * Get the selection ending column number, exclusive: it is one past the
+     * last selected column.
      *
      * @return the ending column number, or -1 if there is no selection.
      * 0-based: column 0 is the first column.

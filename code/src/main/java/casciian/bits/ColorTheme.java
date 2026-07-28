@@ -1656,7 +1656,7 @@ public class ColorTheme {
             .build());
         colors.put(TFIELD_SELECTED, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
-            .backColor(BLACK)
+            .backColor(GREEN)
             .build());
         colors.put(TFIELD_SELECTED_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
