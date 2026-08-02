@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
@@ -22,6 +27,8 @@ import casciian.bits.CellAttributes;
 import casciian.bits.StringUtils;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
+import casciian.texteditor.Document;
+import casciian.texteditor.Word;
 import static casciian.TKeypress.kbDown;
 import static casciian.TKeypress.kbEnd;
 import static casciian.TKeypress.kbHome;
@@ -34,12 +41,23 @@ import static casciian.TKeypress.kbUp;
 /**
  * TText implements a simple scrollable text area. It reflows automatically on
  * resize.
+ *
+ * <p>
+ * The text is not editable, but it can be selected with the mouse (or with
+ * shift + the navigation keys) and copied to the clipboard.  The text model,
+ * selection and rendering are provided by {@link TTextBase}.
+ * </p>
  */
-public class TText extends TScrollable {
+public class TText extends TTextBase {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * The ColorTheme key used to highlight the selected text.
+     */
+    private static final String SELECTED_COLOR_KEY = "ttext.selected";
 
     /**
      * Available text justifications.
@@ -144,18 +162,55 @@ public class TText extends TScrollable {
             final String colorKey) {
 
         // Set parent and window
-        super(parent, x, y, width, height);
+        super(parent, text, x, y, width, height, colorKey);
 
-        this.text = text;
+        this.text = (text == null ? "" : text);
         this.colorKey = colorKey;
 
-        lines = new ArrayList<String>();
+        setMouseStyle("text");
+        setSelectedColorKey(SELECTED_COLOR_KEY);
+
+        lines = new ArrayList<>();
 
         vScroller = new TVScroller(this, getWidth() - 1, 0,
             Math.max(1, getHeight() - 1));
         hScroller = new THScroller(this, 0, getHeight() - 1,
-            Math.max(1, getWidth() - 1));
+            Math.max(1, calculateHScrollerWidth()));
         reflowData();
+    }
+
+    // ------------------------------------------------------------------------
+    // TTextBase --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * TText does not allow the text to be modified.
+     *
+     * @return false
+     */
+    @Override
+    public boolean isEditable() {
+        return false;
+    }
+
+    /**
+     * The text area excludes the column used by the vertical scrollbar.
+     *
+     * @return the width of the text area
+     */
+    @Override
+    protected int getTextAreaWidth() {
+        return Math.max(0, getWidth() - 1);
+    }
+
+    /**
+     * The text area excludes the row used by the horizontal scrollbar.
+     *
+     * @return the height of the text area
+     */
+    @Override
+    protected int getTextAreaHeight() {
+        return Math.max(0, getHeight() - 1);
     }
 
     // ------------------------------------------------------------------------
@@ -171,7 +226,7 @@ public class TText extends TScrollable {
     public void setWidth(final int width) {
         super.setWidth(width);
         if (hScroller != null) {
-            hScroller.setWidth(getWidth() - 1);
+            hScroller.setWidth(calculateHScrollerWidth());
         }
         if (vScroller != null) {
             vScroller.setX(getWidth() - 1);
@@ -200,34 +255,25 @@ public class TText extends TScrollable {
      */
     @Override
     public void draw() {
-        // Setup my color
         CellAttributes color = getWidgetColor(colorKey);
-
-        int begin = vScroller.getValue();
-        int topY = 0;
-        for (int i = begin; i < lines.size(); i++) {
-            String line = lines.get(i);
-            if (hScroller.getValue() < StringUtils.width(line)) {
-                line = line.substring(hScroller.getValue());
-            } else {
-                line = "";
-            }
-            if (getWidth() > 3) {
-                String formatString = "%-" + Integer.toString(getWidth() - 1) + "s";
-                putStringXY(0, topY, String.format(formatString, line), color);
-            }
-            topY++;
-
-            if (topY >= (getHeight() - 1)) {
-                break;
-            }
+        if (color != null) {
+            // Pick up runtime theme changes.
+            setDefaultColor(color);
         }
+        syncFromScrollers();
+        drawDocument();
+    }
 
-        // Pad the rest with blank lines
-        for (int i = topY; i < (getHeight() - 1); i++) {
-            hLineXY(0, i, getWidth() - 1, ' ', color);
-        }
-
+    /**
+     * The text of a read-only text box is always drawn with the current
+     * theme color.
+     *
+     * @param word the word being drawn
+     * @return the color to draw the word with
+     */
+    @Override
+    protected CellAttributes getTextColor(final Word word) {
+        return getDefaultColor();
     }
 
     /**
@@ -254,8 +300,21 @@ public class TText extends TScrollable {
             return;
         }
 
-        // Pass to children
+        syncFromScrollers();
         super.onMouseDown(mouse);
+        syncToScrollers();
+    }
+
+    /**
+     * Handle mouse motion events.
+     *
+     * @param mouse mouse motion event
+     */
+    @Override
+    public void onMouseMotion(final TMouseEvent mouse) {
+        syncFromScrollers();
+        super.onMouseMotion(mouse);
+        syncToScrollers();
     }
 
     /**
@@ -265,6 +324,14 @@ public class TText extends TScrollable {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
+        if (keypress.getKey().isShift()) {
+            // Shifted navigation keys extend the selection.
+            syncFromScrollers();
+            super.onKeypress(keypress);
+            syncToScrollers();
+            return;
+        }
+
         if (keypress.equals(kbLeft)) {
             hScroller.decrement();
         } else if (keypress.equals(kbRight)) {
@@ -284,7 +351,10 @@ public class TText extends TScrollable {
         } else {
             // Pass other keys (tab etc.) on
             super.onKeypress(keypress);
+            return;
         }
+        unsetSelection();
+        syncFromScrollers();
     }
 
     /**
@@ -320,6 +390,8 @@ public class TText extends TScrollable {
                 lines.add("");
             }
         }
+        unsetSelection();
+        document = new Document(String.join("\n", lines), getDefaultColor());
         computeBounds();
     }
 
@@ -328,12 +400,39 @@ public class TText extends TScrollable {
     // ------------------------------------------------------------------------
 
     /**
+     * Copy the visible area position from the scrollbars.
+     */
+    private void syncFromScrollers() {
+        if (vScroller != null) {
+            setTopLine(vScroller.getValue());
+        }
+        if (hScroller != null) {
+            setLeftColumn(hScroller.getValue());
+        }
+    }
+
+    /**
+     * Copy the visible area position to the scrollbars.
+     */
+    private void syncToScrollers() {
+        if (vScroller != null) {
+            vScroller.setValue(Math.max(vScroller.getTopValue(),
+                    Math.min(getTopLine(), vScroller.getBottomValue())));
+        }
+        if (hScroller != null) {
+            hScroller.setValue(Math.max(hScroller.getLeftValue(),
+                    Math.min(getLeftColumn(), hScroller.getRightValue())));
+        }
+    }
+
+    /**
      * Set the text.
      *
      * @param text new text to display
      */
+    @Override
     public void setText(final String text) {
-        this.text = text;
+        this.text = (text == null ? "" : text);
         reflowData();
     }
 
@@ -342,8 +441,18 @@ public class TText extends TScrollable {
      *
      * @return the text
      */
+    @Override
     public String getText() {
         return text;
+    }
+
+    /**
+     * Get the ColorTheme key color used for the text.
+     *
+     * @return the color key
+     */
+    public String getColorKey() {
+        return colorKey;
     }
 
     /**

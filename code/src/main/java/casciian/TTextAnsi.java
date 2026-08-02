@@ -84,7 +84,7 @@ public class TTextAnsi extends TScrollable {
         vScroller = new TVScroller(this, getWidth() - 1, 0,
             Math.max(1, getHeight() - 1));
         hScroller = new THScroller(this, 0, getHeight() - 1,
-            Math.max(1, getWidth() - 1));
+            Math.max(1, calculateHScrollerWidth()));
         reflowData();
     }
 
@@ -101,7 +101,7 @@ public class TTextAnsi extends TScrollable {
     public void setWidth(final int width) {
         super.setWidth(width);
         if (hScroller != null) {
-            hScroller.setWidth(getWidth() - 1);
+            hScroller.setWidth(calculateHScrollerWidth());
         }
         if (vScroller != null) {
             vScroller.setX(getWidth() - 1);
@@ -343,21 +343,21 @@ public class TTextAnsi extends TScrollable {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        if (keypress.equals(kbLeft)) {
+        if (keypress.matchesKey(kbLeft)) {
             hScroller.decrement();
-        } else if (keypress.equals(kbRight)) {
+        } else if (keypress.matchesKey(kbRight)) {
             hScroller.increment();
-        } else if (keypress.equals(kbUp)) {
+        } else if (keypress.matchesKey(kbUp)) {
             vScroller.decrement();
-        } else if (keypress.equals(kbDown)) {
+        } else if (keypress.matchesKey(kbDown)) {
             vScroller.increment();
-        } else if (keypress.equals(kbPgUp)) {
+        } else if (keypress.matchesKey(kbPgUp)) {
             vScroller.bigDecrement();
-        } else if (keypress.equals(kbPgDn)) {
+        } else if (keypress.matchesKey(kbPgDn)) {
             vScroller.bigIncrement();
-        } else if (keypress.equals(kbHome)) {
+        } else if (keypress.matchesKey(kbHome)) {
             vScroller.toTop();
-        } else if (keypress.equals(kbEnd)) {
+        } else if (keypress.matchesKey(kbEnd)) {
             vScroller.toBottom();
         } else {
             // Pass other keys (tab etc.) on

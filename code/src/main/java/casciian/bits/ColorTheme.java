@@ -278,6 +278,16 @@ public class ColorTheme {
     public static final String TTEXT_BOLD_MODAL = "ttext.bold.modal";
 
     /**
+     * Color key for TText selected text.
+     */
+    public static final String TTEXT_SELECTED = "ttext.selected";
+
+    /**
+     * Color key for TText selected text in modal mode.
+     */
+    public static final String TTEXT_SELECTED_MODAL = "ttext.selected.modal";
+
+    /**
      * Color key for TField when inactive.
      */
     public static final String TFIELD_INACTIVE = "tfield.inactive";
@@ -296,6 +306,17 @@ public class ColorTheme {
      * Color key for TField when active in modal mode.
      */
     public static final String TFIELD_ACTIVE_MODAL = "tfield.active.modal";
+
+    /**
+     * Color key for TField selected text.  Also used by TPasswordField.
+     */
+    public static final String TFIELD_SELECTED = "tfield.selected";
+
+    /**
+     * Color key for TField selected text in modal mode.  Also used by
+     * TPasswordField.
+     */
+    public static final String TFIELD_SELECTED_MODAL = "tfield.selected.modal";
 
     /**
      * Color key for TField pulse effect.
@@ -1606,6 +1627,15 @@ public class ColorTheme {
             .backColor(WHITE)
             .bold(true)
             .build());
+        // Same as TEDITOR_SELECTED / TEDITOR_SELECTED_MODAL.
+        colors.put(TTEXT_SELECTED, CellAttributes.builder()
+            .foreColor(BLACK)
+            .backColor(CYAN)
+            .build());
+        colors.put(TTEXT_SELECTED_MODAL, CellAttributes.builder()
+            .foreColor(BLACK)
+            .backColor(CYAN)
+            .build());
 
         // TField text
         colors.put(TFIELD_INACTIVE, CellAttributes.builder()
@@ -1613,16 +1643,24 @@ public class ColorTheme {
             .backColor(WHITE)
             .build());
         colors.put(TFIELD_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
+            .foreColor(BRIGHT_WHITE)
+            .backColor(BLUE)
             .build());
         colors.put(TFIELD_ACTIVE, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
             .build());
         colors.put(TFIELD_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
+            .foreColor(BRIGHT_WHITE)
+            .backColor(BLUE)
+            .build());
+        colors.put(TFIELD_SELECTED, CellAttributes.builder()
+            .foreColor(BRIGHT_WHITE)
+            .backColor(GREEN)
+            .build());
+        colors.put(TFIELD_SELECTED_MODAL, CellAttributes.builder()
+            .foreColor(BRIGHT_WHITE)
+            .backColor(GREEN)
             .build());
         // Just a small bit of amber.
         colors.put(TFIELD_PULSE, CellAttributes.builder()
@@ -2477,6 +2515,15 @@ public class ColorTheme {
         color.setForeColor(BRIGHT_WHITE);
         color.setBackColor(BLUE);
         colors.put(TTEXT_BOLD_MODAL, color);
+        // Same as TEDITOR_SELECTED / TEDITOR_SELECTED_MODAL.
+        color = new CellAttributes();
+        color.setForeColor(BLACK);
+        color.setBackColor(CYAN);
+        colors.put(TTEXT_SELECTED, color);
+        color = new CellAttributes();
+        color.setForeColor(BLACK);
+        color.setBackColor(CYAN);
+        colors.put(TTEXT_SELECTED_MODAL, color);
 
         // TField text
         color = new CellAttributes();
@@ -2495,6 +2542,15 @@ public class ColorTheme {
         color.setForeColor(BLACK);
         color.setBackColor(CYAN);
         colors.put(TFIELD_ACTIVE_MODAL, color);
+        // The field sits on white/cyan, so the selection goes black.
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_WHITE);
+        color.setBackColor(BLACK);
+        colors.put(TFIELD_SELECTED, color);
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_WHITE);
+        color.setBackColor(BLACK);
+        colors.put(TFIELD_SELECTED_MODAL, color);
         color = new CellAttributes();
         // Just a small bit of amber.
         color.setForeColorPalette(Palette256.fromRgb(0x8A610D));
@@ -3092,6 +3148,7 @@ public class ColorTheme {
         final int bgModal = 0x000087; // modal surface (muted blue)
         final int bgField = 0x00005f; // input field idle
         final int bgFieldHot = 0x0f5aa8; // input field / active selection
+        final int bgFieldSel = 0x1f8b4c; // selected text inside an input field
         final int bgSelect = 0x264f78; // list / editor selection
         final int fgText = 0xe0e0e0;
         final int fgInactiveText = 0xc0c0c0;
@@ -3138,12 +3195,18 @@ public class ColorTheme {
         colors.put(TTEXT_MODAL, rgbToPalette(fgText, bgModal));
         colors.put(TTEXT_BOLD, rgbToPalette(fgWhite, bgWindow));
         colors.put(TTEXT_BOLD_MODAL, rgbToPalette(fgWhite, bgModal));
+        // Same as TEDITOR_SELECTED / TEDITOR_SELECTED_MODAL.
+        colors.put(TTEXT_SELECTED, rgbToPalette(fgWhite, bgSelect));
+        colors.put(TTEXT_SELECTED_MODAL, rgbToPalette(fgWhite, bgSelect));
 
         // Fields: dark input with a subtle highlight when active.
         colors.put(TFIELD_INACTIVE, rgbToPalette(fgInactiveText, bgField));
         colors.put(TFIELD_INACTIVE_MODAL, rgbToPalette(fgInactiveText, bgField));
         colors.put(TFIELD_ACTIVE, rgbToPalette(fgWhite, bgFieldHot));
         colors.put(TFIELD_ACTIVE_MODAL, rgbToPalette(fgWhite, bgFieldHot));
+        // The field sits on blue, so the selection goes green.
+        colors.put(TFIELD_SELECTED, rgbToPalette(fgWhite, bgFieldSel));
+        colors.put(TFIELD_SELECTED_MODAL, rgbToPalette(fgWhite, bgFieldSel));
 
         // Check boxes / radio buttons / combos: match dark background.
         colors.put(TCHECKBOX_INACTIVE, rgbToPalette(fgText, bgWindow));
@@ -3312,6 +3375,9 @@ public class ColorTheme {
         colors.put(TTEXT_MODAL, attr(BLACK, WHITE));
         colors.put(TTEXT_BOLD, attr(BRIGHT_WHITE, BLUE));
         colors.put(TTEXT_BOLD_MODAL, attr(BLACK, WHITE, true));
+        // Same as TEDITOR_SELECTED / TEDITOR_SELECTED_MODAL.
+        colors.put(TTEXT_SELECTED, attr(BLACK, CYAN));
+        colors.put(TTEXT_SELECTED_MODAL, attr(BLACK, CYAN));
 
         // Buttons: MC's "dfocus / dhotfocus" style - black/blue on cyan.
         colors.put(TBUTTON_INACTIVE, attr(BRIGHT_WHITE, BLUE));
@@ -3330,6 +3396,9 @@ public class ColorTheme {
         colors.put(TFIELD_INACTIVE_MODAL, attr(BRIGHT_BLACK, CYAN));
         colors.put(TFIELD_ACTIVE, attr(BLACK, CYAN));
         colors.put(TFIELD_ACTIVE_MODAL, attr(BLACK, CYAN));
+        // The field sits on blue, so the selection goes green.
+        colors.put(TFIELD_SELECTED, attr(BLACK, GREEN));
+        colors.put(TFIELD_SELECTED_MODAL, attr(BLACK, GREEN));
 
         // Check / radio / combo.
         colors.put(TCHECKBOX_INACTIVE, attr(WHITE, BLUE));
@@ -3479,6 +3548,9 @@ public class ColorTheme {
         // Same as TLABEL_ACTIVE / TLABEL_ACTIVE_MODAL for now.
         colors.put(TTEXT_BOLD, rgbToPalette(fgWhite, bgBlack));
         colors.put(TTEXT_BOLD_MODAL, rgbToPalette(fgWhite, bgBlack));
+        // Same as TEDITOR_SELECTED / TEDITOR_SELECTED_MODAL.
+        colors.put(TTEXT_SELECTED, rgbToPalette(fgWhite, bgSelection));
+        colors.put(TTEXT_SELECTED_MODAL, rgbToPalette(fgWhite, bgSelection));
 
         // Buttons: flat look - accent text on black, selection-blue when
         // focused, minimal contrast (no fake bevels).
@@ -3498,6 +3570,9 @@ public class ColorTheme {
         colors.put(TFIELD_INACTIVE_MODAL, rgbToPalette(fgText, bgSubtle));
         colors.put(TFIELD_ACTIVE, rgbToPalette(fgWhite, bgSelection));
         colors.put(TFIELD_ACTIVE_MODAL, rgbToPalette(fgWhite, bgSelection));
+        // The field sits on blue, so the selection goes green.
+        colors.put(TFIELD_SELECTED, rgbToPalette(bgBlack, accentGreen));
+        colors.put(TFIELD_SELECTED_MODAL, rgbToPalette(bgBlack, accentGreen));
 
         // Check boxes / radio buttons / combos.
         colors.put(TCHECKBOX_INACTIVE, rgbToPalette(fgText, bgBlack));
@@ -3637,6 +3712,7 @@ public class ColorTheme {
         final int bgChrome = 0x333333; // activityBar.background / titleBar
         final int bgInput = 0x3c3c3c; // input.background / border
         final int bgSelect = 0x264f78; // editor.selectionBackground
+        final int bgFieldSel = 0x1a7f37; // selected text inside an input field
         final int bgListSel = 0x094771; // list.activeSelectionBackground
         final int fgText = 0xd4d4d4; // editor.foreground
         final int fgBrightText = 0xffffff; // bright editor.foreground
@@ -3684,6 +3760,9 @@ public class ColorTheme {
         colors.put(TTEXT_MODAL, rgb(fgText, bgChrome));
         colors.put(TTEXT_BOLD, rgb(fgBrightText, bgPanel));
         colors.put(TTEXT_BOLD_MODAL, rgb(fgBrightText, bgChrome));
+        // Same as TEDITOR_SELECTED / TEDITOR_SELECTED_MODAL.
+        colors.put(TTEXT_SELECTED, rgb(fgBrightText, bgSelect));
+        colors.put(TTEXT_SELECTED_MODAL, rgb(fgBrightText, bgSelect));
 
         // Buttons use the VS Code primary button palette.  Mnemonics use a
         // bright amber so the underlined character is distinguishable from
@@ -3704,6 +3783,9 @@ public class ColorTheme {
         colors.put(TFIELD_INACTIVE_MODAL, rgb(fgChrome, bgInput));
         colors.put(TFIELD_ACTIVE, rgb(fgBrightText, bgSelect));
         colors.put(TFIELD_ACTIVE_MODAL, rgb(fgBrightText, bgSelect));
+        // The field sits on blue, so the selection goes green.
+        colors.put(TFIELD_SELECTED, rgb(fgBrightText, bgFieldSel));
+        colors.put(TFIELD_SELECTED_MODAL, rgb(fgBrightText, bgFieldSel));
 
         // Check / radio / combo.
         colors.put(TCHECKBOX_INACTIVE, rgb(fgText, bgPanel));
@@ -3892,6 +3974,9 @@ public class ColorTheme {
         colors.put(TTEXT_MODAL, rgb(fgText, bgEditor));
         colors.put(TTEXT_BOLD, rgb(fgText, bgPanel, true));
         colors.put(TTEXT_BOLD_MODAL, rgb(fgText, bgEditor, true));
+        // Same as TEDITOR_SELECTED / TEDITOR_SELECTED_MODAL.
+        colors.put(TTEXT_SELECTED, rgb(fgChrome, bgSelect));
+        colors.put(TTEXT_SELECTED_MODAL, rgb(fgChrome, bgSelect));
 
         // Buttons.  Mnemonics use a bright amber so the underlined character
         // is distinguishable from the regular white button label.
@@ -3911,6 +3996,9 @@ public class ColorTheme {
         colors.put(TFIELD_INACTIVE_MODAL, rgb(fgChrome, bgInput));
         colors.put(TFIELD_ACTIVE, rgb(fgChrome, bgSelect, true));
         colors.put(TFIELD_ACTIVE_MODAL, rgb(fgChrome, bgSelect, true));
+        // The field sits on white, so the selection goes black.
+        colors.put(TFIELD_SELECTED, rgb(0xffffff, fgChrome));
+        colors.put(TFIELD_SELECTED_MODAL, rgb(0xffffff, fgChrome));
 
         // Check / radio / combo.
         colors.put(TCHECKBOX_INACTIVE, rgb(fgChrome, bgPanel));

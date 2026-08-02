@@ -1,33 +1,45 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
+import casciian.backend.Backend;
 import casciian.bits.CellAttributes;
 import casciian.bits.ControlPadding;
-import casciian.bits.GraphicsChars;
 import casciian.bits.StringUtils;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
+import casciian.texteditor.Word;
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
 
 /**
  * TField implements an editable text field.
+ *
+ * <p>
+ * It is a single-line {@link TTextBase}: it behaves like {@link TEditor}
+ * restricted to one line, so the text can be selected with the mouse or with
+ * shift + the navigation keys, and cut/copied/pasted.
+ * </p>
  */
-public class TField extends TWidget implements EditMenuUser {
+public class TField extends TTextBase {
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -36,10 +48,11 @@ public class TField extends TWidget implements EditMenuUser {
     /**
      * Background character for unfilled-in text.
      */
-    protected int backgroundChar = GraphicsChars.HATCH;
+    protected int backgroundChar = ' ';
 
     /**
-     * Field text.
+     * Field text.  This mirrors the contents of the underlying document, and
+     * is kept up to date after every change.
      */
     protected String text = "";
 
@@ -50,17 +63,20 @@ public class TField extends TWidget implements EditMenuUser {
     protected boolean fixed = false;
 
     /**
-     * Current editing position within text.
+     * Current editing position within text.  This mirrors the underlying
+     * document cursor, and is kept up to date after every change.
      */
     protected int position = 0;
 
     /**
-     * Current editing position screen column number.
+     * Current editing position screen column number.  This mirrors the
+     * underlying document cursor, and is kept up to date after every change.
      */
     protected int screenPosition = 0;
 
     /**
-     * Beginning of visible portion.
+     * Beginning of visible portion.  This mirrors the leftmost visible
+     * column, and is kept up to date after every change.
      */
     protected int windowStart = 0;
 
@@ -93,6 +109,16 @@ public class TField extends TWidget implements EditMenuUser {
      * The color to use when this field is not active.
      */
     private String inactiveColorKey = "tfield.inactive";
+
+    /**
+     * The color to use for the selected text.
+     */
+    private static final String SELECTED_COLOR_KEY = "tfield.selected";
+
+    /**
+     * The color used to draw the text on the last draw() call.
+     */
+    private CellAttributes fieldColor = null;
 
     /**
      * Extra left/right padding applied to the control.  The value is
@@ -188,17 +214,153 @@ public class TField extends TWidget implements EditMenuUser {
         final TAction enterAction, final TAction updateAction) {
 
         // Set parent and window
-        super(parent, x, y, width, 1);
+        super(parent, singleLine(text), x, y, width, 1, "tfield.active");
 
         this.padding = ControlPadding.current().getCells();
 
         setCursorVisible(true);
         setMouseStyle("text");
+        setSelectedColorKey(SELECTED_COLOR_KEY);
 
         this.fixed = fixed;
-        this.text = text;
         this.enterAction = enterAction;
         this.updateAction = updateAction;
+
+        if (fixed) {
+            truncateToWidth();
+        }
+        syncFields();
+    }
+
+    // ------------------------------------------------------------------------
+    // TTextBase --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * TField allows the text to be modified.
+     *
+     * @return true
+     */
+    @Override
+    public boolean isEditable() {
+        return true;
+    }
+
+    /**
+     * A field holds a single line.
+     *
+     * @return true
+     */
+    @Override
+    protected boolean isSingleLine() {
+        return true;
+    }
+
+    /**
+     * A field holds a single line: Enter does not break the line.
+     *
+     * @return false
+     */
+    @Override
+    protected boolean supportsNewline() {
+        return false;
+    }
+
+    /**
+     * A field does not insert tabs: Tab moves to the next widget.
+     *
+     * @return false
+     */
+    @Override
+    protected boolean supportsTab() {
+        return false;
+    }
+
+    /**
+     * The text is drawn after the left padding.
+     *
+     * @return the X position of the text area
+     */
+    @Override
+    protected int getTextAreaX() {
+        return padding;
+    }
+
+    /**
+     * The text area excludes the left and right padding.
+     *
+     * @return the width of the text area
+     */
+    @Override
+    protected int getTextAreaWidth() {
+        return textAreaWidth();
+    }
+
+    /**
+     * A field is exactly one row tall.
+     *
+     * @return 1
+     */
+    @Override
+    protected int getTextAreaHeight() {
+        return 1;
+    }
+
+    /**
+     * A field only shows its selection while it has the focus: an unfocused
+     * field draws its text plainly, even though the selection is remembered
+     * for when the focus comes back.
+     *
+     * @return true if the selection must be highlighted
+     */
+    @Override
+    protected boolean hasVisibleSelection() {
+        return isAbsoluteActive() && super.hasVisibleSelection();
+    }
+
+    /**
+     * The text of a field is always drawn with the field color.
+     *
+     * @param word the word being drawn
+     * @return the color to draw the word with
+     */
+    @Override
+    protected CellAttributes getTextColor(final Word word) {
+        if (fieldColor != null) {
+            return fieldColor;
+        }
+        return super.getTextColor(word);
+    }
+
+    /**
+     * Align visible cursor with document cursor.
+     */
+    @Override
+    protected void alignCursor() {
+        if (fixed) {
+            setLeftColumn(0);
+        } else {
+            super.alignCursor();
+        }
+        syncFields();
+        updateCursor();
+    }
+
+    /**
+     * Insert text at the cursor position.  Newlines and tabs are converted
+     * to spaces, since a field holds a single line.
+     *
+     * @param text the text to insert
+     * @param backend the backend to attribute the synthetic keystrokes to,
+     * may be null
+     */
+    @Override
+    protected void pasteText(final String text, final Backend backend) {
+        if (text == null) {
+            return;
+        }
+        super.pasteText(singleLine(text), backend);
+        syncFields();
     }
 
     // ------------------------------------------------------------------------
@@ -206,20 +368,30 @@ public class TField extends TWidget implements EditMenuUser {
     // ------------------------------------------------------------------------
 
     /**
+     * Select the whole text when the field gains the focus, so that typing
+     * replaces the old value.  When the focus came from a mouse click, the
+     * click that follows collapses the selection to the clicked position,
+     * which is the expected behavior for a mouse.
+     */
+    @Override
+    protected void onActivate() {
+        super.onActivate();
+
+        if (document == null) {
+            // The parent activated us from TWidget's constructor: there is no
+            // document to select yet.
+            return;
+        }
+        selectAll();
+    }
+
+    /**
      * Returns true if the mouse is currently on the field.
      *
      * @return if true the mouse is currently on the field
      */
     protected boolean mouseOnField() {
-        int rightEdge = getWidth() - 1 - padding;
-        if ((mouse != null)
-            && (mouse.getY() == 0)
-            && (mouse.getX() >= padding)
-            && (mouse.getX() <= rightEdge)
-        ) {
-            return true;
-        }
-        return false;
+        return ((mouse != null) && mouseOnTextArea(mouse));
     }
 
     /**
@@ -231,17 +403,34 @@ public class TField extends TWidget implements EditMenuUser {
     public void onMouseDown(final TMouseEvent mouse) {
         this.mouse = mouse;
 
-        if ((mouseOnField()) && (mouse.isMouse1())) {
-            // Move cursor
-            int deltaX = mouse.getX() - getCursorX();
-            screenPosition += deltaX;
-            if (screenPosition > StringUtils.width(text)) {
-                screenPosition = StringUtils.width(text);
-            }
-            position = screenToTextPosition(screenPosition);
-            updateCursor();
-            return;
-        }
+        super.onMouseDown(mouse);
+        syncFields();
+    }
+
+    /**
+     * Handle mouse button releases.
+     *
+     * @param mouse mouse button event
+     */
+    @Override
+    public void onMouseUp(final TMouseEvent mouse) {
+        this.mouse = mouse;
+
+        super.onMouseUp(mouse);
+        syncFields();
+    }
+
+    /**
+     * Handle mouse motion events.
+     *
+     * @param mouse mouse motion event
+     */
+    @Override
+    public void onMouseMotion(final TMouseEvent mouse) {
+        this.mouse = mouse;
+
+        super.onMouseMotion(mouse);
+        syncFields();
     }
 
     /**
@@ -252,45 +441,6 @@ public class TField extends TWidget implements EditMenuUser {
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
 
-        if (keypress.equals(kbLeft)) {
-            if (position > 0) {
-                screenPosition -= StringUtils.width(text.codePointBefore(position));
-                position -= Character.charCount(text.codePointBefore(position));
-            }
-            if (fixed == false) {
-                if ((screenPosition == windowStart) && (windowStart > 0)) {
-                    windowStart -= StringUtils.width(text.codePointAt(
-                        screenToTextPosition(windowStart)));
-                }
-            }
-            normalizeWindowStart();
-            return;
-        }
-
-        if (keypress.equals(kbRight)) {
-            if (position < text.length()) {
-                int lastPosition = position;
-                screenPosition += StringUtils.width(text.codePointAt(position));
-                position += Character.charCount(text.codePointAt(position));
-                if (fixed == true) {
-                    if (screenPosition == textAreaWidth()) {
-                        screenPosition--;
-                        position -= Character.charCount(text.codePointAt(lastPosition));
-                    }
-                } else {
-                    while ((screenPosition - windowStart +
-                            StringUtils.width(text.codePointAt(text.length() - 1)))
-                        > textAreaWidth()
-                    ) {
-                        windowStart += StringUtils.width(text.codePointAt(
-                            screenToTextPosition(windowStart)));
-                    }
-                }
-            }
-            assert (position <= text.length());
-            return;
-        }
-
         if (keypress.equals(kbEnter)) {
             dispatch(true);
             return;
@@ -298,116 +448,28 @@ public class TField extends TWidget implements EditMenuUser {
 
         if (keypress.equals(kbIns)) {
             insertMode = !insertMode;
-            return;
-        }
-        if (keypress.equals(kbHome)) {
-            home();
+            document.setOverwrite(!insertMode);
             return;
         }
 
-        if (keypress.equals(kbEnd)) {
-            end();
+        boolean isText = isTextKeypress(keypress);
+        if (isText && !canAcceptChar()) {
+            // The field is full, nothing to do.
             return;
         }
 
-        if (keypress.equals(kbDel)) {
-            if ((text.length() > 0) && (position < text.length())) {
-                text = text.substring(0, position)
-                        + text.substring(position + 1);
-                screenPosition = StringUtils.width(text.substring(0, position));
-            }
-            dispatch(false);
-            return;
-        }
+        boolean modifies = isText
+            || keypress.equals(kbDel)
+            || keypress.equals(kbBackspace)
+            || keypress.equals(kbBackspaceDel);
 
-        if (keypress.equals(kbBackspace) || keypress.equals(kbBackspaceDel)) {
-            if (position > 0) {
-                position -= Character.charCount(text.codePointBefore(position));
-                text = text.substring(0, position)
-                        + text.substring(position + 1);
-                screenPosition = StringUtils.width(text.substring(0, position));
-            }
-            if (fixed == false) {
-                if ((screenPosition >= windowStart)
-                    && (windowStart > 0)
-                ) {
-                    windowStart -= StringUtils.width(text.codePointAt(
-                        screenToTextPosition(windowStart)));
-                }
-            }
-            dispatch(false);
-            normalizeWindowStart();
-            return;
-        }
-
-        if (!keypress.getKey().isFnKey()
-            && !keypress.getKey().isAlt()
-            && !keypress.getKey().isCtrl()
-        ) {
-            // Plain old keystroke, process it
-            if ((position == text.length())
-                && (StringUtils.width(text) < textAreaWidth())) {
-
-                // Append case
-                appendChar(keypress.getKey().getChar());
-            } else if ((position < text.length())
-                && (StringUtils.width(text) < textAreaWidth())) {
-
-                // Overwrite or insert a character
-                if (insertMode == false) {
-                    // Replace character
-                    text = text.substring(0, position)
-                            + codePointString(keypress.getKey().getChar())
-                            + text.substring(position + 1);
-                    screenPosition += StringUtils.width(text.codePointAt(position));
-                    position += Character.charCount(keypress.getKey().getChar());
-                } else {
-                    // Insert character
-                    insertChar(keypress.getKey().getChar());
-                }
-            } else if ((position < text.length())
-                && (StringUtils.width(text) >= textAreaWidth())) {
-
-                // Multiple cases here
-                if ((fixed == true) && (insertMode == true)) {
-                    // Buffer is full, do nothing
-                } else if ((fixed == true) && (insertMode == false)) {
-                    // Overwrite the last character, maybe move position
-                    text = text.substring(0, position)
-                            + codePointString(keypress.getKey().getChar())
-                            + text.substring(position + 1);
-                    if (screenPosition < textAreaWidth() - 1) {
-                        screenPosition += StringUtils.width(text.codePointAt(position));
-                        position += Character.charCount(keypress.getKey().getChar());
-                    }
-                } else if ((fixed == false) && (insertMode == false)) {
-                    // Overwrite the last character, definitely move position
-                    text = text.substring(0, position)
-                            + codePointString(keypress.getKey().getChar())
-                            + text.substring(position + 1);
-                    screenPosition += StringUtils.width(text.codePointAt(position));
-                    position += Character.charCount(keypress.getKey().getChar());
-                } else {
-                    if (position == text.length()) {
-                        // Append this character
-                        appendChar(keypress.getKey().getChar());
-                    } else {
-                        // Insert this character
-                        insertChar(keypress.getKey().getChar());
-                    }
-                }
-            } else {
-                assert (!fixed);
-
-                // Append this character
-                appendChar(keypress.getKey().getChar());
-            }
-            dispatch(false);
-            return;
-        }
-
-        // Pass to parent for the things we don't care about.
         super.onKeypress(keypress);
+        syncFields();
+        updateCursor();
+
+        if (modifies) {
+            dispatch(false);
+        }
     }
 
     /**
@@ -417,36 +479,29 @@ public class TField extends TWidget implements EditMenuUser {
      */
     @Override
     public void onCommand(final TCommandEvent command) {
-        if (command.equals(cmCut)) {
-            // Copy text to clipboard, and then remove it.
-            getClipboard().copyText(text);
-            getApplication().getBackend().copyClipboardText(text);
+        if (command.equals(cmCut) && !hasSelection()) {
+            // Copy the whole field to clipboard, and then remove it.
+            copySelection();
             setText("");
+            dispatch(false);
             return;
         }
 
-        if (command.equals(cmCopy)) {
-            // Copy text to clipboard.
-            getClipboard().copyText(text);
-            getApplication().getBackend().copyClipboardText(text);
-            return;
-        }
-
-        if (command.equals(cmPaste)) {
-            // Paste text from clipboard.
-            String newText = getClipboard().pasteText();
-            if (newText != null) {
-                setText(newText);
-            }
-            return;
-        }
-
-        if (command.equals(cmClear)) {
-            // Remove text.
+        if (command.equals(cmClear) && !hasSelection()) {
+            // Remove all text.
             setText("");
+            dispatch(false);
             return;
         }
 
+        super.onCommand(command);
+        syncFields();
+
+        if (command.equals(cmCut) || command.equals(cmPaste)
+            || command.equals(cmClear)
+        ) {
+            dispatch(false);
+        }
     }
 
     // ------------------------------------------------------------------------
@@ -469,7 +524,7 @@ public class TField extends TWidget implements EditMenuUser {
      */
     @Override
     public void draw() {
-        final CellAttributes fieldColor = new CellAttributes();
+        fieldColor = new CellAttributes();
 
         if (isAbsoluteActive()) {
             fieldColor.setTo(getWidgetColor(activeColorKey));
@@ -477,18 +532,15 @@ public class TField extends TWidget implements EditMenuUser {
             fieldColor.setTo(getWidgetColor(inactiveColorKey));
         }
         // Pulse color.
-        if (isActive() && getWindow().isActive()
-            && getApplication().hasAnimations()
+        if (isActive() && (getWindow() != null) && getWindow().isActive()
+            && (getApplication() != null) && getApplication().hasAnimations()
         ) {
             fieldColor.setPulse(true, false, 0);
             fieldColor.setPulseColorRGB(getScreen().getBackend().
                 attrToForegroundColor(getWidgetColor("tfield.pulse")));
         }
+        setDefaultColor(fieldColor);
 
-        int end = windowStart + textAreaWidth();
-        if (end > StringUtils.width(text)) {
-            end = StringUtils.width(text);
-        }
         if (padding > 0) {
             // Paint the left and right padding cells in the field color.
             for (int i = 0; i < padding; i++) {
@@ -496,9 +548,8 @@ public class TField extends TWidget implements EditMenuUser {
                 putCharXY(getWidth() - 1 - i, 0, ' ', fieldColor);
             }
         }
-        hLineXY(padding, 0, textAreaWidth(), backgroundChar, fieldColor);
-        putStringXY(padding, 0, text.substring(screenToTextPosition(windowStart),
-                screenToTextPosition(end)), fieldColor);
+
+        drawDocument();
 
         // Fix the cursor, it will be rendered by TApplication.drawAll().
         updateCursor();
@@ -509,16 +560,102 @@ public class TField extends TWidget implements EditMenuUser {
     // ------------------------------------------------------------------------
 
     /**
-     * Convert a char (codepoint) to a string.
+     * Collapse a string to a single line: newlines and tabs become spaces.
      *
-     * @param ch the char
-     * @return the string
+     * @param text the text, may be null
+     * @return the single-line text, never null
      */
-    private String codePointString(final int ch) {
-        StringBuilder sb = new StringBuilder(1);
-        sb.append(Character.toChars(ch));
-        assert (Character.charCount(ch) == sb.length());
-        return sb.toString();
+    private static String singleLine(final String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replaceAll("[\\r\\n\\t]", " ");
+    }
+
+    /**
+     * Check if a keypress inserts a character into the field.
+     *
+     * @param keypress the keypress
+     * @return true if this keypress adds text
+     */
+    private boolean isTextKeypress(final TKeypressEvent keypress) {
+        return (!keypress.getKey().isFnKey()
+            && !keypress.getKey().isAlt()
+            && !keypress.getKey().isCtrl()
+            && !keypress.equals(kbEnter)
+            && !keypress.equals(kbTab)
+            && !keypress.equals(kbShiftTab)
+            && !keypress.equals(kbBackTab)
+            && !keypress.equals(kbBackspace)
+            && !keypress.equals(kbBackspaceDel)
+            && !keypress.equals(kbDel)
+            && !keypress.equals(kbIns)
+            && !keypress.equals(kbHome)
+            && !keypress.equals(kbEnd)
+            && !keypress.equals(kbLeft)
+            && !keypress.equals(kbRight)
+            && !keypress.equals(kbUp)
+            && !keypress.equals(kbDown)
+            && !keypress.equals(kbPgUp)
+            && !keypress.equals(kbPgDn));
+    }
+
+    /**
+     * Check if another character can be added to a fixed-width field.
+     *
+     * @return true if a character can be inserted
+     */
+    private boolean canAcceptChar() {
+        if (!fixed) {
+            return true;
+        }
+        if (hasSelection()) {
+            // Replacing the selection will not grow the field.
+            return true;
+        }
+        if (StringUtils.width(getText()) < textAreaWidth()) {
+            return true;
+        }
+        // The field is full: only an overwrite in the middle is allowed.
+        return (document.isOverwrite()
+            && (document.getCursor() < StringUtils.width(getText())));
+    }
+
+    /**
+     * Truncate the text to fit inside a fixed-width field.
+     */
+    private void truncateToWidth() {
+        String current = document.getLine(0).getRawString();
+        if (StringUtils.width(current) > textAreaWidth()) {
+            int displayWidth = 0;
+            int byteIdx = 0;
+            int[] codePoints = StringUtils.toCodePoints(current);
+            for (int cp : codePoints) {
+                int cpWidth = StringUtils.width(cp);
+                if (displayWidth + cpWidth > textAreaWidth()) {
+                    break;
+                }
+                displayWidth += cpWidth;
+                byteIdx += Character.charCount(cp);
+            }
+            document.setText(current.substring(0, byteIdx));
+        }
+    }
+
+    /**
+     * Update the mirrored text/position values from the document.
+     */
+    private void syncFields() {
+        if (fixed && (textAreaWidth() > 0)
+            && (document.getCursor() > textAreaWidth() - 1)
+        ) {
+            // A fixed field cannot put the cursor past its last cell.
+            document.setCursor(textAreaWidth() - 1);
+        }
+        text = document.getLine(0).getRawString();
+        position = document.getCurrentLine().getRawCursor();
+        screenPosition = document.getCursor();
+        windowStart = getLeftColumn();
     }
 
     /**
@@ -526,7 +663,8 @@ public class TField extends TWidget implements EditMenuUser {
      *
      * @return background character
      */
-    public final int getBackgroundChar() {
+    @Override
+    public int getBackgroundChar() {
         return backgroundChar;
     }
 
@@ -544,8 +682,9 @@ public class TField extends TWidget implements EditMenuUser {
      *
      * @return field text
      */
+    @Override
     public final String getText() {
-        return text;
+        return document.getLine(0).getRawString();
     }
 
     /**
@@ -553,15 +692,17 @@ public class TField extends TWidget implements EditMenuUser {
      *
      * @param text the new field text
      */
+    @Override
     public void setText(final String text) {
         assert (text != null);
-        this.text = text;
-        position = 0;
-        screenPosition = 0;
-        windowStart = 0;
-        if ((fixed == true) && (this.text.length() > textAreaWidth())) {
-            this.text = this.text.substring(0, textAreaWidth());
+
+        super.setText(singleLine(text));
+        if (fixed) {
+            truncateToWidth();
         }
+        setLeftColumn(0);
+        syncFields();
+        updateCursor();
     }
 
     /**
@@ -593,6 +734,7 @@ public class TField extends TWidget implements EditMenuUser {
             return 0;
         }
 
+        String text = getText();
         int n = 0;
         for (int i = 0; i < text.length(); i++) {
             n += StringUtils.width(text.codePointAt(i));
@@ -610,12 +752,15 @@ public class TField extends TWidget implements EditMenuUser {
      * and windowStart.
      */
     protected void updateCursor() {
-        if ((screenPosition > textAreaWidth()) && fixed) {
-            setCursorX(padding + textAreaWidth());
-        } else if ((screenPosition - windowStart >= textAreaWidth()) && !fixed) {
+        int cursor = document.getCursor();
+        int start = getLeftColumn();
+
+        if ((cursor >= textAreaWidth()) && fixed) {
+            setCursorX(padding + Math.max(0, textAreaWidth() - 1));
+        } else if ((cursor - start >= textAreaWidth()) && !fixed) {
             setCursorX(padding + textAreaWidth() - 1);
         } else {
-            setCursorX(padding + screenPosition - windowStart);
+            setCursorX(padding + cursor - start);
         }
     }
 
@@ -625,13 +770,13 @@ public class TField extends TWidget implements EditMenuUser {
     protected void normalizeWindowStart() {
         if (fixed) {
             // windowStart had better be zero, there is nothing to do here.
-            assert (windowStart == 0);
+            setLeftColumn(0);
+            windowStart = 0;
+            updateCursor();
             return;
         }
-        windowStart = screenPosition - (textAreaWidth() - 1);
-        if (windowStart < 0) {
-            windowStart = 0;
-        }
+        setLeftColumn(document.getCursor() - (textAreaWidth() - 1));
+        windowStart = getLeftColumn();
 
         updateCursor();
     }
@@ -642,23 +787,9 @@ public class TField extends TWidget implements EditMenuUser {
      * @param ch char to append
      */
     protected void appendChar(final int ch) {
-        // Append the LAST character
-        text += codePointString(ch);
-        position += Character.charCount(ch);
-        screenPosition += StringUtils.width(ch);
-
-        assert (position == text.length());
-
-        if (fixed) {
-            if (screenPosition >= textAreaWidth()) {
-                position -= Character.charCount(ch);
-                screenPosition -= StringUtils.width(ch);
-            }
-        } else {
-            if ((screenPosition - windowStart) >= textAreaWidth()) {
-                windowStart++;
-            }
-        }
+        document.end();
+        document.addChar(ch);
+        alignCursor();
     }
 
     /**
@@ -667,14 +798,11 @@ public class TField extends TWidget implements EditMenuUser {
      * @param ch char to append
      */
     protected void insertChar(final int ch) {
-        text = text.substring(0, position) + codePointString(ch)
-                + text.substring(position);
-        position += Character.charCount(ch);
-        screenPosition += StringUtils.width(ch);
-        if ((screenPosition - windowStart) == textAreaWidth()) {
-            assert (!fixed);
-            windowStart++;
-        }
+        boolean overwrite = document.isOverwrite();
+        document.setOverwrite(false);
+        document.addChar(ch);
+        document.setOverwrite(overwrite);
+        alignCursor();
     }
 
     /**
@@ -682,9 +810,10 @@ public class TField extends TWidget implements EditMenuUser {
      * window start to show as much of the field as possible.
      */
     public void home() {
-        position = 0;
-        screenPosition = 0;
-        windowStart = 0;
+        document.home();
+        setLeftColumn(0);
+        syncFields();
+        updateCursor();
     }
 
     /**
@@ -692,19 +821,19 @@ public class TField extends TWidget implements EditMenuUser {
      * adjust the window start to show as much of the field as possible.
      */
     public void end() {
-        position = text.length();
-        screenPosition = StringUtils.width(text);
-        if (fixed == true) {
-            if (screenPosition >= textAreaWidth()) {
-                position -= Character.charCount(text.codePointBefore(position));
-                screenPosition = StringUtils.width(text) - 1;
-             }
-        } else {
-            windowStart = StringUtils.width(text) - textAreaWidth() + 1;
-            if (windowStart < 0) {
-                windowStart = 0;
+        document.end();
+        if (fixed) {
+            setLeftColumn(0);
+            if ((document.getCursor() >= textAreaWidth())
+                && (document.getCursor() > 0)
+            ) {
+                document.setCursor(Math.max(0, textAreaWidth() - 1));
             }
+        } else {
+            setLeftColumn(StringUtils.width(getText()) - textAreaWidth() + 1);
         }
+        syncFields();
+        updateCursor();
     }
 
     /**
@@ -716,12 +845,14 @@ public class TField extends TWidget implements EditMenuUser {
      * the available text
      */
     public void setPosition(final int position) {
+        String text = getText();
         if ((position < 0) || (position >= text.length())) {
             throw new IndexOutOfBoundsException("Max length is " +
                 text.length() + ", requested position " + position);
         }
-        this.position = position;
+        document.setCursor(StringUtils.width(text.substring(0, position)));
         normalizeWindowStart();
+        syncFields();
     }
 
     /**
@@ -760,46 +891,6 @@ public class TField extends TWidget implements EditMenuUser {
      */
     public void setUpdateAction(final TAction action) {
         updateAction = action;
-    }
-
-    // ------------------------------------------------------------------------
-    // EditMenuUser -----------------------------------------------------------
-    // ------------------------------------------------------------------------
-
-    /**
-     * Check if the cut menu item should be enabled.
-     *
-     * @return true if the cut menu item should be enabled
-     */
-    public boolean isEditMenuCut() {
-        return true;
-    }
-
-    /**
-     * Check if the copy menu item should be enabled.
-     *
-     * @return true if the copy menu item should be enabled
-     */
-    public boolean isEditMenuCopy() {
-        return true;
-    }
-
-    /**
-     * Check if the paste menu item should be enabled.
-     *
-     * @return true if the paste menu item should be enabled
-     */
-    public boolean isEditMenuPaste() {
-        return true;
-    }
-
-    /**
-     * Check if the clear menu item should be enabled.
-     *
-     * @return true if the clear menu item should be enabled
-     */
-    public boolean isEditMenuClear() {
-        return true;
     }
 
 }

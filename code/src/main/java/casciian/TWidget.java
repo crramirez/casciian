@@ -871,7 +871,38 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param active if true, this widget will receive events
      */
     public final void setActive(final boolean active) {
+        setActiveFlag(active);
+    }
+
+    /**
+     * Set the active flag, calling {@link #onActivate()} when the widget was
+     * not active before.  All the places that make a widget the active one
+     * must go through here so that the hook is always fired exactly once per
+     * transition.
+     *
+     * @param active if true, this widget will receive events
+     */
+    private void setActiveFlag(final boolean active) {
+        boolean wasActive = this.active;
         this.active = active;
+        if (active && !wasActive) {
+            onActivate();
+        }
+    }
+
+    /**
+     * Called when this widget becomes the active one, i.e. when it gains the
+     * keyboard focus within its container.  Subclasses can override this to
+     * react to being focused; the default implementation does nothing.
+     *
+     * <p>
+     * Note that this can be called while the widget is still being
+     * constructed, because a container activates a newly added child: an
+     * override must tolerate its own fields not being initialized yet.
+     * </p>
+     */
+    protected void onActivate() {
+        // Nothing to do by default.
     }
 
     /**
@@ -1059,7 +1090,7 @@ public abstract class TWidget implements Comparable<TWidget> {
     public void setEnabled(final boolean enabled) {
         this.enabled = enabled;
         if (!enabled) {
-            active = false;
+            setActiveFlag(false);
             // See if there are any active siblings to switch to
             boolean foundSibling = false;
             if (parent != null) {
@@ -1613,9 +1644,9 @@ public abstract class TWidget implements Comparable<TWidget> {
             && !(child instanceof TVScroller)
         ) {
             for (TWidget widget: children) {
-                widget.active = false;
+                widget.setActiveFlag(false);
             }
-            child.active = true;
+            child.setActiveFlag(true);
             activeChild = child;
         }
         resetTabOrder();
@@ -1649,16 +1680,16 @@ public abstract class TWidget implements Comparable<TWidget> {
 
         if (children.size() == 1) {
             if (children.get(0).enabled == true) {
-                child.active = true;
+                child.setActiveFlag(true);
                 activeChild = child;
             }
         } else {
             for (TWidget widget: children) {
                 if (widget != child) {
-                    widget.active = false;
+                    widget.setActiveFlag(false);
                 }
             }
-            child.active = true;
+            child.setActiveFlag(true);
             activeChild = child;
         }
     }
@@ -1672,7 +1703,7 @@ public abstract class TWidget implements Comparable<TWidget> {
     public final void activate(final int tabOrder) {
         if (children.size() == 1) {
             if (children.get(0).enabled == true) {
-                children.get(0).active = true;
+                children.get(0).setActiveFlag(true);
                 activeChild = children.get(0);
             }
             return;
@@ -1694,10 +1725,10 @@ public abstract class TWidget implements Comparable<TWidget> {
 
             for (TWidget widget: children) {
                 if (widget != child) {
-                    widget.active = false;
+                    widget.setActiveFlag(false);
                 }
             }
-            child.active = true;
+            child.setActiveFlag(true);
             activeChild = child;
         }
     }
@@ -1746,9 +1777,9 @@ public abstract class TWidget implements Comparable<TWidget> {
         if (children.size() == 1) {
             if (children.get(0).enabled == true) {
                 activeChild = children.get(0);
-                activeChild.active = true;
+                activeChild.setActiveFlag(true);
             } else {
-                children.get(0).active = false;
+                children.get(0).setActiveFlag(false);
                 activeChild = null;
             }
             return;
@@ -1799,10 +1830,10 @@ public abstract class TWidget implements Comparable<TWidget> {
         if (activeChild != null) {
             assert (children.get(tabOrder).enabled);
 
-            activeChild.active = false;
+            activeChild.setActiveFlag(false);
         }
         if (children.get(tabOrder).enabled == true) {
-            children.get(tabOrder).active = true;
+            children.get(tabOrder).setActiveFlag(true);
             activeChild = children.get(tabOrder);
         }
     }
