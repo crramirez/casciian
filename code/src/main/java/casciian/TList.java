@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
@@ -373,6 +378,10 @@ public class TList extends TScrollable {
         if (vScroller != null) {
             vScroller.setHeight(getHeight() - 1);
         }
+
+        // The scrollbar range depends on the height, so it has to be
+        // recomputed before the selection is scrolled back into view.
+        updateScrollRange();
         setSelectedIndex(selectedString);
     }
 
@@ -384,8 +393,19 @@ public class TList extends TScrollable {
 
         // Reset the lines
         selectedString = -1;
-        int maxLineWidth = 0;
+        updateScrollRange();
+    }
 
+    /**
+     * Recompute the scrollbar ranges from the list contents and the current
+     * width/height.  Unlike reflowData(), this leaves the selection alone.
+     */
+    private void updateScrollRange() {
+        if (strings == null) {
+            return;
+        }
+
+        int maxLineWidth = 0;
         for (int i = 0; i < strings.size(); i++) {
             String line = strings.get(i);
             int lineLength = StringUtils.width(line);
@@ -394,15 +414,25 @@ public class TList extends TScrollable {
             }
         }
 
-        setBottomValue(strings.size() - getHeight() + 1);
-        if (getBottomValue() < 0) {
-            setBottomValue(0);
+        setBottomValue(Math.max(0, strings.size() - getVisibleRows()));
+        if (getVerticalValue() > getBottomValue()) {
+            setVerticalValue(getBottomValue());
         }
 
         setRightValue(Math.max(0, maxLineWidth - getWidth() + 1 + 2 * padding));
         if (getHorizontalValue() > getRightValue()) {
             setHorizontalValue(getRightValue());
         }
+    }
+
+    /**
+     * The number of list rows that fit inside this widget.  The last row is
+     * taken by the horizontal scrollbar.
+     *
+     * @return the number of visible rows, at least 1
+     */
+    private int getVisibleRows() {
+        return Math.max(1, getHeight() - 1);
     }
 
     /**
@@ -495,15 +525,20 @@ public class TList extends TScrollable {
             return;
         }
 
+        selectedString = index;
+
+        // Scroll down just far enough to bring the selection into view.
+        // This is computed directly rather than by repeatedly calling
+        // verticalIncrement(): the scrollbar silently refuses to move once
+        // it is at its bottom value, so a loop that waits for it to move
+        // never ends when the range is smaller than the selection (which
+        // happens whenever the widget is made shorter).
         toTop();
-        selectedString = 0;
-        while (index > selectedString) {
-            selectedString++;
-            while (selectedString - getVerticalValue() >= getHeight() - 1) {
-                verticalIncrement();
-            }
+        int firstVisible = index - getVisibleRows() + 1;
+        if (firstVisible > getVerticalValue()) {
+            setVerticalValue(Math.max(getTopValue(),
+                    Math.min(getBottomValue(), firstVisible)));
         }
-        assert (index == selectedString);
     }
 
     /**

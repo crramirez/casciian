@@ -120,6 +120,17 @@ public class SystemProperties {
     public static final String CASCIIAN_USE_TERMINAL_PALETTE = "casciian.useTerminalPalette";
 
     /**
+     * System property key for the Kitty keyboard protocol (CSI u /
+     * "disambiguated keys").  When enabled, the terminal is asked to report
+     * keystrokes unambiguously so that, for example, Ctrl-I can be told
+     * apart from Tab.  Terminals that do not implement the protocol silently
+     * ignore the request and keep sending legacy VT sequences.
+     * Valid values: "true" or "false"
+     * Default: true (progressive enhancement is requested)
+     */
+    public static final String CASCIIAN_ECMA48_KITTY_KEYBOARD = "casciian.ECMA48.kittyKeyboard";
+
+    /**
      * System property key for disabling pre-transform cell effects (like gradients).
      * Valid values: "true" or "false"
      * Default: false (pre-transforms enabled)
@@ -332,6 +343,14 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> useTerminalPalette = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the Kitty keyboard protocol setting.
+     * When true, request "disambiguated keys" (CSI u) from the terminal.
+     * The default value is true if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> ecma48KittyKeyboard = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the disable pre-transform setting.
@@ -783,6 +802,27 @@ public class SystemProperties {
     }
 
     /**
+     * Get the Kitty keyboard protocol value from system properties.
+     *
+     * @return true if the Kitty keyboard protocol (CSI u) should be
+     *         requested from the terminal.  Default is true.
+     */
+    public static boolean isEcma48KittyKeyboard() {
+        return getBooleanProperty(ecma48KittyKeyboard,
+            CASCIIAN_ECMA48_KITTY_KEYBOARD, true);
+    }
+
+    /**
+     * Set the Kitty keyboard protocol value in system properties.
+     *
+     * @param value true to request the Kitty keyboard protocol (CSI u)
+     */
+    public static void setEcma48KittyKeyboard(boolean value) {
+        setBooleanProperty(ecma48KittyKeyboard,
+            CASCIIAN_ECMA48_KITTY_KEYBOARD, value);
+    }
+
+    /**
      * Get the disable pre-transform value from system properties.
      *
      * @return true if pre-transform cell effects (like gradients) are disabled,
@@ -972,6 +1012,7 @@ public class SystemProperties {
         menuIcons.set(null);
         menuIconsOffset.set(null);
         useTerminalPalette.set(null);
+        ecma48KittyKeyboard.set(null);
         disablePreTransform.set(null);
         disablePostTransform.set(null);
         useJline.set(null);
