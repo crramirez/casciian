@@ -78,7 +78,6 @@ public class DemoKeyboardWindow extends TWindow {
      */
     private final List<String> history = new ArrayList<>();
 
-    private final TPanel textPanel;
     private final TText infoText;
     private final TList historyList;
 
@@ -104,19 +103,14 @@ public class DemoKeyboardWindow extends TWindow {
         setTitle(i18n.getString("windowTitle"));
         setMinimumWindowHeight(INFO_ROWS + MIN_HISTORY_ROWS + 2);
 
-        textPanel = addPanel(1, 1, getWidth() - 2, INFO_ROWS);
-        textPanel.setBorderStyle("none");
-        textPanel.setLayoutManager(new BoxLayoutManager(textPanel.getWidth(),
-            textPanel.getHeight(), true));
-        infoText = textPanel.addText("", 0, 0,
-            textPanel.getWidth(), 2);
+        infoText = addText("", 1, 1, getWidth() - 2, INFO_ROWS);
         hideScrollbars(infoText);
 
         historyList = addList(history, 1, 1 + INFO_ROWS, getWidth() - 2,
             getHeight() - 2 - INFO_ROWS);
-        hideScrollbars(historyList);
-        layoutWidgets();
+
         refreshStatusText();
+        layoutWidgets();
     }
 
     // ------------------------------------------------------------------------
@@ -155,8 +149,8 @@ public class DemoKeyboardWindow extends TWindow {
     @Override
     public void onResize(final TResizeEvent event) {
         super.onResize(event);
-        layoutWidgets();
         refreshStatusText();
+        layoutWidgets();
     }
 
     @Override
@@ -258,12 +252,17 @@ public class DemoKeyboardWindow extends TWindow {
     private void layoutWidgets() {
         int clientWidth = getWidth() - 2;
         int clientHeight = getHeight() - 2;
-        int infoRows = Math.min(INFO_ROWS,
-            Math.max(MIN_INFO_ROWS, clientHeight - MIN_HISTORY_ROWS));
-        int historyRows = Math.max(MIN_HISTORY_ROWS, clientHeight - infoRows);
 
-        textPanel.setDimensions(1, 1, clientWidth, infoRows);
-        historyList.setDimensions(1, 1 + infoRows, clientWidth, historyRows);
+        infoText.setWidth(clientWidth);
+        infoText.reflowData();
+
+        int infoRows = infoText.getLineCount() + 1;
+        infoText.setHeight(infoRows);
+
+        int historyRows = Math.max(MIN_HISTORY_ROWS, clientHeight - infoRows);
+        historyList.setY(1 + infoRows);
+        historyList.setWidth(clientWidth);
+        historyList.setHeight(historyRows);
     }
 
     private void hideScrollbars(final TWidget widget) {
