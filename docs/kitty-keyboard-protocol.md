@@ -50,6 +50,24 @@ Examples: Ctrl+I is `\e[105;5u`, Shift+Enter is `\e[13;2u`, Ctrl+Shift+R is
 
 We push **flag 1 only** — `KittyKeyboard.ENABLE = "\033[>1u"`.
 
+## ⚠ The push MUST happen after switching to the alternate screen
+
+This has already caused a real regression in this repo (details below) and will bite anyone who reorders the constructor without knowing it: **the spec requires terminals to keep independent keyboard mode flag stacks for the main screen and the alternate screen.** `TWindow`/`ECMA48Terminal` sessions run entirely on the alternate screen (`terminal.enableMouseReporting(true)` emits `\e[?1049h`, "smcup", as a side effect). If `KittyKeyboard.ENABLE` is written *before* that switch, the push lands on the **main screen's** stack — the one nothing ever reads from — and the alternate screen starts with an empty stack. The terminal is not lying, not broken, and not misconfigured; Casciian just pushed the flag onto the wrong stack, so every keystroke for the rest of the session falls back to legacy encoding, indistinguishable from a terminal with no protocol support at all.
+
+This happened for real: the query/DA-sentinel detection logic (see "Support detection" below) was added by moving `enableKittyKeyboard()` earlier in the constructor, ahead of `enableMouseReporting(true)`, to satisfy an ordering requirement of its own (query before the Device Attributes sentinel). That silently broke real disambiguation on WezTerm and Windows Terminal 1.25, which had been confirmed working immediately beforehand. The fix was **not** to abandon the detection logic, but to keep `enableKittyKeyboard()` positioned after `enableMouseReporting(true)`, and instead move the Device Attributes request (`\e[c`) to immediately follow it, so both ordering constraints hold at once:
+
+```
+xtermReportVersion()
+xtermReportPixelDimensions()
+enableMouseReporting(true)      // switches to the alternate screen (smcup)
+enableKittyKeyboard()           // push + query — now on the correct stack
+"\e[c"                          // DA request — the sentinel, sent right after
+xtermMetaSendsEscape(true)
+...
+```
+
+**If you ever touch the order of statements in either `ECMA48Terminal` constructor, re-verify this constraint by hand** — there is no automated test for it, since `HeadlessBackend`-based unit tests never talk to a screen-buffer-aware real terminal. The only way to catch a regression here is the manual test in "Manual testing" below, against a real terminal that actually implements the protocol (WezTerm with `enable_kitty_keyboard = true`, or kitty itself).
+
 The decoder nevertheless *parses* event types and the `:shifted` sub-parameter,
 even though flag 1 alone will never produce them. This is intentional:
 
@@ -72,29 +90,49 @@ Standalone, state-free decoder. It was extracted rather than inlined into
 terminal or a `Backend` — the same reasoning that produced `AnsiParser` and
 `Palette256`, per CLAUDE.md. **Keep it free of terminal state.**
 
-- `ENABLE` / `DISABLE` — the push/pop sequences (`:62`, `:68`).
-- `parse(String)` (`:208`) — accepts a whole sequence, with or without the
+- `ENABLE` / `DISABLE` (`:62`, `:68`) — the push/pop sequences.
+- `QUERY = "\033[?u"` (`:81`) — asks the terminal to report its current
+  flags; used for support detection, see below.
+- `SupportState` (`:89`) — `UNKNOWN` / `SUPPORTED` / `UNSUPPORTED`. This is
+  what an application checks before deciding whether to advertise a
+  disambiguation-dependent shortcut in its own UI.
+- `parse(String)` (`:251`) — accepts a whole sequence, with or without the
   leading CSI. Used by tests.
-- `parse(List<String>)` (`:237`) — accepts parameters already split on `;` by
+- `parse(List<String>)` (`:280`) — accepts parameters already split on `;` by
   the terminal's state machine, colon sub-parameters left intact. Used in
   production.
-- `KeyEvent(TKeypress key, EventType type, int modifiers)` (`:163`) — the
+- `KeyEvent(TKeypress key, EventType type, int modifiers)` (`:206`) — the
   result. It carries the raw bitmask so Super/Hyper survive, since `TKeypress`
   has no field for them.
-- `toKeypress()` (`:355`) / `functionalKey()` (`:414`) — the mapping.
+- `toKeypress()` (`:398`) / `functionalKey()` (`:457`) — the mapping.
 
 Returns `null` for anything malformed or unrepresentable. It never throws.
 
 ### `casciian/backend/ECMA48Terminal.java` (modified)
 
-- `enableKittyKeyboard()` (`:1150`), called from both stream constructors
-  (`:738`, `:872`), right after `xtermMetaSendsEscape`.
-- `disableKittyKeyboard()` (`:1178`), called from `closeTerminal()` (`:1105`)
-  *before* anything can close the writer.
-- `case 'u':` in `CSI_PARAM` (`:3507`) → `parseKittyKey()` (`:2907`).
-- `if (ch == ':')` in `CSI_PARAM` (`:3424`) — accumulates sub-parameters onto
+- `enableKittyKeyboard()` (`:1180`), called from both stream constructors
+  right after `terminal.enableMouseReporting(true)` — see the alternate-screen
+  warning above for why that position is load-bearing. It sends `ENABLE` and
+  `QUERY` together, then registers the JVM shutdown-hook fallback.
+- `disableKittyKeyboard()` (`:1219`), called from `closeTerminal()` (`:1118`,
+  the call site is `:1135`) *before* `enableMouseReporting(false)` switches
+  back to the main screen, and before anything can close the writer.
+- `getKittyKeyboardSupport()` (`:2407`) — the public accessor for
+  `SupportState`.
+- `case 'u':` in `CSI_PARAM` (`:3565`) — branches on `decPrivateModeFlag`
+  (set when a `?` was seen in `CSI_ENTRY`): a `?`-flagged `u` is the
+  terminal's reply to `QUERY` and sets `SUPPORTED`; otherwise it's a real
+  keystroke and goes to `parseKittyKey()`.
+- `case 'c':` in `CSI_PARAM` (`:3641`) — the existing Device Attributes
+  handler, now doubling as the support-detection sentinel: if
+  `kittyKeyboardSupport` is still `UNKNOWN` when DA's reply arrives (DA is
+  answered by every terminal), it's set to `UNSUPPORTED`. This can never
+  clobber an already-`SUPPORTED` state, and a late-arriving `QUERY` reply
+  always overwrites `UNSUPPORTED` back to `SUPPORTED` unconditionally, so the
+  detection is correct regardless of which reply physically arrives first.
+- `if (ch == ':')` in `CSI_PARAM` (`:3482`) — accumulates sub-parameters onto
   the parameter they qualify, instead of terminating the sequence.
-- `csiModifiers()` (`:2858`) — see "Behavior changes" below.
+- `csiModifiers()` (`:2916`) — see "Behavior changes" below.
 
 ### `casciian/backend/SystemProperties.java` (modified)
 
@@ -133,6 +171,18 @@ modifier keys reported as keys themselves have no `TKeypress` equivalent.
 Dropping them is correct; inventing keycodes for them would collide with the
 existing `TKeypress.F1`–`F12`/`HOME`/… integer space.
 
+**Support detection exists because silence is ambiguous.** A terminal that
+does not implement the protocol, and a terminal that implements it but has it
+turned off in its own config (WezTerm ships `enable_kitty_keyboard` **off by
+default** — see "Real-world findings" below), both respond to `QUERY`
+identically: not at all. There is no error, no negative acknowledgment,
+nothing to parse. The only way to turn that silence into a definite answer is
+a sentinel — something every terminal is guaranteed to answer, sent right
+after `QUERY`. Device Attributes (`\e[c`) was already being requested for
+other reasons, so it was repurposed rather than inventing a new one. This is
+why the DA request had to move next to `enableKittyKeyboard()`: the sentinel
+technique only works if the two requests are adjacent in the outgoing stream.
+
 **Teardown is belt-and-braces.** `closeTerminal()` pops the flags, and a JVM
 shutdown hook (`casciian-kitty-keyboard-restore`) covers death by exception or
 abrupt exit. An `AtomicBoolean` makes the pop exactly-once; the hook
@@ -157,12 +207,23 @@ legacy sequences that carry an event type such as `\e[1;5:1D`.
   bitmask decoding, event types, functional keys, malformed input, and both
   `parse` entry points. Pure and fast; **this is where new protocol cases
   belong.**
-- `ECMA48TerminalKittyKeyboardTest` — 11 cases end-to-end through the real
-  parser: handshake emitted at startup, popped at teardown, popped exactly
-  once, suppressible by property, CSI u decoded off the wire, releases
-  dropped, and — importantly — `legacySequencesStillWork`, which feeds
-  `\e[A`, `\e[1;5D`, `\t`, `\e[105;5u` through one terminal and asserts
+- `ECMA48TerminalKittyKeyboardTest` — 17 cases end-to-end through the real
+  parser: handshake emitted at startup (including the query), popped at
+  teardown, popped exactly once, suppressible by property, CSI u decoded off
+  the wire, releases dropped, the support-detection sentinel logic
+  (`queryReplyMeansSupported`, `daWithoutQueryReplyMeansUnsupported`,
+  `queryReplyBeforeDaSentinelWins`, `disabledPropertyIsUnsupportedImmediately`),
+  and — importantly — `legacySequencesStillWork`, which feeds `\e[A`,
+  `\e[1;5D`, `\t`, `\e[105;5u` through one terminal and asserts
   Up / Ctrl+Left / Tab / Ctrl+I in order. **Do not delete that one.**
+
+None of these tests can catch the alternate-screen ordering bug described
+above, because `HeadlessBackend`/the test harness never models screen-buffer
+switching or per-screen flag stacks — they only assert that the *bytes we
+write* are correct, not that a real terminal would apply them to the screen
+Casciian actually runs on. That gap is inherent to unit-testing a wire
+protocol without a real terminal on the other end; the manual test below is
+the only thing that exercises it.
 
 Tests use JUnit 5 assertions, not AssertJ, despite CLAUDE.md's preference —
 AssertJ is not on the test classpath (`build.gradle:36-42`).
@@ -192,15 +253,41 @@ the protocol at all, which you want to know before debugging anything else.
    would be unkillable from that terminal.
 
 3. **What does Casciian decode it into?** Demo → *Keyboard probe…* (Ctrl+K),
-   implemented in `demo/DemoKeyboardWindow.java`. It logs each decoded
-   `TKeypress` and flips a header to **DETECTED** on the first keystroke the
-   legacy encoding could not have produced.
+   implemented in `demo/DemoKeyboardWindow.java`. Its status line reads
+   `ECMA48Terminal.getKittyKeyboardSupport()` live — SUPPORTED / NOT ACTIVE /
+   detecting / N/A — so you see the answer immediately on opening the window,
+   before pressing anything. (An earlier version of this window inferred
+   support from whether a disambiguating keystroke had been *seen*, which
+   only worked after the fact and couldn't answer the question a real
+   application needs answered up front — it was replaced once the real
+   detection mechanism existed.) The keystroke log below the status line
+   still shows the decoded `TKeypress` fields for whatever you press.
 
    Caveat: `TApplication` consumes menu accelerators before any window sees
    them (`TApplication.java:1687`), so the probe can never show Ctrl+X, C, V,
    Z, Y, L, W, F1, F5, or Ctrl+K itself. `tools/KeyProbe.java` (outside `src/`,
    not part of the build) drives `ECMA48Terminal` with no `TApplication` above
    it and therefore sees everything.
+
+### Real-world findings from testing this against actual terminals
+
+- **WezTerm ships `enable_kitty_keyboard` off by default.** A completely
+  correct implementation on Casciian's side will still show legacy-only
+  behavior against a stock WezTerm config; the raw-byte test in step 2 above
+  will show plain `^I` for Ctrl+I even with `ENABLE` pushed. The user has to
+  add `config.enable_kitty_keyboard = true` to `wezterm.lua` (inside the
+  config table if using the `return { ... }` style, or as `config.xxx = ...`
+  if using `wezterm.config_builder()`). Multiple other terminals gate this
+  behind a similar opt-in; do not assume a terminal that "supports" the
+  protocol in its changelog has it active by default. This is exactly the
+  `UNSUPPORTED` case the sentinel above is designed to detect and report.
+- **The alternate-screen ordering bug (see the warning above) looks
+  identical to "terminal doesn't support it."** Both present as: `ENABLE` is
+  sent, no crash, but every keystroke still arrives as legacy VT. The only
+  way to tell them apart is the raw-byte test in step 2, run independently of
+  Casciian: if a terminal known to support the protocol (WezTerm with the
+  config flag on, or kitty itself) still fails that test, suspect Casciian's
+  handshake ordering before suspecting the terminal.
 
 ## Known gaps / next steps
 
@@ -220,10 +307,16 @@ the protocol at all, which you want to know before debugging anything else.
   `kbCtrlShift{Home,End,PgUp,PgDn,Up,Down,Left,Right}` but nothing for
   letters, so applications must construct their own:
   `new TKeypress(false, 0, 'R', false, true, true)`.
-- **Windows Terminal support is unverified.** Use level 1 above rather than
-  guessing.
-- **The demo window has not been run interactively.** Layout and colors are
-  unconfirmed on a real screen; the build and test suite pass.
+- **No automated test covers the alternate-screen ordering constraint.** See
+  the warning above. `HeadlessBackend` has no concept of a screen buffer
+  switch, so a regression here can only be caught by the manual test against
+  a real terminal — it will not fail `./gradlew test`.
+- **The demo window's layout and colors have not been visually confirmed on
+  a real screen**, only that it compiles and the underlying detection logic
+  is unit-tested. Windows Terminal 1.25 and WezTerm have both been confirmed,
+  by the person who filed this note, to correctly disambiguate Ctrl+I once
+  the alternate-screen ordering bug above was fixed and (for WezTerm)
+  `enable_kitty_keyboard = true` was set.
 
 ## Things that will still eat your keystroke
 
