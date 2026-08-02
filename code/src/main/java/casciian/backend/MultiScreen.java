@@ -236,6 +236,21 @@ public class MultiScreen extends LogicalScreen implements Screen {
         }
     }
 
+    /**
+     * Report the current working directory to the terminal (OSC 7).
+     *
+     * @param directory the new working directory
+     */
+    @Override
+    public void setWorkingDirectory(final String directory) {
+        super.setWorkingDirectory(directory);
+        synchronized (screens) {
+            for (Screen screen: screens) {
+                screen.setWorkingDirectory(directory);
+            }
+        }
+    }
+
     // ------------------------------------------------------------------------
     // MultiScreen ------------------------------------------------------------
     // ------------------------------------------------------------------------

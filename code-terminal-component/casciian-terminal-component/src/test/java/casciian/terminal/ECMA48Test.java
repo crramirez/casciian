@@ -508,6 +508,30 @@ class ECMA48Test {
     }
 
     @Test
+    @DisplayName("OSC 7 reports the current working directory")
+    void shouldParseOsc7WorkingDirectory() throws Exception {
+        Backend backend = new HeadlessBackend();
+
+        String sequence = "\033]7;file://myhost/home/user/my%20dir\033\\";
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(
+            sequence.getBytes("UTF-8"));
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        ECMA48 emulator = new ECMA48(ECMA48.DeviceType.XTERM, inputStream,
+            outputStream, null, backend);
+
+        try {
+            emulator.waitForOutput(1000);
+
+            assertEquals("/home/user/my dir", emulator.getWorkingDirectory());
+            assertEquals("/home/user/my dir",
+                emulator.captureState().getWorkingDirectory());
+        } finally {
+            emulator.close();
+        }
+    }
+
+    @Test
     @DisplayName("CSI colon separator should split numeric params")
     void shouldTreatColonAsCsiParamSeparator() throws Exception {
         Backend backend = new HeadlessBackend();

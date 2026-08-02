@@ -136,6 +136,11 @@ public class ECMA48Terminal extends LogicalScreen
     private static final int FRAME_BUFFER_MAX_CHARS = 65536;
 
     /**
+     * The local hostname used in OSC 7 file:// URIs.
+     */
+    private static final String HOSTNAME = getHostname();
+
+    /**
      * States in the input parser.
      */
     private enum ParseState {
@@ -1031,6 +1036,25 @@ public class ECMA48Terminal extends LogicalScreen
             PrintWriter writer = output;
             if (writer != null) {
                 writer.write(getSetTitleString(title));
+                writer.flush();
+            }
+        }
+    }
+
+    /**
+     * Report the current working directory to the terminal (OSC 7).
+     *
+     * @param directory the new working directory
+     */
+    @Override
+    public void setWorkingDirectory(final String directory) {
+        if ((directory == null) || directory.isEmpty()) {
+            return;
+        }
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.write(getSetWorkingDirectoryString(directory));
                 writer.flush();
             }
         }
@@ -4163,6 +4187,73 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String getSetTitleString(final String title) {
         return "\033]2;" + title + "\007";
+    }
+
+    /**
+     * Create an xterm OSC 7 sequence to report the current working
+     * directory.  Terminals that understand this sequence will open new
+     * tabs/windows in the same directory.
+     *
+     * @param directory the new working directory
+     * @return the string to emit to xterm
+     */
+    private String getSetWorkingDirectoryString(final String directory) {
+        return "\033]7;" + directoryToFileUri(directory) + "\033\\";
+    }
+
+    /**
+     * Convert a filesystem path into a file:// URI as expected by OSC 7.
+     *
+     * @param directory the directory path
+     * @return the file:// URI
+     */
+    private static String directoryToFileUri(final String directory) {
+        String path = directory.replace('\\', '/');
+        if (!path.startsWith("/")) {
+            // Windows-style absolute (C:/...) or relative paths.
+            path = "/" + path;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("file://");
+        sb.append(HOSTNAME);
+        for (byte b: path.getBytes(StandardCharsets.UTF_8)) {
+            int ch = b & 0xFF;
+            if (((ch >= 'A') && (ch <= 'Z'))
+                || ((ch >= 'a') && (ch <= 'z'))
+                || ((ch >= '0') && (ch <= '9'))
+                || (ch == '/') || (ch == '-') || (ch == '_')
+                || (ch == '.') || (ch == '~') || (ch == ':')
+            ) {
+                sb.append((char) ch);
+            } else {
+                sb.append(String.format("%%%02X", ch));
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Obtain the local hostname to use in OSC 7 file:// URIs.
+     *
+     * @return the hostname, or "localhost" if it cannot be determined
+     */
+    private static String getHostname() {
+        String name = System.getenv("HOSTNAME");
+        if ((name == null) || name.isEmpty()) {
+            name = System.getenv("COMPUTERNAME");
+        }
+        if ((name == null) || name.isEmpty()) {
+            try {
+                name = java.net.InetAddress.getLocalHost().getHostName();
+            } catch (java.net.UnknownHostException e) {
+                name = null;
+            }
+        }
+        if ((name == null) || name.isEmpty()) {
+            name = "localhost";
+        }
+        return name;
     }
 
     /**

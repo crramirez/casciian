@@ -108,6 +108,11 @@ public class TerminalState {
      */
     private long lastVisibleUpdateTime;
 
+    /**
+     * The current working directory as reported by the OSC 7 sequence.
+     */
+    private String workingDirectory = "";
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -135,6 +140,8 @@ public class TerminalState {
      * getVisibleDisplay()
      * @param lastVisibleUpdateTime the last time we returned
      * lastVisibleDisplay
+     * @param workingDirectory the current working directory as reported by
+     * the OSC 7 sequence
      */
     TerminalState(final CellAttributes attr, final int width, final int height,
         final List<DisplayLine> scrollbackBuffer,
@@ -143,7 +150,7 @@ public class TerminalState {
         final ECMA48.MouseProtocol mouseProtocol, final String screenTitle,
         final boolean withinSynchronizedUpdate,
         final List<DisplayLine> lastVisibleDisplay,
-        final long lastVisibleUpdateTime) {
+        final long lastVisibleUpdateTime, final String workingDirectory) {
 
         this.attr             = new CellAttributes(attr);
         this.width            = width;
@@ -159,6 +166,7 @@ public class TerminalState {
         this.withinSynchronizedUpdate = withinSynchronizedUpdate;
         this.lastVisibleDisplay       = copyBuffer(lastVisibleDisplay);
         this.lastVisibleUpdateTime    = lastVisibleUpdateTime;
+        this.workingDirectory         = workingDirectory;
     }
 
     // ------------------------------------------------------------------------
@@ -330,6 +338,16 @@ public class TerminalState {
      */
     public String getScreenTitle() {
         return screenTitle;
+    }
+
+    /**
+     * Get the current working directory as reported by the OSC 7 sequence.
+     *
+     * @return the working directory, or an empty string if the remote side
+     * has not reported one
+     */
+    public String getWorkingDirectory() {
+        return workingDirectory;
     }
 
     /**

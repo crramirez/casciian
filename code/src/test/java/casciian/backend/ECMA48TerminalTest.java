@@ -351,6 +351,35 @@ class ECMA48TerminalTest {
     }
 
     @Test
+    @DisplayName("setWorkingDirectory emits an OSC 7 file:// sequence")
+    void testSetWorkingDirectory() {
+        terminal = createTerminal();
+        outputStream.reset();
+
+        terminal.setWorkingDirectory("/home/user/my dir");
+
+        String output = outputStream.toString(StandardCharsets.UTF_8);
+        assertTrue(output.startsWith("\033]7;file://"),
+            "Output should start with OSC 7. Output: "
+            + escapeForDisplay(output));
+        assertTrue(output.endsWith("/home/user/my%20dir\033\\"),
+            "Output should end with the percent-encoded path and ST. "
+            + "Output: " + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("setWorkingDirectory ignores null and empty paths")
+    void testSetWorkingDirectoryIgnoresEmpty() {
+        terminal = createTerminal();
+        outputStream.reset();
+
+        terminal.setWorkingDirectory(null);
+        terminal.setWorkingDirectory("");
+
+        assertEquals("", outputStream.toString(StandardCharsets.UTF_8));
+    }
+
+    @Test
     @DisplayName("flush does not throw exception")
     void testFlush() {
         terminal = createTerminal();

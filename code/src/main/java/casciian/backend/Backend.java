@@ -76,6 +76,14 @@ public interface Backend {
     public void setTitle(final String title);
 
     /**
+     * Classes must provide an implementation that reports the current
+     * working directory to the terminal (OSC 7).
+     *
+     * @param directory the new working directory
+     */
+    public void setWorkingDirectory(final String directory);
+
+    /**
      * Set listener to a different Object.
      *
      * @param listener the new listening object that run() wakes up on new

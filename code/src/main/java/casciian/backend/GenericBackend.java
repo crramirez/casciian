@@ -189,6 +189,15 @@ public abstract class GenericBackend implements Backend {
     }
 
     /**
+     * Report the current working directory to the terminal (OSC 7).
+     *
+     * @param directory the new working directory
+     */
+    public void setWorkingDirectory(final String directory) {
+        screen.setWorkingDirectory(directory);
+    }
+
+    /**
      * Set listener to a different Object.
      *
      * @param listener the new listening object that run() wakes up on new

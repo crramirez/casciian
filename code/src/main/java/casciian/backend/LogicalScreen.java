@@ -1347,6 +1347,15 @@ public class LogicalScreen implements Screen {
     public void setTitle(final String title) {
     }
 
+    /**
+     * Report the current working directory to the terminal (OSC 7).  Default
+     * implementation does nothing.
+     *
+     * @param directory the new working directory
+     */
+    public void setWorkingDirectory(final String directory) {
+    }
+
     // ------------------------------------------------------------------------
     // LogicalScreen ----------------------------------------------------------
     // ------------------------------------------------------------------------
