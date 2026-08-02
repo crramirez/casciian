@@ -262,6 +262,58 @@ class ECMA48TerminalTest {
     }
 
     @Test
+    @DisplayName("synchronized output is enabled by default")
+    void testSynchronizedOutputEnabledByDefault() {
+        terminal = createTerminal();
+        assertTrue(terminal.isSynchronizedOutputEnabled());
+    }
+
+    @Test
+    @DisplayName("flushPhysical wraps frames in CSI ? 2026 h/l by default")
+    void testFlushPhysicalWrapsFrameInSynchronizedOutput() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        CellAttributes attr = new CellAttributes();
+        terminal.putCharXY(0, 0, 'A', attr);
+        outputStream.reset();
+
+        terminal.flushPhysical();
+
+        String output = outputStream.toString(StandardCharsets.UTF_8);
+        assertTrue(output.startsWith("\033[?2026h"),
+            "Frame should start with synchronized output enable: "
+            + escapeForDisplay(output));
+        assertTrue(output.contains("A"),
+            "Frame should contain rendered content: " + escapeForDisplay(output));
+        assertTrue(output.endsWith("\033[?2026l"),
+            "Frame should end with synchronized output disable: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("setSynchronizedOutputEnabled(false) disables CSI ? 2026 wrapping")
+    void testDisableSynchronizedOutputWrapping() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+
+        terminal.setSynchronizedOutputEnabled(false);
+        CellAttributes attr = new CellAttributes();
+        terminal.putCharXY(0, 0, 'A', attr);
+        outputStream.reset();
+
+        terminal.flushPhysical();
+
+        String output = outputStream.toString(StandardCharsets.UTF_8);
+        assertFalse(output.contains("\033[?2026h"),
+            "Disabled synchronized output should not emit begin sequence: "
+            + escapeForDisplay(output));
+        assertFalse(output.contains("\033[?2026l"),
+            "Disabled synchronized output should not emit end sequence: "
+            + escapeForDisplay(output));
+    }
+
+    @Test
     @DisplayName("isFocused returns boolean value")
     void testIsFocused() {
         terminal = createTerminal();
@@ -336,6 +388,22 @@ class ECMA48TerminalTest {
         terminal = createTerminal();
         // Should not throw exception
         assertDoesNotThrow(() -> terminal.closeTerminal());
+    }
+
+    @Test
+    @DisplayName("closeTerminal always emits CSI ? 2026 l")
+    void testCloseTerminalEmitsSynchronizedOutputEnd() {
+        terminal = createTerminal();
+        assertNotNull(terminal);
+        outputStream.reset();
+
+        terminal.closeTerminal();
+
+        String output = outputStream.toString(StandardCharsets.UTF_8);
+        assertTrue(output.contains("\033[?2026l"),
+            "Terminal shutdown should always emit synchronized output end: "
+            + escapeForDisplay(output));
+        terminal = null;
     }
 
     @Test

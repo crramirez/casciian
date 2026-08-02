@@ -427,7 +427,14 @@ public class ECMA48Terminal extends LogicalScreen
      * https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
      * for details of this mode.
      */
-    private boolean hasSynchronizedOutput = false;
+    private volatile boolean hasSynchronizedOutput = false;
+
+    /**
+     * If true, wrap each frame in VT2026 Synchronized Output mode.
+     * Legacy terminals safely ignore these control sequences, so this
+     * defaults to true even before support probing completes.
+     */
+    private volatile boolean synchronizedOutputEnabled = true;
 
     /**
      * If true, this terminal requires explicitly overwriting images
@@ -472,6 +479,11 @@ public class ECMA48Terminal extends LogicalScreen
      * UTF-8 encoding.
      */
     private PrintWriter output;
+
+    /**
+     * Serialize writes that must remain atomic on the terminal stream.
+     */
+    private final Object outputLock = new Object();
 
     /**
      * The listening object that run() wakes up on new input.
@@ -919,9 +931,12 @@ public class ECMA48Terminal extends LogicalScreen
      */
     @Override
     public void setTitle(final String title) {
-        if (output != null) {
-            output.write(getSetTitleString(title));
-            flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.write(getSetTitleString(title));
+                writer.flush();
+            }
         }
     }
 
@@ -956,42 +971,40 @@ public class ECMA48Terminal extends LogicalScreen
             textBlinkVisible = true;
         }
 
-        if (output != null) {
-            if (hasSynchronizedOutput) {
-                if (!sb.isEmpty()) {
-                    // Begin Synchronized Update (BSU)
-                    output.write("\033[?2026h");
+        final String frame = sb.toString();
+        final String renderedFrame;
+        if (synchronizedOutputEnabled && !frame.isEmpty()) {
+            renderedFrame = "\033[?2026h" + frame + "\033[?2026l";
+        } else {
+            renderedFrame = frame;
+        }
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                if (!renderedFrame.isEmpty()) {
                     if (DEBUG_TO_STDERR) {
-                        System.err.printf("Writing %d bytes to terminal (sync)\n",
-                            sb.length());
+                        if (synchronizedOutputEnabled) {
+                            System.err.printf("Writing %d bytes to terminal (sync)\n",
+                                renderedFrame.length());
+                            System.err.printf("flushPhysical() %s\n", renderedFrame);
+                        } else {
+                            System.err.printf("Writing %d bytes to terminal\n",
+                                renderedFrame.length());
+                        }
                     }
-                    output.write(sb.toString());
-                    // End Synchronized Update (ESU)
-                    output.write("\033[?2026l");
+                    writer.write(renderedFrame);
                 }
-                if (DEBUG_TO_STDERR) {
-                    System.err.printf("flushPhysical() \033[?2026h%s\033[?2026l\n",
-                        sb.toString());
-                }
-            } else {
-                if (!sb.isEmpty()) {
-                    if (DEBUG_TO_STDERR) {
-                        System.err.printf("Writing %d bytes to terminal\n",
-                            sb.length());
-                    }
-                    output.write(sb.toString());
-                }
-            }
-            output.flush();
+                writer.flush();
 
-            long now = System.currentTimeMillis();
-            if ((int) (now / 1000) == (int) (lastFlushTime / 1000)) {
-                bytesPerSecond += sb.length();
-            } else {
-                lastBytesPerSecond = sb.length();
-                bytesPerSecond = 0;
+                long now = System.currentTimeMillis();
+                if ((int) (now / 1000) == (int) (lastFlushTime / 1000)) {
+                    bytesPerSecond += renderedFrame.length();
+                } else {
+                    lastBytesPerSecond = renderedFrame.length();
+                    bytesPerSecond = 0;
+                }
+                lastFlushTime = now;
             }
-            lastFlushTime = now;
         }
     }
 
@@ -1082,11 +1095,15 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Disable mouse reporting and show cursor.  Defensive null check
         // here in case closeTerminal() is called twice.
-        if (output != null) {
-            this.terminal.enableMouseReporting(false);
-            output.printf("%s%s", cursor(true), defaultColor());
-            output.printf("\033[>4m");
-            output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                this.terminal.enableMouseReporting(false);
+                writer.printf("%s%s", cursor(true), defaultColor());
+                writer.write("\033[?2026l");
+                writer.printf("\033[>4m");
+                writer.flush();
+            }
         }
 
         if (setRawMode) {
@@ -1104,9 +1121,11 @@ public class ECMA48Terminal extends LogicalScreen
                 }
                 input = null;
             }
-            if (output != null) {
-                output.close();
-                output = null;
+            synchronized (outputLock) {
+                if (output != null) {
+                    output.close();
+                    output = null;
+                }
             }
         }
 
@@ -1117,16 +1136,17 @@ public class ECMA48Terminal extends LogicalScreen
      * Restore the terminal's palette to its original state.
      */
     private void restorePalette() {
-        if (output == null) {
-            return;
-        }
-
         if (SystemProperties.isUseTerminalPalette()) {
             return;
         }
-
-        output.print("\033]104\033\\");
-        output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer == null) {
+                return;
+            }
+            writer.print("\033]104\033\\");
+            writer.flush();
+        }
     }
 
     /**
@@ -1560,9 +1580,30 @@ public class ECMA48Terminal extends LogicalScreen
      * Flush output.
      */
     public void flush() {
-        if (output != null) {
-            output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.flush();
+            }
         }
+    }
+
+    /**
+     * Check whether frame writes are wrapped in VT2026 Synchronized Output.
+     *
+     * @return true if Synchronized Output wrapping is enabled
+     */
+    public boolean isSynchronizedOutputEnabled() {
+        return synchronizedOutputEnabled;
+    }
+
+    /**
+     * Enable or disable VT2026 Synchronized Output frame wrapping.
+     *
+     * @param enabled if true, wrap frames in CSI ? 2026 h/l
+     */
+    public void setSynchronizedOutputEnabled(final boolean enabled) {
+        synchronizedOutputEnabled = enabled;
     }
 
     /**
@@ -4983,11 +5024,15 @@ public class ECMA48Terminal extends LogicalScreen
      * @param shape the pointer shape name (e.g., "arrow", "xterm")
      */
     private void setXtermMousePointer(final String shape) {
-        if (output != null) {
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer == null) {
+                return;
+            }
             mousePointerShapeChanged = true;
             // OSC 22 ; shape ST - set pointer shape
-            output.printf("\033]%s;%s\033\\", OSC_POINTER_SHAPE, shape);
-            output.flush();
+            writer.printf("\033]%s;%s\033\\", OSC_POINTER_SHAPE, shape);
+            writer.flush();
             if (DEBUG_TO_STDERR) {
                 System.err.println("Set pointer shape to: " + shape);
             }
@@ -5017,8 +5062,13 @@ public class ECMA48Terminal extends LogicalScreen
     public void xtermSetClipboardText(final String text) {
         byte[] textBytes = text.getBytes(StandardCharsets.UTF_8);
         String textToCopy = StringUtils.toBase64(textBytes);
-        this.output.printf("\033]52;c;%s\033\\", textToCopy);
-        this.output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.printf("\033]52;c;%s\033\\", textToCopy);
+                writer.flush();
+            }
+        }
     }
 
     /**
