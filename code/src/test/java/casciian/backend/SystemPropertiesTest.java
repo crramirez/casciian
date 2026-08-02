@@ -1018,4 +1018,38 @@ class SystemPropertiesTest {
         // After reset, should re-read from user.dir system property
         assertEquals(originalSystemProp, SystemProperties.getUserDir());
     }
+
+    @Test
+    @DisplayName("setUserDir notifies registered listeners with the new path")
+    void testSetUserDirNotifiesListeners() {
+        String original = SystemProperties.getUserDir();
+        String newDir = System.getProperty("java.io.tmpdir") + File.separator + "listener-dir";
+        java.util.List<String> received = new java.util.ArrayList<>();
+        java.util.function.Consumer<String> listener = received::add;
+
+        try {
+            SystemProperties.addUserDirListener(listener);
+            SystemProperties.setUserDir(newDir);
+            assertEquals(java.util.List.of(newDir), received);
+        } finally {
+            SystemProperties.removeUserDirListener(listener);
+            SystemProperties.setUserDir(original);
+        }
+    }
+
+    @Test
+    @DisplayName("removeUserDirListener stops further notifications")
+    void testRemoveUserDirListener() {
+        String original = SystemProperties.getUserDir();
+        String newDir = System.getProperty("java.io.tmpdir") + File.separator + "removed-listener-dir";
+        java.util.List<String> received = new java.util.ArrayList<>();
+        java.util.function.Consumer<String> listener = received::add;
+
+        SystemProperties.addUserDirListener(listener);
+        SystemProperties.removeUserDirListener(listener);
+        SystemProperties.setUserDir(newDir);
+
+        assertTrue(received.isEmpty());
+        SystemProperties.setUserDir(original);
+    }
 }
