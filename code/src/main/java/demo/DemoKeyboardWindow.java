@@ -21,12 +21,15 @@ import java.util.ResourceBundle;
 
 import casciian.TApplication;
 import casciian.TKeypress;
+import casciian.TList;
+import casciian.TPanel;
+import casciian.TText;
 import casciian.TWindow;
 import casciian.backend.ECMA48Terminal;
 import casciian.backend.KittyKeyboard;
-import casciian.bits.CellAttributes;
-import casciian.bits.ColorTheme;
 import casciian.event.TKeypressEvent;
+import casciian.event.TResizeEvent;
+import casciian.layout.BoxLayoutManager;
 
 /**
  * This window echoes every keystroke it receives, showing the decoded
@@ -54,10 +57,8 @@ public class DemoKeyboardWindow extends TWindow {
      */
     public static final String RESOURCE_BUNDLE_NAME = DemoKeyboardWindow.class.getName() + "Bundle";
 
-    /**
-     * How many keystrokes to keep on screen.
-     */
-    private static final int HISTORY_SIZE = 12;
+    private static final int INFO_ROWS = 6;
+    private static final int MIN_HISTORY_ROWS = 4;
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -72,6 +73,11 @@ public class DemoKeyboardWindow extends TWindow {
      * The most recent keystrokes, oldest first.
      */
     private final List<String> history = new ArrayList<String>();
+
+    private final TPanel textPanel;
+    private final TText statusText;
+    private final TText hintText;
+    private final TList historyList;
 
     /**
      * True if the previous keystroke was Escape, used for the
@@ -89,10 +95,24 @@ public class DemoKeyboardWindow extends TWindow {
      * @param parent the main application
      */
     DemoKeyboardWindow(final TApplication parent) {
-        super(parent, "", 0, 0, 68, HISTORY_SIZE + 6, CENTERED | RESIZABLE);
+        super(parent, "", 0, 0, 68, 18, CENTERED | RESIZABLE);
 
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME, getLocale());
         setTitle(i18n.getString("windowTitle"));
+
+        textPanel = addPanel(1, 1, getWidth() - 2, INFO_ROWS);
+        textPanel.setBorderStyle("none");
+        textPanel.setLayoutManager(new BoxLayoutManager(textPanel.getWidth(),
+            textPanel.getHeight(), true));
+        textPanel.addText(i18n.getString("instructions"), 0, 0,
+            textPanel.getWidth(), 2);
+        statusText = textPanel.addText("", 0, 0, textPanel.getWidth(), 2);
+        hintText = textPanel.addText("", 0, 0, textPanel.getWidth(), 2);
+
+        historyList = addList(history, 1, 1 + INFO_ROWS, getWidth() - 2,
+            getHeight() - 2 - INFO_ROWS);
+        layoutWidgets(null);
+        refreshStatusText();
     }
 
     // ------------------------------------------------------------------------
@@ -123,34 +143,22 @@ public class DemoKeyboardWindow extends TWindow {
         }
 
         history.add(describe(key));
-        while (history.size() > HISTORY_SIZE) {
-            history.removeFirst();
-        }
+        historyList.setList(history);
+        historyList.setSelectedIndex(history.size() - 1);
+        refreshStatusText();
     }
 
-    /**
-     * Draw the keystroke log and the live support status.
-     */
+    @Override
+    public void onResize(final TResizeEvent event) {
+        super.onResize(event);
+        layoutWidgets(event);
+        refreshStatusText();
+    }
+
     @Override
     public void draw() {
+        refreshStatusText();
         super.draw();
-
-        CellAttributes text = getTheme().getColor(ColorTheme.TLABEL);
-        CellAttributes heading = getTheme().getColor(ColorTheme.TTEXT);
-
-        int row = 1;
-        putStringXY(2, row++, i18n.getString("instructions"), heading);
-        putStringXY(2, row++, statusLine(), heading);
-
-        KittyKeyboard.SupportState support = support();
-        if (support == KittyKeyboard.SupportState.UNSUPPORTED) {
-            putStringXY(2, row++, i18n.getString("unsupportedHint"), text);
-        }
-        row++;
-
-        for (String line : history) {
-            putStringXY(2, row++, line, text);
-        }
     }
 
     // ------------------------------------------------------------------------
@@ -224,6 +232,37 @@ public class DemoKeyboardWindow extends TWindow {
             case UNSUPPORTED -> i18n.getString("protocolUnsupported");
             case UNKNOWN -> i18n.getString("protocolDetecting");
         };
+    }
+
+    private void refreshStatusText() {
+        String status = statusLine();
+        if (!status.equals(statusText.getText())) {
+            statusText.setText(status);
+        }
+
+        String hint = "";
+        if (support() == KittyKeyboard.SupportState.UNSUPPORTED) {
+            hint = i18n.getString("unsupportedHint");
+        }
+        if (!hint.equals(hintText.getText())) {
+            hintText.setText(hint);
+        }
+    }
+
+    private void layoutWidgets(final TResizeEvent event) {
+        int clientWidth = getWidth() - 2;
+        int clientHeight = getHeight() - 2;
+        int infoRows = Math.min(INFO_ROWS,
+            Math.max(2, clientHeight - MIN_HISTORY_ROWS));
+        int historyRows = Math.max(1, clientHeight - infoRows);
+
+        textPanel.setDimensions(1, 1, clientWidth, infoRows);
+        if (event != null) {
+            textPanel.onResize(new TResizeEvent(event.getBackend(),
+                TResizeEvent.Type.WIDGET, textPanel.getWidth(),
+                textPanel.getHeight()));
+        }
+        historyList.setDimensions(1, 1 + infoRows, clientWidth, historyRows);
     }
 
 }
