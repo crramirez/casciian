@@ -20,10 +20,13 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 import casciian.TApplication;
+import casciian.THScroller;
 import casciian.TKeypress;
 import casciian.TList;
 import casciian.TPanel;
 import casciian.TText;
+import casciian.TVScroller;
+import casciian.TWidget;
 import casciian.TWindow;
 import casciian.backend.ECMA48Terminal;
 import casciian.backend.KittyKeyboard;
@@ -57,8 +60,9 @@ public class DemoKeyboardWindow extends TWindow {
      */
     public static final String RESOURCE_BUNDLE_NAME = DemoKeyboardWindow.class.getName() + "Bundle";
 
-    private static final int INFO_ROWS = 6;
-    private static final int MIN_HISTORY_ROWS = 4;
+    private static final int INFO_ROWS = 8;
+    private static final int MIN_INFO_ROWS = 3;
+    private static final int MIN_HISTORY_ROWS = 2;
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -75,8 +79,7 @@ public class DemoKeyboardWindow extends TWindow {
     private final List<String> history = new ArrayList<>();
 
     private final TPanel textPanel;
-    private final TText statusText;
-    private final TText hintText;
+    private final TText infoText;
     private final TList historyList;
 
     /**
@@ -99,19 +102,20 @@ public class DemoKeyboardWindow extends TWindow {
 
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME, getLocale());
         setTitle(i18n.getString("windowTitle"));
+        setMinimumWindowHeight(INFO_ROWS + MIN_HISTORY_ROWS + 2);
 
         textPanel = addPanel(1, 1, getWidth() - 2, INFO_ROWS);
         textPanel.setBorderStyle("none");
         textPanel.setLayoutManager(new BoxLayoutManager(textPanel.getWidth(),
             textPanel.getHeight(), true));
-        textPanel.addText(i18n.getString("instructions"), 0, 0,
+        infoText = textPanel.addText("", 0, 0,
             textPanel.getWidth(), 2);
-        statusText = textPanel.addText("", 0, 0, textPanel.getWidth(), 2);
-        hintText = textPanel.addText("", 0, 0, textPanel.getWidth(), 2);
+        hideScrollbars(infoText);
 
         historyList = addList(history, 1, 1 + INFO_ROWS, getWidth() - 2,
             getHeight() - 2 - INFO_ROWS);
-        layoutWidgets(null);
+        hideScrollbars(historyList);
+        layoutWidgets();
         refreshStatusText();
     }
 
@@ -151,7 +155,7 @@ public class DemoKeyboardWindow extends TWindow {
     @Override
     public void onResize(final TResizeEvent event) {
         super.onResize(event);
-        layoutWidgets(event);
+        layoutWidgets();
         refreshStatusText();
     }
 
@@ -235,33 +239,39 @@ public class DemoKeyboardWindow extends TWindow {
     }
 
     private void refreshStatusText() {
-        String status = statusLine();
-        if (!status.equals(statusText.getText())) {
-            statusText.setText(status);
-        }
-
-        String hint = "";
+        StringBuilder text = new StringBuilder();
+        text.append(i18n.getString("instructions"))
+            .append('\n')
+            .append('\n')
+            .append(statusLine());
         if (support() == KittyKeyboard.SupportState.UNSUPPORTED) {
-            hint = i18n.getString("unsupportedHint");
+            text.append('\n')
+                .append('\n')
+                .append(i18n.getString("unsupportedHint"));
         }
-        if (!hint.equals(hintText.getText())) {
-            hintText.setText(hint);
+        String info = text.toString();
+        if (!info.equals(infoText.getText())) {
+            infoText.setText(info);
         }
     }
 
-    private void layoutWidgets(final TResizeEvent event) {
+    private void layoutWidgets() {
         int clientWidth = getWidth() - 2;
         int clientHeight = getHeight() - 2;
-        int infoRows = Math.clamp(clientHeight - MIN_HISTORY_ROWS, 2, INFO_ROWS);
-        int historyRows = Math.max(1, clientHeight - infoRows);
+        int infoRows = Math.min(INFO_ROWS,
+            Math.max(MIN_INFO_ROWS, clientHeight - MIN_HISTORY_ROWS));
+        int historyRows = Math.max(MIN_HISTORY_ROWS, clientHeight - infoRows);
 
         textPanel.setDimensions(1, 1, clientWidth, infoRows);
-        if (event != null) {
-            textPanel.onResize(new TResizeEvent(event.getBackend(),
-                TResizeEvent.Type.WIDGET, textPanel.getWidth(),
-                textPanel.getHeight()));
-        }
         historyList.setDimensions(1, 1 + infoRows, clientWidth, historyRows);
+    }
+
+    private void hideScrollbars(final TWidget widget) {
+        for (TWidget child: widget.getChildren()) {
+            if ((child instanceof THScroller) || (child instanceof TVScroller)) {
+                child.setVisible(false);
+            }
+        }
     }
 
 }
