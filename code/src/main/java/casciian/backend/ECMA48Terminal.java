@@ -130,6 +130,12 @@ public class ECMA48Terminal extends LogicalScreen
     private static final String END_SYNCHRONIZED_UPDATE = "\033[?2026l";
 
     /**
+     * Maximum number of characters that the reusable frame buffer will
+     * retain between redraws.
+     */
+    private static final int FRAME_BUFFER_MAX_CHARS = 65536;
+
+    /**
      * States in the input parser.
      */
     private enum ParseState {
@@ -498,6 +504,12 @@ public class ECMA48Terminal extends LogicalScreen
      * Serialize writes that must remain atomic on the terminal stream.
      */
     private final Object outputLock = new Object();
+
+    /**
+     * Buffer reused by writeFrame() to hand frame characters to the output
+     * writer.  Guarded by outputLock.
+     */
+    private char [] frameBuffer = new char[0];
 
     /**
      * The listening object that run() wakes up on new input.
@@ -1001,9 +1013,9 @@ public class ECMA48Terminal extends LogicalScreen
             textBlinkVisible = true;
         }
 
-        final String frame = sb.toString();
-        final boolean wrapFrame = synchronizedOutputEnabled && !frame.isEmpty();
-        int frameLength = frame.length();
+        final int frameChars = sb.length();
+        final boolean wrapFrame = synchronizedOutputEnabled && (frameChars > 0);
+        int frameLength = frameChars;
         if (wrapFrame) {
             frameLength += BEGIN_SYNCHRONIZED_UPDATE.length()
                 + END_SYNCHRONIZED_UPDATE.length();
@@ -1011,13 +1023,13 @@ public class ECMA48Terminal extends LogicalScreen
         synchronized (outputLock) {
             PrintWriter writer = output;
             if (writer != null) {
-                if (!frame.isEmpty()) {
+                if (frameChars > 0) {
                     if (DEBUG_TO_STDERR) {
                         if (wrapFrame) {
                             System.err.printf("Writing %d bytes to terminal (sync)\n",
                                 frameLength);
                             System.err.printf("flushPhysical() %s%s%s\n",
-                                BEGIN_SYNCHRONIZED_UPDATE, frame,
+                                BEGIN_SYNCHRONIZED_UPDATE, sb,
                                 END_SYNCHRONIZED_UPDATE);
                         } else {
                             System.err.printf("Writing %d bytes to terminal\n",
@@ -1027,7 +1039,7 @@ public class ECMA48Terminal extends LogicalScreen
                     if (wrapFrame) {
                         writer.write(BEGIN_SYNCHRONIZED_UPDATE);
                     }
-                    writer.write(frame);
+                    writeFrame(writer, sb);
                     if (wrapFrame) {
                         writer.write(END_SYNCHRONIZED_UPDATE);
                     }
@@ -1044,6 +1056,34 @@ public class ECMA48Terminal extends LogicalScreen
                 lastFlushTime = now;
             }
         }
+    }
+
+    /**
+     * Write the contents of a rendered frame to the terminal without
+     * allocating a String copy of it.  Frames up to
+     * {@link #FRAME_BUFFER_MAX_CHARS} are copied into a buffer that is reused
+     * across redraws; larger frames (for example those carrying image data)
+     * use a temporary buffer so that the memory is not retained.  Callers
+     * must hold outputLock.
+     *
+     * @param writer the writer to send the frame to
+     * @param frame  the rendered frame
+     */
+    private void writeFrame(final PrintWriter writer,
+        final StringBuilder frame) {
+
+        int length = frame.length();
+        char [] buffer;
+        if (length <= FRAME_BUFFER_MAX_CHARS) {
+            if (frameBuffer.length < length) {
+                frameBuffer = new char[length];
+            }
+            buffer = frameBuffer;
+        } else {
+            buffer = new char[length];
+        }
+        frame.getChars(0, length, buffer, 0);
+        writer.write(buffer, 0, length);
     }
 
     /**
@@ -1445,8 +1485,9 @@ public class ECMA48Terminal extends LogicalScreen
                         events.clear();
                     }
 
-                    if (output != null) {
-                        if (output.checkError()) {
+                    synchronized (outputLock) {
+                        PrintWriter writer = output;
+                        if ((writer != null) && writer.checkError()) {
                             // This is EOF.
                             done = true;
                         }
@@ -1576,6 +1617,11 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * Get the output writer.
+     *
+     * <p>Writes made directly through the returned writer are not serialized
+     * with this terminal's own frame writes, and can therefore land in the
+     * middle of a synchronized update.  Prefer the methods on this class,
+     * which serialize all terminal writes.
      *
      * @return the Writer
      */
@@ -3669,7 +3715,7 @@ public class ECMA48Terminal extends LogicalScreen
                                 // spawning stty.
                                 if (sessionInfo instanceof TTYSessionInfo) {
                                     TTYSessionInfo tty = (TTYSessionInfo) sessionInfo;
-                                    tty.output = output;
+                                    tty.windowSizeQuery = this::sendWindowSizeQuery;
                                     tty.lastFallbackQueryTime = System.currentTimeMillis();
 
                                     int newHeight = height;
@@ -5038,6 +5084,22 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Send a CSI 18 t screen size query to the terminal, serialized with all
+     * other writes to the terminal stream.  This is handed to
+     * {@link TTYSessionInfo} once the terminal has proven it answers CSI 8 t,
+     * so that the session info does not write to the terminal on its own.
+     */
+    private void sendWindowSizeQuery() {
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.write(xtermQueryWindowSize());
+                writer.flush();
+            }
+        }
+    }
+
+    /**
      * Request (u)xterm report support for a specific mode.
      *
      * @param mode the mode to query
@@ -5095,11 +5157,13 @@ public class ECMA48Terminal extends LogicalScreen
      * This is called when the terminal is closed.
      */
     private void restoreXtermMousePointer() {
-        if (mousePointerShapeChanged && output != null) {
-            setXtermMousePointer(POINTER_SHAPE_DEFAULT);
-            mousePointerShapeChanged = false;
-            if (DEBUG_TO_STDERR) {
-                System.err.println("Restored pointer shape to: " + POINTER_SHAPE_DEFAULT);
+        synchronized (outputLock) {
+            if (mousePointerShapeChanged && (output != null)) {
+                setXtermMousePointer(POINTER_SHAPE_DEFAULT);
+                mousePointerShapeChanged = false;
+                if (DEBUG_TO_STDERR) {
+                    System.err.println("Restored pointer shape to: " + POINTER_SHAPE_DEFAULT);
+                }
             }
         }
     }
