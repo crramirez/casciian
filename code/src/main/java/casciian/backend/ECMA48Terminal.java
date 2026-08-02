@@ -774,26 +774,26 @@ public class ECMA48Terminal extends LogicalScreen
             // Request xterm report window/cell dimensions in pixels
             this.output.printf("%s", xtermReportPixelDimensions());
 
-        // Enable mouse reporting.  This also switches to the alternate
-        // screen buffer (smcup), which is why the Kitty keyboard flags are
-        // pushed only after this call, below: the protocol spec requires
-        // terminals to keep independent keyboard mode stacks for the main
-        // and alternate screens, so pushing before the switch would land
-        // the flags on the stack Casciian never actually runs on, and they
-        // would silently have no effect.
+            // Enable mouse reporting.  This also switches to the alternate
+            // screen buffer (smcup), which is why the Kitty keyboard flags are
+            // pushed only after this call, below: the protocol spec requires
+            // terminals to keep independent keyboard mode stacks for the main
+            // and alternate screens, so pushing before the switch would land
+            // the flags on the stack Casciian never actually runs on, and they
+            // would silently have no effect.
             this.terminal.enableMouseReporting(true);
 
-        // Ask for the Kitty keyboard protocol ("disambiguated keys").
-        // Terminals that do not support it, or have it turned off, ignore
-        // this and keep sending legacy VT sequences.  This must be sent
-        // before the Device Attributes request below: DA is answered by
-        // every terminal, so seeing its response without having first seen
-        // a reply to our capability query is how we conclude the protocol
-        // is not active (see enableKittyKeyboard()).
-        enableKittyKeyboard();
+            // Ask for the Kitty keyboard protocol ("disambiguated keys").
+            // Terminals that do not support it, or have it turned off, ignore
+            // this and keep sending legacy VT sequences.  This must be sent
+            // before the Device Attributes request below: DA is answered by
+            // every terminal, so seeing its response without having first seen
+            // a reply to our capability query is how we conclude the protocol
+            // is not active (see enableKittyKeyboard()).
+            enableKittyKeyboard();
 
-        // Request Device Attributes
-        this.output.printf("\033[c");
+            // Request Device Attributes
+            this.output.printf("\033[c");
 
             // Enable metaSendsEscape
             this.output.printf("%s", xtermMetaSendsEscape(true));
