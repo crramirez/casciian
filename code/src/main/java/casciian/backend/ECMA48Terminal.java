@@ -2163,10 +2163,8 @@ public class ECMA48Terminal extends LogicalScreen
      * knows how to process ECMA-48/ANSI X3.64 escape sequences.
      *
      * @param sb StringBuilder to write escape sequences to
-     * @return escape sequences string that provides the updates to the
-     * physical screen
      */
-    private String flushString(final StringBuilder sb) {
+    private void flushString(final StringBuilder sb) {
         final boolean reallyDebug = false;
 
         CellAttributes attr = null;
@@ -2364,11 +2362,9 @@ public class ECMA48Terminal extends LogicalScreen
 
         reallyCleared = false;
 
-        String result = sb.toString();
         if (DEBUG_TO_STDERR && !hasSynchronizedOutput) {
-            System.err.printf("flushString(): %s\n", result);
+            System.err.printf("flushString(): %s\n", sb.toString());
         }
-        return result;
     }
 
     /**
