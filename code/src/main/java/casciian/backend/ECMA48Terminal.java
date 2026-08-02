@@ -30,12 +30,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import casciian.backend.terminal.Terminal;
 import casciian.backend.terminal.TerminalFactory;
@@ -385,6 +385,20 @@ public class ECMA48Terminal extends LogicalScreen
     private boolean modifyOtherKeys = false;
 
     /**
+     * If true, we pushed the Kitty keyboard protocol ("disambiguated keys",
+     * CSI u) flags onto the terminal's keyboard mode stack and still owe it
+     * a pop.  Guarded so that the pop happens exactly once, whether it comes
+     * from closeTerminal() or from the JVM shutdown hook.
+     */
+    private final AtomicBoolean kittyKeyboardPushed = new AtomicBoolean(false);
+
+    /**
+     * Shutdown hook that pops the Kitty keyboard flags if the application
+     * dies without calling closeTerminal().
+     */
+    private Thread kittyKeyboardShutdownHook;
+
+    /**
      * If true, '?' was seen in terminal response.
      */
     private boolean decPrivateModeFlag = false;
@@ -718,6 +732,11 @@ public class ECMA48Terminal extends LogicalScreen
         // Enable metaSendsEscape
         this.output.printf("%s", xtermMetaSendsEscape(true));
 
+        // Ask for the Kitty keyboard protocol ("disambiguated keys").
+        // Terminals that do not support it ignore this and keep sending
+        // legacy VT sequences.
+        enableKittyKeyboard();
+
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
 
@@ -846,6 +865,11 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Enable metaSendsEscape
         this.output.printf("%s", xtermMetaSendsEscape(true));
+
+        // Ask for the Kitty keyboard protocol ("disambiguated keys").
+        // Terminals that do not support it ignore this and keep sending
+        // legacy VT sequences.
+        enableKittyKeyboard();
 
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
@@ -1075,6 +1099,11 @@ public class ECMA48Terminal extends LogicalScreen
             }
         }
 
+        // Pop the Kitty keyboard protocol flags before anything can close
+        // the output stream, so the host terminal is back in standard input
+        // mode.
+        disableKittyKeyboard();
+
         // Restore original xterm mouse pointer shape if it was changed
         restoreXtermMousePointer();
 
@@ -1111,6 +1140,62 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         closeTerminalImpl();
+    }
+
+    /**
+     * Push the Kitty keyboard protocol flags onto the terminal's keyboard
+     * mode stack, and register a shutdown hook that pops them again if the
+     * application dies before closeTerminal() runs.
+     */
+    private void enableKittyKeyboard() {
+        if (!SystemProperties.isEcma48KittyKeyboard()) {
+            return;
+        }
+        if (output == null) {
+            return;
+        }
+        if (!kittyKeyboardPushed.compareAndSet(false, true)) {
+            return;
+        }
+
+        output.printf("%s", KittyKeyboard.ENABLE);
+
+        kittyKeyboardShutdownHook = new Thread(this::disableKittyKeyboard,
+            "casciian-kitty-keyboard-restore");
+        try {
+            Runtime.getRuntime().addShutdownHook(kittyKeyboardShutdownHook);
+        } catch (IllegalStateException e) {
+            // The JVM is already shutting down.  Nothing to register.
+            kittyKeyboardShutdownHook = null;
+        }
+    }
+
+    /**
+     * Pop the Kitty keyboard protocol flags, returning the host terminal to
+     * standard input mode.  Safe to call more than once, and safe to call
+     * from the shutdown hook.
+     */
+    private void disableKittyKeyboard() {
+        if (!kittyKeyboardPushed.compareAndSet(true, false)) {
+            return;
+        }
+
+        PrintWriter out = output;
+        if (out != null) {
+            out.printf("%s", KittyKeyboard.DISABLE);
+            out.flush();
+        }
+
+        Thread hook = kittyKeyboardShutdownHook;
+        kittyKeyboardShutdownHook = null;
+        if ((hook != null) && (hook != Thread.currentThread())) {
+            try {
+                Runtime.getRuntime().removeShutdownHook(hook);
+            } catch (IllegalStateException e) {
+                // The JVM is already shutting down, the hook will simply be
+                // a no-op when it runs.
+            }
+        }
     }
 
     /**
@@ -2762,26 +2847,37 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Set of CSI parameters indicating Shift key was pressed.
+     * Decode a CSI keyboard modifier parameter into its bitmask.  The wire
+     * value is 1 + bitmask (Shift = 1, Alt = 2, Ctrl = 4, Super = 8, ...).
+     * Any colon sub-parameter (the Kitty event type) is discarded.
+     *
+     * @param x the parameter text, for example "5" or "5:1"
+     * @return the modifier bitmask, or 0 if the parameter is absent or
+     * malformed
      */
-    private static final Set<String> CSI_SHIFT_PARAMS = Set.of("2", "4", "6", "8");
-
-    /**
-     * Set of CSI parameters indicating Alt key was pressed.
-     */
-    private static final Set<String> CSI_ALT_PARAMS = Set.of("3", "4", "7", "8");
-
-    /**
-     * Set of CSI parameters indicating Ctrl key was pressed.
-     */
-    private static final Set<String> CSI_CTRL_PARAMS = Set.of("5", "6", "7", "8");
+    private static int csiModifiers(final String x) {
+        if ((x == null) || x.isEmpty()) {
+            return 0;
+        }
+        String base = x;
+        int colon = base.indexOf(':');
+        if (colon >= 0) {
+            base = base.substring(0, colon);
+        }
+        try {
+            int value = Integer.parseInt(base);
+            return (value > 0 ? value - 1 : 0);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
 
     /**
      * Returns true if the CSI parameter for a keyboard command means that
      * shift was down.
      */
     private boolean csiIsShift(final String x) {
-        return CSI_SHIFT_PARAMS.contains(x);
+        return KittyKeyboard.isShift(csiModifiers(x));
     }
 
     /**
@@ -2789,7 +2885,7 @@ public class ECMA48Terminal extends LogicalScreen
      * alt was down.
      */
     private boolean csiIsAlt(final String x) {
-        return CSI_ALT_PARAMS.contains(x);
+        return KittyKeyboard.isAlt(csiModifiers(x));
     }
 
     /**
@@ -2797,7 +2893,26 @@ public class ECMA48Terminal extends LogicalScreen
      * ctrl was down.
      */
     private boolean csiIsCtrl(final String x) {
-        return CSI_CTRL_PARAMS.contains(x);
+        return KittyKeyboard.isCtrl(csiModifiers(x));
+    }
+
+    /**
+     * Produce a keystroke from a Kitty keyboard protocol CSI u sequence.
+     * Key release events are dropped: Casciian has no representation for
+     * them.
+     *
+     * @return one KEYPRESS event, or null if the sequence was malformed,
+     * named a key Casciian cannot represent, or was a key release
+     */
+    private TInputEvent parseKittyKey() {
+        KittyKeyboard.KeyEvent keyEvent = KittyKeyboard.parse(params);
+        if (keyEvent == null) {
+            return null;
+        }
+        if (keyEvent.isRelease()) {
+            return null;
+        }
+        return new TKeypressEvent(backend, keyEvent.key());
     }
 
     /**
@@ -3303,6 +3418,14 @@ public class ECMA48Terminal extends LogicalScreen
                     params.add("");
                     return;
                 }
+                // Sub-parameter separator.  The Kitty keyboard protocol uses
+                // these for alternate key codes and event types; keep them
+                // attached to the parameter they qualify.
+                if (ch == ':') {
+                    params.set(params.size() - 1,
+                        params.get(params.size() - 1) + ch);
+                    return;
+                }
 
                 if (ch == '~') {
                     events.add(csiFnKey());
@@ -3379,6 +3502,20 @@ public class ECMA48Terminal extends LogicalScreen
                                 ctrl = csiIsCtrl(params.get(1));
                             }
                             events.add(new TKeypressEvent(backend, kbEnd, alt, ctrl, shift));
+                            resetParser();
+                            return;
+                        case 'u':
+                            // Kitty keyboard protocol ("disambiguated
+                            // keys"): CSI keycode ; modifiers [: event] u
+                            if (decPrivateModeFlag) {
+                                // CSI ? flags u is a keyboard mode report,
+                                // not a keystroke.
+                                break;
+                            }
+                            TInputEvent kittyEvent = parseKittyKey();
+                            if (kittyEvent != null) {
+                                events.add(kittyEvent);
+                            }
                             resetParser();
                             return;
                         case 'S':

@@ -43,6 +43,8 @@ import casciian.menu.TMenuItem;
 import casciian.menu.TSubMenu;
 import casciian.backend.Backend;
 
+import static casciian.TKeypress.kbCtrlK;
+
 /**
  * The demo application itself.
  */
@@ -218,6 +220,11 @@ public class DemoApplication extends TApplication {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            return true;
+        }
+
+        if (menu.getId() == 10017) {
+            new DemoKeyboardWindow(this);
             return true;
         }
 
@@ -773,6 +780,7 @@ public class DemoApplication extends TApplication {
         backgroundImage.setCheckable(true);
         backgroundImage.setChecked(false);
         demoMenu.addItem(10012, i18n.getString("shadowOpacity"));
+        demoMenu.addItem(10017, i18n.getString("keyboardProbe"), kbCtrlK);
         TSubMenu languageMenu = demoMenu.addSubMenu(i18n.getString("selectLanguage"));
         languageMenu.addItem(10005, i18n.getString("english"));
         languageMenu.addItem(10006, i18n.getString("espanol"));
