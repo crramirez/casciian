@@ -626,8 +626,19 @@ public class TField extends TTextBase {
      */
     private void truncateToWidth() {
         String current = document.getLine(0).getRawString();
-        if (current.length() > textAreaWidth()) {
-            document.setText(current.substring(0, textAreaWidth()));
+        if (StringUtils.width(current) > textAreaWidth()) {
+            int displayWidth = 0;
+            int byteIdx = 0;
+            int[] codePoints = StringUtils.toCodePoints(current);
+            for (int cp : codePoints) {
+                int cpWidth = StringUtils.width(cp);
+                if (displayWidth + cpWidth > textAreaWidth()) {
+                    break;
+                }
+                displayWidth += cpWidth;
+                byteIdx += Character.charCount(cp);
+            }
+            document.setText(current.substring(0, byteIdx));
         }
     }
 

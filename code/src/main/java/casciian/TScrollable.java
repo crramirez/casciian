@@ -138,7 +138,7 @@ public class TScrollable extends TWidget implements Scrollable {
         TWindow window = getWindow();
         boolean atTheBotton = (window != null)
             && (window.getHeight() == getY() + getHeight() + 1);
-        return getWidth() - (atTheBotton ? 2 : 1);
+        return Math.max(1, getWidth() - (atTheBotton ? 2 : 1));
     }
 
     /**

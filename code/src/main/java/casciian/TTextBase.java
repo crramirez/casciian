@@ -1159,7 +1159,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     public void setVisibleRowNumber(final int row) {
         assert (row > 0);
-        if ((row > 0) && (row < document.getLineCount())) {
+        if ((row > 0) && (row <= document.getLineCount())) {
             topLine = row - 1;
             alignDocument(true);
         }
@@ -1181,7 +1181,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     public void setEditingRowNumber(final int row) {
         assert (row > 0);
-        if ((row > 0) && (row < document.getLineCount())) {
+        if ((row > 0) && (row <= document.getLineCount())) {
             document.setLineNumber(row - 1);
             alignTopLine(true);
         }
@@ -1226,7 +1226,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      * column.
      */
     public void setEditingColumnNumber(final int column) {
-        if ((column > 0) && (column < document.getLineLength())) {
+        if ((column > 0) && (column <= document.getLineLength())) {
             document.setCursor(column - 1);
             alignCursor();
         }
