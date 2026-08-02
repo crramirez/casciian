@@ -67,12 +67,12 @@ public class DemoKeyboardWindow extends TWindow {
     /**
      * Translated strings.
      */
-    private ResourceBundle i18n = null;
+    private final ResourceBundle i18n;
 
     /**
      * The most recent keystrokes, oldest first.
      */
-    private final List<String> history = new ArrayList<String>();
+    private final List<String> history = new ArrayList<>();
 
     private final TPanel textPanel;
     private final TText statusText;
@@ -252,8 +252,7 @@ public class DemoKeyboardWindow extends TWindow {
     private void layoutWidgets(final TResizeEvent event) {
         int clientWidth = getWidth() - 2;
         int clientHeight = getHeight() - 2;
-        int infoRows = Math.min(INFO_ROWS,
-            Math.max(2, clientHeight - MIN_HISTORY_ROWS));
+        int infoRows = Math.clamp(clientHeight - MIN_HISTORY_ROWS, 2, INFO_ROWS);
         int historyRows = Math.max(1, clientHeight - infoRows);
 
         textPanel.setDimensions(1, 1, clientWidth, infoRows);
