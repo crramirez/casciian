@@ -393,6 +393,16 @@ public class ECMA48Terminal extends LogicalScreen
     private final AtomicBoolean kittyKeyboardPushed = new AtomicBoolean(false);
 
     /**
+     * Whether the terminal has been observed to actively honor the Kitty
+     * keyboard protocol.  Starts UNKNOWN and settles to SUPPORTED or
+     * UNSUPPORTED shortly after connecting; see enableKittyKeyboard() for
+     * how that determination is made.  Volatile because it is written from
+     * the reader thread and read from application code.
+     */
+    private volatile KittyKeyboard.SupportState kittyKeyboardSupport =
+        KittyKeyboard.SupportState.UNKNOWN;
+
+    /**
      * Shutdown hook that pops the Kitty keyboard flags if the application
      * dies without calling closeTerminal().
      */
@@ -720,6 +730,15 @@ public class ECMA48Terminal extends LogicalScreen
         // and Alt-P, this must be the first thing to request.
         this.output.printf("%s", xtermReportVersion());
 
+        // Ask for the Kitty keyboard protocol ("disambiguated keys").
+        // Terminals that do not support it, or have it turned off, ignore
+        // this and keep sending legacy VT sequences.  This must be sent
+        // before the Device Attributes request below: DA is answered by
+        // every terminal, so seeing its response without having first seen
+        // a reply to our capability query is how we conclude the protocol
+        // is not active (see enableKittyKeyboard()).
+        enableKittyKeyboard();
+
         // Request Device Attributes
         this.output.printf("\033[c");
 
@@ -731,11 +750,6 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Enable metaSendsEscape
         this.output.printf("%s", xtermMetaSendsEscape(true));
-
-        // Ask for the Kitty keyboard protocol ("disambiguated keys").
-        // Terminals that do not support it ignore this and keep sending
-        // legacy VT sequences.
-        enableKittyKeyboard();
 
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
@@ -854,6 +868,15 @@ public class ECMA48Terminal extends LogicalScreen
         // and Alt-P, this must be the first thing to request.
         this.output.printf("%s", xtermReportVersion());
 
+        // Ask for the Kitty keyboard protocol ("disambiguated keys").
+        // Terminals that do not support it, or have it turned off, ignore
+        // this and keep sending legacy VT sequences.  This must be sent
+        // before the Device Attributes request below: DA is answered by
+        // every terminal, so seeing its response without having first seen
+        // a reply to our capability query is how we conclude the protocol
+        // is not active (see enableKittyKeyboard()).
+        enableKittyKeyboard();
+
         // Request Device Attributes
         this.output.printf("\033[c");
 
@@ -865,11 +888,6 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Enable metaSendsEscape
         this.output.printf("%s", xtermMetaSendsEscape(true));
-
-        // Ask for the Kitty keyboard protocol ("disambiguated keys").
-        // Terminals that do not support it ignore this and keep sending
-        // legacy VT sequences.
-        enableKittyKeyboard();
 
         // Request xterm report Synchronized Output support
         this.output.printf("%s", xtermQueryMode(2026));
@@ -1149,6 +1167,10 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private void enableKittyKeyboard() {
         if (!SystemProperties.isEcma48KittyKeyboard()) {
+            // We were told not to ask.  From the application's point of
+            // view this has the same effect as the terminal refusing: no
+            // keystroke will ever be disambiguated.
+            kittyKeyboardSupport = KittyKeyboard.SupportState.UNSUPPORTED;
             return;
         }
         if (output == null) {
@@ -1158,7 +1180,14 @@ public class ECMA48Terminal extends LogicalScreen
             return;
         }
 
-        output.printf("%s", KittyKeyboard.ENABLE);
+        // Push the flags, then immediately ask the terminal to report them
+        // back.  A terminal that honors the protocol answers with
+        // "CSI ? flags u"; one that does not (or has the feature turned off
+        // in its own config, as WezTerm does by default) stays silent.  The
+        // Device Attributes request sent right after this in the
+        // constructor is the sentinel that turns that silence into a
+        // definite answer: see the 'c' case in processChar().
+        output.printf("%s%s", KittyKeyboard.ENABLE, KittyKeyboard.QUERY);
 
         kittyKeyboardShutdownHook = new Thread(this::disableKittyKeyboard,
             "casciian-kitty-keyboard-restore");
@@ -2351,6 +2380,23 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Report whether the terminal has been observed to actively honor the
+     * Kitty keyboard protocol (CSI u / "disambiguated keys").
+     *
+     * <p>This starts as UNKNOWN and settles to SUPPORTED or UNSUPPORTED
+     * shortly after the connection is established, once either a reply to
+     * the capability query or a sentinel response (proving the query was
+     * ignored) has arrived.  Applications can poll this to adjust their UI,
+     * for example to avoid advertising a Ctrl+I shortcut that a terminal
+     * will only ever deliver as plain Tab.</p>
+     *
+     * @return the current support determination
+     */
+    public KittyKeyboard.SupportState getKittyKeyboardSupport() {
+        return kittyKeyboardSupport;
+    }
+
+    /**
      * Set the mouse pointer (cursor) style.
      *
      * @param mouseStyle the pointer style string, one of: "default", "none",
@@ -3505,13 +3551,19 @@ public class ECMA48Terminal extends LogicalScreen
                             resetParser();
                             return;
                         case 'u':
+                            if (decPrivateModeFlag) {
+                                // CSI ? flags u: the terminal is answering
+                                // our capability query, not sending a
+                                // keystroke.  Its mere arrival proves the
+                                // protocol is active right now, regardless
+                                // of the specific flags value reported.
+                                kittyKeyboardSupport =
+                                    KittyKeyboard.SupportState.SUPPORTED;
+                                resetParser();
+                                return;
+                            }
                             // Kitty keyboard protocol ("disambiguated
                             // keys"): CSI keycode ; modifiers [: event] u
-                            if (decPrivateModeFlag) {
-                                // CSI ? flags u is a keyboard mode report,
-                                // not a keystroke.
-                                break;
-                            }
                             TInputEvent kittyEvent = parseKittyKey();
                             if (kittyEvent != null) {
                                 events.add(kittyEvent);
@@ -3580,6 +3632,20 @@ public class ECMA48Terminal extends LogicalScreen
                                 break;
                             }
                             daResponseSeen = true;
+
+                            if (kittyKeyboardSupport
+                                == KittyKeyboard.SupportState.UNKNOWN
+                            ) {
+                                // Every terminal answers Device Attributes.
+                                // Its arrival without an earlier reply to
+                                // our "CSI ? u" capability query (sent
+                                // before this request) means that query was
+                                // ignored: the protocol is not active right
+                                // now, whether because the terminal does
+                                // not implement it or has it turned off.
+                                kittyKeyboardSupport =
+                                    KittyKeyboard.SupportState.UNSUPPORTED;
+                            }
 
                             boolean reportsJexerImages = false;
                             boolean reportsSixelImages = false;

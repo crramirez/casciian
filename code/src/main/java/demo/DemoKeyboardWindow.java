@@ -22,6 +22,8 @@ import java.util.ResourceBundle;
 import casciian.TApplication;
 import casciian.TKeypress;
 import casciian.TWindow;
+import casciian.backend.ECMA48Terminal;
+import casciian.backend.KittyKeyboard;
 import casciian.bits.CellAttributes;
 import casciian.bits.ColorTheme;
 import casciian.event.TKeypressEvent;
@@ -31,6 +33,12 @@ import casciian.event.TKeypressEvent;
  * TKeypress fields.  It exists to make keyboard handling visible: in
  * particular whether the terminal is speaking the Kitty keyboard protocol
  * (CSI u), which is what lets Ctrl+I arrive as something other than Tab.
+ *
+ * <p>The support line is read live from
+ * {@link ECMA48Terminal#getKittyKeyboardSupport()} rather than inferred from
+ * what the user happens to type: an application deciding whether to
+ * advertise a Ctrl+I-style shortcut needs the answer before the user has
+ * pressed anything, not after.</p>
  *
  * <p>Unlike other windows, this one deliberately swallows Tab and the arrow
  * keys instead of letting them move focus, so that they can be observed.</p>
@@ -64,12 +72,6 @@ public class DemoKeyboardWindow extends TWindow {
      * The most recent keystrokes, oldest first.
      */
     private final List<String> history = new ArrayList<String>();
-
-    /**
-     * Set once we see a keystroke that the legacy encoding could not have
-     * produced, which proves the terminal honored the CSI u request.
-     */
-    private boolean disambiguationSeen = false;
 
     /**
      * True if the previous keystroke was Escape, used for the
@@ -120,10 +122,6 @@ public class DemoKeyboardWindow extends TWindow {
             lastWasEscape = false;
         }
 
-        if (isDisambiguated(key)) {
-            disambiguationSeen = true;
-        }
-
         history.add(describe(key));
         while (history.size() > HISTORY_SIZE) {
             history.removeFirst();
@@ -131,7 +129,7 @@ public class DemoKeyboardWindow extends TWindow {
     }
 
     /**
-     * Draw the keystroke log.
+     * Draw the keystroke log and the live support status.
      */
     @Override
     public void draw() {
@@ -142,9 +140,12 @@ public class DemoKeyboardWindow extends TWindow {
 
         int row = 1;
         putStringXY(2, row++, i18n.getString("instructions"), heading);
-        putStringXY(2, row++, disambiguationSeen
-            ? i18n.getString("protocolDetected")
-            : i18n.getString("protocolUnknown"), heading);
+        putStringXY(2, row++, statusLine(), heading);
+
+        KittyKeyboard.SupportState support = support();
+        if (support == KittyKeyboard.SupportState.UNSUPPORTED) {
+            putStringXY(2, row++, i18n.getString("unsupportedHint"), text);
+        }
         row++;
 
         for (String line : history) {
@@ -193,36 +194,36 @@ public class DemoKeyboardWindow extends TWindow {
     }
 
     /**
-     * Whether this keystroke is one the legacy VT encoding cannot express,
-     * and so proves the terminal is speaking the Kitty keyboard protocol.
+     * The live Kitty keyboard support determination for this window's
+     * screen, or null if this window is not backed by an ECMA-48 terminal
+     * (for example under the HeadlessBackend used in tests).
      *
-     * @param key the keystroke
-     * @return true if the keystroke could only have come from a CSI u
-     * sequence
+     * @return the support state, or null if not applicable
      */
-    private static boolean isDisambiguated(final TKeypress key) {
-        if (key.isFnKey()) {
-            // Legacy sends a bare 0x0D for Enter and 0x09 for Tab, with no
-            // room for modifiers.
-            if ((key.getKeyCode() == TKeypress.ENTER)
-                && (key.isCtrl() || key.isShift())
-            ) {
-                return true;
-            }
-            return (key.getKeyCode() == TKeypress.TAB) && key.isCtrl();
+    private KittyKeyboard.SupportState support() {
+        if (getScreen() instanceof ECMA48Terminal terminal) {
+            return terminal.getKittyKeyboardSupport();
         }
+        return null;
+    }
 
-        if (key.isCtrl() && key.isShift()) {
-            // Legacy collapses Ctrl+Shift+X onto Ctrl+X.
-            return true;
+    /**
+     * One line summarizing whether Ctrl+I-style shortcuts can be trusted on
+     * this terminal right now.  This is the check an application would make
+     * before deciding whether to advertise such a shortcut in its own UI.
+     *
+     * @return the status line to display
+     */
+    private String statusLine() {
+        KittyKeyboard.SupportState support = support();
+        if (support == null) {
+            return i18n.getString("protocolNotApplicable");
         }
-
-        // Ctrl+I, Ctrl+M and Ctrl+[ collapse onto Tab, Enter and Esc in the
-        // legacy encoding, so seeing them at all is proof.
-        return key.isCtrl()
-            && ((key.getChar() == 'I')
-                || (key.getChar() == 'M')
-                || (key.getChar() == '['));
+        return switch (support) {
+            case SUPPORTED -> i18n.getString("protocolSupported");
+            case UNSUPPORTED -> i18n.getString("protocolUnsupported");
+            case UNKNOWN -> i18n.getString("protocolDetecting");
+        };
     }
 
 }

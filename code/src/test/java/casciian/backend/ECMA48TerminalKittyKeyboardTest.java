@@ -136,6 +136,72 @@ class ECMA48TerminalKittyKeyboardTest {
     }
 
     // ------------------------------------------------------------------------
+    // Support detection --------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Startup sends both the push and the capability query")
+    void startupSendsQuery() {
+        terminal = createTerminal("");
+
+        assertTrue(written().contains("\033[>1u"),
+            "startup should push the Kitty keyboard flags");
+        assertTrue(written().contains("\033[?u"),
+            "startup should query the terminal's current flags");
+    }
+
+    @Test
+    @DisplayName("Support starts UNKNOWN before any response arrives")
+    void supportStartsUnknown() {
+        terminal = createTerminal("");
+
+        assertEquals(KittyKeyboard.SupportState.UNKNOWN,
+            terminal.getKittyKeyboardSupport());
+    }
+
+    @Test
+    @DisplayName("A reply to the capability query means SUPPORTED")
+    void queryReplyMeansSupported() {
+        // The terminal answers "CSI ? u" with "CSI ? flags u".
+        terminal = createTerminal("\033[?1u");
+
+        assertEquals(KittyKeyboard.SupportState.SUPPORTED,
+            waitForSupport());
+    }
+
+    @Test
+    @DisplayName("A Device Attributes reply with no prior query reply means UNSUPPORTED")
+    void daWithoutQueryReplyMeansUnsupported() {
+        // The terminal ignores "CSI ? u" (as WezTerm does with
+        // enable_kitty_keyboard left at its default) but still answers
+        // Device Attributes, as every terminal does.
+        terminal = createTerminal("\033[?1c");
+
+        assertEquals(KittyKeyboard.SupportState.UNSUPPORTED,
+            waitForSupport());
+    }
+
+    @Test
+    @DisplayName("A query reply arriving before the DA sentinel is not overwritten")
+    void queryReplyBeforeDaSentinelWins() {
+        terminal = createTerminal("\033[?1u\033[?1c");
+
+        assertEquals(KittyKeyboard.SupportState.SUPPORTED,
+            waitForSupport());
+    }
+
+    @Test
+    @DisplayName("Disabling the property reports UNSUPPORTED immediately")
+    void disabledPropertyIsUnsupportedImmediately() {
+        SystemProperties.setEcma48KittyKeyboard(false);
+
+        terminal = createTerminal("");
+
+        assertEquals(KittyKeyboard.SupportState.UNSUPPORTED,
+            terminal.getKittyKeyboardSupport());
+    }
+
+    // ------------------------------------------------------------------------
     // CSI u input ------------------------------------------------------------
     // ------------------------------------------------------------------------
 
@@ -241,6 +307,26 @@ class ECMA48TerminalKittyKeyboardTest {
      */
     private TKeypress nextKey() {
         return keys(1).getFirst();
+    }
+
+    /**
+     * Wait for the Kitty keyboard support determination to leave UNKNOWN,
+     * and return whatever it settled to.
+     */
+    private KittyKeyboard.SupportState waitForSupport() {
+        long deadline = System.currentTimeMillis() + EVENT_TIMEOUT_MILLIS;
+
+        while (System.currentTimeMillis() < deadline) {
+            KittyKeyboard.SupportState support =
+                terminal.getKittyKeyboardSupport();
+            if (support != KittyKeyboard.SupportState.UNKNOWN) {
+                return support;
+            }
+            Thread.yield();
+        }
+
+        fail("Kitty keyboard support determination did not settle");
+        return null;
     }
 
     /**

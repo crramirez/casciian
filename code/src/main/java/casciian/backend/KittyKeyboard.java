@@ -68,6 +68,49 @@ public final class KittyKeyboard {
     public static final String DISABLE = "\033[<u";
 
     /**
+     * Ask the terminal to report its current keyboard mode flags.  A
+     * terminal that implements the protocol replies with
+     * <code>CSI ? flags u</code>; a terminal that does not implement it, or
+     * has it turned off (several terminals, including WezTerm, ship the
+     * protocol disabled by default and require an explicit opt-in), simply
+     * ignores this and sends nothing back.  Since silence is the expected
+     * response from most terminals in practice, detecting support requires
+     * pairing this with a sentinel request that is guaranteed to draw a
+     * reply; see {@code ECMA48Terminal.enableKittyKeyboard()}.
+     */
+    public static final String QUERY = "\033[?u";
+
+    /**
+     * Whether a terminal has been observed to honor the Kitty keyboard
+     * protocol.  Applications can use this to adjust their UI, for example
+     * hiding a Ctrl+I accelerator hint on a terminal that will only ever
+     * deliver plain Tab for that key combination.
+     */
+    public enum SupportState {
+        /**
+         * No response has arrived yet, and the sentinel that would prove a
+         * lack of support has not arrived either.  This is the state for a
+         * brief window right after connecting.
+         */
+        UNKNOWN,
+
+        /**
+         * The terminal replied to {@link #QUERY} with its current flags,
+         * proving it actively honors the protocol right now.
+         */
+        SUPPORTED,
+
+        /**
+         * A sentinel response that every terminal is expected to send
+         * arrived without a prior reply to {@link #QUERY}.  Either the
+         * terminal does not implement the protocol, or it implements it but
+         * has it turned off; both look identical from the wire, and both
+         * mean keystrokes will not be disambiguated right now.
+         */
+        UNSUPPORTED,
+    }
+
+    /**
      * Modifier bit for Shift.
      */
     public static final int MOD_SHIFT = 1;
