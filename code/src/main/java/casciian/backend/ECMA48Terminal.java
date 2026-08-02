@@ -120,6 +120,22 @@ public class ECMA48Terminal extends LogicalScreen
     private static final String XTVERSION_FOR_WARP = "Warp";
 
     /**
+     * VT2026 Begin Synchronized Update (BSU).
+     */
+    private static final String BEGIN_SYNCHRONIZED_UPDATE = "\033[?2026h";
+
+    /**
+     * VT2026 End Synchronized Update (ESU).
+     */
+    private static final String END_SYNCHRONIZED_UPDATE = "\033[?2026l";
+
+    /**
+     * Maximum number of characters that the reusable frame buffer will
+     * retain between redraws.
+     */
+    private static final int FRAME_BUFFER_MAX_CHARS = 65536;
+
+    /**
      * States in the input parser.
      */
     private enum ParseState {
@@ -447,11 +463,22 @@ public class ECMA48Terminal extends LogicalScreen
     private boolean hasFocus = true;
 
     /**
-     * If true, this terminal supports Synchronized Output mode (2026).  See
+     * If true, this terminal reported (via DECRPM) that it supports
+     * Synchronized Output mode (2026).  See
      * https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
-     * for details of this mode.
+     * for details of this mode.  This only records the probe result: frame
+     * wrapping is driven by {@link #synchronizedOutputEnabled}, because the
+     * probe response can arrive after several frames have been emitted and
+     * terminals without support silently ignore the sequences.
      */
-    private boolean hasSynchronizedOutput = false;
+    private volatile boolean hasSynchronizedOutput = false;
+
+    /**
+     * If true, wrap each frame in VT2026 Synchronized Output mode.
+     * Legacy terminals safely ignore these control sequences, so this
+     * defaults to true even before support probing completes.
+     */
+    private volatile boolean synchronizedOutputEnabled = true;
 
     /**
      * If true, this terminal requires explicitly overwriting images
@@ -496,6 +523,17 @@ public class ECMA48Terminal extends LogicalScreen
      * UTF-8 encoding.
      */
     private PrintWriter output;
+
+    /**
+     * Serialize writes that must remain atomic on the terminal stream.
+     */
+    private final Object outputLock = new Object();
+
+    /**
+     * Buffer reused by writeFrame() to hand frame characters to the output
+     * writer.  Guarded by outputLock.
+     */
+    private char [] frameBuffer = new char[0];
 
     /**
      * The listening object that run() wakes up on new input.
@@ -661,8 +699,10 @@ public class ECMA48Terminal extends LogicalScreen
 
             String resizeString = String.format("\033[8;%d;%dt", windowHeight,
                 windowWidth);
-            this.output.write(resizeString);
-            this.output.flush();
+            synchronized (outputLock) {
+                this.output.write(resizeString);
+                this.output.flush();
+            }
         }
     }
 
@@ -726,12 +766,13 @@ public class ECMA48Terminal extends LogicalScreen
         // Get output writer from terminal
         this.output = terminal.getWriter();
 
-        // Request xterm version.  Due to the ambiguity between the response
-        // and Alt-P, this must be the first thing to request.
-        this.output.printf("%s", xtermReportVersion());
+        synchronized (outputLock) {
+            // Request xterm version.  Due to the ambiguity between the response
+            // and Alt-P, this must be the first thing to request.
+            this.output.printf("%s", xtermReportVersion());
 
-        // Request xterm report window/cell dimensions in pixels
-        this.output.printf("%s", xtermReportPixelDimensions());
+            // Request xterm report window/cell dimensions in pixels
+            this.output.printf("%s", xtermReportPixelDimensions());
 
         // Enable mouse reporting.  This also switches to the alternate
         // screen buffer (smcup), which is why the Kitty keyboard flags are
@@ -740,7 +781,7 @@ public class ECMA48Terminal extends LogicalScreen
         // and alternate screens, so pushing before the switch would land
         // the flags on the stack Casciian never actually runs on, and they
         // would silently have no effect.
-        this.terminal.enableMouseReporting(true);
+            this.terminal.enableMouseReporting(true);
 
         // Ask for the Kitty keyboard protocol ("disambiguated keys").
         // Terminals that do not support it, or have it turned off, ignore
@@ -754,27 +795,29 @@ public class ECMA48Terminal extends LogicalScreen
         // Request Device Attributes
         this.output.printf("\033[c");
 
-        // Enable metaSendsEscape
-        this.output.printf("%s", xtermMetaSendsEscape(true));
+            // Enable metaSendsEscape
+            this.output.printf("%s", xtermMetaSendsEscape(true));
 
-        // Request xterm report Synchronized Output support
-        this.output.printf("%s", xtermQueryMode(2026));
+            // Request xterm report Synchronized Output support
+            this.output.printf("%s", xtermQueryMode(2026));
 
-        // Send CGA palette to terminal (unless using terminal's native palette)
-        if (!SystemProperties.isUseTerminalPalette()) {
-            sendPalette();
+            // Send CGA palette to terminal (unless using terminal's native
+            // palette)
+            if (!SystemProperties.isUseTerminalPalette()) {
+                sendPalette();
+            }
+
+            // Request xterm report its ANSI colors
+            this.output.printf("%s", xtermQueryAnsiColors());
+
+            // Request xterm report sixelCursorOnRight support
+            this.output.printf("%s", xtermQueryMode(8452));
+
+            // Request xterm report its screen size
+            this.output.printf("%s", xtermQueryWindowSize());
+
+            this.output.flush();
         }
-
-        // Request xterm report its ANSI colors
-        this.output.printf("%s", xtermQueryAnsiColors());
-
-        // Request xterm report sixelCursorOnRight support
-        this.output.printf("%s", xtermQueryMode(8452));
-
-        // Request xterm report its screen size
-        this.output.printf("%s", xtermQueryWindowSize());
-
-        this.output.flush();
 
         // Query the screen size locally
         sessionInfo.queryWindowSize();
@@ -787,9 +830,11 @@ public class ECMA48Terminal extends LogicalScreen
 
         reloadOptions();
 
-        if (modifyOtherKeys) {
-            // Request modifyOtherKeys
-            this.output.printf("\033[>4;2m");
+        synchronized (outputLock) {
+            if (modifyOtherKeys) {
+                // Request modifyOtherKeys
+                this.output.printf("\033[>4;2m");
+            }
         }
 
         // Spin up the input reader
@@ -798,8 +843,10 @@ public class ECMA48Terminal extends LogicalScreen
         readerThread.start();
 
         // Clear the screen
-        this.output.write(clearAll());
-        this.output.flush();
+        synchronized (outputLock) {
+            this.output.write(clearAll());
+            this.output.flush();
+        }
 
     }
 
@@ -870,12 +917,13 @@ public class ECMA48Terminal extends LogicalScreen
 
         this.output = writer;
 
-        // Request xterm version.  Due to the ambiguity between the response
-        // and Alt-P, this must be the first thing to request.
-        this.output.printf("%s", xtermReportVersion());
+        synchronized (outputLock) {
+            // Request xterm version.  Due to the ambiguity between the response
+            // and Alt-P, this must be the first thing to request.
+            this.output.printf("%s", xtermReportVersion());
 
-        // Request xterm report window/cell dimensions in pixels
-        this.output.printf("%s", xtermReportPixelDimensions());
+            // Request xterm report window/cell dimensions in pixels
+            this.output.printf("%s", xtermReportPixelDimensions());
 
         // Enable mouse reporting.  This also switches to the alternate
         // screen buffer (smcup), which is why the Kitty keyboard flags are
@@ -884,7 +932,7 @@ public class ECMA48Terminal extends LogicalScreen
         // and alternate screens, so pushing before the switch would land
         // the flags on the stack Casciian never actually runs on, and they
         // would silently have no effect.
-        this.terminal.enableMouseReporting(true);
+            this.terminal.enableMouseReporting(true);
 
         // Ask for the Kitty keyboard protocol ("disambiguated keys").
         // Terminals that do not support it, or have it turned off, ignore
@@ -898,24 +946,26 @@ public class ECMA48Terminal extends LogicalScreen
         // Request Device Attributes
         this.output.printf("\033[c");
 
-        // Enable metaSendsEscape
-        this.output.printf("%s", xtermMetaSendsEscape(true));
+            // Enable metaSendsEscape
+            this.output.printf("%s", xtermMetaSendsEscape(true));
 
-        // Request xterm report Synchronized Output support
-        this.output.printf("%s", xtermQueryMode(2026));
+            // Request xterm report Synchronized Output support
+            this.output.printf("%s", xtermQueryMode(2026));
 
-        // Send CGA palette to terminal (unless using terminal's native palette)
-        if (!SystemProperties.isUseTerminalPalette()) {
-            sendPalette();
+            // Send CGA palette to terminal (unless using terminal's native
+            // palette)
+            if (!SystemProperties.isUseTerminalPalette()) {
+                sendPalette();
+            }
+
+            // Request xterm report its ANSI colors
+            this.output.printf("%s", xtermQueryAnsiColors());
+
+            // Request xterm report its screen size
+            this.output.printf("%s", xtermQueryWindowSize());
+
+            this.output.flush();
         }
-
-        // Request xterm report its ANSI colors
-        this.output.printf("%s", xtermQueryAnsiColors());
-
-        // Request xterm report its screen size
-        this.output.printf("%s", xtermQueryWindowSize());
-
-        this.output.flush();
 
         // Query the screen size locally
         sessionInfo.queryWindowSize();
@@ -928,9 +978,11 @@ public class ECMA48Terminal extends LogicalScreen
 
         reloadOptions();
 
-        if (modifyOtherKeys) {
-            // Request modifyOtherKeys
-            this.output.printf("\033[>4;2m");
+        synchronized (outputLock) {
+            if (modifyOtherKeys) {
+                // Request modifyOtherKeys
+                this.output.printf("\033[>4;2m");
+            }
         }
 
         // Spin up the input reader
@@ -939,8 +991,10 @@ public class ECMA48Terminal extends LogicalScreen
         readerThread.start();
 
         // Clear the screen
-        this.output.write(clearAll());
-        this.output.flush();
+        synchronized (outputLock) {
+            this.output.write(clearAll());
+            this.output.flush();
+        }
     }
 
     /**
@@ -973,9 +1027,12 @@ public class ECMA48Terminal extends LogicalScreen
      */
     @Override
     public void setTitle(final String title) {
-        if (output != null) {
-            output.write(getSetTitleString(title));
-            flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.write(getSetTitleString(title));
+                writer.flush();
+            }
         }
     }
 
@@ -1010,43 +1067,77 @@ public class ECMA48Terminal extends LogicalScreen
             textBlinkVisible = true;
         }
 
-        if (output != null) {
-            if (hasSynchronizedOutput) {
-                if (!sb.isEmpty()) {
-                    // Begin Synchronized Update (BSU)
-                    output.write("\033[?2026h");
-                    if (DEBUG_TO_STDERR) {
-                        System.err.printf("Writing %d bytes to terminal (sync)\n",
-                            sb.length());
-                    }
-                    output.write(sb.toString());
-                    // End Synchronized Update (ESU)
-                    output.write("\033[?2026l");
-                }
-                if (DEBUG_TO_STDERR) {
-                    System.err.printf("flushPhysical() \033[?2026h%s\033[?2026l\n",
-                        sb.toString());
-                }
-            } else {
-                if (!sb.isEmpty()) {
-                    if (DEBUG_TO_STDERR) {
-                        System.err.printf("Writing %d bytes to terminal\n",
-                            sb.length());
-                    }
-                    output.write(sb.toString());
-                }
-            }
-            output.flush();
-
-            long now = System.currentTimeMillis();
-            if ((int) (now / 1000) == (int) (lastFlushTime / 1000)) {
-                bytesPerSecond += sb.length();
-            } else {
-                lastBytesPerSecond = sb.length();
-                bytesPerSecond = 0;
-            }
-            lastFlushTime = now;
+        final int frameChars = sb.length();
+        final boolean wrapFrame = synchronizedOutputEnabled && (frameChars > 0);
+        int frameLength = frameChars;
+        if (wrapFrame) {
+            frameLength += BEGIN_SYNCHRONIZED_UPDATE.length()
+                + END_SYNCHRONIZED_UPDATE.length();
         }
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                if (frameChars > 0) {
+                    if (DEBUG_TO_STDERR) {
+                        if (wrapFrame) {
+                            System.err.printf("Writing %d bytes to terminal (sync)\n",
+                                frameLength);
+                            System.err.printf("flushPhysical() %s%s%s\n",
+                                BEGIN_SYNCHRONIZED_UPDATE, sb,
+                                END_SYNCHRONIZED_UPDATE);
+                        } else {
+                            System.err.printf("Writing %d bytes to terminal\n",
+                                frameLength);
+                        }
+                    }
+                    if (wrapFrame) {
+                        writer.write(BEGIN_SYNCHRONIZED_UPDATE);
+                    }
+                    writeFrame(writer, sb);
+                    if (wrapFrame) {
+                        writer.write(END_SYNCHRONIZED_UPDATE);
+                    }
+                }
+                writer.flush();
+
+                long now = System.currentTimeMillis();
+                if ((int) (now / 1000) == (int) (lastFlushTime / 1000)) {
+                    bytesPerSecond += frameLength;
+                } else {
+                    lastBytesPerSecond = frameLength;
+                    bytesPerSecond = 0;
+                }
+                lastFlushTime = now;
+            }
+        }
+    }
+
+    /**
+     * Write the contents of a rendered frame to the terminal without
+     * allocating a String copy of it.  Frames up to
+     * {@link #FRAME_BUFFER_MAX_CHARS} are copied into a buffer that is reused
+     * across redraws; larger frames (for example those carrying image data)
+     * use a temporary buffer so that the memory is not retained.  Callers
+     * must hold outputLock.
+     *
+     * @param writer the writer to send the frame to
+     * @param frame  the rendered frame
+     */
+    private void writeFrame(final PrintWriter writer,
+        final StringBuilder frame) {
+
+        int length = frame.length();
+        char [] buffer;
+        if (length <= FRAME_BUFFER_MAX_CHARS) {
+            if (frameBuffer.length < length) {
+                frameBuffer = new char[length];
+            }
+            buffer = frameBuffer;
+        } else {
+            buffer = new char[length];
+        }
+        frame.getChars(0, length, buffer, 0);
+        writer.write(buffer, 0, length);
     }
 
     /**
@@ -1076,8 +1167,13 @@ public class ECMA48Terminal extends LogicalScreen
         String resizeString = String.format("\033[8;%d;%dt", getHeight(),
             getWidth());
         if (output != null) {
-            this.output.write(resizeString);
-            this.output.flush();
+            synchronized (outputLock) {
+                PrintWriter writer = output;
+                if (writer != null) {
+                    writer.write(resizeString);
+                    writer.flush();
+                }
+            }
         }
     }
 
@@ -1141,11 +1237,15 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Disable mouse reporting and show cursor.  Defensive null check
         // here in case closeTerminal() is called twice.
-        if (output != null) {
-            this.terminal.enableMouseReporting(false);
-            output.printf("%s%s", cursor(true), defaultColor());
-            output.printf("\033[>4m");
-            output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                this.terminal.enableMouseReporting(false);
+                writer.printf("%s%s", cursor(true), defaultColor());
+                writer.write(END_SYNCHRONIZED_UPDATE);
+                writer.printf("\033[>4m");
+                writer.flush();
+            }
         }
 
         if (setRawMode) {
@@ -1163,9 +1263,11 @@ public class ECMA48Terminal extends LogicalScreen
                 }
                 input = null;
             }
-            if (output != null) {
-                output.close();
-                output = null;
+            synchronized (outputLock) {
+                if (output != null) {
+                    output.close();
+                    output = null;
+                }
             }
         }
 
@@ -1243,16 +1345,17 @@ public class ECMA48Terminal extends LogicalScreen
      * Restore the terminal's palette to its original state.
      */
     private void restorePalette() {
-        if (output == null) {
-            return;
-        }
-
         if (SystemProperties.isUseTerminalPalette()) {
             return;
         }
-
-        output.print("\033]104\033\\");
-        output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer == null) {
+                return;
+            }
+            writer.print("\033]104\033\\");
+            writer.flush();
+        }
     }
 
     /**
@@ -1297,7 +1400,12 @@ public class ECMA48Terminal extends LogicalScreen
         sixelEncoder.reloadOptions();
 
         // Request xterm use the sixel settings we want
-        this.output.printf("%s", xtermSetSixelSettings());
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.printf("%s", xtermSetSixelSettings());
+            }
+        }
 
         if (!daResponseSeen) {
             // Default to using JPG Casciian images if terminal supports it.
@@ -1503,8 +1611,9 @@ public class ECMA48Terminal extends LogicalScreen
                         events.clear();
                     }
 
-                    if (output != null) {
-                        if (output.checkError()) {
+                    synchronized (outputLock) {
+                        PrintWriter writer = output;
+                        if ((writer != null) && writer.checkError()) {
                             // This is EOF.
                             done = true;
                         }
@@ -1635,6 +1744,11 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Get the output writer.
      *
+     * <p>Writes made directly through the returned writer are not serialized
+     * with this terminal's own frame writes, and can therefore land in the
+     * middle of a synchronized update.  Prefer the methods on this class,
+     * which serialize all terminal writes.
+     *
      * @return the Writer
      */
     public PrintWriter getOutput() {
@@ -1686,9 +1800,30 @@ public class ECMA48Terminal extends LogicalScreen
      * Flush output.
      */
     public void flush() {
-        if (output != null) {
-            output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.flush();
+            }
         }
+    }
+
+    /**
+     * Check whether frame writes are wrapped in VT2026 Synchronized Output.
+     *
+     * @return true if Synchronized Output wrapping is enabled
+     */
+    public boolean isSynchronizedOutputEnabled() {
+        return synchronizedOutputEnabled;
+    }
+
+    /**
+     * Enable or disable VT2026 Synchronized Output frame wrapping.
+     *
+     * @param enabled if true, wrap frames in CSI ? 2026 h/l
+     */
+    public void setSynchronizedOutputEnabled(final boolean enabled) {
+        synchronizedOutputEnabled = enabled;
     }
 
     /**
@@ -2154,10 +2289,8 @@ public class ECMA48Terminal extends LogicalScreen
      * knows how to process ECMA-48/ANSI X3.64 escape sequences.
      *
      * @param sb StringBuilder to write escape sequences to
-     * @return escape sequences string that provides the updates to the
-     * physical screen
      */
-    private String flushString(final StringBuilder sb) {
+    private void flushString(final StringBuilder sb) {
         final boolean reallyDebug = false;
 
         CellAttributes attr = null;
@@ -2355,11 +2488,9 @@ public class ECMA48Terminal extends LogicalScreen
 
         reallyCleared = false;
 
-        String result = sb.toString();
         if (DEBUG_TO_STDERR && !hasSynchronizedOutput) {
-            System.err.printf("flushString(): %s\n", result);
+            System.err.printf("flushString(): %s\n", sb.toString());
         }
-        return result;
     }
 
     /**
@@ -2878,9 +3009,12 @@ public class ECMA48Terminal extends LogicalScreen
                         getTextWidth() + " x " + getTextHeight());
                 }
 
-                if (output != null) {
-                    output.printf("%s", xtermReportPixelDimensions());
-                    output.flush();
+                synchronized (outputLock) {
+                    PrintWriter writer = output;
+                    if (writer != null) {
+                        writer.printf("%s", xtermReportPixelDimensions());
+                        writer.flush();
+                    }
                 }
 
                 TResizeEvent event = new TResizeEvent(backend,
@@ -3792,7 +3926,7 @@ public class ECMA48Terminal extends LogicalScreen
                                 // spawning stty.
                                 if (sessionInfo instanceof TTYSessionInfo) {
                                     TTYSessionInfo tty = (TTYSessionInfo) sessionInfo;
-                                    tty.output = output;
+                                    tty.windowSizeQuery = this::sendWindowSizeQuery;
                                     tty.lastFallbackQueryTime = System.currentTimeMillis();
 
                                     int newHeight = height;
@@ -5161,6 +5295,22 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Send a CSI 18 t screen size query to the terminal, serialized with all
+     * other writes to the terminal stream.  This is handed to
+     * {@link TTYSessionInfo} once the terminal has proven it answers CSI 8 t,
+     * so that the session info does not write to the terminal on its own.
+     */
+    private void sendWindowSizeQuery() {
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.write(xtermQueryWindowSize());
+                writer.flush();
+            }
+        }
+    }
+
+    /**
      * Request (u)xterm report support for a specific mode.
      *
      * @param mode the mode to query
@@ -5198,11 +5348,15 @@ public class ECMA48Terminal extends LogicalScreen
      * @param shape the pointer shape name (e.g., "arrow", "xterm")
      */
     private void setXtermMousePointer(final String shape) {
-        if (output != null) {
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer == null) {
+                return;
+            }
             mousePointerShapeChanged = true;
             // OSC 22 ; shape ST - set pointer shape
-            output.printf("\033]%s;%s\033\\", OSC_POINTER_SHAPE, shape);
-            output.flush();
+            writer.printf("\033]%s;%s\033\\", OSC_POINTER_SHAPE, shape);
+            writer.flush();
             if (DEBUG_TO_STDERR) {
                 System.err.println("Set pointer shape to: " + shape);
             }
@@ -5214,11 +5368,13 @@ public class ECMA48Terminal extends LogicalScreen
      * This is called when the terminal is closed.
      */
     private void restoreXtermMousePointer() {
-        if (mousePointerShapeChanged && output != null) {
-            setXtermMousePointer(POINTER_SHAPE_DEFAULT);
-            mousePointerShapeChanged = false;
-            if (DEBUG_TO_STDERR) {
-                System.err.println("Restored pointer shape to: " + POINTER_SHAPE_DEFAULT);
+        synchronized (outputLock) {
+            if (mousePointerShapeChanged && (output != null)) {
+                setXtermMousePointer(POINTER_SHAPE_DEFAULT);
+                mousePointerShapeChanged = false;
+                if (DEBUG_TO_STDERR) {
+                    System.err.println("Restored pointer shape to: " + POINTER_SHAPE_DEFAULT);
+                }
             }
         }
     }
@@ -5232,8 +5388,13 @@ public class ECMA48Terminal extends LogicalScreen
     public void xtermSetClipboardText(final String text) {
         byte[] textBytes = text.getBytes(StandardCharsets.UTF_8);
         String textToCopy = StringUtils.toBase64(textBytes);
-        this.output.printf("\033]52;c;%s\033\\", textToCopy);
-        this.output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.printf("\033]52;c;%s\033\\", textToCopy);
+                writer.flush();
+            }
+        }
     }
 
     /**
@@ -5257,8 +5418,14 @@ public class ECMA48Terminal extends LogicalScreen
 
         String command = buildSendPaletteCommand();
 
-        output.write(command);
-        output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer == null) {
+                return;
+            }
+            writer.write(command);
+            writer.flush();
+        }
 
         if (DEBUG_TO_STDERR) {
             System.err.println("Sent CGA palette (16 colors) to terminal");
