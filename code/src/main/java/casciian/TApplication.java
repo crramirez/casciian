@@ -942,11 +942,11 @@ public class TApplication implements Runnable {
 
         // Start the screen updater thread
         screenHandler = new ScreenHandler(this);
-        (new Thread(screenHandler)).start();
+        Thread.ofVirtual().start(screenHandler);
 
         // Start the main consumer thread
         primaryEventHandler = new WidgetEventHandler(this, true);
-        (new Thread(primaryEventHandler)).start();
+        Thread.ofVirtual().start(primaryEventHandler);
 
         started = true;
 
@@ -1870,7 +1870,7 @@ public class TApplication implements Runnable {
         secondaryEventReceiver = widget;
         secondaryEventHandler = new WidgetEventHandler(this, false);
 
-        (new Thread(secondaryEventHandler)).start();
+        Thread.ofVirtual().start(secondaryEventHandler);
     }
 
     /**

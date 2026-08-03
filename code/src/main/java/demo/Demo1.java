@@ -49,7 +49,7 @@ public final class Demo1 {
         try {
             DemoApplication app;
             app = new DemoApplication(TApplication.BackendType.XTERM);
-            (new Thread(app)).start();
+            Thread.ofVirtual().start(app);
         } catch (Exception e) {
             e.printStackTrace();
         }

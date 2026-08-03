@@ -839,8 +839,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Spin up the input reader
         eventQueue = new ArrayList<TInputEvent>();
-        readerThread = new Thread(this);
-        readerThread.start();
+        readerThread = Thread.ofVirtual().start(this);
 
         // Clear the screen
         synchronized (outputLock) {
@@ -987,8 +986,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Spin up the input reader
         eventQueue = new ArrayList<TInputEvent>();
-        readerThread = new Thread(this);
-        readerThread.start();
+        readerThread = Thread.ofVirtual().start(this);
 
         // Clear the screen
         synchronized (outputLock) {
@@ -1303,8 +1301,7 @@ public class ECMA48Terminal extends LogicalScreen
         // definite answer: see the 'c' case in processChar().
         output.printf("%s%s", KittyKeyboard.ENABLE, KittyKeyboard.QUERY);
 
-        kittyKeyboardShutdownHook = new Thread(this::disableKittyKeyboard,
-            "casciian-kitty-keyboard-restore");
+        kittyKeyboardShutdownHook = Thread.ofVirtual().name("casciian-kitty-keyboard-restore").unstarted(this::disableKittyKeyboard);
         try {
             Runtime.getRuntime().addShutdownHook(kittyKeyboardShutdownHook);
         } catch (IllegalStateException e) {
@@ -2372,7 +2369,7 @@ public class ECMA48Terminal extends LogicalScreen
         List<Future<String>> imageResults = null;
 
         if (imageThreadCount > 1) {
-            imageExecutor = Executors.newFixedThreadPool(imageThreadCount);
+            imageExecutor = Executors.newVirtualThreadPerTaskExecutor();
             imageResults = new ArrayList<Future<String>>();
         }
 
