@@ -107,9 +107,7 @@ public class MultiBackend implements Backend {
      */
     public void flushScreen() {
         multiScreen.flushPhysical();
-        int n = backends.size();
-        for (int i = 0; i < n; i++) {
-            final Backend backend = backends.get(Math.min(i, backends.size()));
+        for (final Backend backend: backends) {
             // Flush to the physical device on another thread.
             Thread.ofVirtual().start(() -> {
                 synchronized (backend.getScreen()) {

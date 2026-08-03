@@ -52,7 +52,9 @@ public class Demo3 {
                 new InputStreamReader(System.in, "IBM437"),
                 new PrintWriter(new OutputStreamWriter(System.out, "IBM437")),
                 true);
-            Thread.ofVirtual().start(app);
+            // Run the application on the main thread, so that the JVM stays
+            // alive until the application exits.
+            app.run();
         } catch (Exception e) {
             e.printStackTrace();
         }

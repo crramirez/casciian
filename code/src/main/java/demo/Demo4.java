@@ -49,7 +49,9 @@ public class Demo4 {
         try {
             DesktopDemoApplication app;
             app = new DesktopDemoApplication(TApplication.BackendType.XTERM);
-            Thread.ofVirtual().start(app);
+            // Run the application on the main thread, so that the JVM stays
+            // alive until the application exits.
+            app.run();
         } catch (Exception e) {
             e.printStackTrace();
         }
