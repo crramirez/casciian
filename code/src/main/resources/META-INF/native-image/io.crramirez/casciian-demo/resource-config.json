@@ -1,122 +1,152 @@
 {
-    "resources": {
-        "includes": [
-            {
-                "pattern": "\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
-            },
-            {
-                "pattern": "\\Qhelp.xml\\E"
-            },
-            {
-                "pattern": "\\Qdemo/ansi-demo.ansi\\E"
-            }
-        ]
-    },
-    "bundles": [
-        {
-            "name": "demo.Demo2Bundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.Demo7Bundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.Demo8Bundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DemoApplicationBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DemoCheckBoxWindowBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DemoEditorWindowBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DemoKeyboardWindowBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DemoMainWindowBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DemoMsgBoxWindowBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DemoShadowOpacityDialogBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DemoTableWindowBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DemoTextFieldWindowBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DemoTextWindowBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DemoTreeViewWindowBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        },
-        {
-            "name": "demo.DesktopDemoApplicationBundle",
-            "locales": [
-                "",
-                "es"
-            ]
-        }
+  "resources": {
+    "includes": [
+      {
+        "pattern": "\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
+      },
+      {
+        "pattern": "\\Qhelp.xml\\E"
+      },
+      {
+        "pattern": "\\Qdemo/ansi-demo.ansi\\E"
+      }
     ]
+  },
+  "bundles": [
+    {
+      "name": "demo.Demo2Bundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.Demo7Bundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.Demo8Bundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DemoApplicationBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DemoCheckBoxWindowBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DemoEditorWindowBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DemoKeyboardWindowBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DemoMainWindowBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DemoMsgBoxWindowBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DemoShadowOpacityDialogBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DemoTableWindowBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DemoTextFieldWindowBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DemoTextWindowBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DemoTreeViewWindowBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    },
+    {
+      "name": "demo.DesktopDemoApplicationBundle",
+      "locales": [
+        "",
+        "es",
+        "en",
+        "en_US"
+      ]
+    }
+  ]
 }
