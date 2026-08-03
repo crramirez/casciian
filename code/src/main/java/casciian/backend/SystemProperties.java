@@ -20,8 +20,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * System properties used by Casciian.
@@ -416,6 +419,16 @@ public class SystemProperties {
      */
     private static final AtomicReference<String> userDir =
         new AtomicReference<>(System.getProperty("user.dir"));
+
+    /**
+     * Listeners notified whenever {@link #setUserDir(String)} changes the
+     * cached working directory.  This is how backends (e.g. ECMA48Terminal)
+     * keep their reported working directory (OSC 7) synchronized with the
+     * cached value without every call site having to remember to notify
+     * them directly.
+     */
+    private static final CopyOnWriteArrayList<Consumer<String>> userDirListeners =
+        new CopyOnWriteArrayList<>();
 
     private SystemProperties() {
     }
@@ -987,11 +1000,52 @@ public class SystemProperties {
      * Set the current working directory.
      * Only the cached value is updated — the underlying
      * {@code "user.dir"} system property is <b>not</b> modified.
+     * Any listeners registered via {@link #addUserDirListener(Consumer)}
+     * are notified when the cached value changes, so that interested
+     * backends (e.g.
+     * ECMA48Terminal via OSC 7) stay automatically synchronized.
      *
      * @param path the new working directory path
      */
     public static void setUserDir(final String path) {
-        userDir.set(path);
+        String oldPath = userDir.getAndSet(path);
+        if (Objects.equals(oldPath, path)) {
+            return;
+        }
+        for (Consumer<String> listener : userDirListeners) {
+            if (listener == null) {
+                continue;
+            }
+            try {
+                listener.accept(path);
+            } catch (RuntimeException e) {
+                // Ignore listener failures so the caller and other listeners
+                // can proceed.
+            }
+        }
+    }
+
+    /**
+     * Register a listener to be notified whenever {@link #setUserDir(String)}
+     * changes the cached value.  This is how backends can keep their own
+     * notion of the current working directory (e.g. reporting it to the
+     * terminal via OSC 7) synchronized with the cached value here.
+     *
+     * @param listener the callback to invoke with the new working directory
+     */
+    public static void addUserDirListener(final Consumer<String> listener) {
+        if (listener != null) {
+            userDirListeners.add(listener);
+        }
+    }
+
+    /**
+     * Unregister a previously registered user directory listener.
+     *
+     * @param listener the callback to remove
+     */
+    public static void removeUserDirListener(final Consumer<String> listener) {
+        userDirListeners.remove(listener);
     }
 
     /**

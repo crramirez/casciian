@@ -40,6 +40,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import casciian.backend.Backend;
@@ -167,6 +168,17 @@ public class TApplication implements Runnable {
      * Access to the physical screen, keyboard, and mouse.
      */
     private Backend backend;
+
+    /**
+     * Listener registered with SystemProperties so that the backend's
+     * reported working directory (OSC 7) stays automatically synchronized
+     * with {@link SystemProperties#getUserDir()}.
+     */
+    private final Consumer<String> userDirListener = path -> {
+        if (backend != null) {
+            backend.setWorkingDirectory(path);
+        }
+    };
 
     /**
      * The Locale used for producing user-facing strings.
@@ -681,7 +693,11 @@ public class TApplication implements Runnable {
             } // while (true) (main runnable loop)
 
             // Shutdown the user I/O thread(s)
-            backend.shutdown();
+            try {
+                backend.shutdown();
+            } finally {
+                SystemProperties.removeUserDirListener(userDirListener);
+            }
         }
 
         /**
@@ -831,6 +847,11 @@ public class TApplication implements Runnable {
      */
     private void TApplicationImpl() {
         // Hide mouse when typing, status bar, and menu bar are now managed via SystemProperties
+
+        // Keep the backend's reported working directory (OSC 7)
+        // automatically synchronized with SystemProperties.getUserDir().
+        SystemProperties.addUserDirListener(userDirListener);
+        userDirListener.accept(SystemProperties.getUserDir());
 
         theme           = new ColorTheme();
         desktopTop      = (SystemProperties.isHideMenuBar() ? 0 : 1);

@@ -146,6 +146,12 @@ public class TTerminal extends TScrollable
     private String title = "";
 
     /**
+     * The current working directory of the shell, as reported by the OSC 7
+     * sequence.
+     */
+    private String workingDirectory = "";
+
+    /**
      * Action to perform when the terminal exits.
      */
     private TAction closeAction = null;
@@ -789,6 +795,17 @@ public class TTerminal extends TScrollable
     }
 
     /**
+     * Get the current working directory of the shell, as reported by the
+     * OSC 7 sequence.
+     *
+     * @return the working directory, or an empty string if the shell has not
+     * reported one
+     */
+    public String getWorkingDirectory() {
+        return workingDirectory;
+    }
+
+    /**
      * Get the full command line that spawned the shell.
      *
      * @return the command line
@@ -1112,6 +1129,9 @@ public class TTerminal extends TScrollable
         }
         if ((getCursorY() >= getHeight()) || (getCursorY() < 0)) {
             setCursorVisible(false);
+        }
+        if (terminalState.getWorkingDirectory().length() > 0) {
+            workingDirectory = terminalState.getWorkingDirectory();
         }
         if (terminalState.getScreenTitle().length() > 0) {
             // Only update the title if the shell is still alive

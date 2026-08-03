@@ -534,6 +534,16 @@ public class TWindowBackend extends TWindow implements Backend {
     }
 
     /**
+     * Report the current working directory to the terminal (OSC 7).  For a
+     * window backend there is no terminal to report to.
+     *
+     * @param directory the new working directory
+     */
+    public void setWorkingDirectory(final String directory) {
+        // NOP
+    }
+
+    /**
      * Set listener to a different Object.
      *
      * @param listener the new listening object that run() wakes up on new

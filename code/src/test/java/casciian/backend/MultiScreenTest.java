@@ -39,6 +39,7 @@ class MultiScreenTest {
         @Override public void getEvents(java.util.List<casciian.event.TInputEvent> q) {}
         @Override public void shutdown() {}
         @Override public void setTitle(String t) {}
+        @Override public void setWorkingDirectory(String d) {}
         @Override public void setListener(Object l) {}
         @Override public void reloadOptions() {}
         @Override public boolean isReadOnly() { return false; }

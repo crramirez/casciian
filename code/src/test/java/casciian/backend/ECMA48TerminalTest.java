@@ -351,6 +351,92 @@ class ECMA48TerminalTest {
     }
 
     @Test
+    @DisplayName("setWorkingDirectory emits an OSC 7 file:// sequence")
+    void testSetWorkingDirectory() {
+        terminal = createTerminal();
+        outputStream.reset();
+
+        terminal.setWorkingDirectory("/home/user/my dir");
+
+        String output = outputStream.toString(StandardCharsets.UTF_8);
+        assertTrue(output.startsWith("\033]7;file://"),
+            "Output should start with OSC 7. Output: "
+            + escapeForDisplay(output));
+        assertTrue(output.endsWith("/home/user/my%20dir\033\\"),
+            "Output should end with the percent-encoded path and ST. "
+            + "Output: " + escapeForDisplay(output));
+    }
+
+    @Test
+    @DisplayName("setWorkingDirectory ignores null and empty paths")
+    void testSetWorkingDirectoryIgnoresEmpty() {
+        terminal = createTerminal();
+        outputStream.reset();
+
+        terminal.setWorkingDirectory(null);
+        terminal.setWorkingDirectory("");
+
+        assertEquals("", outputStream.toString(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    @DisplayName("setWorkingDirectory also emits OSC 9 ; 9 on Windows")
+    void testSetWorkingDirectoryWindowsTerminalCompatibility() {
+        String originalOsName = System.getProperty("os.name");
+        try {
+            System.setProperty("os.name", "Windows 11");
+            terminal = createTerminal();
+            outputStream.reset();
+
+            terminal.setWorkingDirectory("C:\\Users\\Alice\\My Dir");
+
+            String output = outputStream.toString(StandardCharsets.UTF_8);
+            assertTrue(output.contains("\033]7;file://"),
+                "Output should still include OSC 7. Output: "
+                + escapeForDisplay(output));
+            assertTrue(output.contains("/C:/Users/Alice/My%20Dir\033\\"),
+                "OSC 7 should include the percent-encoded file URI path. "
+                + "Output: " + escapeForDisplay(output));
+            assertTrue(output.contains("\033]9;9;C:\\Users\\Alice\\My Dir\033\\"),
+                "Output should include Windows Terminal OSC 9 ; 9. Output: "
+                + escapeForDisplay(output));
+        } finally {
+            if (originalOsName != null) {
+                System.setProperty("os.name", originalOsName);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("setWorkingDirectory also emits OSC 9 ; 9 for WSL in Windows Terminal")
+    void testSetWorkingDirectoryWindowsTerminalWslCompatibility() {
+        String originalOsName = System.getProperty("os.name");
+        try {
+            System.setProperty("os.name", "Linux");
+            terminal = createTerminal(true, "C:\\Users\\Alice\\My Dir");
+            outputStream.reset();
+
+            terminal.setWorkingDirectory("/home/alice/My Dir");
+
+            String output = outputStream.toString(StandardCharsets.UTF_8);
+            assertTrue(output.contains("\033]7;file://"),
+                "Output should still include OSC 7. Output: "
+                + escapeForDisplay(output));
+            assertTrue(output.contains("/home/alice/My%20Dir\033\\"),
+                "OSC 7 should keep the Linux path. Output: "
+                + escapeForDisplay(output));
+            assertTrue(output.contains("\033]9;9;C:\\Users\\Alice\\My Dir\033\\"),
+                "Output should include Windows Terminal OSC 9 ; 9 with the "
+                + "wslpath-converted Windows path. Output: "
+                + escapeForDisplay(output));
+        } finally {
+            if (originalOsName != null) {
+                System.setProperty("os.name", originalOsName);
+            }
+        }
+    }
+
+    @Test
     @DisplayName("flush does not throw exception")
     void testFlush() {
         terminal = createTerminal();
@@ -1577,6 +1663,29 @@ class ECMA48TerminalTest {
     private ECMA48Terminal createTerminal() {
         try {
             return new ECMA48Terminal(mockBackend, null, inputStream, outputStream);
+        } catch (Exception e) {
+            fail("Failed to create terminal: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private ECMA48Terminal createTerminal(final boolean windowsTerminalSession,
+        final String wslWindowsPath) {
+        try {
+            return new ECMA48Terminal(mockBackend, null, inputStream,
+                outputStream) {
+                @Override
+                protected boolean isWindowsTerminalSession() {
+                    return windowsTerminalSession;
+                }
+
+                @Override
+                protected String wslDirectoryToWindowsTerminalPath(
+                    final String directory
+                ) {
+                    return wslWindowsPath;
+                }
+            };
         } catch (Exception e) {
             fail("Failed to create terminal: " + e.getMessage());
             return null;

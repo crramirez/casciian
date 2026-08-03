@@ -37,6 +37,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import casciian.backend.terminal.OsUtils;
 import casciian.backend.terminal.Terminal;
 import casciian.backend.terminal.TerminalFactory;
 import casciian.bits.Cell;
@@ -134,6 +135,11 @@ public class ECMA48Terminal extends LogicalScreen
      * retain between redraws.
      */
     private static final int FRAME_BUFFER_MAX_CHARS = 65536;
+
+    /**
+     * The local hostname used in OSC 7 file:// URIs.
+     */
+    private static final String HOSTNAME = getHostname();
 
     /**
      * States in the input parser.
@@ -1031,6 +1037,25 @@ public class ECMA48Terminal extends LogicalScreen
             PrintWriter writer = output;
             if (writer != null) {
                 writer.write(getSetTitleString(title));
+                writer.flush();
+            }
+        }
+    }
+
+    /**
+     * Report the current working directory to the terminal (OSC 7).
+     *
+     * @param directory the new working directory
+     */
+    @Override
+    public void setWorkingDirectory(final String directory) {
+        if ((directory == null) || directory.isEmpty()) {
+            return;
+        }
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.write(getSetWorkingDirectoryString(directory));
                 writer.flush();
             }
         }
@@ -4163,6 +4188,157 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String getSetTitleString(final String title) {
         return "\033]2;" + title + "\007";
+    }
+
+    /**
+     * Create the escape sequence(s) used to report the current working
+     * directory.  xterm-compatible terminals use OSC 7.  On Windows, and in
+     * WSL when hosted by Windows Terminal, emit the Windows Terminal /
+     * ConEmu OSC 9 ; 9 extension as well.
+     *
+     * @param directory the new working directory
+     * @return the string to emit to the terminal
+     */
+    private String getSetWorkingDirectoryString(final String directory) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\033]7;");
+        sb.append(directoryToFileUri(directory));
+        sb.append("\033\\");
+        String windowsTerminalPath =
+            getWindowsTerminalWorkingDirectoryPath(directory);
+        if (windowsTerminalPath != null) {
+            sb.append("\033]9;9;");
+            sb.append(windowsTerminalPath);
+            sb.append("\033\\");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Determine the path to report through Windows Terminal's OSC 9 ; 9
+     * extension, if this session needs it.
+     *
+     * @param directory the directory path
+     * @return the path to emit, or null if OSC 9 ; 9 should be skipped
+     */
+    private String getWindowsTerminalWorkingDirectoryPath(
+        final String directory
+    ) {
+        if (OsUtils.isWindows()) {
+            return directoryToWindowsTerminalPath(directory);
+        }
+        if (isWindowsTerminalSession()) {
+            return wslDirectoryToWindowsTerminalPath(directory);
+        }
+        return null;
+    }
+
+    /**
+     * Convert a filesystem path into a file:// URI as expected by OSC 7.
+     *
+     * @param directory the directory path
+     * @return the file:// URI
+     */
+    private static String directoryToFileUri(final String directory) {
+        String path = directory.replace('\\', '/');
+        if (!path.startsWith("/")) {
+            // Windows-style absolute (C:/...) or relative paths.
+            path = "/" + path;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("file://");
+        sb.append(HOSTNAME);
+        for (byte b: path.getBytes(StandardCharsets.UTF_8)) {
+            int ch = b & 0xFF;
+            if (((ch >= 'A') && (ch <= 'Z'))
+                || ((ch >= 'a') && (ch <= 'z'))
+                || ((ch >= '0') && (ch <= '9'))
+                || (ch == '/') || (ch == '-') || (ch == '_')
+                || (ch == '.') || (ch == '~') || (ch == ':')
+            ) {
+                sb.append((char) ch);
+            } else {
+                sb.append(String.format("%%%02X", ch));
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Convert a filesystem path into the native Windows path format expected
+     * by Windows Terminal's OSC 9 ; 9 extension.
+     *
+     * @param directory the directory path
+     * @return the Windows path
+     */
+    private static String directoryToWindowsTerminalPath(
+        final String directory
+    ) {
+        return directory.replace('/', '\\');
+    }
+
+    /**
+     * Determine if this process is hosted by Windows Terminal.
+     *
+     * @return true if Windows Terminal's WT_SESSION variable is present
+     */
+    protected boolean isWindowsTerminalSession() {
+        String wtSession = System.getenv("WT_SESSION");
+        return (wtSession != null) && !wtSession.isEmpty();
+    }
+
+    /**
+     * Convert a WSL/Linux path to the Windows path syntax expected by
+     * Windows Terminal's OSC 9 ; 9 extension.
+     *
+     * @param directory the directory path
+     * @return the Windows path, or null if conversion fails
+     */
+    protected String wslDirectoryToWindowsTerminalPath(
+        final String directory
+    ) {
+        try {
+            Process process = new ProcessBuilder("wslpath", "-w", directory)
+                .redirectErrorStream(true)
+                .start();
+            byte[] output = process.getInputStream().readAllBytes();
+            if (process.waitFor() == 0) {
+                String path = new String(output, StandardCharsets.UTF_8)
+                    .trim();
+                if (!path.isEmpty()) {
+                    return path;
+                }
+            }
+        } catch (IOException e) {
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        return null;
+    }
+
+    /**
+     * Obtain the local hostname to use in OSC 7 file:// URIs.
+     *
+     * @return the hostname, or "localhost" if it cannot be determined
+     */
+    private static String getHostname() {
+        String name = System.getenv("HOSTNAME");
+        if ((name == null) || name.isEmpty()) {
+            name = System.getenv("COMPUTERNAME");
+        }
+        if ((name == null) || name.isEmpty()) {
+            try {
+                name = java.net.InetAddress.getLocalHost().getHostName();
+            } catch (java.net.UnknownHostException e) {
+                name = null;
+            }
+        }
+        if ((name == null) || name.isEmpty()) {
+            name = "localhost";
+        }
+        return name;
     }
 
     /**

@@ -473,6 +473,13 @@ public class ECMA48 implements Runnable {
     private String screenTitle = "";
 
     /**
+     * Current working directory as reported by the remote side via the OSC 7
+     * sequence.  Shells that emit this let the UI open new terminals in the
+     * same directory.
+     */
+    private String workingDirectory = "";
+
+    /**
      * Parameter characters being collected.
      */
     private List<Integer> csiParams;
@@ -1062,7 +1069,18 @@ public class ECMA48 implements Runnable {
             currentState.cursorX, currentState.cursorY,
             hideMousePointer, mouseProtocol, screenTitle,
             withinSynchronizedUpdate, lastVisibleDisplay,
-            lastVisibleUpdateTime);
+            lastVisibleUpdateTime, workingDirectory);
+    }
+
+    /**
+     * Get the current working directory as reported by the remote side via
+     * OSC 7.
+     *
+     * @return the working directory, or an empty string if the remote side
+     * has not reported one
+     */
+    public synchronized String getWorkingDirectory() {
+        return workingDirectory;
     }
 
     /**
@@ -4831,6 +4849,59 @@ public class ECMA48 implements Runnable {
     }
 
     /**
+     * Convert an OSC 7 file:// URI into a local filesystem path.
+     *
+     * @param uri the URI, e.g. "file://hostname/home/user"
+     * @return the decoded path, or null if the URI could not be decoded
+     */
+    private String fileUriToDirectory(final String uri) {
+        if ((uri == null) || (uri.length() == 0)) {
+            return null;
+        }
+        String path = uri;
+        if (path.startsWith("file://")) {
+            // Strip the scheme and the (optional) authority.
+            path = path.substring("file://".length());
+            int slash = path.indexOf('/');
+            if (slash < 0) {
+                return null;
+            }
+            path = path.substring(slash);
+        }
+
+        // Percent-decode the path as UTF-8.
+        var bytes = new java.io.ByteArrayOutputStream();
+        for (int i = 0; i < path.length(); i++) {
+            char ch = path.charAt(i);
+            if ((ch == '%') && (i + 2 < path.length())) {
+                try {
+                    bytes.write(Integer.parseInt(path.substring(i + 1, i + 3),
+                            16));
+                    i += 2;
+                    continue;
+                } catch (NumberFormatException e) {
+                    // Not a valid escape, fall through and keep the '%'.
+                }
+            }
+            byte[] chBytes = String.valueOf(ch).getBytes(StandardCharsets.UTF_8);
+            bytes.write(chBytes, 0, chBytes.length);
+        }
+        String decoded = new String(bytes.toByteArray(), StandardCharsets.UTF_8);
+
+        // Windows paths are reported as /C:/some/dir .
+        if ((decoded.length() > 2)
+            && (decoded.charAt(0) == '/')
+            && (decoded.charAt(2) == ':')
+        ) {
+            decoded = decoded.substring(1);
+        }
+        if (decoded.length() == 0) {
+            return null;
+        }
+        return decoded;
+    }
+
+    /**
      * Handle the SCAN_OSC_STRING state.  Handle this in VT100 because lots
      * of remote systems will send an XTerm title sequence even if TERM isn't
      * xterm.
@@ -4874,6 +4945,18 @@ public class ECMA48 implements Runnable {
                     if (p.length > 1) {
                         // Screen title
                         screenTitle = p[1];
+                    }
+                }
+
+                if (p[0].equals("7")) {
+                    // OSC 7 current working directory: 7 ; file://host/path
+                    int firstSemi = args.indexOf(';');
+                    if (firstSemi >= 0) {
+                        String directory = fileUriToDirectory(
+                            args.substring(firstSemi + 1));
+                        if (directory != null) {
+                            workingDirectory = directory;
+                        }
                     }
                 }
 
