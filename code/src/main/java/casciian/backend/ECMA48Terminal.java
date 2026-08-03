@@ -37,6 +37,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import casciian.backend.terminal.OsUtils;
 import casciian.backend.terminal.Terminal;
 import casciian.backend.terminal.TerminalFactory;
 import casciian.bits.Cell;
@@ -4190,15 +4191,24 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Create an xterm OSC 7 sequence to report the current working
-     * directory.  Terminals that understand this sequence will open new
-     * tabs/windows in the same directory.
+     * Create the escape sequence(s) used to report the current working
+     * directory.  xterm-compatible terminals use OSC 7.  On Windows, emit
+     * the Windows Terminal / ConEmu OSC 9 ; 9 extension as well.
      *
      * @param directory the new working directory
-     * @return the string to emit to xterm
+     * @return the string to emit to the terminal
      */
     private String getSetWorkingDirectoryString(final String directory) {
-        return "\033]7;" + directoryToFileUri(directory) + "\033\\";
+        StringBuilder sb = new StringBuilder();
+        sb.append("\033]7;");
+        sb.append(directoryToFileUri(directory));
+        sb.append("\033\\");
+        if (OsUtils.isWindows()) {
+            sb.append("\033]9;9;");
+            sb.append(directoryToWindowsTerminalPath(directory));
+            sb.append("\033\\");
+        }
+        return sb.toString();
     }
 
     /**
@@ -4231,6 +4241,19 @@ public class ECMA48Terminal extends LogicalScreen
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Convert a filesystem path into the native Windows path format expected
+     * by Windows Terminal's OSC 9 ; 9 extension.
+     *
+     * @param directory the directory path
+     * @return the Windows path
+     */
+    private static String directoryToWindowsTerminalPath(
+        final String directory
+    ) {
+        return directory.replace('/', '\\');
     }
 
     /**

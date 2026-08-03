@@ -31,11 +31,14 @@ to OSC 7 so hosting terminals stay in sync automatically.
   tests) have nothing to report to.
 - `ECMA48Terminal.setWorkingDirectory(String)` — the only backend that
   actually emits the escape sequence, via `getSetWorkingDirectoryString()`.
-  It converts the path to a `file://` URI (`directoryToFileUri()`),
-  percent-encoding anything outside `[A-Za-z0-9/.\-_~:]`, and prefixes it
-  with a best-effort local hostname (`getHostname()`, falling back to
-  `"localhost"`). Emitting is skipped entirely for a `null`/empty
-  directory.
+  It always emits the xterm/freedesktop-style OSC 7 `file://` URI
+  (`directoryToFileUri()`), percent-encoding anything outside
+  `[A-Za-z0-9/.\-_~:]` and prefixing it with a best-effort local hostname
+  (`getHostname()`, falling back to `"localhost"`). On Windows it also emits
+  Windows Terminal / ConEmu's OSC `9;9` extension using the native Windows
+  path, because Microsoft's own same-directory documentation currently
+  documents OSC `9;9` rather than OSC 7 for native Windows shells. Emitting
+  is skipped entirely for a `null`/empty directory.
 - `Backend.setWorkingDirectory(String)` / `GenericBackend` — forwards to
   the backend's `Screen`.
 - `MultiBackend` / `MultiScreen` — fan the call out to every
@@ -89,3 +92,8 @@ for free.
   back to `"localhost"`. This can be slow or fail on systems without proper
   DNS; failures are swallowed and do not prevent the OSC 7 sequence from
   being emitted.
+- OSC 7 is the cross-terminal standard, but Windows Terminal's
+  same-directory feature has historically documented OSC `9;9` for native
+  Windows shells. Casciian therefore emits both on Windows: OSC 7 for
+  standards-compatible terminals, plus OSC `9;9` for Windows Terminal /
+  ConEmu compatibility.

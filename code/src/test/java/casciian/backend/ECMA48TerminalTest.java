@@ -380,6 +380,34 @@ class ECMA48TerminalTest {
     }
 
     @Test
+    @DisplayName("setWorkingDirectory also emits OSC 9 ; 9 on Windows")
+    void testSetWorkingDirectoryWindowsTerminalCompatibility() {
+        String originalOsName = System.getProperty("os.name");
+        try {
+            System.setProperty("os.name", "Windows 11");
+            terminal = createTerminal();
+            outputStream.reset();
+
+            terminal.setWorkingDirectory("C:\\Users\\Alice\\My Dir");
+
+            String output = outputStream.toString(StandardCharsets.UTF_8);
+            assertTrue(output.contains("\033]7;file://"),
+                "Output should still include OSC 7. Output: "
+                + escapeForDisplay(output));
+            assertTrue(output.contains("/C:/Users/Alice/My%20Dir\033\\"),
+                "OSC 7 should include the percent-encoded file URI path. "
+                + "Output: " + escapeForDisplay(output));
+            assertTrue(output.contains("\033]9;9;C:\\Users\\Alice\\My Dir\033\\"),
+                "Output should include Windows Terminal OSC 9 ; 9. Output: "
+                + escapeForDisplay(output));
+        } finally {
+            if (originalOsName != null) {
+                System.setProperty("os.name", originalOsName);
+            }
+        }
+    }
+
+    @Test
     @DisplayName("flush does not throw exception")
     void testFlush() {
         terminal = createTerminal();
