@@ -66,6 +66,7 @@ public class TerminalJlineImpl implements Terminal {
         try {
             tempTerminal = TerminalBuilder.builder()
                 .system(true)
+                .provider(resolveProvider())
                 .encoding(StandardCharsets.UTF_8)
                 .build();
 
@@ -89,6 +90,42 @@ public class TerminalJlineImpl implements Terminal {
 
             throw new RuntimeException("Failed to initialize JLine terminal", e);
         }
+    }
+
+    /**
+     * Determine which JLine terminal provider to use.
+     *
+     * <p>An explicit {@code org.jline.terminal.provider} runtime system property
+     * always wins. Otherwise, when running inside a GraalVM native image, the
+     * Foreign Function &amp; Memory (FFM) provider is selected explicitly so that
+     * JLine never consults the JNI provider.
+     *
+     * <p>This matters because {@code TerminalBuilder} probes every loaded
+     * provider's {@code getConsoleCodepage()} for Windows codepage
+     * auto-detection (even though this implementation already forces UTF-8).
+     * The JNI provider's probe loads {@code org.jline.nativ.Kernel32}, whose
+     * static initializer cannot run in a native image and fails with
+     * {@code NoClassDefFoundError: Could not initialize class
+     * org.jline.nativ.Kernel32}. Restricting the builder to the FFM provider
+     * keeps the JNI provider out of the provider list entirely.
+     *
+     * <p>Selecting the provider here (at runtime) rather than via a build-time
+     * {@code -Dorg.jline.terminal.provider=ffm} native-image argument is
+     * required, because system properties passed to the native-image builder
+     * are not visible at native-image runtime.
+     *
+     * @return the provider name to force, or {@code null} to let JLine choose
+     *         its default (used on a regular JVM, where the JNI provider works)
+     */
+    static String resolveProvider() {
+        String explicit = System.getProperty("org.jline.terminal.provider");
+        if (explicit != null && !explicit.isBlank()) {
+            return explicit;
+        }
+        if ("runtime".equals(System.getProperty("org.graalvm.nativeimage.imagecode"))) {
+            return "ffm";
+        }
+        return null;
     }
 
     /**

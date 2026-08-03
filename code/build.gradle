@@ -237,11 +237,13 @@ graalvmNative {
             buildArgs.add('--enable-native-access=ALL-UNNAMED')
             buildArgs.add('-H:IncludeLocales=en,en-US,es')
             buildArgs.add('-H:+AddAllCharsets')
-            // Force JLine to use the FFM (Foreign Function & Memory) terminal provider,
-            // which is compatible with GraalVM native image. The JNI provider (jline-terminal-jni)
-            // loads a native DLL at class-init time which fails in native image with
-            // NoClassDefFoundError: Could not initialize class org.jline.nativ.Kernel32.
-            buildArgs.add('-Dorg.jline.terminal.provider=ffm')
+            // JLine's FFM (Foreign Function & Memory) terminal provider is the one
+            // compatible with GraalVM native image; the JNI provider's Kernel32 class
+            // cannot initialize in a native image (NoClassDefFoundError). The actual
+            // runtime provider selection happens in TerminalJlineImpl.resolveProvider()
+            // because -D properties passed to the native-image builder are NOT visible
+            // at native-image runtime. --initialize-at-run-time keeps the JNI native
+            // classes out of build-time initialization.
             buildArgs.add('--initialize-at-run-time=org.jline.nativ')
             buildArgs.addAll(providers.provider {
                 [
