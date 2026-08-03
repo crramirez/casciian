@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import casciian.backend.terminal.OsUtils;
@@ -2395,9 +2396,13 @@ public class ECMA48Terminal extends LogicalScreen
          */
         ExecutorService imageExecutor = null;
         List<Future<String>> imageResults = null;
+        // Virtual threads are unbounded, so imageThreadCount is enforced with
+        // a semaphore that limits how many encodings run at the same time.
+        final Semaphore imagePermits = (imageThreadCount > 1 ?
+            new Semaphore(imageThreadCount) : null);
 
         if (imageThreadCount > 1) {
-            imageExecutor = Executors.newFixedThreadPool(imageThreadCount);
+            imageExecutor = Executors.newVirtualThreadPerTaskExecutor();
             imageResults = new ArrayList<Future<String>>();
         }
 
@@ -2463,13 +2468,18 @@ public class ECMA48Terminal extends LogicalScreen
                         callCells = new ArrayList<Cell>(cellsToDraw);
                         imageResults.add(imageExecutor.submit(new Callable<String>() {
                             @Override
-                            public String call() {
-                                if (jexerImageOption != JexerImageOption.DISABLED) {
-                                    return toJexerImage(callX, callY, callCells);
-                                } else if (sixel) {
-                                    return toSixel(callX, callY, callCells);
-                                } else {
-                                    return toPseudoImage(callX, callY, callCells);
+                            public String call() throws InterruptedException {
+                                imagePermits.acquire();
+                                try {
+                                    if (jexerImageOption != JexerImageOption.DISABLED) {
+                                        return toJexerImage(callX, callY, callCells);
+                                    } else if (sixel) {
+                                        return toSixel(callX, callY, callCells);
+                                    } else {
+                                        return toPseudoImage(callX, callY, callCells);
+                                    }
+                                } finally {
+                                    imagePermits.release();
                                 }
                             }
                         }));
