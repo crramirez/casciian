@@ -1,21 +1,16 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Original work written 2013–2025 by Autumn Lamonte
- * and dedicated to the public domain via CC0.
+ * Written 2013-2025 by Autumn Lamonte
  *
- * Modifications and maintenance:
- * Copyright 2025 Carlos Rafael Ramirez
+ * To the extent possible under law, the author(s) have dedicated all
+ * copyright and related and neighboring rights to this software to the
+ * public domain worldwide. This software is distributed without any
+ * warranty.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * You should have received a copy of the CC0 Public Domain Dedication along
+ * with this software. If not, see
+ * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 package demo;
 
@@ -49,9 +44,7 @@ public class Demo4 {
         try {
             DesktopDemoApplication app;
             app = new DesktopDemoApplication(TApplication.BackendType.XTERM);
-            // Run the application on the main thread, so that the JVM stays
-            // alive until the application exits.
-            app.run();
+            (new Thread(app)).start();
         } catch (Exception e) {
             e.printStackTrace();
         }

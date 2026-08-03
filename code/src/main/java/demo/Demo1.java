@@ -49,9 +49,7 @@ public final class Demo1 {
         try {
             DemoApplication app;
             app = new DemoApplication(TApplication.BackendType.XTERM);
-            // Run the application on the main thread, so that the JVM stays
-            // alive until the application exits.
-            app.run();
+            (new Thread(app)).start();
         } catch (Exception e) {
             e.printStackTrace();
         }
