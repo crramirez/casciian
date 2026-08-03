@@ -22,6 +22,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -1033,6 +1034,48 @@ class SystemPropertiesTest {
             assertEquals(java.util.List.of(newDir), received);
         } finally {
             SystemProperties.removeUserDirListener(listener);
+            SystemProperties.setUserDir(original);
+        }
+    }
+
+    @Test
+    @DisplayName("setUserDir does not notify listeners when the cached value is unchanged")
+    void testSetUserDirDoesNotNotifyWhenUnchanged() {
+        String original = SystemProperties.getUserDir();
+        java.util.concurrent.atomic.AtomicInteger calls =
+            new java.util.concurrent.atomic.AtomicInteger();
+        java.util.function.Consumer<String> listener = path -> calls.incrementAndGet();
+
+        try {
+            SystemProperties.addUserDirListener(listener);
+            SystemProperties.setUserDir(original);
+            assertEquals(0, calls.get());
+        } finally {
+            SystemProperties.removeUserDirListener(listener);
+        }
+    }
+
+    @Test
+    @DisplayName("setUserDir isolates listener failures and ignores null listeners")
+    void testSetUserDirIsolatesListenerFailures() {
+        String original = SystemProperties.getUserDir();
+        String newDir = System.getProperty("java.io.tmpdir") + File.separator + "isolated-listener-dir";
+        java.util.List<String> received = new java.util.ArrayList<>();
+        java.util.function.Consumer<String> badListener = path -> {
+            throw new IllegalStateException("expected test failure");
+        };
+        java.util.function.Consumer<String> goodListener = received::add;
+
+        try {
+            SystemProperties.addUserDirListener(null);
+            SystemProperties.addUserDirListener(badListener);
+            SystemProperties.addUserDirListener(goodListener);
+
+            assertDoesNotThrow(() -> SystemProperties.setUserDir(newDir));
+            assertEquals(java.util.List.of(newDir), received);
+        } finally {
+            SystemProperties.removeUserDirListener(badListener);
+            SystemProperties.removeUserDirListener(goodListener);
             SystemProperties.setUserDir(original);
         }
     }

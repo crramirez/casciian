@@ -693,8 +693,11 @@ public class TApplication implements Runnable {
             } // while (true) (main runnable loop)
 
             // Shutdown the user I/O thread(s)
-            backend.shutdown();
-            SystemProperties.removeUserDirListener(userDirListener);
+            try {
+                backend.shutdown();
+            } finally {
+                SystemProperties.removeUserDirListener(userDirListener);
+            }
         }
 
         /**
@@ -848,6 +851,7 @@ public class TApplication implements Runnable {
         // Keep the backend's reported working directory (OSC 7)
         // automatically synchronized with SystemProperties.getUserDir().
         SystemProperties.addUserDirListener(userDirListener);
+        userDirListener.accept(SystemProperties.getUserDir());
 
         theme           = new ColorTheme();
         desktopTop      = (SystemProperties.isHideMenuBar() ? 0 : 1);

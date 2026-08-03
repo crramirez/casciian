@@ -61,8 +61,9 @@ listeners:
   `setUserDir`.
 - `TApplication` registers a listener (`userDirListener`) during
   `TApplicationImpl()` construction that forwards the new path to
-  `backend.setWorkingDirectory(path)`, and removes it in `finishShutdown()`
-  when the backend is torn down.
+  `backend.setWorkingDirectory(path)`, immediately pushes the initial
+  cached directory to the backend, and removes the listener in the screen
+  handler's shutdown `finally` block when the backend is torn down.
 
 This means `TChangeDirBox` only needs to call
 `SystemProperties.setUserDir(canonical)`; it no longer needs a direct

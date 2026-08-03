@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
@@ -1000,28 +1001,42 @@ public class SystemProperties {
      * Only the cached value is updated — the underlying
      * {@code "user.dir"} system property is <b>not</b> modified.
      * Any listeners registered via {@link #addUserDirListener(Consumer)}
-     * are notified with the new path, so that interested backends (e.g.
+     * are notified when the cached value changes, so that interested
+     * backends (e.g.
      * ECMA48Terminal via OSC 7) stay automatically synchronized.
      *
      * @param path the new working directory path
      */
     public static void setUserDir(final String path) {
-        userDir.set(path);
+        String oldPath = userDir.getAndSet(path);
+        if (Objects.equals(oldPath, path)) {
+            return;
+        }
         for (Consumer<String> listener : userDirListeners) {
-            listener.accept(path);
+            if (listener == null) {
+                continue;
+            }
+            try {
+                listener.accept(path);
+            } catch (RuntimeException e) {
+                // Ignore listener failures so the caller and other listeners
+                // can proceed.
+            }
         }
     }
 
     /**
      * Register a listener to be notified whenever {@link #setUserDir(String)}
-     * is called.  This is how backends can keep their own notion of the
-     * current working directory (e.g. reporting it to the terminal via
-     * OSC 7) synchronized with the cached value here.
+     * changes the cached value.  This is how backends can keep their own
+     * notion of the current working directory (e.g. reporting it to the
+     * terminal via OSC 7) synchronized with the cached value here.
      *
      * @param listener the callback to invoke with the new working directory
      */
     public static void addUserDirListener(final Consumer<String> listener) {
-        userDirListeners.add(listener);
+        if (listener != null) {
+            userDirListeners.add(listener);
+        }
     }
 
     /**
