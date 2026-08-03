@@ -4192,8 +4192,9 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * Create the escape sequence(s) used to report the current working
-     * directory.  xterm-compatible terminals use OSC 7.  On Windows, emit
-     * the Windows Terminal / ConEmu OSC 9 ; 9 extension as well.
+     * directory.  xterm-compatible terminals use OSC 7.  On Windows, and in
+     * WSL when hosted by Windows Terminal, emit the Windows Terminal /
+     * ConEmu OSC 9 ; 9 extension as well.
      *
      * @param directory the new working directory
      * @return the string to emit to the terminal
@@ -4203,12 +4204,33 @@ public class ECMA48Terminal extends LogicalScreen
         sb.append("\033]7;");
         sb.append(directoryToFileUri(directory));
         sb.append("\033\\");
-        if (OsUtils.isWindows()) {
+        String windowsTerminalPath =
+            getWindowsTerminalWorkingDirectoryPath(directory);
+        if (windowsTerminalPath != null) {
             sb.append("\033]9;9;");
-            sb.append(directoryToWindowsTerminalPath(directory));
+            sb.append(windowsTerminalPath);
             sb.append("\033\\");
         }
         return sb.toString();
+    }
+
+    /**
+     * Determine the path to report through Windows Terminal's OSC 9 ; 9
+     * extension, if this session needs it.
+     *
+     * @param directory the directory path
+     * @return the path to emit, or null if OSC 9 ; 9 should be skipped
+     */
+    private String getWindowsTerminalWorkingDirectoryPath(
+        final String directory
+    ) {
+        if (OsUtils.isWindows()) {
+            return directoryToWindowsTerminalPath(directory);
+        }
+        if (isWindowsTerminalSession()) {
+            return wslDirectoryToWindowsTerminalPath(directory);
+        }
+        return null;
     }
 
     /**
@@ -4254,6 +4276,46 @@ public class ECMA48Terminal extends LogicalScreen
         final String directory
     ) {
         return directory.replace('/', '\\');
+    }
+
+    /**
+     * Determine if this process is hosted by Windows Terminal.
+     *
+     * @return true if Windows Terminal's WT_SESSION variable is present
+     */
+    protected boolean isWindowsTerminalSession() {
+        String wtSession = System.getenv("WT_SESSION");
+        return (wtSession != null) && !wtSession.isEmpty();
+    }
+
+    /**
+     * Convert a WSL/Linux path to the Windows path syntax expected by
+     * Windows Terminal's OSC 9 ; 9 extension.
+     *
+     * @param directory the directory path
+     * @return the Windows path, or null if conversion fails
+     */
+    protected String wslDirectoryToWindowsTerminalPath(
+        final String directory
+    ) {
+        try {
+            Process process = new ProcessBuilder("wslpath", "-w", directory)
+                .redirectErrorStream(true)
+                .start();
+            byte[] output = process.getInputStream().readAllBytes();
+            if (process.waitFor() == 0) {
+                String path = new String(output, StandardCharsets.UTF_8)
+                    .trim();
+                if (!path.isEmpty()) {
+                    return path;
+                }
+            }
+        } catch (IOException e) {
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        return null;
     }
 
     /**

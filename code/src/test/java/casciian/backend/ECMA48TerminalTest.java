@@ -408,6 +408,35 @@ class ECMA48TerminalTest {
     }
 
     @Test
+    @DisplayName("setWorkingDirectory also emits OSC 9 ; 9 for WSL in Windows Terminal")
+    void testSetWorkingDirectoryWindowsTerminalWslCompatibility() {
+        String originalOsName = System.getProperty("os.name");
+        try {
+            System.setProperty("os.name", "Linux");
+            terminal = createTerminal(true, "C:\\Users\\Alice\\My Dir");
+            outputStream.reset();
+
+            terminal.setWorkingDirectory("/home/alice/My Dir");
+
+            String output = outputStream.toString(StandardCharsets.UTF_8);
+            assertTrue(output.contains("\033]7;file://"),
+                "Output should still include OSC 7. Output: "
+                + escapeForDisplay(output));
+            assertTrue(output.contains("/home/alice/My%20Dir\033\\"),
+                "OSC 7 should keep the Linux path. Output: "
+                + escapeForDisplay(output));
+            assertTrue(output.contains("\033]9;9;C:\\Users\\Alice\\My Dir\033\\"),
+                "Output should include Windows Terminal OSC 9 ; 9 with the "
+                + "wslpath-converted Windows path. Output: "
+                + escapeForDisplay(output));
+        } finally {
+            if (originalOsName != null) {
+                System.setProperty("os.name", originalOsName);
+            }
+        }
+    }
+
+    @Test
     @DisplayName("flush does not throw exception")
     void testFlush() {
         terminal = createTerminal();
@@ -1634,6 +1663,29 @@ class ECMA48TerminalTest {
     private ECMA48Terminal createTerminal() {
         try {
             return new ECMA48Terminal(mockBackend, null, inputStream, outputStream);
+        } catch (Exception e) {
+            fail("Failed to create terminal: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private ECMA48Terminal createTerminal(final boolean windowsTerminalSession,
+        final String wslWindowsPath) {
+        try {
+            return new ECMA48Terminal(mockBackend, null, inputStream,
+                outputStream) {
+                @Override
+                protected boolean isWindowsTerminalSession() {
+                    return windowsTerminalSession;
+                }
+
+                @Override
+                protected String wslDirectoryToWindowsTerminalPath(
+                    final String directory
+                ) {
+                    return wslWindowsPath;
+                }
+            };
         } catch (Exception e) {
             fail("Failed to create terminal: " + e.getMessage());
             return null;

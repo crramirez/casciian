@@ -34,11 +34,12 @@ to OSC 7 so hosting terminals stay in sync automatically.
   It always emits the xterm/freedesktop-style OSC 7 `file://` URI
   (`directoryToFileUri()`), percent-encoding anything outside
   `[A-Za-z0-9/.\-_~:]` and prefixing it with a best-effort local hostname
-  (`getHostname()`, falling back to `"localhost"`). On Windows it also emits
-  Windows Terminal / ConEmu's OSC `9;9` extension using the native Windows
-  path, because Microsoft's own same-directory documentation currently
-  documents OSC `9;9` rather than OSC 7 for native Windows shells. Emitting
-  is skipped entirely for a `null`/empty directory.
+  (`getHostname()`, falling back to `"localhost"`). On native Windows it also
+  emits Windows Terminal / ConEmu's OSC `9;9` extension using the native
+  Windows path; when running under Windows Terminal from Linux/WSL (detected
+  via `WT_SESSION`) it also emits OSC `9;9`, but first converts the Linux path
+  to a Windows one with `wslpath -w`, matching Microsoft's own documentation
+  for WSL shells. Emitting is skipped entirely for a `null`/empty directory.
 - `Backend.setWorkingDirectory(String)` / `GenericBackend` — forwards to
   the backend's `Screen`.
 - `MultiBackend` / `MultiScreen` — fan the call out to every
@@ -94,6 +95,6 @@ for free.
   being emitted.
 - OSC 7 is the cross-terminal standard, but Windows Terminal's
   same-directory feature has historically documented OSC `9;9` for native
-  Windows shells. Casciian therefore emits both on Windows: OSC 7 for
-  standards-compatible terminals, plus OSC `9;9` for Windows Terminal /
-  ConEmu compatibility.
+  Windows shells and for WSL shells using `wslpath -w "$PWD"`. Casciian
+  therefore emits both on native Windows, and also emits OSC `9;9` from
+  Linux/WSL when `WT_SESSION` says the host terminal is Windows Terminal.
