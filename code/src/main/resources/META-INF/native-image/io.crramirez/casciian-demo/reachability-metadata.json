@@ -41,46 +41,130 @@
             "pattern": "\\Qdemo/ansi-demo.ansi\\E"
         },
         {
-            "bundle": "demo.Demo2Bundle"
+            "bundle": "demo.Demo2Bundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.Demo7Bundle"
+            "bundle": "demo.Demo7Bundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.Demo8Bundle"
+            "bundle": "demo.Demo8Bundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.DemoApplicationBundle"
+            "bundle": "demo.DemoApplicationBundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.DemoCheckBoxWindowBundle"
+            "bundle": "demo.DemoCheckBoxWindowBundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.DemoEditorWindowBundle"
+            "bundle": "demo.DemoEditorWindowBundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.DemoKeyboardWindowBundle"
+            "bundle": "demo.DemoKeyboardWindowBundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.DemoMainWindowBundle"
+            "bundle": "demo.DemoMainWindowBundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.DemoMsgBoxWindowBundle"
+            "bundle": "demo.DemoMsgBoxWindowBundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.DemoTableWindowBundle"
+            "bundle": "demo.DemoTableWindowBundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.DemoTextFieldWindowBundle"
+            "bundle": "demo.DemoTextFieldWindowBundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.DemoTextWindowBundle"
+            "bundle": "demo.DemoTextWindowBundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.DemoTreeViewWindowBundle"
+            "bundle": "demo.DemoTreeViewWindowBundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         },
         {
-            "bundle": "demo.DesktopDemoApplicationBundle"
+            "bundle": "demo.DesktopDemoApplicationBundle",
+            "locales": [
+                "",
+                "es",
+                "en",
+                "en-US"
+            ]
         }
     ]
 }

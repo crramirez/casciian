@@ -230,6 +230,7 @@ graalvmNative {
             buildArgs.add('-Os')
             buildArgs.add('--future-defaults=all')
             buildArgs.add('--enable-native-access=ALL-UNNAMED')
+            buildArgs.add('-H:IncludeLocales=en,en-US,es')
             buildArgs.addAll(providers.provider {
                 [
                     '-cp',
