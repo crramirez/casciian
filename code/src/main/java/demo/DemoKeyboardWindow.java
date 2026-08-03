@@ -23,7 +23,6 @@ import casciian.TApplication;
 import casciian.THScroller;
 import casciian.TKeypress;
 import casciian.TList;
-import casciian.TPanel;
 import casciian.TText;
 import casciian.TVScroller;
 import casciian.TWidget;
@@ -32,7 +31,6 @@ import casciian.backend.ECMA48Terminal;
 import casciian.backend.KittyKeyboard;
 import casciian.event.TKeypressEvent;
 import casciian.event.TResizeEvent;
-import casciian.layout.BoxLayoutManager;
 
 /**
  * This window echoes every keystroke it receives, showing the decoded

@@ -56,6 +56,13 @@
             ]
         },
         {
+            "name": "demo.DemoKeyboardWindowBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
             "name": "demo.DemoMainWindowBundle",
             "locales": [
                 "",
