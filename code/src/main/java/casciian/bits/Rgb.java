@@ -15,6 +15,10 @@
  */
 package casciian.bits;
 
+import jdk.incubator.vector.IntVector;
+import jdk.incubator.vector.VectorOperators;
+import jdk.incubator.vector.VectorSpecies;
+
 /**
  * A record to hold RGB color components with utility methods for color
  * manipulation and conversion.
@@ -306,6 +310,73 @@ public record Rgb(int r, int g, int b) {
      */
     public static int clampSixelValue(final int value) {
         return Math.clamp(value, 0, 100);
+    }
+
+    /**
+     * Compute the sum of squared Euclidean distances between each pixel in
+     * {@code pixels[0..count)} and the reference color {@code color}, using
+     * the Java Vector API for SIMD acceleration.
+     *
+     * <p>This is the inner-loop kernel for standard-deviation calculations in
+     * {@link UnicodeGlyphImage}. Processing pixels in bulk via wide SIMD lanes
+     * (8 {@code int}s per cycle on AVX2, 4 on NEON) is substantially faster
+     * than calling {@link #distanceSquared(int, int)} per pixel.</p>
+     *
+     * <p>Each pixel is a packed 24-bit RGB value; the alpha byte (bits 31:24)
+     * is ignored.</p>
+     *
+     * @param pixels the array of packed RGB pixels
+     * @param count  the number of pixels to process (starting at index 0)
+     * @param color  the reference packed RGB color
+     * @return the sum of per-pixel squared distances
+     */
+    public static long distanceSquaredSum(final int[] pixels,
+                                          final int count,
+                                          final int color) {
+        final VectorSpecies<Integer> species = IntVector.SPECIES_PREFERRED;
+        final int laneCount = species.length();
+
+        // Broadcast the three reference channels into separate vectors.
+        final IntVector vRefR = IntVector.broadcast(species, (color >>> 16) & 0xFF);
+        final IntVector vRefG = IntVector.broadcast(species, (color >>>  8) & 0xFF);
+        final IntVector vRefB = IntVector.broadcast(species,  color         & 0xFF);
+        final IntVector vMask = IntVector.broadcast(species, 0xFF);
+
+        // Accumulate per-lane partial sums as long to avoid int overflow on
+        // large images (worst case: 255² × count, which exceeds int range for
+        // count > ~65 000).
+        long sum = 0;
+
+        // Vectorized bulk.
+        int i = 0;
+        for (; i <= count - laneCount; i += laneCount) {
+            IntVector px = IntVector.fromArray(species, pixels, i);
+
+            IntVector r = px.lanewise(VectorOperators.LSHR, 16).and(vMask);
+            IntVector g = px.lanewise(VectorOperators.LSHR,  8).and(vMask);
+            IntVector b = px.and(vMask);
+
+            IntVector dr = r.sub(vRefR);
+            IntVector dg = g.sub(vRefG);
+            IntVector db = b.sub(vRefB);
+
+            // dr*dr + dg*dg + db*db, summed across all lanes.
+            IntVector laneSum = dr.mul(dr).add(dg.mul(dg)).add(db.mul(db));
+
+            // reduceLanes gives the horizontal sum across all int lanes.
+            sum += laneSum.reduceLanes(VectorOperators.ADD);
+        }
+
+        // Scalar tail.
+        for (; i < count; i++) {
+            int px = pixels[i];
+            int dr = ((px >>> 16) & 0xFF) - ((color >>> 16) & 0xFF);
+            int dg = ((px >>>  8) & 0xFF) - ((color >>>  8) & 0xFF);
+            int db = ( px         & 0xFF) - ( color         & 0xFF);
+            sum += dr * dr + dg * dg + db * db;
+        }
+
+        return sum;
     }
 
     /**

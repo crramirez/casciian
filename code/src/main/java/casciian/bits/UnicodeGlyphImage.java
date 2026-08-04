@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.bits;
 
@@ -133,24 +138,31 @@ public class UnicodeGlyphImage {
         final int foreColor, final int backColor,
         final boolean leftRight, final int width, final int height) {
 
-        long totalDiffSquared = 0;
-        int pixelCount = 0;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int pixel = image.getRGB(x, y);
-                int avgColor;
-                if (leftRight) {
-                    avgColor = (x < width / 2) ? foreColor : backColor;
-                } else {
-                    avgColor = (y < height / 2) ? foreColor : backColor;
-                }
-                totalDiffSquared += Rgb.distanceSquared(pixel, avgColor);
-                pixelCount++;
-            }
-        }
+        int pixelCount = width * height;
         if (pixelCount == 0) {
             return 0;
         }
+
+        // Separate the pixels into two regions so we can call the vectorized
+        // distanceSquaredSum on each contiguous array.
+        int splitFore = leftRight ? (width / 2) * height : width * (height / 2);
+        int[] forePixels = new int[splitFore];
+        int[] backPixels = new int[pixelCount - splitFore];
+        int fi = 0, bi = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                boolean isFore = leftRight ? (x < width / 2) : (y < height / 2);
+                int pixel = image.getRGB(x, y);
+                if (isFore) {
+                    forePixels[fi++] = pixel;
+                } else {
+                    backPixels[bi++] = pixel;
+                }
+            }
+        }
+
+        long totalDiffSquared = Rgb.distanceSquaredSum(forePixels, fi, foreColor)
+                              + Rgb.distanceSquaredSum(backPixels, bi, backColor);
         return Math.sqrt((double) totalDiffSquared / pixelCount);
     }
 
@@ -166,18 +178,21 @@ public class UnicodeGlyphImage {
     private double computeFullBlockStdDev(final ImageRGB image,
         final int color, final int width, final int height) {
 
-        long totalDiffSquared = 0;
-        int pixelCount = 0;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int pixel = image.getRGB(x, y);
-                totalDiffSquared += Rgb.distanceSquared(pixel, color);
-                pixelCount++;
-            }
-        }
+        int pixelCount = width * height;
         if (pixelCount == 0) {
             return 0;
         }
+
+        // Flatten the image into a contiguous array for SIMD processing.
+        int[] pixels = new int[pixelCount];
+        int idx = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                pixels[idx++] = image.getRGB(x, y);
+            }
+        }
+
+        long totalDiffSquared = Rgb.distanceSquaredSum(pixels, pixelCount, color);
         return Math.sqrt((double) totalDiffSquared / pixelCount);
     }
 }

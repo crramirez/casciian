@@ -72,7 +72,12 @@ sourceSets {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.compilerArgs += ['-Xlint', '-Xdiags:verbose', '-Xlint:-requires-automatic']
+    options.compilerArgs += ['-Xlint', '-Xdiags:verbose', '-Xlint:-requires-automatic',
+                             '--add-modules', 'jdk.incubator.vector']
+}
+
+test {
+    jvmArgs '--add-modules', 'jdk.incubator.vector'
 }
 
 // Main library JAR: exclude demo/** content (matches compiled paths like demo/**)
@@ -230,6 +235,7 @@ graalvmNative {
             buildArgs.add('-Os')
             buildArgs.add('--future-defaults=all')
             buildArgs.add('--enable-native-access=ALL-UNNAMED')
+            buildArgs.add('--add-modules=jdk.incubator.vector')
 
             if (System.getProperty('os.name', '')
                 .toLowerCase(Locale.ROOT)
