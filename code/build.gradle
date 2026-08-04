@@ -230,6 +230,11 @@ graalvmNative {
             buildArgs.add('-Os')
             buildArgs.add('--future-defaults=all')
             buildArgs.add('--enable-native-access=ALL-UNNAMED')
+
+            if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+                buildArgs.add('-H:+AddAllCharsets')
+            }
+
             buildArgs.addAll(providers.provider {
                 [
                     '-cp',
