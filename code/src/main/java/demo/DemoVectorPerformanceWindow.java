@@ -21,7 +21,9 @@ import java.util.ResourceBundle;
 
 import casciian.TApplication;
 import casciian.TButton;
+import casciian.THScroller;
 import casciian.TText;
+import casciian.TVScroller;
 import casciian.TWidget;
 import casciian.TWindow;
 import casciian.bits.ArrayImageRGB;
@@ -127,6 +129,14 @@ public class DemoVectorPerformanceWindow extends TWindow {
         }
     }
 
+    private void hideScrollbars(final TWidget widget) {
+        for (TWidget child: widget.getChildren()) {
+            if ((child instanceof THScroller) || (child instanceof TVScroller)) {
+                child.setVisible(false);
+            }
+        }
+    }
+
     private void runBenchmarks() {
         StringBuilder sb = new StringBuilder();
         sb.append(i18n.getString("runningText"));
@@ -140,9 +150,7 @@ public class DemoVectorPerformanceWindow extends TWindow {
 
         sb.setLength(0);
         appendBenchmark(sb, alpha, i18n.getString("alphaTitle"));
-        sb.append('
-').append('
-');
+        sb.append("\n\n");
         appendBenchmark(sb, distance, i18n.getString("distanceTitle"));
         resultsText.setText(sb.toString());
     }
@@ -150,20 +158,16 @@ public class DemoVectorPerformanceWindow extends TWindow {
     private void appendBenchmark(final StringBuilder sb,
                                  final BenchmarkResult result,
                                  final String title) {
-        sb.append(title).append('
-');
+        sb.append(title).append("\n");
         sb.append(String.format(Locale.ROOT, i18n.getString("vectorLine"),
             nanosToMillis(result.vectorNanos), result.vectorChecksum));
-        sb.append('
-');
+        sb.append("\n");
         sb.append(String.format(Locale.ROOT, i18n.getString("scalarLine"),
             nanosToMillis(result.scalarNanos), result.scalarChecksum));
-        sb.append('
-');
+        sb.append("\n");
         sb.append(String.format(Locale.ROOT, i18n.getString("speedupLine"),
             result.speedup()));
-        sb.append('
-');
+        sb.append("\n");
         sb.append(String.format(Locale.ROOT, i18n.getString("equalLine"),
             result.vectorChecksum == result.scalarChecksum
                 ? i18n.getString("equalYes")
