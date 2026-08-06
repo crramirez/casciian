@@ -9,3 +9,4 @@ widget hierarchy, and house style.
 |---|---|
 | [kitty-keyboard-protocol.md](kitty-keyboard-protocol.md) | Unambiguous key reporting (CSI u): the handshake, the decoder, why Ctrl+I no longer collapses into Tab, and how to test it against a real terminal |
 | [osc7-working-directory.md](osc7-working-directory.md) | Reporting the current working directory to the hosting terminal (OSC 7): where it lives across the `Screen`/`Backend` hierarchy, and how it auto-syncs with `SystemProperties` |
+| [vector-api-performance.md](vector-api-performance.md) | Which image kernels use the Java Vector API and which deliberately do not, how the demo benchmark window measures them, and the native-image build flags that affect the results |
