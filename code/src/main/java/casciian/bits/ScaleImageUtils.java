@@ -22,7 +22,6 @@ package casciian.bits;
 import java.util.stream.IntStream;
 
 import jdk.incubator.vector.DoubleVector;
-import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 
 /**

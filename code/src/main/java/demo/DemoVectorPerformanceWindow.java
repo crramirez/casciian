@@ -20,7 +20,6 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 
 import casciian.TApplication;
-import casciian.TButton;
 import casciian.THScroller;
 import casciian.TText;
 import casciian.TVScroller;

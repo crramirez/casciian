@@ -35,6 +35,14 @@ public class UnicodeGlyphImage {
      */
     private ImageRGB image = null;
 
+    /**
+     * Scratch buffers reused across stddev computations to avoid per-call
+     * allocations in hot rendering paths.
+     */
+    private int[] forePixels = new int[0];
+    private int[] backPixels = new int[0];
+    private int[] fullPixels = new int[0];
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -146,8 +154,7 @@ public class UnicodeGlyphImage {
         // Separate the pixels into two regions so we can call the vectorized
         // distanceSquaredSum on each contiguous array.
         int splitFore = leftRight ? (width / 2) * height : width * (height / 2);
-        int[] forePixels = new int[splitFore];
-        int[] backPixels = new int[pixelCount - splitFore];
+        ensureRegionBufferCapacity(splitFore, pixelCount - splitFore);
         int fi = 0, bi = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -184,15 +191,32 @@ public class UnicodeGlyphImage {
         }
 
         // Flatten the image into a contiguous array for SIMD processing.
-        int[] pixels = new int[pixelCount];
+        ensureFullBufferCapacity(pixelCount);
         int idx = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                pixels[idx++] = image.getRGB(x, y);
+                fullPixels[idx++] = image.getRGB(x, y);
             }
         }
 
-        long totalDiffSquared = Rgb.distanceSquaredSum(pixels, pixelCount, color);
+        long totalDiffSquared = Rgb.distanceSquaredSum(fullPixels, pixelCount, color);
         return Math.sqrt((double) totalDiffSquared / pixelCount);
+    }
+
+    private void ensureRegionBufferCapacity(final int foreSize,
+        final int backSize) {
+
+        if (forePixels.length < foreSize) {
+            forePixels = new int[foreSize];
+        }
+        if (backPixels.length < backSize) {
+            backPixels = new int[backSize];
+        }
+    }
+
+    private void ensureFullBufferCapacity(final int size) {
+        if (fullPixels.length < size) {
+            fullPixels = new int[size];
+        }
     }
 }
