@@ -51,6 +51,13 @@ public class ArrayImageRGB implements ImageRGB {
             IntVector.SPECIES_PREFERRED;
 
     /**
+     * GraalVM native image currently does not provide the same JIT vector
+     * optimizations as the regular JVM, so prefer scalar kernels there.
+     */
+    private static final boolean USE_VECTOR_ALPHA_BLEND =
+            System.getProperty("org.graalvm.nativeimage.imagecode") == null;
+
+    /**
      * The 24-bit RGB data stored in row-major order: rgb[row][col].
      */
     private final int[][] rgb;
@@ -226,7 +233,7 @@ public class ArrayImageRGB implements ImageRGB {
             rowStream.forEach(y -> {
                 int[] thisRow = rgb[y];
                 int[] overRow = otherRgb[y];
-                blendRowVectorized(thisRow, overRow, width, a, oneMinusA);
+                blendRow(thisRow, overRow, width, a, oneMinusA);
             });
         } else {
             // Reuse a per-thread row buffer to avoid allocating one int[width]
@@ -237,8 +244,23 @@ public class ArrayImageRGB implements ImageRGB {
                 int[] thisRow = rgb[y];
                 int[] overRow = rowBuffer.get();
                 image.getRGB(0, y, width, 1, overRow, 0, width);
-                blendRowVectorized(thisRow, overRow, width, a, oneMinusA);
+                blendRow(thisRow, overRow, width, a, oneMinusA);
             });
+        }
+    }
+
+    /**
+     * Select vectorized or scalar row blending path.
+     */
+    private static void blendRow(final int[] thisRow,
+                                 final int[] overRow,
+                                 final int width,
+                                 final int a,
+                                 final int oneMinusA) {
+        if (USE_VECTOR_ALPHA_BLEND) {
+            blendRowVectorized(thisRow, overRow, width, a, oneMinusA);
+        } else {
+            blendRowScalar(thisRow, overRow, width, a, oneMinusA);
         }
     }
 
@@ -312,6 +334,24 @@ public class ArrayImageRGB implements ImageRGB {
 
         // Scalar tail for remaining pixels.
         for (; x < width; x++) {
+            int under = thisRow[x];
+            int over  = overRow[x];
+            int red   = (((under >>> 16) & 0xFF) * oneMinusA + ((over >>> 16) & 0xFF) * a) >> 8;
+            int green = (((under >>>  8) & 0xFF) * oneMinusA + ((over >>>  8) & 0xFF) * a) >> 8;
+            int blue  = (( under         & 0xFF) * oneMinusA + ( over         & 0xFF) * a) >> 8;
+            thisRow[x] = 0xFF000000 | (red << 16) | (green << 8) | blue;
+        }
+    }
+
+    /**
+     * Alpha-blend one row of pixels with the scalar implementation.
+     */
+    private static void blendRowScalar(final int[] thisRow,
+                                       final int[] overRow,
+                                       final int width,
+                                       final int a,
+                                       final int oneMinusA) {
+        for (int x = 0; x < width; x++) {
             int under = thisRow[x];
             int over  = overRow[x];
             int red   = (((under >>> 16) & 0xFF) * oneMinusA + ((over >>> 16) & 0xFF) * a) >> 8;

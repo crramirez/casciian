@@ -51,6 +51,13 @@ public record Rgb(int r, int g, int b) {
     /** Sixel black color value (0, 0, 0). */
     public static final int SIXEL_BLACK = 0xFF000000;
 
+    /**
+     * GraalVM native image currently does not provide the same JIT vector
+     * optimizations as the regular JVM, so prefer scalar kernels there.
+     */
+    private static final boolean USE_VECTOR_DISTANCE_SUM =
+        System.getProperty("org.graalvm.nativeimage.imagecode") == null;
+
     // ========================================================================
     // Factory Methods
     // ========================================================================
@@ -333,6 +340,18 @@ public record Rgb(int r, int g, int b) {
     public static long distanceSquaredSum(final int[] pixels,
                                           final int count,
                                           final int color) {
+        if (!USE_VECTOR_DISTANCE_SUM) {
+            long scalarSum = 0;
+            for (int i = 0; i < count; i++) {
+                int px = pixels[i];
+                int dr = ((px >>> 16) & 0xFF) - ((color >>> 16) & 0xFF);
+                int dg = ((px >>>  8) & 0xFF) - ((color >>>  8) & 0xFF);
+                int db = ( px         & 0xFF) - ( color         & 0xFF);
+                scalarSum += dr * dr + dg * dg + db * db;
+            }
+            return scalarSum;
+        }
+
         final VectorSpecies<Integer> species = IntVector.SPECIES_PREFERRED;
         final int laneCount = species.length();
 
