@@ -21,9 +21,6 @@ package casciian.bits;
 
 import java.util.stream.IntStream;
 
-import jdk.incubator.vector.DoubleVector;
-import jdk.incubator.vector.VectorSpecies;
-
 /**
  * Utility methods for scaling images using the Mitchell–Netravali
  * bicubic interpolation kernel (B = C = 1/3, support radius 2).
@@ -39,16 +36,6 @@ final class ScaleImageUtils {
      * benefit from parallelization.
      */
     private static final int PARALLEL_THRESHOLD = 10_000;
-
-    /**
-     * Preferred {@code double} vector species for SIMD convolution.
-     * On x86 with AVX2 this is 4 lanes; on ARM NEON it is 2 lanes.
-     * The channel layout used in the kernel is [R, G, B, W] — exactly
-     * 4 doubles — so AVX2 processes one pixel's full kernel contribution
-     * in a single fused-multiply-add step.
-     */
-    private static final VectorSpecies<Double> DOUBLE_SPECIES =
-            DoubleVector.SPECIES_PREFERRED;
 
     private ScaleImageUtils() {
         // utility class – not instantiable
@@ -107,41 +94,16 @@ final class ScaleImageUtils {
                 int right = (int) Math.ceil(center + support);
 
                 double sumR = 0, sumG = 0, sumB = 0, sumW = 0;
-                sumR = 0; sumG = 0; sumB = 0; sumW = 0;
 
-                // Vectorized accumulation: pack [R, G, B, W] into a
-                // DoubleVector so all four accumulators update in one FMA step.
-                // Falls back to scalar on platforms with fewer than 4 lanes.
-                final int laneCount = DOUBLE_SPECIES.length();
-                if (laneCount >= 4) {
-                    DoubleVector acc = DoubleVector.zero(DOUBLE_SPECIES);
-                    for (int i = left; i <= right; i++) {
-                        double weight = mitchellNetravali(
-                                (i - center) / filterScale);
-                        int clamped = Math.max(0, Math.min(i, srcWidth - 1));
-                        int pixel = srcRow[clamped];
-                        // [R, G, B, W] * weight  (pad with 0 for lanes > 4)
-                        double[] contrib = new double[laneCount];
-                        contrib[0] = ((pixel >>> 16) & 0xFF) * weight;
-                        contrib[1] = ((pixel >>>  8) & 0xFF) * weight;
-                        contrib[2] = ( pixel         & 0xFF) * weight;
-                        contrib[3] = weight;
-                        acc = acc.add(DoubleVector.fromArray(DOUBLE_SPECIES, contrib, 0));
-                    }
-                    double[] result = new double[laneCount];
-                    acc.intoArray(result, 0);
-                    sumR = result[0]; sumG = result[1]; sumB = result[2]; sumW = result[3];
-                } else {
-                    for (int i = left; i <= right; i++) {
-                        double weight = mitchellNetravali(
-                                (i - center) / filterScale);
-                        int clamped = Math.max(0, Math.min(i, srcWidth - 1));
-                        int pixel = srcRow[clamped];
-                        sumR += ((pixel >>> 16) & 0xFF) * weight;
-                        sumG += ((pixel >>>  8) & 0xFF) * weight;
-                        sumB += (pixel & 0xFF) * weight;
-                        sumW += weight;
-                    }
+                for (int i = left; i <= right; i++) {
+                    double weight = mitchellNetravali(
+                            (i - center) / filterScale);
+                    int clamped = Math.max(0, Math.min(i, srcWidth - 1));
+                    int pixel = srcRow[clamped];
+                    sumR += ((pixel >>> 16) & 0xFF) * weight;
+                    sumG += ((pixel >>>  8) & 0xFF) * weight;
+                    sumB += (pixel & 0xFF) * weight;
+                    sumW += weight;
                 }
 
                 int r = clampByte(sumR / sumW);
@@ -174,38 +136,18 @@ final class ScaleImageUtils {
             int bottom = (int) Math.ceil(center + support);
 
             int[] dstRow = dst[y];
-            final int laneCount = DOUBLE_SPECIES.length();
             for (int x = 0; x < cols; x++) {
                 double sumR = 0, sumG = 0, sumB = 0, sumW = 0;
 
-                if (laneCount >= 4) {
-                    DoubleVector acc = DoubleVector.zero(DOUBLE_SPECIES);
-                    for (int i = top; i <= bottom; i++) {
-                        double weight = mitchellNetravali(
-                                (i - center) / filterScale);
-                        int clamped = Math.max(0, Math.min(i, srcHeight - 1));
-                        int pixel = src[clamped][x];
-                        double[] contrib = new double[laneCount];
-                        contrib[0] = ((pixel >>> 16) & 0xFF) * weight;
-                        contrib[1] = ((pixel >>>  8) & 0xFF) * weight;
-                        contrib[2] = ( pixel         & 0xFF) * weight;
-                        contrib[3] = weight;
-                        acc = acc.add(DoubleVector.fromArray(DOUBLE_SPECIES, contrib, 0));
-                    }
-                    double[] result = new double[laneCount];
-                    acc.intoArray(result, 0);
-                    sumR = result[0]; sumG = result[1]; sumB = result[2]; sumW = result[3];
-                } else {
-                    for (int i = top; i <= bottom; i++) {
-                        double weight = mitchellNetravali(
-                                (i - center) / filterScale);
-                        int clamped = Math.max(0, Math.min(i, srcHeight - 1));
-                        int pixel = src[clamped][x];
-                        sumR += ((pixel >>> 16) & 0xFF) * weight;
-                        sumG += ((pixel >>>  8) & 0xFF) * weight;
-                        sumB += (pixel & 0xFF) * weight;
-                        sumW += weight;
-                    }
+                for (int i = top; i <= bottom; i++) {
+                    double weight = mitchellNetravali(
+                            (i - center) / filterScale);
+                    int clamped = Math.max(0, Math.min(i, srcHeight - 1));
+                    int pixel = src[clamped][x];
+                    sumR += ((pixel >>> 16) & 0xFF) * weight;
+                    sumG += ((pixel >>>  8) & 0xFF) * weight;
+                    sumB += (pixel & 0xFF) * weight;
+                    sumW += weight;
                 }
 
                 int r = clampByte(sumR / sumW);

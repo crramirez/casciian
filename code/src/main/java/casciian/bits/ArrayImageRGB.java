@@ -34,12 +34,22 @@ import jdk.incubator.vector.VectorSpecies;
 public class ArrayImageRGB implements ImageRGB {
 
     /**
-     * Threshold for using parallel streams. Only compute-bound operations
-     * (like alpha blending) benefit from parallelization. Memory-bandwidth-bound
-     * operations (arraycopy, Arrays.fill) already saturate memory bandwidth
-     * on a single core, so parallelization only adds overhead.
+     * Threshold (in pixels) for using parallel streams. Only compute-bound
+     * operations (like alpha blending) benefit from parallelization.
+     * Memory-bandwidth-bound operations (arraycopy, Arrays.fill) already
+     * saturate memory bandwidth on a single core, so parallelization only
+     * adds overhead. The images this library blends are usually far smaller
+     * than this, and for those a sequential pass is faster than paying
+     * ForkJoinPool dispatch costs.
      */
-    private static final int PARALLEL_THRESHOLD = 10_000;
+    private static final int PARALLEL_THRESHOLD = 250_000;
+
+    /**
+     * Minimum number of pixels handed to a single parallel task. Rows are
+     * grouped into chunks of at least this size so that each unit of work
+     * is meaningfully larger than the cost of dispatching it.
+     */
+    private static final int MIN_PIXELS_PER_TASK = 65_536;
 
     /**
      * Preferred {@code int} vector species for SIMD alpha-blending.
@@ -49,13 +59,6 @@ public class ArrayImageRGB implements ImageRGB {
      */
     private static final VectorSpecies<Integer> INT_SPECIES =
             IntVector.SPECIES_PREFERRED;
-
-    /**
-     * GraalVM native image currently does not provide the same JIT vector
-     * optimizations as the regular JVM, so prefer scalar kernels there.
-     */
-    private static final boolean USE_VECTOR_ALPHA_BLEND =
-            System.getProperty("org.graalvm.nativeimage.imagecode") == null;
 
     /**
      * The 24-bit RGB data stored in row-major order: rgb[row][col].
@@ -216,13 +219,25 @@ public class ArrayImageRGB implements ImageRGB {
         final int a = (int) (alpha * 256);
         final int oneMinusA = 256 - a;
 
-        // Use parallel streams for large images: alpha blending is
-        // compute-bound (bit shifts + multiplications per pixel),
-        // so multiple cores provide a genuine speedup.
-        IntStream rowStream = IntStream.range(0, height);
-        if ((long) width * height > PARALLEL_THRESHOLD) {
+        // Parallelize only when there is enough work to amortize
+        // ForkJoinPool dispatch, and chunk several rows into each task so
+        // that a unit of work is meaningfully larger than that overhead.
+        // A per-row task on a typical cell-sized or dialog-sized image costs
+        // more to schedule than to execute.
+        final long pixelCount = (long) width * height;
+        final int rowsPerChunk;
+        if (pixelCount > PARALLEL_THRESHOLD) {
+            rowsPerChunk = Math.max(1,
+                Math.min(height, MIN_PIXELS_PER_TASK / Math.max(1, width)));
+        } else {
+            rowsPerChunk = Math.max(1, height);
+        }
+        final int chunkCount = (height + rowsPerChunk - 1) / rowsPerChunk;
+
+        IntStream chunkStream = IntStream.range(0, chunkCount);
+        if (chunkCount > 1) {
             //noinspection DataFlowIssue
-            rowStream = rowStream.parallel();
+            chunkStream = chunkStream.parallel();
         }
 
         // Fast path: if the other image is also an ArrayImageRGB,
@@ -230,37 +245,28 @@ public class ArrayImageRGB implements ImageRGB {
         // to the public ImageRGB API per row.
         if (image instanceof ArrayImageRGB other) {
             final int[][] otherRgb = other.rgb;
-            rowStream.forEach(y -> {
-                int[] thisRow = rgb[y];
-                int[] overRow = otherRgb[y];
-                blendRow(thisRow, overRow, width, a, oneMinusA);
+            chunkStream.forEach(chunk -> {
+                int yStart = chunk * rowsPerChunk;
+                int yEnd = Math.min(height, yStart + rowsPerChunk);
+                for (int y = yStart; y < yEnd; y++) {
+                    blendRowVectorized(rgb[y], otherRgb[y], width, a,
+                        oneMinusA);
+                }
             });
         } else {
             // Reuse a per-thread row buffer to avoid allocating one int[width]
             // for every row (which would create height*N allocations and add
             // significant GC pressure on large images).
             final ThreadLocal<int[]> rowBuffer = ThreadLocal.withInitial(() -> new int[width]);
-            rowStream.forEach(y -> {
-                int[] thisRow = rgb[y];
+            chunkStream.forEach(chunk -> {
+                int yStart = chunk * rowsPerChunk;
+                int yEnd = Math.min(height, yStart + rowsPerChunk);
                 int[] overRow = rowBuffer.get();
-                image.getRGB(0, y, width, 1, overRow, 0, width);
-                blendRow(thisRow, overRow, width, a, oneMinusA);
+                for (int y = yStart; y < yEnd; y++) {
+                    image.getRGB(0, y, width, 1, overRow, 0, width);
+                    blendRowVectorized(rgb[y], overRow, width, a, oneMinusA);
+                }
             });
-        }
-    }
-
-    /**
-     * Select vectorized or scalar row blending path.
-     */
-    private static void blendRow(final int[] thisRow,
-                                 final int[] overRow,
-                                 final int width,
-                                 final int a,
-                                 final int oneMinusA) {
-        if (USE_VECTOR_ALPHA_BLEND) {
-            blendRowVectorized(thisRow, overRow, width, a, oneMinusA);
-        } else {
-            blendRowScalar(thisRow, overRow, width, a, oneMinusA);
         }
     }
 
@@ -334,24 +340,6 @@ public class ArrayImageRGB implements ImageRGB {
 
         // Scalar tail for remaining pixels.
         for (; x < width; x++) {
-            int under = thisRow[x];
-            int over  = overRow[x];
-            int red   = (((under >>> 16) & 0xFF) * oneMinusA + ((over >>> 16) & 0xFF) * a) >> 8;
-            int green = (((under >>>  8) & 0xFF) * oneMinusA + ((over >>>  8) & 0xFF) * a) >> 8;
-            int blue  = (( under         & 0xFF) * oneMinusA + ( over         & 0xFF) * a) >> 8;
-            thisRow[x] = 0xFF000000 | (red << 16) | (green << 8) | blue;
-        }
-    }
-
-    /**
-     * Alpha-blend one row of pixels with the scalar implementation.
-     */
-    private static void blendRowScalar(final int[] thisRow,
-                                       final int[] overRow,
-                                       final int width,
-                                       final int a,
-                                       final int oneMinusA) {
-        for (int x = 0; x < width; x++) {
             int under = thisRow[x];
             int over  = overRow[x];
             int red   = (((under >>> 16) & 0xFF) * oneMinusA + ((over >>> 16) & 0xFF) * a) >> 8;

@@ -63,11 +63,54 @@ class RgbTest {
         assertEquals(expected, actual);
     }
 
+    @Test
+    @DisplayName("distanceSquaredSum with offset matches scalar baseline across lane boundaries")
+    void distanceSquaredSumWithOffsetMatchesScalarBaseline() {
+        Random random = new Random(0x5EED1234L);
+        int[] pixels = new int[96];
+        for (int i = 0; i < pixels.length; i++) {
+            pixels[i] = random.nextInt() & 0x00FFFFFF;
+        }
+        int color = 0x00335577;
+
+        for (int offset = 0; offset < 20; offset++) {
+            for (int count = 0; count <= pixels.length - offset; count++) {
+                long expected = scalarDistanceSquaredSum(pixels, offset,
+                    count, color);
+                long actual = Rgb.distanceSquaredSum(pixels, offset, count,
+                    color);
+                assertEquals(expected, actual,
+                    "Mismatch for offset=" + offset + ", count=" + count);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("distanceSquaredSum does not overflow for large pixel counts")
+    void distanceSquaredSumDoesNotOverflowForLargeCounts() {
+        // Every pixel is at the maximum possible distance (3 * 255^2) from
+        // the reference color, so the running total leaves int range well
+        // before the end of the array.
+        int count = 200_000;
+        int[] pixels = new int[count];
+        java.util.Arrays.fill(pixels, 0x00FFFFFF);
+
+        long expected = (long) count * 3 * 255 * 255;
+
+        assertEquals(expected, Rgb.distanceSquaredSum(pixels, count, 0));
+    }
+
     private long scalarDistanceSquaredSum(final int[] pixels,
         final int count, final int color) {
 
+        return scalarDistanceSquaredSum(pixels, 0, count, color);
+    }
+
+    private long scalarDistanceSquaredSum(final int[] pixels,
+        final int offset, final int count, final int color) {
+
         long sum = 0;
-        for (int i = 0; i < count; i++) {
+        for (int i = offset; i < offset + count; i++) {
             int px = pixels[i];
             int dr = ((px >>> 16) & 0xFF) - ((color >>> 16) & 0xFF);
             int dg = ((px >>>  8) & 0xFF) - ((color >>>  8) & 0xFF);

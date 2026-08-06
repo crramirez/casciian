@@ -15,7 +15,6 @@
  */
 package demo;
 
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -25,10 +24,12 @@ import casciian.TText;
 import casciian.TVScroller;
 import casciian.TWidget;
 import casciian.TWindow;
-import casciian.bits.ArrayImageRGB;
-import casciian.bits.ImageRGB;
 import casciian.bits.Rgb;
 import casciian.event.TResizeEvent;
+
+import jdk.incubator.vector.IntVector;
+import jdk.incubator.vector.VectorOperators;
+import jdk.incubator.vector.VectorSpecies;
 
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
@@ -55,14 +56,21 @@ public class DemoVectorPerformanceWindow extends TWindow {
     private static final int IMAGE_HEIGHT = 180;
 
     /**
-     * Number of warmup iterations.
+     * Minimum number of warmup iterations. C2 needs far more than a handful
+     * of invocations to compile and stabilize these loops, so the warmup is
+     * both iteration- and time-bounded.
      */
-    private static final int WARMUP_ITERATIONS = 4;
+    private static final int MIN_WARMUP_ITERATIONS = 2_000;
+
+    /**
+     * Minimum warmup duration, in nanoseconds.
+     */
+    private static final long WARMUP_NANOS = 750_000_000L;
 
     /**
      * Number of measured iterations.
      */
-    private static final int MEASURED_ITERATIONS = 10;
+    private static final int MEASURED_ITERATIONS = 200;
 
     /**
      * Localized strings.
@@ -78,6 +86,12 @@ public class DemoVectorPerformanceWindow extends TWindow {
      * Shared benchmark dataset.
      */
     private final BenchmarkData benchmarkData;
+
+    /**
+     * Sink for kernel results, to keep the JIT from eliminating the work.
+     */
+    @SuppressWarnings("unused")
+    private volatile long sink;
 
     /**
      * Construct the comparison window.
@@ -142,10 +156,11 @@ public class DemoVectorPerformanceWindow extends TWindow {
         resultsText.setText(sb.toString());
         getApplication().doRepaint();
 
-        BenchmarkResult alpha = benchmark("alphaBlendOver",
-            this::benchmarkVectorAlphaBlend, this::benchmarkScalarAlphaBlend);
-        BenchmarkResult distance = benchmark("distanceSquaredSum",
-            this::benchmarkVectorDistanceSquared, this::benchmarkScalarDistanceSquared);
+        int alphaElements = IMAGE_WIDTH * IMAGE_HEIGHT;
+        BenchmarkResult alpha = benchmark(alphaElements,
+            new AlphaBlendKernel(true), new AlphaBlendKernel(false));
+        BenchmarkResult distance = benchmark(benchmarkData.pixels.length,
+            new DistanceKernel(true), new DistanceKernel(false));
 
         sb.setLength(0);
         appendBenchmark(sb, alpha, i18n.getString("alphaTitle"));
@@ -159,10 +174,12 @@ public class DemoVectorPerformanceWindow extends TWindow {
                                  final String title) {
         sb.append(title).append("\n");
         sb.append(String.format(Locale.ROOT, i18n.getString("vectorLine"),
-            nanosToMillis(result.vectorNanos), result.vectorChecksum));
+            nanosToMillis(result.vectorNanos),
+            result.nanosPerElement(result.vectorNanos)));
         sb.append("\n");
         sb.append(String.format(Locale.ROOT, i18n.getString("scalarLine"),
-            nanosToMillis(result.scalarNanos), result.scalarChecksum));
+            nanosToMillis(result.scalarNanos),
+            result.nanosPerElement(result.scalarNanos)));
         sb.append("\n");
         sb.append(String.format(Locale.ROOT, i18n.getString("speedupLine"),
             result.speedup()));
@@ -173,93 +190,240 @@ public class DemoVectorPerformanceWindow extends TWindow {
                 : i18n.getString("equalNo")));
     }
 
-    private BenchmarkResult benchmark(final String name,
-                                      final LongSupplier vectorRun,
-                                      final LongSupplier scalarRun) {
-        long vectorChecksum = 0;
-        long scalarChecksum = 0;
-        for (int i = 0; i < WARMUP_ITERATIONS; i++) {
-            vectorChecksum ^= vectorRun.getAsLong();
-            scalarChecksum ^= scalarRun.getAsLong();
-        }
+    /**
+     * Run one kernel pair. Only the kernel itself is timed: buffer
+     * preparation and result checksums happen outside the clock.
+     *
+     * @param elements the number of elements processed per iteration
+     * @param vectorKernel the vectorized kernel
+     * @param scalarKernel the scalar kernel
+     * @return the measurement
+     */
+    private BenchmarkResult benchmark(final int elements,
+                                      final Kernel vectorKernel,
+                                      final Kernel scalarKernel) {
 
-        long vectorStart = System.nanoTime();
+        warmup(vectorKernel);
+        warmup(scalarKernel);
+
+        long vectorNanos = measure(vectorKernel);
+        long scalarNanos = measure(scalarKernel);
+
+        return new BenchmarkResult(elements, vectorNanos, scalarNanos,
+            vectorKernel.checksum(), scalarKernel.checksum());
+    }
+
+    private void warmup(final Kernel kernel) {
+        long start = System.nanoTime();
+        int iterations = 0;
+        while ((iterations < MIN_WARMUP_ITERATIONS)
+            || (System.nanoTime() - start < WARMUP_NANOS)
+        ) {
+            kernel.prepare();
+            sink ^= kernel.run();
+            iterations++;
+        }
+    }
+
+    private long measure(final Kernel kernel) {
+        long total = 0;
         for (int i = 0; i < MEASURED_ITERATIONS; i++) {
-            vectorChecksum ^= vectorRun.getAsLong();
+            kernel.prepare();
+            long start = System.nanoTime();
+            long value = kernel.run();
+            total += System.nanoTime() - start;
+            sink ^= value;
         }
-        long vectorNanos = System.nanoTime() - vectorStart;
-
-        long scalarStart = System.nanoTime();
-        for (int i = 0; i < MEASURED_ITERATIONS; i++) {
-            scalarChecksum ^= scalarRun.getAsLong();
-        }
-        long scalarNanos = System.nanoTime() - scalarStart;
-
-        return new BenchmarkResult(name, vectorNanos, scalarNanos,
-            vectorChecksum, scalarChecksum);
-    }
-
-    private long benchmarkVectorAlphaBlend() {
-        ArrayImageRGB under = benchmarkData.newUnderImage();
-        under.alphaBlendOver(benchmarkData.overlay, benchmarkData.alpha);
-        return checksum(under);
-    }
-
-    private long benchmarkScalarAlphaBlend() {
-        ArrayImageRGB under = benchmarkData.newUnderImage();
-        scalarAlphaBlend(under, benchmarkData.overlay, benchmarkData.alpha);
-        return checksum(under);
-    }
-
-    private long benchmarkVectorDistanceSquared() {
-        return Rgb.distanceSquaredSum(benchmarkData.pixels,
-            benchmarkData.pixels.length, benchmarkData.referenceColor);
-    }
-
-    private long benchmarkScalarDistanceSquared() {
-        return scalarDistanceSquaredSum(benchmarkData.pixels,
-            benchmarkData.pixels.length, benchmarkData.referenceColor);
+        return total;
     }
 
     private static double nanosToMillis(final long nanos) {
         return nanos / 1_000_000.0;
     }
 
-    private static long checksum(final ImageRGB image) {
-        long sum = 0;
-        for (int y = 0; y < image.getHeight(); y++) {
-            for (int x = 0; x < image.getWidth(); x++) {
-                sum = (sum * 1_000_003L) ^ image.getRGB(x, y);
-            }
-        }
-        return sum;
+    /**
+     * A benchmarkable kernel. {@link #prepare()} restores mutable state and
+     * {@link #checksum()} verifies the result; neither is timed.
+     */
+    private interface Kernel {
+
+        /**
+         * Restore any state the kernel mutates. Called outside the clock.
+         */
+        void prepare();
+
+        /**
+         * Run the kernel once. This is the only timed call.
+         *
+         * @return a cheap value derived from the work, to prevent
+         * dead-code elimination
+         */
+        long run();
+
+        /**
+         * Compute a checksum of the last result. Called outside the clock.
+         *
+         * @return the checksum
+         */
+        long checksum();
     }
 
-    private static void scalarAlphaBlend(final ArrayImageRGB under,
-                                         final ImageRGB over,
-                                         final double alpha) {
-        int width = under.getWidth();
-        int height = under.getHeight();
-        int a = (int) (alpha * 256);
-        int oneMinusA = 256 - a;
+    /**
+     * Alpha blending kernel. Both variants use the same direct
+     * {@code int[][]} access and the same (sequential) driver, so the only
+     * difference measured is the row kernel itself.
+     */
+    private final class AlphaBlendKernel implements Kernel {
 
-        int[] underRow = new int[width];
-        int[] overRow = new int[width];
-        for (int y = 0; y < height; y++) {
-            under.getRGB(0, y, width, 1, underRow, 0, width);
-            over.getRGB(0, y, width, 1, overRow, 0, width);
-            for (int x = 0; x < width; x++) {
-                int underPixel = underRow[x];
-                int overPixel = overRow[x];
-                int red = (((underPixel >>> 16) & 0xFF) * oneMinusA
-                    + ((overPixel >>> 16) & 0xFF) * a) >> 8;
-                int green = (((underPixel >>> 8) & 0xFF) * oneMinusA
-                    + ((overPixel >>> 8) & 0xFF) * a) >> 8;
-                int blue = ((underPixel & 0xFF) * oneMinusA
-                    + (overPixel & 0xFF) * a) >> 8;
-                underRow[x] = 0xFF000000 | (red << 16) | (green << 8) | blue;
+        private final boolean vectorized;
+        private final int[][] under = new int[IMAGE_HEIGHT][IMAGE_WIDTH];
+
+        private AlphaBlendKernel(final boolean vectorized) {
+            this.vectorized = vectorized;
+        }
+
+        @Override
+        public void prepare() {
+            for (int y = 0; y < IMAGE_HEIGHT; y++) {
+                System.arraycopy(benchmarkData.underRows[y], 0, under[y], 0,
+                    IMAGE_WIDTH);
             }
-            under.setRGB(0, y, width, 1, underRow, 0, width);
+        }
+
+        @Override
+        public long run() {
+            int a = (int) (benchmarkData.alpha * 256);
+            int oneMinusA = 256 - a;
+            for (int y = 0; y < IMAGE_HEIGHT; y++) {
+                if (vectorized) {
+                    blendRowVector(under[y], benchmarkData.overlayRows[y],
+                        IMAGE_WIDTH, a, oneMinusA);
+                } else {
+                    blendRowScalar(under[y], benchmarkData.overlayRows[y],
+                        IMAGE_WIDTH, a, oneMinusA);
+                }
+            }
+            return under[IMAGE_HEIGHT - 1][IMAGE_WIDTH - 1];
+        }
+
+        @Override
+        public long checksum() {
+            long sum = 0;
+            for (int[] row: under) {
+                for (int pixel: row) {
+                    sum = (sum * 1_000_003L) ^ pixel;
+                }
+            }
+            return sum;
+        }
+    }
+
+    /**
+     * Distance kernel. Both variants read the same array; neither mutates
+     * state, so {@link #prepare()} is a no-op.
+     */
+    private final class DistanceKernel implements Kernel {
+
+        private final boolean vectorized;
+        private long lastResult;
+
+        private DistanceKernel(final boolean vectorized) {
+            this.vectorized = vectorized;
+        }
+
+        @Override
+        public void prepare() {
+            // Nothing to restore.
+        }
+
+        @Override
+        public long run() {
+            long result;
+            if (vectorized) {
+                result = Rgb.distanceSquaredSum(benchmarkData.pixels,
+                    benchmarkData.pixels.length, benchmarkData.referenceColor);
+            } else {
+                result = scalarDistanceSquaredSum(benchmarkData.pixels,
+                    benchmarkData.pixels.length, benchmarkData.referenceColor);
+            }
+            lastResult = result;
+            return result;
+        }
+
+        @Override
+        public long checksum() {
+            return lastResult;
+        }
+    }
+
+    /**
+     * Alpha-blend one row with the Java Vector API.
+     */
+    private static void blendRowVector(final int[] thisRow,
+                                       final int[] overRow,
+                                       final int width,
+                                       final int a,
+                                       final int oneMinusA) {
+
+        final VectorSpecies<Integer> species = IntVector.SPECIES_PREFERRED;
+        final int laneCount = species.length();
+        final IntVector vA = IntVector.broadcast(species, a);
+        final IntVector vOneMinusA = IntVector.broadcast(species, oneMinusA);
+        final IntVector vMask8 = IntVector.broadcast(species, 0xFF);
+        final IntVector vOpaque = IntVector.broadcast(species, 0xFF000000);
+
+        int x = 0;
+        for (; x <= width - laneCount; x += laneCount) {
+            IntVector under = IntVector.fromArray(species, thisRow, x);
+            IntVector over = IntVector.fromArray(species, overRow, x);
+
+            IntVector red = under.lanewise(VectorOperators.LSHR, 16).and(vMask8)
+                .mul(vOneMinusA)
+                .add(over.lanewise(VectorOperators.LSHR, 16).and(vMask8).mul(vA))
+                .lanewise(VectorOperators.LSHR, 8);
+            IntVector green = under.lanewise(VectorOperators.LSHR, 8).and(vMask8)
+                .mul(vOneMinusA)
+                .add(over.lanewise(VectorOperators.LSHR, 8).and(vMask8).mul(vA))
+                .lanewise(VectorOperators.LSHR, 8);
+            IntVector blue = under.and(vMask8).mul(vOneMinusA)
+                .add(over.and(vMask8).mul(vA))
+                .lanewise(VectorOperators.LSHR, 8);
+
+            vOpaque.or(red.lanewise(VectorOperators.LSHL, 16))
+                .or(green.lanewise(VectorOperators.LSHL, 8))
+                .or(blue)
+                .intoArray(thisRow, x);
+        }
+        blendRangeScalar(thisRow, overRow, x, width, a, oneMinusA);
+    }
+
+    /**
+     * Alpha-blend one row with scalar arithmetic.
+     */
+    private static void blendRowScalar(final int[] thisRow,
+                                       final int[] overRow,
+                                       final int width,
+                                       final int a,
+                                       final int oneMinusA) {
+        blendRangeScalar(thisRow, overRow, 0, width, a, oneMinusA);
+    }
+
+    private static void blendRangeScalar(final int[] thisRow,
+                                         final int[] overRow,
+                                         final int from,
+                                         final int to,
+                                         final int a,
+                                         final int oneMinusA) {
+        for (int x = from; x < to; x++) {
+            int underPixel = thisRow[x];
+            int overPixel = overRow[x];
+            int red = (((underPixel >>> 16) & 0xFF) * oneMinusA
+                + ((overPixel >>> 16) & 0xFF) * a) >> 8;
+            int green = (((underPixel >>> 8) & 0xFF) * oneMinusA
+                + ((overPixel >>> 8) & 0xFF) * a) >> 8;
+            int blue = ((underPixel & 0xFF) * oneMinusA
+                + (overPixel & 0xFF) * a) >> 8;
+            thisRow[x] = 0xFF000000 | (red << 16) | (green << 8) | blue;
         }
     }
 
@@ -267,57 +431,50 @@ public class DemoVectorPerformanceWindow extends TWindow {
                                                  final int count,
                                                  final int color) {
         long sum = 0;
+        int refR = (color >>> 16) & 0xFF;
+        int refG = (color >>> 8) & 0xFF;
+        int refB = color & 0xFF;
         for (int i = 0; i < count; i++) {
             int px = pixels[i];
-            int dr = ((px >>> 16) & 0xFF) - ((color >>> 16) & 0xFF);
-            int dg = ((px >>> 8) & 0xFF) - ((color >>> 8) & 0xFF);
-            int db = (px & 0xFF) - (color & 0xFF);
+            int dr = ((px >>> 16) & 0xFF) - refR;
+            int dg = ((px >>> 8) & 0xFF) - refG;
+            int db = (px & 0xFF) - refB;
             sum += dr * dr + dg * dg + db * db;
         }
         return sum;
     }
 
     private static final class BenchmarkData {
-        private final int[] underPixels;
-        private final ArrayImageRGB overlay;
+        private final int[][] underRows;
+        private final int[][] overlayRows;
         private final int[] pixels;
         private final int referenceColor;
         private final double alpha;
 
         private BenchmarkData() {
-            underPixels = new int[IMAGE_WIDTH * IMAGE_HEIGHT];
+            underRows = new int[IMAGE_HEIGHT][IMAGE_WIDTH];
+            overlayRows = new int[IMAGE_HEIGHT][IMAGE_WIDTH];
             pixels = new int[IMAGE_WIDTH * IMAGE_HEIGHT];
-            int[] overlayPixels = new int[IMAGE_WIDTH * IMAGE_HEIGHT];
             for (int y = 0; y < IMAGE_HEIGHT; y++) {
                 for (int x = 0; x < IMAGE_WIDTH; x++) {
-                    int index = y * IMAGE_WIDTH + x;
-                    underPixels[index] = 0xFF000000
+                    underRows[y][x] = 0xFF000000
                         | ((x * 255 / Math.max(1, IMAGE_WIDTH - 1)) << 16)
                         | ((y * 255 / Math.max(1, IMAGE_HEIGHT - 1)) << 8)
                         | ((x * 13 + y * 7) & 0xFF);
-                    overlayPixels[index] = 0xFF000000
+                    overlayRows[y][x] = 0xFF000000
                         | (((x * 5 + y * 3) & 0xFF) << 16)
                         | (((x * 11 + y * 17) & 0xFF) << 8)
                         | ((x * 19 + y * 23) & 0xFF);
-                    pixels[index] = overlayPixels[index] ^ 0x00112233;
+                    pixels[y * IMAGE_WIDTH + x] =
+                        overlayRows[y][x] ^ 0x00112233;
                 }
             }
-            overlay = new ArrayImageRGB(IMAGE_WIDTH, IMAGE_HEIGHT);
-            overlay.setRGB(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT, overlayPixels, 0,
-                IMAGE_WIDTH);
             referenceColor = 0x005A7FC3;
             alpha = 0.375;
         }
-
-        private ArrayImageRGB newUnderImage() {
-            ArrayImageRGB image = new ArrayImageRGB(IMAGE_WIDTH, IMAGE_HEIGHT);
-            image.setRGB(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT,
-                Arrays.copyOf(underPixels, underPixels.length), 0, IMAGE_WIDTH);
-            return image;
-        }
     }
 
-    private record BenchmarkResult(String name, long vectorNanos,
+    private record BenchmarkResult(int elements, long vectorNanos,
                                    long scalarNanos, long vectorChecksum,
                                    long scalarChecksum) {
         private double speedup() {
@@ -326,10 +483,13 @@ public class DemoVectorPerformanceWindow extends TWindow {
             }
             return (double) scalarNanos / (double) vectorNanos;
         }
-    }
 
-    @FunctionalInterface
-    private interface LongSupplier {
-        long getAsLong();
+        private double nanosPerElement(final long nanos) {
+            long processed = (long) elements * MEASURED_ITERATIONS;
+            if (processed == 0) {
+                return 0.0;
+            }
+            return (double) nanos / processed;
+        }
     }
 }

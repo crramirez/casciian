@@ -52,11 +52,10 @@ public record Rgb(int r, int g, int b) {
     public static final int SIXEL_BLACK = 0xFF000000;
 
     /**
-     * GraalVM native image currently does not provide the same JIT vector
-     * optimizations as the regular JVM, so prefer scalar kernels there.
+     * Largest possible squared RGB distance between two colors:
+     * {@code 3 * 255^2}.
      */
-    private static final boolean USE_VECTOR_DISTANCE_SUM =
-        System.getProperty("org.graalvm.nativeimage.imagecode") == null;
+    private static final int MAX_DISTANCE_SQUARED = 3 * 255 * 255;
 
     // ========================================================================
     // Factory Methods
@@ -340,18 +339,24 @@ public record Rgb(int r, int g, int b) {
     public static long distanceSquaredSum(final int[] pixels,
                                           final int count,
                                           final int color) {
-        if (!USE_VECTOR_DISTANCE_SUM) {
-            long scalarSum = 0;
-            for (int i = 0; i < count; i++) {
-                int px = pixels[i];
-                int dr = ((px >>> 16) & 0xFF) - ((color >>> 16) & 0xFF);
-                int dg = ((px >>>  8) & 0xFF) - ((color >>>  8) & 0xFF);
-                int db = ( px         & 0xFF) - ( color         & 0xFF);
-                scalarSum += dr * dr + dg * dg + db * db;
-            }
-            return scalarSum;
-        }
+        return distanceSquaredSum(pixels, 0, count, color);
+    }
 
+    /**
+     * Compute the sum of squared Euclidean distances between each pixel in
+     * {@code pixels[offset..offset + count)} and the reference color
+     * {@code color}, using the Java Vector API for SIMD acceleration.
+     *
+     * @param pixels the array of packed RGB pixels
+     * @param offset the index of the first pixel to process
+     * @param count  the number of pixels to process
+     * @param color  the reference packed RGB color
+     * @return the sum of per-pixel squared distances
+     */
+    public static long distanceSquaredSum(final int[] pixels,
+                                          final int offset,
+                                          final int count,
+                                          final int color) {
         final VectorSpecies<Integer> species = IntVector.SPECIES_PREFERRED;
         final int laneCount = species.length();
 
@@ -361,37 +366,49 @@ public record Rgb(int r, int g, int b) {
         final IntVector vRefB = IntVector.broadcast(species,  color         & 0xFF);
         final IntVector vMask = IntVector.broadcast(species, 0xFF);
 
-        // Accumulate per-lane partial sums as long to avoid int overflow on
-        // large images (worst case: 255² × count, which exceeds int range for
-        // count > ~65 000).
+        // A horizontal reduction per vector iteration would dominate the
+        // kernel, so accumulate into an int vector and reduce only once per
+        // block. Each per-lane term is bounded by 3 * 255^2 = 195_075 and the
+        // horizontal reduction adds all lanes together, so a block may span
+        // at most Integer.MAX_VALUE / (195_075 * laneCount) iterations before
+        // the accumulator has to be flushed into the long total.
+        final int flushInterval = Math.max(1,
+            (Integer.MAX_VALUE / MAX_DISTANCE_SQUARED) / laneCount);
+
         long sum = 0;
+        int i = offset;
+        final int end = offset + count;
+        final int vectorLimit = end - laneCount;
+        while (i <= vectorLimit) {
+            IntVector acc = IntVector.zero(species);
+            int iterations = 0;
+            for (; (i <= vectorLimit) && (iterations < flushInterval);
+                 i += laneCount, iterations++) {
 
-        // Vectorized bulk.
-        int i = 0;
-        for (; i <= count - laneCount; i += laneCount) {
-            IntVector px = IntVector.fromArray(species, pixels, i);
+                IntVector px = IntVector.fromArray(species, pixels, i);
 
-            IntVector r = px.lanewise(VectorOperators.LSHR, 16).and(vMask);
-            IntVector g = px.lanewise(VectorOperators.LSHR,  8).and(vMask);
-            IntVector b = px.and(vMask);
+                IntVector r = px.lanewise(VectorOperators.LSHR, 16).and(vMask);
+                IntVector g = px.lanewise(VectorOperators.LSHR,  8).and(vMask);
+                IntVector b = px.and(vMask);
 
-            IntVector dr = r.sub(vRefR);
-            IntVector dg = g.sub(vRefG);
-            IntVector db = b.sub(vRefB);
+                IntVector dr = r.sub(vRefR);
+                IntVector dg = g.sub(vRefG);
+                IntVector db = b.sub(vRefB);
 
-            // dr*dr + dg*dg + db*db, summed across all lanes.
-            IntVector laneSum = dr.mul(dr).add(dg.mul(dg)).add(db.mul(db));
-
-            // reduceLanes gives the horizontal sum across all int lanes.
-            sum += laneSum.reduceLanes(VectorOperators.ADD);
+                acc = acc.add(dr.mul(dr).add(dg.mul(dg)).add(db.mul(db)));
+            }
+            sum += acc.reduceLanes(VectorOperators.ADD);
         }
 
         // Scalar tail.
-        for (; i < count; i++) {
+        final int refR = (color >>> 16) & 0xFF;
+        final int refG = (color >>>  8) & 0xFF;
+        final int refB =  color         & 0xFF;
+        for (; i < end; i++) {
             int px = pixels[i];
-            int dr = ((px >>> 16) & 0xFF) - ((color >>> 16) & 0xFF);
-            int dg = ((px >>>  8) & 0xFF) - ((color >>>  8) & 0xFF);
-            int db = ( px         & 0xFF) - ( color         & 0xFF);
+            int dr = ((px >>> 16) & 0xFF) - refR;
+            int dg = ((px >>>  8) & 0xFF) - refG;
+            int db = ( px         & 0xFF) - refB;
             sum += dr * dr + dg * dg + db * db;
         }
 
