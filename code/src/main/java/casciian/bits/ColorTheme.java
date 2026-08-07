@@ -3391,14 +3391,35 @@ public class ColorTheme {
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_CYAN, CYAN));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(BRIGHT_BLUE, CYAN));
 
+        // THyperLink
+        colors.put(THYPERLINK, CellAttributes.builder()
+            .foreColor(BRIGHT_CYAN)
+            .backColor(BLUE)
+            .underline(true)
+            .build());
+        colors.put(THYPERLINK_HOVER, CellAttributes.builder()
+            .foreColor(BRIGHT_WHITE)
+            .backColor(BLUE)
+            .underline(true)
+            .build());
+        colors.put(THYPERLINK_MODAL, CellAttributes.builder()
+            .foreColor(BRIGHT_BLUE)
+            .backColor(WHITE)
+            .underline(true)
+            .build());
+        colors.put(THYPERLINK_HOVER_MODAL, CellAttributes.builder()
+            .foreColor(BLACK)
+            .backColor(WHITE)
+            .underline(true)
+            .build());
+
         // Fields / inputs: MC input is lightgray on blue.
-        colors.put(TFIELD_INACTIVE, attr(WHITE, BLUE));
+        colors.put(TFIELD_INACTIVE, attr(BRIGHT_BLACK, CYAN));
         colors.put(TFIELD_INACTIVE_MODAL, attr(BRIGHT_BLACK, CYAN));
         colors.put(TFIELD_ACTIVE, attr(BLACK, CYAN));
         colors.put(TFIELD_ACTIVE_MODAL, attr(BLACK, CYAN));
-        // The field sits on blue, so the selection goes green.
-        colors.put(TFIELD_SELECTED, attr(BLACK, GREEN));
-        colors.put(TFIELD_SELECTED_MODAL, attr(BLACK, GREEN));
+        colors.put(TFIELD_SELECTED, attr(CYAN, BLACK));
+        colors.put(TFIELD_SELECTED_MODAL, attr(CYAN, BLACK));
 
         // Check / radio / combo.
         colors.put(TCHECKBOX_INACTIVE, attr(WHITE, BLUE));
@@ -3429,13 +3450,13 @@ public class ColorTheme {
         // Lists / tree / editor / table: selected = MC "marked" = yellow on
         // blue; focus selected = black on cyan (MC "selected").
         colors.put(TLIST, attr(WHITE, BLUE));
-        colors.put(TLIST_MODAL, attr(WHITE, BLUE));
+        colors.put(TLIST_MODAL, attr(BLACK, WHITE));
         colors.put(TLIST_SELECTED, attr(BLACK, CYAN));
-        colors.put(TLIST_SELECTED_MODAL, attr(BLACK, CYAN));
+        colors.put(TLIST_SELECTED_MODAL, attr(BLUE, CYAN));
         colors.put(TLIST_INACTIVE, attr(WHITE, BLUE));
-        colors.put(TLIST_INACTIVE_MODAL, attr(WHITE, BLUE));
+        colors.put(TLIST_INACTIVE_MODAL, attr(BLACK, WHITE));
         colors.put(TLIST_SELECTED_INACTIVE, attr(BRIGHT_YELLOW, BLUE));
-        colors.put(TLIST_SELECTED_INACTIVE_MODAL, attr(BRIGHT_YELLOW, BLUE));
+        colors.put(TLIST_SELECTED_INACTIVE_MODAL, attr(BLACK, CYAN));
         colors.put(TTREEVIEW, attr(WHITE, BLUE));
         colors.put(TTREEVIEW_MODAL, attr(WHITE, BLUE));
         colors.put(TTREEVIEW_SELECTED, attr(BLACK, CYAN));
@@ -3455,6 +3476,24 @@ public class ColorTheme {
         colors.put(TTABLE_SELECTED, attr(BRIGHT_YELLOW, BLUE));
         colors.put(TTABLE_SELECTED_MODAL, attr(BRIGHT_YELLOW, BLUE));
 
+        // THScroller / TVScroller
+        colors.put(TSCROLLER_BAR, CellAttributes.builder()
+            .foreColor(CYAN)
+            .backColor(BLUE)
+            .build());
+        colors.put(TSCROLLER_BAR_MODAL, CellAttributes.builder()
+            .foreColor(BLACK)
+            .backColor(WHITE)
+            .build());
+        colors.put(TSCROLLER_ARROWS, CellAttributes.builder()
+            .foreColor(BLUE)
+            .backColor(CYAN)
+            .build());
+        colors.put(TSCROLLER_ARROWS_MODAL, CellAttributes.builder()
+            .foreColor(BLACK)
+            .backColor(WHITE)
+            .build());
+
         // Panel border
         colors.put(TPANEL_BORDER, attr(BRIGHT_CYAN, BLUE));
         colors.put(TPANEL_BORDER_MODAL, attr(BRIGHT_CYAN, BLUE));
@@ -3468,7 +3507,7 @@ public class ColorTheme {
         colors.put(TMENU_HIGHLIGHTED, attr(BRIGHT_WHITE, BLACK));
         colors.put(TMENU_MNEMONIC, attr(BRIGHT_YELLOW, CYAN));
         colors.put(TMENU_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_YELLOW, BLACK));
-        colors.put(TMENU_DISABLED, attr(BLUE, CYAN));
+        colors.put(TMENU_DISABLED, attr(BRIGHT_BLACK, CYAN));
 
         // Status bar: black on cyan like MC's "header".
         colors.put(TSTATUSBAR_TEXT, attr(BLACK, CYAN));
