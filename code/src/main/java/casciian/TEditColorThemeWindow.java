@@ -28,9 +28,13 @@ import casciian.bits.Color;
 import casciian.bits.ColorTheme;
 import casciian.bits.CellAttributes;
 import casciian.bits.GraphicsChars;
+import casciian.bits.Palette256;
+import casciian.bits.Rgb;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import static casciian.TKeypress.*;
+import static casciian.bits.ColorTheme.TLABEL;
+import static casciian.bits.ColorTheme.TLABEL_ACTIVE;
 
 /**
  * TEditColorThemeWindow provides an easy UI for users to alter the running
@@ -70,17 +74,24 @@ public class TEditColorThemeWindow extends TWindow {
     /**
      * The foreground color.
      */
-    private ForegroundPicker foreground;
+    private final ColorPicker foreground;
 
     /**
      * The background color.
      */
-    private BackgroundPicker background;
+    private final ColorPicker background;
 
     /**
-     * The foreground color picker.
+     * The foreground color foreground.
      */
-    class ForegroundPicker extends TWidget {
+    class ColorPicker extends TWidget {
+
+        /**
+         * The label associated with this ColorPicker instance.
+         * This string is used to describe or identify the color picker,
+         * and may appear as a title or label in the user interface.
+         */
+        private final String label;
 
         /**
          * The selected color.
@@ -88,9 +99,9 @@ public class TEditColorThemeWindow extends TWindow {
         Color color;
 
         /**
-         * The bold flag.
+         * The bright flag.
          */
-        boolean bold;
+        boolean bright;
 
         /**
          * The RGB background color.
@@ -106,15 +117,14 @@ public class TEditColorThemeWindow extends TWindow {
          * @param width width of text area
          * @param height height of text area
          */
-        public ForegroundPicker(final TWidget parent, final int x,
-            final int y, final int width, final int height) {
+        public ColorPicker(final TWidget parent, final int x,
+                           final int y, final int width, final int height, final String label) {
 
             super(parent, x, y, width, height);
+            this.label = label;
 
-            addLabel(i18n.getString("rgbHex"), 1, 6,
-                "twindow.background.modal");
-
-            rgb = addField(6, 6, 7, true, "");
+            rgb = addLabelFor(i18n.getString("rgbHex"), 5, 6,
+                addField(7, 6, 6, true, ""));
         }
 
         /**
@@ -124,34 +134,17 @@ public class TEditColorThemeWindow extends TWindow {
          * @return the X coordinate
          */
         private int getXColorPosition(final Color color) {
-            if (color.equals(Color.BLACK)) {
-                return 2;
-            } else if (color.equals(Color.BLUE)) {
-                return 5;
-            } else if (color.equals(Color.GREEN)) {
-                return 8;
-            } else if (color.equals(Color.CYAN)) {
-                return 11;
-            } else if (color.equals(Color.RED)) {
-                return 2;
-            } else if (color.equals(Color.MAGENTA)) {
-                return 5;
-            } else if (color.equals(Color.YELLOW)) {
-                return 8;
-            } else if (color.equals(Color.WHITE)) {
-                return 11;
-            }
-            throw new IllegalArgumentException("Invalid color: " + color);
+            return TEditColorThemeWindow.getXColorPosition(color);
         }
 
         /**
          * Get the Y grid coordinate for this color.
          *
          * @param color the Color value
-         * @param bold if true use bold color
+         * @param bright if true use bright color
          * @return the Y coordinate
          */
-        private int getYColorPosition(final Color color, final boolean bold) {
+        private int getYColorPosition(final Color color, final boolean bright) {
             int dotY = 1;
             if (color.equals(Color.RED)) {
                 dotY = 2;
@@ -162,23 +155,20 @@ public class TEditColorThemeWindow extends TWindow {
             } else if (color.equals(Color.WHITE)) {
                 dotY = 2;
             }
-            if (bold) {
+            if (bright) {
                 dotY += 2;
             }
             return dotY;
         }
 
         /**
-         * Get the bold value based on Y grid coordinate.
+         * Get the bright value based on Y grid coordinate.
          *
          * @param dotY the Y coordinate
-         * @return the bold value
+         * @return the bright value
          */
-        private boolean getBoldFromPosition(final int dotY) {
-            if (dotY > 2) {
-                return true;
-            }
-            return false;
+        private boolean getBrightFromPosition(final int dotY) {
+            return dotY > 2;
         }
 
         /**
@@ -223,7 +213,7 @@ public class TEditColorThemeWindow extends TWindow {
         }
 
         /**
-         * Draw the foreground colors grid.
+         * Draw the colors grid.
          */
         @Override
         public void draw() {
@@ -238,15 +228,11 @@ public class TEditColorThemeWindow extends TWindow {
             drawBox(0, 0, getWidth(), getHeight(), border, background,
                 borderStyle);
 
-            attr.setTo(getTheme().getColor("twindow.background.modal"));
-            if (isActive()) {
-                attr.setForeColor(getTheme().getColor("tlabel").getForeColor());
-                attr.setBold(getTheme().getColor("tlabel").isBold());
-            }
+            attr.setTo(getWidgetColor(isActive() ? TLABEL_ACTIVE: TLABEL));
             if (borderStyle.equals(BorderStyle.NONE)) {
-                putStringXY(0, 0, i18n.getString("foregroundLabel"), attr);
+                putStringXY(0, 0, this.label, attr);
             } else {
-                putStringXY(1, 0, i18n.getString("foregroundLabel"), attr);
+                putStringXY(1, 0, this.label, attr);
             }
 
             // Have to draw the colors manually because the int value matches
@@ -269,36 +255,52 @@ public class TEditColorThemeWindow extends TWindow {
             attr.setForeColor(Color.WHITE);
             putStringXY(10, 2, "\u2588\u2588\u2588", attr);
 
-            attr.setBold(true);
-            attr.setForeColor(Color.BLACK);
+            attr.setForeColor(Color.BRIGHT_BLACK);
             putStringXY(1, 3, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.BLUE);
+            attr.setForeColor(Color.BRIGHT_BLUE);
             putStringXY(4, 3, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.GREEN);
+            attr.setForeColor(Color.BRIGHT_GREEN);
             putStringXY(7, 3, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.CYAN);
+            attr.setForeColor(Color.BRIGHT_CYAN);
             putStringXY(10, 3, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.RED);
+            attr.setForeColor(Color.BRIGHT_RED);
             putStringXY(1, 4, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.MAGENTA);
+            attr.setForeColor(Color.BRIGHT_MAGENTA);
             putStringXY(4, 4, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.YELLOW);
+            attr.setForeColor(Color.BRIGHT_YELLOW);
             putStringXY(7, 4, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.WHITE);
+            attr.setForeColor(Color.BRIGHT_WHITE);
             putStringXY(10, 4, "\u2588\u2588\u2588", attr);
 
             // Draw the dot
-            int dotX = getXColorPosition(color);
-            int dotY = getYColorPosition(color, bold);
-            if (color.equals(Color.BLACK) && !bold) {
-                // Use white-on-black for black.  All other colors use
-                // black-on-whatever.
+            int rgbColor = parseColorHex(rgb.text);
+            if (rgbColor >= 0) {
                 attr.reset();
-                putCharXY(dotX, dotY, GraphicsChars.CP437[0x07], attr);
+                attr.setForeColorRGB(rgbColor);
+                // If the swatch color is too dark to be visible against the
+                // default (black) background, switch the background to white.
+                var rgb = Rgb.fromPackedRgb(rgbColor);
+                int luminance = (rgb.r() * 299 + rgb.g() * 587 + rgb.b() * 114) / 1000;
+                if (luminance < 48) {
+                    putStringXY(1, 6, "\u2588\u2588\u2588", attr);
+                    attr.reset();
+                    attr.setBackColorRGB(rgbColor);
+                    putCharXY(2, 6, GraphicsChars.CP437[0x07], attr);
+                } else {
+                    putStringXY(1, 6, "\u2588\u25D8\u2588", attr);
+                }
             } else {
-                attr.setForeColor(color);
-                attr.setBold(bold);
-                putCharXY(dotX, dotY, '\u25D8', attr);
+                int dotX = getXColorPosition(color);
+                int dotY = getYColorPosition(color, bright);
+                if (color.equals(Color.BLACK) && !bright) {
+                    // Use white-on-black for black.  All other colors use
+                    // black-on-whatever.
+                    attr.reset();
+                    putCharXY(dotX, dotY, GraphicsChars.CP437[0x07], attr);
+                } else {
+                    attr.setForeColor(bright ? color.toBright() : color);
+                    putCharXY(dotX, dotY, '\u25D8', attr);
+                }
             }
         }
 
@@ -313,7 +315,7 @@ public class TEditColorThemeWindow extends TWindow {
                 rgb.onKeypress(keypress);
             } else if (keypress.equals(kbRight)) {
                 int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color, bold);
+                int dotY = getYColorPosition(color, bright);
                 if (dotX < 10) {
                     dotX += 3;
                 }
@@ -321,7 +323,7 @@ public class TEditColorThemeWindow extends TWindow {
                 rgb.setText("");
             } else if (keypress.equals(kbLeft)) {
                 int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color, bold);
+                int dotY = getYColorPosition(color, bright);
                 if (dotX > 3) {
                     dotX -= 3;
                 }
@@ -329,21 +331,21 @@ public class TEditColorThemeWindow extends TWindow {
                 rgb.setText("");
             } else if (keypress.equals(kbUp)) {
                 int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color, bold);
+                int dotY = getYColorPosition(color, bright);
                 if (dotY > 1) {
                     dotY--;
                 }
                 color = getColorFromPosition(dotX, dotY);
-                bold = getBoldFromPosition(dotY);
+                bright = getBrightFromPosition(dotY);
                 rgb.setText("");
             } else if (keypress.equals(kbDown)) {
                 int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color, bold);
+                int dotY = getYColorPosition(color, bright);
                 if (dotY < 4) {
                     dotY++;
                 }
                 color = getColorFromPosition(dotX, dotY);
-                bold = getBoldFromPosition(dotY);
+                bright = getBrightFromPosition(dotY);
                 rgb.setText("");
             } else {
                 // Pass to my parent
@@ -364,27 +366,27 @@ public class TEditColorThemeWindow extends TWindow {
             if (mouse.isMouseWheelUp()) {
                 // Do this like kbUp
                 int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color, bold);
+                int dotY = getYColorPosition(color, bright);
                 if (dotY > 1) {
                     dotY--;
                 }
                 color = getColorFromPosition(dotX, dotY);
-                bold = getBoldFromPosition(dotY);
+                bright = getBrightFromPosition(dotY);
                 rgb.setText("");
             } else if (mouse.isMouseWheelDown()) {
                 // Do this like kbDown
                 int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color, bold);
+                int dotY = getYColorPosition(color, bright);
                 if (dotY < 4) {
                     dotY++;
                 }
                 color = getColorFromPosition(dotX, dotY);
-                bold = getBoldFromPosition(dotY);
+                bright = getBrightFromPosition(dotY);
                 rgb.setText("");
             } else if (mouse.isMouseWheelLeft()) {
                 // Do this like kbLeft
                 int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color, bold);
+                int dotY = getYColorPosition(color, bright);
                 if (dotX > 3) {
                     dotX -= 3;
                 }
@@ -393,7 +395,7 @@ public class TEditColorThemeWindow extends TWindow {
             } else if (mouse.isMouseWheelRight()) {
                 // Do this like kbRight
                 int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color, bold);
+                int dotY = getYColorPosition(color, bright);
                 if (dotX < 10) {
                     dotX += 3;
                 }
@@ -405,298 +407,7 @@ public class TEditColorThemeWindow extends TWindow {
                 && (mouse.getY() < getHeight() - 3)
             ) {
                 color = getColorFromPosition(mouse.getX(), mouse.getY());
-                bold = getBoldFromPosition(mouse.getY());
-                rgb.setText("");
-            } else {
-                // Let parent class handle it.
-                super.onMouseDown(mouse);
-            }
-
-            // Save this update to the local theme.
-            ((TEditColorThemeWindow) getWindow()).saveToEditTheme();
-        }
-
-    }
-
-    /**
-     * The background color picker.
-     */
-    class BackgroundPicker extends TWidget {
-
-        /**
-         * The selected color.
-         */
-        Color color;
-
-        /**
-         * The RGB background color.
-         */
-        TField rgb;
-
-        /**
-         * Public constructor.
-         *
-         * @param parent parent widget
-         * @param x column relative to parent
-         * @param y row relative to parent
-         * @param width width of text area
-         * @param height height of text area
-         */
-        public BackgroundPicker(final TWidget parent, final int x,
-            final int y, final int width, final int height) {
-
-            super(parent, x, y, width, height);
-
-            addLabel(i18n.getString("rgbHex"), 1, 4,
-                "twindow.background.modal");
-            rgb = addField(6, 4, 7, true, "");
-        }
-
-        /**
-         * Get the X grid coordinate for this color.
-         *
-         * @param color the Color value
-         * @return the X coordinate
-         */
-        private int getXColorPosition(final Color color) {
-            if (color.equals(Color.BLACK)) {
-                return 2;
-            } else if (color.equals(Color.BLUE)) {
-                return 5;
-            } else if (color.equals(Color.GREEN)) {
-                return 8;
-            } else if (color.equals(Color.CYAN)) {
-                return 11;
-            } else if (color.equals(Color.RED)) {
-                return 2;
-            } else if (color.equals(Color.MAGENTA)) {
-                return 5;
-            } else if (color.equals(Color.YELLOW)) {
-                return 8;
-            } else if (color.equals(Color.WHITE)) {
-                return 11;
-            }
-            throw new IllegalArgumentException("Invalid color: " + color);
-        }
-
-        /**
-         * Get the Y grid coordinate for this color.
-         *
-         * @param color the Color value
-         * @return the Y coordinate
-         */
-        private int getYColorPosition(final Color color) {
-            int dotY = 1;
-            if (color.equals(Color.RED)) {
-                dotY = 2;
-            } else if (color.equals(Color.MAGENTA)) {
-                dotY = 2;
-            } else if (color.equals(Color.YELLOW)) {
-                dotY = 2;
-            } else if (color.equals(Color.WHITE)) {
-                dotY = 2;
-            }
-            return dotY;
-        }
-
-        /**
-         * Get the color based on (X, Y) grid coordinate.
-         *
-         * @param dotX the X coordinate
-         * @param dotY the Y coordinate
-         * @return the Color value
-         */
-        private Color getColorFromPosition(final int dotX, final int dotY) {
-            if ((1 <= dotX) && (dotX <= 3) && (dotY == 1)) {
-                return Color.BLACK;
-            }
-            if ((4 <= dotX) && (dotX <= 6) && (dotY == 1)) {
-                return Color.BLUE;
-            }
-            if ((7 <= dotX) && (dotX <= 9) && (dotY == 1)) {
-                return Color.GREEN;
-            }
-            if ((10 <= dotX) && (dotX <= 12) && (dotY == 1)) {
-                return Color.CYAN;
-            }
-            if ((1 <= dotX) && (dotX <= 3) && (dotY == 2)) {
-                return Color.RED;
-            }
-            if ((4 <= dotX) && (dotX <= 6) && (dotY == 2)) {
-                return Color.MAGENTA;
-            }
-            if ((7 <= dotX) && (dotX <= 9) && (dotY == 2)) {
-                return Color.YELLOW;
-            }
-            if ((10 <= dotX) && (dotX <= 12) && (dotY == 2)) {
-                return Color.WHITE;
-            }
-
-            throw new IllegalArgumentException("Invalid coordinates: "
-                + dotX + ", " + dotY);
-        }
-
-        /**
-         * Draw the background colors grid.
-         */
-        @Override
-        public void draw() {
-            CellAttributes border = getWindow().getBorder();
-            CellAttributes background = getWindow().getBackground();
-            CellAttributes attr = new CellAttributes();
-
-            BorderStyle borderStyle;
-            borderStyle = BorderStyle.getStyle(System.getProperty(
-                "casciian.TEditColorTheme.options.borderStyle", "single"));
-
-            drawBox(0, 0, getWidth(), getHeight(), border, background,
-                borderStyle);
-
-            attr.setTo(getTheme().getColor("twindow.background.modal"));
-            if (isActive()) {
-                attr.setForeColor(getTheme().getColor("tlabel").getForeColor());
-                attr.setBold(getTheme().getColor("tlabel").isBold());
-            }
-            if (borderStyle.equals(BorderStyle.NONE)) {
-                putStringXY(0, 0, i18n.getString("backgroundLabel"), attr);
-            } else {
-                putStringXY(1, 0, i18n.getString("backgroundLabel"), attr);
-            }
-
-            // Have to draw the colors manually because the int value matches
-            // SGR, not CGA.
-            attr.reset();
-            attr.setForeColor(Color.BLACK);
-            putStringXY(1, 1, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.BLUE);
-            putStringXY(4, 1, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.GREEN);
-            putStringXY(7, 1, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.CYAN);
-            putStringXY(10, 1, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.RED);
-            putStringXY(1, 2, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.MAGENTA);
-            putStringXY(4, 2, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.YELLOW);
-            putStringXY(7, 2, "\u2588\u2588\u2588", attr);
-            attr.setForeColor(Color.WHITE);
-            putStringXY(10, 2, "\u2588\u2588\u2588", attr);
-
-            // Draw the dot
-            int dotX = getXColorPosition(color);
-            int dotY = getYColorPosition(color);
-            if (color.equals(Color.BLACK)) {
-                // Use white-on-black for black.  All other colors use
-                // black-on-whatever.
-                attr.reset();
-                putCharXY(dotX, dotY, GraphicsChars.CP437[0x07], attr);
-            } else {
-                attr.setForeColor(color);
-                putCharXY(dotX, dotY, '\u25D8', attr);
-            }
-
-        }
-
-        /**
-         * Handle keystrokes.
-         *
-         * @param keypress keystroke event
-         */
-        @Override
-        public void onKeypress(final TKeypressEvent keypress) {
-            if (rgb.isActive()) {
-                rgb.onKeypress(keypress);
-            } else if (keypress.equals(kbRight)) {
-                int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color);
-                if (dotX < 10) {
-                    dotX += 3;
-                }
-                color = getColorFromPosition(dotX, dotY);
-                rgb.setText("");
-            } else if (keypress.equals(kbLeft)) {
-                int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color);
-                if (dotX > 3) {
-                    dotX -= 3;
-                }
-                color = getColorFromPosition(dotX, dotY);
-                rgb.setText("");
-            } else if (keypress.equals(kbUp)) {
-                int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color);
-                if (dotY == 2) {
-                    dotY--;
-                }
-                color = getColorFromPosition(dotX, dotY);
-                rgb.setText("");
-            } else if (keypress.equals(kbDown)) {
-                int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color);
-                if (dotY == 1) {
-                    dotY++;
-                }
-                color = getColorFromPosition(dotX, dotY);
-                rgb.setText("");
-            } else {
-                // Pass to my parent
-                super.onKeypress(keypress);
-            }
-
-            // Save this update to the local theme.
-            ((TEditColorThemeWindow) getWindow()).saveToEditTheme();
-        }
-
-        /**
-         * Handle mouse press events.
-         *
-         * @param mouse mouse button press event
-         */
-        @Override
-        public void onMouseDown(final TMouseEvent mouse) {
-            if (mouse.isMouseWheelUp()) {
-                // Do this like kbUp
-                int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color);
-                if (dotY == 2) {
-                    dotY--;
-                }
-                color = getColorFromPosition(dotX, dotY);
-                rgb.setText("");
-            } else if (mouse.isMouseWheelDown()) {
-                // Do this like kbDown
-                int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color);
-                if (dotY == 1) {
-                    dotY++;
-                }
-                color = getColorFromPosition(dotX, dotY);
-                rgb.setText("");
-            } else if (mouse.isMouseWheelLeft()) {
-                // Do this like kbRight
-                int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color);
-                if (dotX < 10) {
-                    dotX += 3;
-                }
-                color = getColorFromPosition(dotX, dotY);
-                rgb.setText("");
-            } else if (mouse.isMouseWheelRight()) {
-                // Do this like kbLeft
-                int dotX = getXColorPosition(color);
-                int dotY = getYColorPosition(color);
-                if (dotX > 3) {
-                    dotX -= 3;
-                }
-                color = getColorFromPosition(dotX, dotY);
-                rgb.setText("");
-            } else if ((mouse.getX() > 0)
-                && (mouse.getX() < getWidth() - 1)
-                && (mouse.getY() > 0)
-                && (mouse.getY() < getHeight() - 3)
-            ) {
-                color = getColorFromPosition(mouse.getX(), mouse.getY());
+                bright = getBrightFromPosition(mouse.getY());
                 rgb.setText("");
             } else {
                 // Let parent class handle it.
@@ -722,7 +433,7 @@ public class TEditColorThemeWindow extends TWindow {
     public TEditColorThemeWindow(final TApplication application) {
 
         // Register with the TApplication
-        super(application, "", 0, 0, 60, 25, MODAL);
+        super(application, "", 0, 0, 60, 27, MODAL);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -757,8 +468,9 @@ public class TEditColorThemeWindow extends TWindow {
                 }
             }
         );
-        foreground = new ForegroundPicker(this, 42, 1, 14, 8);
-        background = new BackgroundPicker(this, 42, 9, 14, 6);
+        addLabel(i18n.getString("colorName"), 2, 1, colorNames);
+        foreground = new ColorPicker(this, 42, 1, 14, 8, i18n.getString("foregroundLabel"));
+        background = new ColorPicker(this, 42, 9, 14, 8, i18n.getString("backgroundLabel"));
         refreshFromTheme(colors.getFirst());
         colorNames.setSelectedIndex(0);
 
@@ -867,44 +579,25 @@ public class TEditColorThemeWindow extends TWindow {
         super.draw();
         CellAttributes attr = new CellAttributes();
 
-        // Draw the label on colorNames
-        attr.setTo(getTheme().getColor("twindow.background.modal"));
-        if (colorNames.isActive()) {
-            attr.setForeColor(getTheme().getColor("tlabel").getForeColor());
-            attr.setBold(getTheme().getColor("tlabel").isBold());
-        }
-        putStringXY(3, 2, i18n.getString("colorName"), attr);
-
         // Draw the sample text box
         attr.reset();
-        attr.setBold(foreground.bold);
-        attr.setForeColor(foreground.color);
+        attr.setForeColor(foreground.bright
+            ? foreground.color.toBright() : foreground.color);
         try {
-            String text = foreground.rgb.getText();
-            while (text.startsWith("#")) {
-                text = text.substring(1);
-            }
-            if (text.length() > 0) {
-                int foreColorRGB = Integer.parseInt(text, 16);
-                if (foreColorRGB >= 0) {
-                    attr.setForeColorRGB(foreColorRGB);
-                }
+            int foreColorRGB = parseColorHex(foreground.rgb.getText());
+            if (foreColorRGB >= 0) {
+                attr.setForeColorRGB(foreColorRGB);
             }
         } catch (NumberFormatException e) {
             // SQUASH
         }
 
-        attr.setBackColor(background.color);
+        attr.setBackColor(background.bright
+            ? background.color.toBright() : background.color);
         try {
-            String text = background.rgb.getText();
-            while (text.startsWith("#")) {
-                text = text.substring(1);
-            }
-            if (text.length() > 0) {
-                int backColorRGB = Integer.parseInt(text, 16);
-                if (backColorRGB >= 0) {
-                    attr.setBackColorRGB(backColorRGB);
-                }
+            int backColorRGB = parseColorHex(background.rgb.getText());
+            if (backColorRGB >= 0) {
+                attr.setBackColorRGB(backColorRGB);
             }
         } catch (NumberFormatException e) {
             // SQUASH
@@ -913,6 +606,17 @@ public class TEditColorThemeWindow extends TWindow {
             i18n.getString("textTextText"), attr);
         putStringXY(getWidth() - 17, getHeight() - 8,
             i18n.getString("textTextText"), attr);
+    }
+
+    private static int parseColorHex(String text) {
+        int color = -1;
+        while (text.startsWith("#")) {
+            text = text.substring(1);
+        }
+        if (text.length() == 6) {
+            color = Integer.parseInt(text, 16);
+        }
+        return color;
     }
 
     // ------------------------------------------------------------------------
@@ -927,25 +631,37 @@ public class TEditColorThemeWindow extends TWindow {
     private void refreshFromTheme(final String colorName) {
         CellAttributes attr = editTheme.getColor(colorName);
 
-        foreground.color = attr.getForeColor();
+        foreground.color = attr.getForeColor().toNormal();
 
         if (attr.getForeColorRGB() >= 0) {
             foreground.rgb.setText(String.format("%06x",
                     attr.getForeColorRGB()));
+        } else if (attr.getForeColorPalette() >= 0) {
+            foreground.rgb.setText(String.format("%06x",
+                    Palette256.toRgb(attr.getForeColorPalette())));
         } else {
             foreground.rgb.setText("");
         }
 
-        foreground.bold = attr.isBold();
+        // The "bright" toggle reflects only the actual bright foreground
+        // color; this editor does not expose the (unrelated) bold attribute.
+        foreground.bright = attr.getForeColor().isBright();
 
-        background.color = attr.getBackColor();
+        background.color = attr.getBackColor().toNormal();
 
         if (attr.getBackColorRGB() >= 0) {
             background.rgb.setText(String.format("%06x",
                     attr.getBackColorRGB()));
+        } else if (attr.getBackColorPalette() >= 0) {
+            background.rgb.setText(String.format("%06x",
+                    Palette256.toRgb(attr.getBackColorPalette())));
         } else {
-            foreground.rgb.setText("");
+            background.rgb.setText("");
         }
+
+        // The "bright" toggle reflects only the actual bright background
+        // color; this editor does not expose the (unrelated) bold attribute.
+        background.bright = attr.getBackColor().isBright();
     }
 
     /**
@@ -967,13 +683,24 @@ public class TEditColorThemeWindow extends TWindow {
             if (text.length() > 0) {
                 int foreColorRGB = Integer.parseInt(text, 16);
                 if (foreColorRGB >= 0) {
-                    attr.setForeColorRGB(foreColorRGB);
+                    int paletteIndex = Palette256.findExact(foreColorRGB);
+                    if (paletteIndex >= 0) {
+                        attr.setForeColorPalette(paletteIndex);
+                    } else {
+                        attr.setForeColorRGB(foreColorRGB);
+                    }
                 }
             }
         } catch (NumberFormatException e) {
             // SQUASH
         }
-        attr.setBold(foreground.bold);
+        // A bright selection is stored as the bright foreground color
+        // directly, independent of the bold attribute (which this editor
+        // does not expose).
+        if ((attr.getForeColorRGB() < 0) && (attr.getForeColorPalette() < 0)
+                && foreground.bright) {
+            attr.setForeColor(foreground.color.toBright());
+        }
 
         attr.setBackColor(background.color);
         try {
@@ -984,11 +711,23 @@ public class TEditColorThemeWindow extends TWindow {
             if (text.length() > 0) {
                 int backColorRGB = Integer.parseInt(text, 16);
                 if (backColorRGB >= 0) {
-                    attr.setBackColorRGB(backColorRGB);
+                    int paletteIndex = Palette256.findExact(backColorRGB);
+                    if (paletteIndex >= 0) {
+                        attr.setBackColorPalette(paletteIndex);
+                    } else {
+                        attr.setBackColorRGB(backColorRGB);
+                    }
                 }
             }
         } catch (NumberFormatException e) {
             // SQUASH
+        }
+        // A bright selection is stored as the bright background color
+        // directly, independent of the bold attribute (which this editor
+        // does not expose).
+        if ((attr.getBackColorRGB() < 0) && (attr.getBackColorPalette() < 0)
+            && background.bright) {
+            attr.setBackColor(background.color.toBright());
         }
 
         editTheme.setColor(colorName, attr);
@@ -1065,6 +804,33 @@ public class TEditColorThemeWindow extends TWindow {
         } else {
             super.setBorderStyleMoving(borderStyle);
         }
+    }
+
+    /**
+     * Get the X grid coordinate for this color.
+     *
+     * @param color the Color value
+     * @return the X coordinate
+     */
+    private static int getXColorPosition(Color color) {
+        if (color.equals(Color.BLACK)) {
+            return 2;
+        } else if (color.equals(Color.BLUE)) {
+            return 5;
+        } else if (color.equals(Color.GREEN)) {
+            return 8;
+        } else if (color.equals(Color.CYAN)) {
+            return 11;
+        } else if (color.equals(Color.RED)) {
+            return 2;
+        } else if (color.equals(Color.MAGENTA)) {
+            return 5;
+        } else if (color.equals(Color.YELLOW)) {
+            return 8;
+        } else if (color.equals(Color.WHITE)) {
+            return 11;
+        }
+        throw new IllegalArgumentException("Invalid color: " + color);
     }
 
 }

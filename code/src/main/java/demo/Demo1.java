@@ -20,9 +20,6 @@
 package demo;
 
 import casciian.TApplication;
-import casciian.backend.SystemProperties;
-
-import java.util.stream.Stream;
 
 /**
  * This class is the main driver for a simple demonstration of Casciian's
@@ -50,20 +47,8 @@ public final class Demo1 {
      */
     public static void main(final String [] args) {
         try {
-            boolean defaults;
-            if (Stream.of(args).noneMatch(arg -> arg.equals("--defaults"))) {
-                SystemProperties.setAnimations(true);
-                SystemProperties.setTextMouse(true);
-                SystemProperties.setTranslucence(true);
-                SystemProperties.setMenuIcons(false);
-
-                defaults = false;
-            } else {
-                defaults = true;
-            }
-
             DemoApplication app;
-            app = new DemoApplication(TApplication.BackendType.XTERM, defaults);
+            app = new DemoApplication(TApplication.BackendType.XTERM);
             (new Thread(app)).start();
         } catch (Exception e) {
             e.printStackTrace();

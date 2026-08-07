@@ -40,6 +40,11 @@ public class TExceptionDialog extends TWindow {
      */
     public static final String RESOURCE_BUNDLE_NAME = TExceptionDialog.class.getName() + "Bundle";
 
+    /**
+     * A separator line used to delimit sections of the troubleshooting report.
+     */
+    private static final String SEPARATOR_LINE = "-----------------------------------\n";
+
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -53,17 +58,17 @@ public class TExceptionDialog extends TWindow {
      * The exception.  We will actually make it Throwable, for the unlikely
      * event we catch an Error rather than an Exception.
      */
-    private Throwable exception;
+    private final Throwable exception;
 
     /**
      * The exception's stack trace.
      */
-    private TList stackTrace;
+    private final TList stackTrace;
 
     /**
      * The exception string label.
      */
-    private TLabel exceptionString;
+    private final TLabel<?> exceptionString;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -101,11 +106,11 @@ public class TExceptionDialog extends TWindow {
                 exception.getClass().getName(), exception.getMessage()),
             2, 8, "ttext", false);
 
-        ArrayList<String> stackTraceStrings = new ArrayList<String>();
+        var stackTraceStrings = new ArrayList<String>();
         stackTraceStrings.add(exception.getMessage());
         StackTraceElement [] stack = exception.getStackTrace();
-        for (int i = 0; i < stack.length; i++) {
-            stackTraceStrings.add(stack[i].toString());
+        for (var stackTraceElement : stack) {
+            stackTraceStrings.add(stackTraceElement.toString());
         }
         stackTrace = addList(stackTraceStrings, 2, 9, getWidth() - 6, 7);
         layout.setAnchor(stackTrace, caption,
@@ -152,7 +157,7 @@ public class TExceptionDialog extends TWindow {
         // Draw window and border.
         super.draw();
 
-        CellAttributes boxColor = getTheme().getColor("ttext");
+        CellAttributes boxColor = getWidgetColor("ttext");
         hLineXY(exceptionString.getX() + 1, exceptionString.getY() + 1,
             stackTrace.getWidth(), ' ', boxColor);
     }
@@ -165,6 +170,7 @@ public class TExceptionDialog extends TWindow {
      * Save a troubleshooting report to file.  Note that we do NOT translate
      * the strings within the error report.
      */
+    @SuppressWarnings("java:S2093")
     private void saveToFile() {
         // Prompt for filename.
         PrintWriter writer = null;
@@ -180,31 +186,31 @@ public class TExceptionDialog extends TWindow {
 
             // System properties
             writer.write("System properties:\n");
-            writer.write("-----------------------------------\n");
+            writer.write(SEPARATOR_LINE);
             System.getProperties().store(writer, null);
-            writer.write("-----------------------------------\n");
+            writer.write(SEPARATOR_LINE);
             writer.write("\n");
 
             // The exception we caught
             writer.write("Caught exception:\n");
-            writer.write("-----------------------------------\n");
+            writer.write(SEPARATOR_LINE);
             exception.printStackTrace(writer);
-            writer.write("-----------------------------------\n");
+            writer.write(SEPARATOR_LINE);
             writer.write("\n");
             // The exception's cause, if it was set
             if (exception.getCause() != null) {
                 writer.write("Caught exception's cause:\n");
-                writer.write("-----------------------------------\n");
+                writer.write(SEPARATOR_LINE);
                 exception.getCause().printStackTrace(writer);
-                writer.write("-----------------------------------\n");
+                writer.write(SEPARATOR_LINE);
             }
             writer.write("\n");
 
             // The UI stack trace
             writer.write("UI stack trace:\n");
-            writer.write("-----------------------------------\n");
+            writer.write(SEPARATOR_LINE);
             (new Throwable("UI Thread")).printStackTrace(writer);
-            writer.write("-----------------------------------\n");
+            writer.write(SEPARATOR_LINE);
             writer.write("\n");
             writer.close();
         } catch (IOException e) {
@@ -214,7 +220,6 @@ public class TExceptionDialog extends TWindow {
         } finally {
             if (writer != null) {
                 writer.close();
-                writer = null;
             }
         }
     }

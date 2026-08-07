@@ -20,8 +20,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * System properties used by Casciian.
@@ -120,6 +123,17 @@ public class SystemProperties {
     public static final String CASCIIAN_USE_TERMINAL_PALETTE = "casciian.useTerminalPalette";
 
     /**
+     * System property key for the Kitty keyboard protocol (CSI u /
+     * "disambiguated keys").  When enabled, the terminal is asked to report
+     * keystrokes unambiguously so that, for example, Ctrl-I can be told
+     * apart from Tab.  Terminals that do not implement the protocol silently
+     * ignore the request and keep sending legacy VT sequences.
+     * Valid values: "true" or "false"
+     * Default: true (progressive enhancement is requested)
+     */
+    public static final String CASCIIAN_ECMA48_KITTY_KEYBOARD = "casciian.ECMA48.kittyKeyboard";
+
+    /**
      * System property key for disabling pre-transform cell effects (like gradients).
      * Valid values: "true" or "false"
      * Default: false (pre-transforms enabled)
@@ -156,6 +170,36 @@ public class SystemProperties {
      * Default: false
      */
     public static final String CASCIIAN_ECMA48_RGB_COLOR = "casciian.ECMA48.rgbColor";
+
+    /**
+     * System property key for emitting 256-color palette (SGR {@code 38;5;n}
+     * / {@code 48;5;n}) sequences for the normal 16 system colors instead of
+     * plain palette numbers.
+     * <p>
+     * This mirrors {@link #CASCIIAN_ECMA48_RGB_COLOR}, but selects the fixed
+     * xterm 256-color cube instead of full 24-bit RGB.  Only the 16 named
+     * system colors are forced into the palette; cells that already carry a
+     * true RGB color are left untouched.
+     * Valid values: "true" or "false"
+     * Default: false
+     */
+    public static final String CASCIIAN_ECMA48_PALETTE_COLOR = "casciian.ECMA48.paletteColor";
+
+    /**
+     * System property key for treating the bold attribute as a bright
+     * (high-intensity) color.
+     * <p>
+     * Historically Casciian rendered the bold attribute using the bright
+     * color palette. Since 1.6.0 the bold attribute is transparent by
+     * default: it is emitted as a real SGR bold and the terminal decides how
+     * to display it. Setting this property to {@code true} restores the
+     * legacy "bold means bright" behavior, which is useful for custom,
+     * non-RGB color themes that relied on it.
+     * <p>
+     * Valid values: "true" or "false"
+     * Default: false
+     */
+    public static final String CASCIIAN_TREAT_BOLD_AS_BRIGHT = "casciian.treatBoldAsBright";
 
     /**
      * System property key for the image fallback display mode used when the
@@ -304,6 +348,14 @@ public class SystemProperties {
     private static final AtomicReference<Boolean> useTerminalPalette = new AtomicReference<>(null);
 
     /**
+     * Atomic reference representing the Kitty keyboard protocol setting.
+     * When true, request "disambiguated keys" (CSI u) from the terminal.
+     * The default value is true if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> ecma48KittyKeyboard = new AtomicReference<>(null);
+
+    /**
      * Atomic reference representing the disable pre-transform setting.
      * When true, disable pre-transform cell effects (like gradients).
      * The default value is false if not explicitly set.
@@ -336,6 +388,23 @@ public class SystemProperties {
     private static final AtomicReference<Boolean> ecma48RgbColor = new AtomicReference<>(null);
 
     /**
+     * Atomic reference representing the ECMA48 palette color setting.
+     * When true, emit 256-color palette sequences for the normal 16 system
+     * colors.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> ecma48PaletteColor = new AtomicReference<>(null);
+
+    /**
+     * Atomic reference representing the treat-bold-as-bright setting.
+     * When true, render the bold attribute using the bright color palette.
+     * The default value is false if not explicitly set.
+     * A null value signals the property has not been read yet.
+     */
+    private static final AtomicReference<Boolean> treatBoldAsBright = new AtomicReference<>(null);
+
+    /**
      * Atomic reference representing the image fallback display mode.
      * Valid values are "halves" and "solid"; defaults to "halves".
      * A null value signals the property has not been read yet.
@@ -350,6 +419,16 @@ public class SystemProperties {
      */
     private static final AtomicReference<String> userDir =
         new AtomicReference<>(System.getProperty("user.dir"));
+
+    /**
+     * Listeners notified whenever {@link #setUserDir(String)} changes the
+     * cached working directory.  This is how backends (e.g. ECMA48Terminal)
+     * keep their reported working directory (OSC 7) synchronized with the
+     * cached value without every call site having to remember to notify
+     * them directly.
+     */
+    private static final CopyOnWriteArrayList<Consumer<String>> userDirListeners =
+        new CopyOnWriteArrayList<>();
 
     private SystemProperties() {
     }
@@ -736,6 +815,27 @@ public class SystemProperties {
     }
 
     /**
+     * Get the Kitty keyboard protocol value from system properties.
+     *
+     * @return true if the Kitty keyboard protocol (CSI u) should be
+     *         requested from the terminal.  Default is true.
+     */
+    public static boolean isEcma48KittyKeyboard() {
+        return getBooleanProperty(ecma48KittyKeyboard,
+            CASCIIAN_ECMA48_KITTY_KEYBOARD, true);
+    }
+
+    /**
+     * Set the Kitty keyboard protocol value in system properties.
+     *
+     * @param value true to request the Kitty keyboard protocol (CSI u)
+     */
+    public static void setEcma48KittyKeyboard(boolean value) {
+        setBooleanProperty(ecma48KittyKeyboard,
+            CASCIIAN_ECMA48_KITTY_KEYBOARD, value);
+    }
+
+    /**
      * Get the disable pre-transform value from system properties.
      *
      * @return true if pre-transform cell effects (like gradients) are disabled,
@@ -813,6 +913,46 @@ public class SystemProperties {
     }
 
     /**
+     * Get the ECMA48 palette color value from system properties.
+     *
+     * @return true if 256-color palette sequences should be emitted for the
+     *         normal 16 system colors, false otherwise. Default is false.
+     */
+    public static boolean isPaletteColor() {
+        return getBooleanProperty(ecma48PaletteColor, CASCIIAN_ECMA48_PALETTE_COLOR, false);
+    }
+
+    /**
+     * Set the ECMA48 palette color value in system properties.
+     *
+     * @param value true to emit 256-color palette sequences for the normal 16
+     *              system colors, false to use plain palette numbers
+     */
+    public static void setPaletteColor(boolean value) {
+        setBooleanProperty(ecma48PaletteColor, CASCIIAN_ECMA48_PALETTE_COLOR, value);
+    }
+
+    /**
+     * Get the treat-bold-as-bright value from system properties.
+     *
+     * @return true if the bold attribute should be rendered using the bright
+     *         color palette, false otherwise. Default is false.
+     */
+    public static boolean isTreatBoldAsBright() {
+        return getBooleanProperty(treatBoldAsBright, CASCIIAN_TREAT_BOLD_AS_BRIGHT, false);
+    }
+
+    /**
+     * Set the treat-bold-as-bright value in system properties.
+     *
+     * @param value true to render the bold attribute as a bright color, false
+     *              to emit a real SGR bold and let the terminal decide
+     */
+    public static void setTreatBoldAsBright(boolean value) {
+        setBooleanProperty(treatBoldAsBright, CASCIIAN_TREAT_BOLD_AS_BRIGHT, value);
+    }
+
+    /**
      * Get the image fallback display mode from system properties.
      *
      * @return "halves" or "solid". Default is "halves".
@@ -860,11 +1000,52 @@ public class SystemProperties {
      * Set the current working directory.
      * Only the cached value is updated — the underlying
      * {@code "user.dir"} system property is <b>not</b> modified.
+     * Any listeners registered via {@link #addUserDirListener(Consumer)}
+     * are notified when the cached value changes, so that interested
+     * backends (e.g.
+     * ECMA48Terminal via OSC 7) stay automatically synchronized.
      *
      * @param path the new working directory path
      */
     public static void setUserDir(final String path) {
-        userDir.set(path);
+        String oldPath = userDir.getAndSet(path);
+        if (Objects.equals(oldPath, path)) {
+            return;
+        }
+        for (Consumer<String> listener : userDirListeners) {
+            if (listener == null) {
+                continue;
+            }
+            try {
+                listener.accept(path);
+            } catch (RuntimeException e) {
+                // Ignore listener failures so the caller and other listeners
+                // can proceed.
+            }
+        }
+    }
+
+    /**
+     * Register a listener to be notified whenever {@link #setUserDir(String)}
+     * changes the cached value.  This is how backends can keep their own
+     * notion of the current working directory (e.g. reporting it to the
+     * terminal via OSC 7) synchronized with the cached value here.
+     *
+     * @param listener the callback to invoke with the new working directory
+     */
+    public static void addUserDirListener(final Consumer<String> listener) {
+        if (listener != null) {
+            userDirListeners.add(listener);
+        }
+    }
+
+    /**
+     * Unregister a previously registered user directory listener.
+     *
+     * @param listener the callback to remove
+     */
+    public static void removeUserDirListener(final Consumer<String> listener) {
+        userDirListeners.remove(listener);
     }
 
     /**
@@ -885,10 +1066,13 @@ public class SystemProperties {
         menuIcons.set(null);
         menuIconsOffset.set(null);
         useTerminalPalette.set(null);
+        ecma48KittyKeyboard.set(null);
         disablePreTransform.set(null);
         disablePostTransform.set(null);
         useJline.set(null);
         ecma48RgbColor.set(null);
+        ecma48PaletteColor.set(null);
+        treatBoldAsBright.set(null);
         imageFallbackDisplayMode.set(null);
         userDir.set(System.getProperty("user.dir"));
     }

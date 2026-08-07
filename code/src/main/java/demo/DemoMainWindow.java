@@ -21,6 +21,8 @@ package demo;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 
@@ -33,6 +35,7 @@ import casciian.TEditorWindow;
 import casciian.TLabel;
 import casciian.TProgressBar;
 import casciian.TTableWindow;
+import casciian.TTextAnsiWindow;
 import casciian.TTimer;
 import casciian.TWindow;
 import casciian.backend.SystemProperties;
@@ -58,6 +61,7 @@ public class DemoMainWindow extends TWindow {
      * The name of the resource bundle for this class.
      */
     public static final String RESOURCE_BUNDLE_NAME = DemoMainWindow.class.getName() + "Bundle";
+    private static final String ANSI_DEMO_RESOURCE = "/demo/ansi-demo.ansi";
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -76,12 +80,12 @@ public class DemoMainWindow extends TWindow {
     /**
      * Timer that increments a number.
      */
-    private TTimer timer2;
+    private final TTimer timer2;
 
     /**
      * Timer label is updated with timer ticks.
      */
-    TLabel timerLabel;
+    TLabel<?> timerLabel;
 
     /**
      * Timer increment used by the timer loop.  Has to be at class scope so
@@ -131,7 +135,7 @@ public class DemoMainWindow extends TWindow {
     private DemoMainWindow(final TApplication parent, final int flags) {
         // Construct a demo window.  X and Y don't matter because it will be
         // centered on screen.
-        super(parent, "", 0, 0, 66, 25, flags);
+        super(parent, "", 0, 0, 67, 23, flags);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -140,7 +144,7 @@ public class DemoMainWindow extends TWindow {
                 getHeight() - 2));
 
         int row = 1;
-        int col = 37;
+        int col = 38;
 
         // Add some widgets
         addLabel(i18n.getString("messageBoxLabel"), 1, row);
@@ -161,6 +165,17 @@ public class DemoMainWindow extends TWindow {
                 }
             }
         );
+
+        // Two progress bars and a timer label, placed next to the modal
+        // button.
+        progressBar1 = addProgressBar(col + 13, row, 12, 0, true);
+        timerLabel = addLabel(i18n.getString("timerLabel"), col + 13,
+            row + 1);
+        progressBar2 = addProgressBar(col + 13, row + 2, 12, 0, true);
+        progressBar2.setLeftBorderChar('\u255e');
+        progressBar2.setRightBorderChar('\u2561');
+        progressBar2.setCompletedChar('\u2592');
+        progressBar2.setRemainingChar('\u2550');
         row += 2;
 
         addLabel(i18n.getString("textFieldLabel"), 1, row);
@@ -211,6 +226,8 @@ public class DemoMainWindow extends TWindow {
                 }
             }
         );
+        addButton(i18n.getString("textAreaAnsiButton"), col + 13, row,
+            this::openAnsiTextDemo);
         row += 2;
 
         addLabel(i18n.getString("ttableLabel"), 1, row);
@@ -246,21 +263,14 @@ public class DemoMainWindow extends TWindow {
         );
         row += 2;
 
-        addLabel(i18n.getString("terminalLabel"), 1, row);
-        addButton(i18n.getString("terminalButton"), col, row,
-            () -> getApplication().openTerminal(0, 0));
-        row += 2;
-
         addLabel(i18n.getString("colorAndStyleEditorLabel"), 1, row);
         addButton(i18n.getString("colorEditorButton"), col, row,
             () -> new TEditColorThemeWindow(getApplication()));
         addButton(i18n.getString("styleEditorButton"), col + 13, row,
             () -> new TEditDesktopStyleWindow(getApplication()));
+        row += 2;
 
-        row = 15;
-        progressBar1 = addProgressBar(col + 13, row, 12, 0, true);
-        row++;
-        timerLabel = addLabel(i18n.getString("timerLabel"), col + 13, row);
+        // Register the timers that drive the two progress bars.
         timer1 = getApplication().addTimer(250, true,
             new TAction() {
 
@@ -278,13 +288,6 @@ public class DemoMainWindow extends TWindow {
             }
         );
 
-        row++;
-        progressBar2 = addProgressBar(col + 13, row, 12, 0, true);
-        progressBar2.setLeftBorderChar('\u255e');
-        progressBar2.setRightBorderChar('\u2561');
-        progressBar2.setCompletedChar('\u2592');
-        progressBar2.setRemainingChar('\u2550');
-        row += 2;
         timer2 = getApplication().addTimer(125, true,
             new TAction() {
 
@@ -298,8 +301,6 @@ public class DemoMainWindow extends TWindow {
                 }
             }
         );
-
-        row += 2;
 
         addLabel(i18n.getString("exceptionLabel"), 1, row);
         addButton(i18n.getString("exceptionButton"), col, row,
@@ -349,7 +350,7 @@ public class DemoMainWindow extends TWindow {
      */
     @Override
     public void onCommand(final TCommandEvent command) {
-        if (command.equals(cmOpen)) {
+        if (command.matchesCommand(cmOpen)) {
             try {
                 String filename = fileOpenBox(".");
                 if (filename != null) {
@@ -381,24 +382,44 @@ public class DemoMainWindow extends TWindow {
      */
     public void setUseGradient(final boolean useGradient) {
         if (useGradient) {
-            int pink = 0xf7a8b8;
-            int blue = 0x55cdfc;
-            int yellow = 0xffff00;
-            int orange = 0xffc800;
+            // Derive the gradient colors from the active theme so they stay
+            // harmonic when the user switches themes.
+            int[] corners = DemoGradientColors.cornerColors(getApplication());
+            int glow = DemoGradientColors.glowColor(getApplication());
 
             setDrawPreTransform(new GradientCellTransform(
-                GradientCellTransform.Layer.BACKGROUND, blue, pink,
-                yellow, blue), true);
+                GradientCellTransform.Layer.BACKGROUND,
+                corners[0], corners[1], corners[2], corners[3]), true);
 
             if (SystemProperties.isTextMouse()) {
                 setDrawPostTransform(new MouseGlowCellTransform(
-                    MouseGlowCellTransform.Layer.BOTH, orange, 7));
+                    MouseGlowCellTransform.Layer.BOTH, glow, 7));
             } else {
                 setDrawPostTransform(null);
             }
         } else {
             setDrawPreTransform(null);
             setDrawPostTransform(null);
+        }
+    }
+
+    private void openAnsiTextDemo() {
+        try (InputStream inputStream = DemoMainWindow.class.
+                getResourceAsStream(ANSI_DEMO_RESOURCE)) {
+            if (inputStream == null) {
+                messageBox(i18n.getString("errorTitle"),
+                    MessageFormat.format(i18n.getString("errorReadingFile"),
+                        ANSI_DEMO_RESOURCE));
+                return;
+            }
+            String content = new String(inputStream.readAllBytes(),
+                StandardCharsets.UTF_8);
+            new TTextAnsiWindow(getApplication(),
+                i18n.getString("textAreaAnsiTitle"), content);
+        } catch (IOException e) {
+            messageBox(i18n.getString("errorTitle"),
+                MessageFormat.format(i18n.getString("errorReadingFile"),
+                    ANSI_DEMO_RESOURCE + ": " + e.getMessage()));
         }
     }
 

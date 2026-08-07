@@ -143,9 +143,9 @@ public class TSpinner extends TWidget {
         CellAttributes spinnerColor;
 
         if (isAbsoluteActive()) {
-            spinnerColor = getTheme().getColor("tspinner.active");
+            spinnerColor = getWidgetColor("tspinner.active");
         } else {
-            spinnerColor = getTheme().getColor("tspinner.inactive");
+            spinnerColor = getWidgetColor("tspinner.inactive");
         }
 
         putCharXY(getWidth() - 2, 0, GraphicsChars.UPARROW, spinnerColor);

@@ -22,6 +22,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,6 +50,8 @@ class SystemPropertiesTest {
         System.clearProperty(SystemProperties.CASCIIAN_MENU_ICONS_OFFSET);
         System.clearProperty(SystemProperties.CASCIIAN_USE_JLINE);
         System.clearProperty(SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
+        System.clearProperty(SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR);
+        System.clearProperty(SystemProperties.CASCIIAN_TREAT_BOLD_AS_BRIGHT);
         SystemProperties.reset();
     }
 
@@ -882,6 +885,95 @@ class SystemPropertiesTest {
     }
 
     // -------------------------------------------------------------------------
+    // Palette Color Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get paletteColor returns default value (false) when not set")
+    void testIsPaletteColorDefault() {
+        assertFalse(SystemProperties.isPaletteColor());
+    }
+
+    @Test
+    @DisplayName("Get paletteColor returns true when set to 'true'")
+    void testIsPaletteColorSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR, "true");
+        assertTrue(SystemProperties.isPaletteColor());
+    }
+
+    @Test
+    @DisplayName("Get paletteColor returns false when set to 'false'")
+    void testIsPaletteColorSetFalse() {
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR, "false");
+        assertFalse(SystemProperties.isPaletteColor());
+    }
+
+    @Test
+    @DisplayName("Set and get paletteColor round trip")
+    void testSetPaletteColorRoundTrip() {
+        assertFalse(SystemProperties.isPaletteColor());
+
+        SystemProperties.setPaletteColor(true);
+        assertTrue(SystemProperties.isPaletteColor());
+
+        SystemProperties.setPaletteColor(false);
+        assertFalse(SystemProperties.isPaletteColor());
+    }
+
+    @Test
+    @DisplayName("Reset clears paletteColor cached value")
+    void testResetClearsPaletteColor() {
+        SystemProperties.setPaletteColor(true);
+        assertTrue(SystemProperties.isPaletteColor());
+
+        System.setProperty(SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR, "false");
+        SystemProperties.reset();
+
+        assertFalse(SystemProperties.isPaletteColor());
+    }
+
+    // -------------------------------------------------------------------------
+    // Treat Bold As Bright Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Get treatBoldAsBright returns default value (false) when not set")
+    void testIsTreatBoldAsBrightDefault() {
+        assertFalse(SystemProperties.isTreatBoldAsBright());
+    }
+
+    @Test
+    @DisplayName("Get treatBoldAsBright returns true when set to 'true'")
+    void testIsTreatBoldAsBrightSetTrue() {
+        System.setProperty(SystemProperties.CASCIIAN_TREAT_BOLD_AS_BRIGHT, "true");
+        assertTrue(SystemProperties.isTreatBoldAsBright());
+    }
+
+    @Test
+    @DisplayName("Set and get treatBoldAsBright round trip")
+    void testSetTreatBoldAsBrightRoundTrip() {
+        assertFalse(SystemProperties.isTreatBoldAsBright());
+
+        SystemProperties.setTreatBoldAsBright(true);
+        assertTrue(SystemProperties.isTreatBoldAsBright());
+
+        SystemProperties.setTreatBoldAsBright(false);
+        assertFalse(SystemProperties.isTreatBoldAsBright());
+    }
+
+    @Test
+    @DisplayName("Reset clears treatBoldAsBright cached value")
+    void testResetClearsTreatBoldAsBright() {
+        SystemProperties.setTreatBoldAsBright(true);
+        assertTrue(SystemProperties.isTreatBoldAsBright());
+
+        System.setProperty(SystemProperties.CASCIIAN_TREAT_BOLD_AS_BRIGHT, "false");
+        SystemProperties.reset();
+
+        assertFalse(SystemProperties.isTreatBoldAsBright());
+    }
+
+    // -------------------------------------------------------------------------
     // User Dir Tests
     // -------------------------------------------------------------------------
 
@@ -926,5 +1018,81 @@ class SystemPropertiesTest {
 
         // After reset, should re-read from user.dir system property
         assertEquals(originalSystemProp, SystemProperties.getUserDir());
+    }
+
+    @Test
+    @DisplayName("setUserDir notifies registered listeners with the new path")
+    void testSetUserDirNotifiesListeners() {
+        String original = SystemProperties.getUserDir();
+        String newDir = System.getProperty("java.io.tmpdir") + File.separator + "listener-dir";
+        java.util.List<String> received = new java.util.ArrayList<>();
+        java.util.function.Consumer<String> listener = received::add;
+
+        try {
+            SystemProperties.addUserDirListener(listener);
+            SystemProperties.setUserDir(newDir);
+            assertEquals(java.util.List.of(newDir), received);
+        } finally {
+            SystemProperties.removeUserDirListener(listener);
+            SystemProperties.setUserDir(original);
+        }
+    }
+
+    @Test
+    @DisplayName("setUserDir does not notify listeners when the cached value is unchanged")
+    void testSetUserDirDoesNotNotifyWhenUnchanged() {
+        String original = SystemProperties.getUserDir();
+        java.util.concurrent.atomic.AtomicInteger calls =
+            new java.util.concurrent.atomic.AtomicInteger();
+        java.util.function.Consumer<String> listener = path -> calls.incrementAndGet();
+
+        try {
+            SystemProperties.addUserDirListener(listener);
+            SystemProperties.setUserDir(original);
+            assertEquals(0, calls.get());
+        } finally {
+            SystemProperties.removeUserDirListener(listener);
+        }
+    }
+
+    @Test
+    @DisplayName("setUserDir isolates listener failures and ignores null listeners")
+    void testSetUserDirIsolatesListenerFailures() {
+        String original = SystemProperties.getUserDir();
+        String newDir = System.getProperty("java.io.tmpdir") + File.separator + "isolated-listener-dir";
+        java.util.List<String> received = new java.util.ArrayList<>();
+        java.util.function.Consumer<String> badListener = path -> {
+            throw new IllegalStateException("expected test failure");
+        };
+        java.util.function.Consumer<String> goodListener = received::add;
+
+        try {
+            SystemProperties.addUserDirListener(null);
+            SystemProperties.addUserDirListener(badListener);
+            SystemProperties.addUserDirListener(goodListener);
+
+            assertDoesNotThrow(() -> SystemProperties.setUserDir(newDir));
+            assertEquals(java.util.List.of(newDir), received);
+        } finally {
+            SystemProperties.removeUserDirListener(badListener);
+            SystemProperties.removeUserDirListener(goodListener);
+            SystemProperties.setUserDir(original);
+        }
+    }
+
+    @Test
+    @DisplayName("removeUserDirListener stops further notifications")
+    void testRemoveUserDirListener() {
+        String original = SystemProperties.getUserDir();
+        String newDir = System.getProperty("java.io.tmpdir") + File.separator + "removed-listener-dir";
+        java.util.List<String> received = new java.util.ArrayList<>();
+        java.util.function.Consumer<String> listener = received::add;
+
+        SystemProperties.addUserDirListener(listener);
+        SystemProperties.removeUserDirListener(listener);
+        SystemProperties.setUserDir(newDir);
+
+        assertTrue(received.isEmpty());
+        SystemProperties.setUserDir(original);
     }
 }

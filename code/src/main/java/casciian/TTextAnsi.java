@@ -1,0 +1,448 @@
+/*
+ * Casciian - Java Text User Interface
+ *
+ * Copyright 2025 Carlos Rafael Ramirez
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+package casciian;
+
+import java.util.List;
+
+import casciian.bits.AnsiParser;
+import casciian.bits.Cell;
+import casciian.bits.CellAttributes;
+import casciian.bits.ColorTheme;
+import casciian.event.TKeypressEvent;
+import casciian.event.TMouseEvent;
+import static casciian.TKeypress.*;
+
+/**
+ * TTextAnsi displays text containing ANSI escape sequences (colors and
+ * attributes) as a scrollable widget. It behaves like the {@code cat}
+ * command: text is rendered character by character, honoring escape
+ * sequences for SGR (Select Graphic Rendition) styling, and wrapping at
+ * the widget width.
+ *
+ * <p>
+ * This component is designed to display the output of commands like
+ * {@code pandoc file.md -t ansi} within a casciian application.
+ * </p>
+ */
+public class TTextAnsi extends TScrollable {
+
+    // ------------------------------------------------------------------------
+    // Variables --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * The raw text (may contain ANSI escape sequences).
+     */
+    private String text;
+
+    /**
+     * Parsed lines of cells.
+     */
+    private List<AnsiParser.Line> lines;
+
+    /**
+     * Maximum width of any single line in cells.
+     */
+    private int maxLineWidth;
+
+    // ------------------------------------------------------------------------
+    // Constructors -----------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Public constructor.
+     *
+     * @param parent parent widget
+     * @param text text to display (may contain ANSI escape sequences)
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param width width of text area
+     * @param height height of text area
+     */
+    @SuppressWarnings("this-escape")
+    public TTextAnsi(final TWidget parent, final String text, final int x,
+            final int y, final int width, final int height) {
+
+        // Set parent and window
+        super(parent, x, y, width, height);
+
+        this.text = text;
+
+        vScroller = new TVScroller(this, getWidth() - 1, 0,
+            Math.max(1, getHeight() - 1));
+        hScroller = new THScroller(this, 0, getHeight() - 1,
+            Math.max(1, calculateHScrollerWidth()));
+        reflowData();
+    }
+
+    // ------------------------------------------------------------------------
+    // TScrollable ------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Override TWidget's width: we need to set child widget widths.
+     *
+     * @param width new widget width
+     */
+    @Override
+    public void setWidth(final int width) {
+        super.setWidth(width);
+        if (hScroller != null) {
+            hScroller.setWidth(calculateHScrollerWidth());
+        }
+        if (vScroller != null) {
+            vScroller.setX(getWidth() - 1);
+        }
+    }
+
+    /**
+     * Override TWidget's height: we need to set child widget heights.
+     *
+     * @param height new widget height
+     */
+    @Override
+    public void setHeight(final int height) {
+        super.setHeight(height);
+        if (hScroller != null) {
+            hScroller.setY(getHeight() - 1);
+        }
+        if (vScroller != null) {
+            vScroller.setHeight(getHeight() - 1);
+        }
+    }
+
+    /**
+     * Draw the text area.
+     */
+    @Override
+    public void draw() {
+        CellAttributes defaultColor = getWidgetColor(ColorTheme.TTEXT);
+        CellAttributes defaultColorBright = getWidgetColor(ColorTheme.TTEXT_BOLD);
+
+        int begin = vScroller.getValue();
+        int hOffset = hScroller.getValue();
+        int topY = 0;
+
+        for (int i = begin; i < lines.size(); i++) {
+            AnsiParser.Line line = lines.get(i);
+            List<Cell> cells = line.getCells();
+
+            // Draw cells for this line
+            int drawWidth = getWidth() - 1;
+            int col = 0;
+            while (col < drawWidth) {
+                int srcCol = col + hOffset;
+                if (srcCol >= cells.size()) {
+                    putCharXY(col, topY, ' ', defaultColor);
+                    col++;
+                    continue;
+                }
+
+                Cell cell = cells.get(srcCol);
+                boolean wide = (cell.getDisplayWidth() == 2) && !cell.isImage();
+
+                // Never partially place a two-cell cluster: if the right
+                // half would fall outside the visible area, draw a blank
+                // instead so the wide glyph cannot overflow the widget.
+                if (wide && (col + 1 >= drawWidth)) {
+                    putCharXY(col, topY, ' ', defaultColor);
+                    col++;
+                    continue;
+                }
+
+                drawCell(cell, col, topY, defaultColor, defaultColorBright);
+
+                if (wide) {
+                    // AnsiParser stores a padding cell for the right half of
+                    // a wide glyph.  putCharXY already rendered both halves,
+                    // so skip the padding cell to avoid overwriting the
+                    // right half.
+                    col += 2;
+                } else {
+                    col++;
+                }
+            }
+            topY++;
+
+            if (topY >= (getHeight() - 1)) {
+                break;
+            }
+        }
+
+        // Pad remaining rows with blank lines
+        for (int i = topY; i < (getHeight() - 1); i++) {
+            hLineXY(0, i, getWidth() - 1, ' ', defaultColor);
+        }
+    }
+
+    /**
+     * Draw a single parsed cell at the given position, replacing default
+     * terminal colors with the widget's theme colors.
+     *
+     * @param cell              the parsed cell to draw
+     * @param col               column relative to the widget
+     * @param topY              row relative to the widget
+     * @param defaultColor      the theme's default color
+     * @param defaultColorBright the theme's default bright color
+     */
+    private void drawCell(final Cell cell, final int col, final int topY,
+            final CellAttributes defaultColor,
+            final CellAttributes defaultColorBright) {
+
+        TWindow w = getWindow();
+        boolean modal = (w != null) && w.isModal();
+        boolean darkTheme = getTheme().isDarkTheme(modal);
+
+        // Replace default terminal colors with theme colors
+        if (cell.isDefaultColor(true)
+                && cell.isDefaultColor(false)) {
+            CellAttributes base = cell.isBoldAsBright()
+                && defaultColor.getForeColorRGB() >= 0
+                ? defaultColorBright : defaultColor;
+            CellAttributes themed = new CellAttributes();
+            themed.setTo(base);
+            themed.setBold(cell.isBold());
+            themed.setUnderlineStyle(cell.getUnderlineStyle());
+            themed.setBlink(cell.isBlink());
+            themed.setReverse(cell.isReverse());
+            themed.setFaint(cell.isFaint());
+            themed.setItalic(cell.isItalic());
+            themed.setHidden(cell.isHidden());
+            themed.setStrikethrough(cell.isStrikethrough());
+            themed.setHyperlink(cell.getHyperlink());
+            applyBoldAsBright(themed, darkTheme, defaultColorBright);
+            putCharXY(col, topY, cell.getChar(), themed);
+        } else if (cell.isDefaultColor(true)) {
+            CellAttributes base = cell.isBoldAsBright()
+                && defaultColor.getForeColorRGB() >= 0
+                ? defaultColorBright : defaultColor;
+            CellAttributes themed = new CellAttributes();
+            themed.setTo(cell);
+            if (base.getForeColorRGB() >= 0) {
+                themed.setForeColorRGB(
+                    base.getForeColorRGB());
+            } else {
+                themed.setForeColor(base.getForeColor());
+            }
+            themed.setDefaultColor(true, false);
+            applyBoldAsBright(themed, darkTheme, defaultColorBright);
+            putCharXY(col, topY, cell.getChar(), themed);
+        } else if (cell.isDefaultColor(false)) {
+            CellAttributes themed = new CellAttributes();
+            themed.setTo(cell);
+            if (defaultColor.getBackColorRGB() >= 0) {
+                themed.setBackColorRGB(
+                    defaultColor.getBackColorRGB());
+            } else {
+                themed.setBackColor(defaultColor.getBackColor());
+            }
+            themed.setDefaultColor(false, false);
+            applyBoldAsBright(themed, darkTheme, defaultColorBright);
+            putCharXY(col, topY, cell.getChar(), themed);
+        } else {
+            CellAttributes themed = new CellAttributes();
+            themed.setTo(cell);
+            applyBoldAsBright(themed, darkTheme, defaultColorBright);
+            putCharXY(col, topY, cell.getChar(), themed);
+        }
+    }
+
+    /**
+     * Treat the bold attribute as a bright color on dark themes, matching
+     * the classic terminal convention where bold text is rendered using the
+     * high-intensity color palette rather than an actual bold font weight.
+     *
+     * <p>On a dark theme with a bold cell:
+     * <ul>
+     *   <li>Named (non-RGB, non-palette) foreground: brightened via
+     *       {@link casciian.bits.Color#toBright()}, bold cleared.</li>
+     *   <li>RGB or palette foreground: replaced with the foreground of
+     *       {@code defaultColorBright} (the theme's bold-text color),
+     *       bold cleared.</li>
+     * </ul>
+     * Non-dark themes are left unchanged.
+     * </p>
+     *
+     * @param attrs             the attributes to potentially modify in place
+     * @param darkTheme         true if the current theme is a dark theme, as
+     *                          determined by {@link ColorTheme#isDarkTheme()}
+     * @param defaultColorBright the theme's bold-text color, used as the
+     *                          bright substitution for RGB/palette foregrounds
+     */
+    static void applyBoldAsBright(final CellAttributes attrs,
+            final boolean darkTheme,
+            final CellAttributes defaultColorBright) {
+
+        if (!darkTheme || !attrs.isBold()) {
+            return;
+        }
+        if ((attrs.getForeColorRGB() >= 0)
+                || (attrs.getForeColorPalette() >= 0)) {
+            // For RGB/palette foregrounds there is no natural "bright"
+            // variant, so use the theme's bold-text foreground instead.
+            if (defaultColorBright.getForeColorPalette() >= 0) {
+                attrs.setForeColorPalette(
+                    defaultColorBright.getForeColorPalette());
+            } else if (defaultColorBright.getForeColorRGB() >= 0) {
+                attrs.setForeColorRGB(defaultColorBright.getForeColorRGB());
+            } else {
+                attrs.setForeColor(defaultColorBright.getForeColor());
+            }
+            attrs.setBold(false);
+            return;
+        }
+        attrs.setForeColor(attrs.getForeColor().toBright());
+        attrs.setBold(false);
+    }
+
+    /**
+     * Handle mouse press events.
+     *
+     * @param mouse mouse button press event
+     */
+    @Override
+    public void onMouseDown(final TMouseEvent mouse) {
+        if (mouse.isMouseWheelUp()) {
+            vScroller.decrement();
+            return;
+        }
+        if (mouse.isMouseWheelDown()) {
+            vScroller.increment();
+            return;
+        }
+        if (mouse.isMouseWheelLeft()) {
+            hScroller.increment();
+            return;
+        }
+        if (mouse.isMouseWheelRight()) {
+            hScroller.decrement();
+            return;
+        }
+
+        // Pass to children
+        super.onMouseDown(mouse);
+    }
+
+    /**
+     * Handle keystrokes.
+     *
+     * @param keypress keystroke event
+     */
+    @Override
+    public void onKeypress(final TKeypressEvent keypress) {
+        if (keypress.matchesKey(kbLeft)) {
+            hScroller.decrement();
+        } else if (keypress.matchesKey(kbRight)) {
+            hScroller.increment();
+        } else if (keypress.matchesKey(kbUp)) {
+            vScroller.decrement();
+        } else if (keypress.matchesKey(kbDown)) {
+            vScroller.increment();
+        } else if (keypress.matchesKey(kbPgUp)) {
+            vScroller.bigDecrement();
+        } else if (keypress.matchesKey(kbPgDn)) {
+            vScroller.bigIncrement();
+        } else if (keypress.matchesKey(kbHome)) {
+            vScroller.toTop();
+        } else if (keypress.matchesKey(kbEnd)) {
+            vScroller.toBottom();
+        } else {
+            // Pass other keys (tab etc.) on
+            super.onKeypress(keypress);
+        }
+    }
+
+    /**
+     * Resize text and scrollbars for a new width/height.
+     */
+    @Override
+    public void reflowData() {
+        // Re-parse with the current width
+        int displayWidth = getWidth() - 1;
+        if (displayWidth < 1) {
+            displayWidth = 1;
+        }
+        lines = AnsiParser.parse(text, displayWidth);
+        computeBounds();
+    }
+
+    // ------------------------------------------------------------------------
+    // TTextAnsi --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Set the text.
+     *
+     * @param text new text to display (may contain ANSI escape sequences)
+     */
+    public void setText(final String text) {
+        this.text = text;
+        reflowData();
+    }
+
+    /**
+     * Get the text.
+     *
+     * @return the raw text
+     */
+    public String getText() {
+        return text;
+    }
+
+    /**
+     * Append text.
+     *
+     * @param newText text to append
+     */
+    public void appendText(final String newText) {
+        if (text == null || text.isEmpty()) {
+            text = newText;
+        } else {
+            text += newText;
+        }
+        reflowData();
+    }
+
+    /**
+     * Recompute the bounds for the scrollbars.
+     */
+    private void computeBounds() {
+        maxLineWidth = 0;
+        for (AnsiParser.Line line : lines) {
+            if (line.getWidth() > maxLineWidth) {
+                maxLineWidth = line.getWidth();
+            }
+        }
+
+        vScroller.setTopValue(0);
+        vScroller.setBottomValue((lines.size() - getHeight()) + 1);
+        if (vScroller.getBottomValue() < 0) {
+            vScroller.setBottomValue(0);
+        }
+        if (vScroller.getValue() > vScroller.getBottomValue()) {
+            vScroller.setValue(vScroller.getBottomValue());
+        }
+
+        hScroller.setLeftValue(0);
+        hScroller.setRightValue((maxLineWidth - getWidth()) + 1);
+        if (hScroller.getRightValue() < 0) {
+            hScroller.setRightValue(0);
+        }
+        if (hScroller.getValue() > hScroller.getRightValue()) {
+            hScroller.setValue(hScroller.getRightValue());
+        }
+    }
+}

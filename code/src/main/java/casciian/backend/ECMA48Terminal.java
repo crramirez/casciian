@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.backend;
 
@@ -23,15 +28,17 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import casciian.backend.terminal.OsUtils;
 import casciian.backend.terminal.Terminal;
 import casciian.backend.terminal.TerminalFactory;
 import casciian.bits.Cell;
@@ -39,6 +46,8 @@ import casciian.bits.CellAttributes;
 import casciian.bits.Color;
 import casciian.bits.ComplexCell;
 import casciian.bits.ImageRGB;
+import casciian.bits.ArrayImageRGB;
+import casciian.bits.Palette256;
 import casciian.bits.StringUtils;
 import casciian.bits.UnicodeGlyphImage;
 import casciian.event.TCommandEvent;
@@ -113,6 +122,27 @@ public class ECMA48Terminal extends LogicalScreen
     private static final String XTVERSION_FOR_WARP = "Warp";
 
     /**
+     * VT2026 Begin Synchronized Update (BSU).
+     */
+    private static final String BEGIN_SYNCHRONIZED_UPDATE = "\033[?2026h";
+
+    /**
+     * VT2026 End Synchronized Update (ESU).
+     */
+    private static final String END_SYNCHRONIZED_UPDATE = "\033[?2026l";
+
+    /**
+     * Maximum number of characters that the reusable frame buffer will
+     * retain between redraws.
+     */
+    private static final int FRAME_BUFFER_MAX_CHARS = 65536;
+
+    /**
+     * The local hostname used in OSC 7 file:// URIs.
+     */
+    private static final String HOSTNAME = getHostname();
+
+    /**
      * States in the input parser.
      */
     private enum ParseState {
@@ -152,7 +182,7 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Emit debugging to stderr.
      */
-    private boolean debugToStderr = false;
+    private static final boolean DEBUG_TO_STDERR = false;
 
     /**
      * The backend that is reading from this terminal.
@@ -378,6 +408,30 @@ public class ECMA48Terminal extends LogicalScreen
     private boolean modifyOtherKeys = false;
 
     /**
+     * If true, we pushed the Kitty keyboard protocol ("disambiguated keys",
+     * CSI u) flags onto the terminal's keyboard mode stack and still owe it
+     * a pop.  Guarded so that the pop happens exactly once, whether it comes
+     * from closeTerminal() or from the JVM shutdown hook.
+     */
+    private final AtomicBoolean kittyKeyboardPushed = new AtomicBoolean(false);
+
+    /**
+     * Whether the terminal has been observed to actively honor the Kitty
+     * keyboard protocol.  Starts UNKNOWN and settles to SUPPORTED or
+     * UNSUPPORTED shortly after connecting; see enableKittyKeyboard() for
+     * how that determination is made.  Volatile because it is written from
+     * the reader thread and read from application code.
+     */
+    private volatile KittyKeyboard.SupportState kittyKeyboardSupport =
+        KittyKeyboard.SupportState.UNKNOWN;
+
+    /**
+     * Shutdown hook that pops the Kitty keyboard flags if the application
+     * dies without calling closeTerminal().
+     */
+    private Thread kittyKeyboardShutdownHook;
+
+    /**
      * If true, '?' was seen in terminal response.
      */
     private boolean decPrivateModeFlag = false;
@@ -416,11 +470,22 @@ public class ECMA48Terminal extends LogicalScreen
     private boolean hasFocus = true;
 
     /**
-     * If true, this terminal supports Synchronized Output mode (2026).  See
+     * If true, this terminal reported (via DECRPM) that it supports
+     * Synchronized Output mode (2026).  See
      * https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
-     * for details of this mode.
+     * for details of this mode.  This only records the probe result: frame
+     * wrapping is driven by {@link #synchronizedOutputEnabled}, because the
+     * probe response can arrive after several frames have been emitted and
+     * terminals without support silently ignore the sequences.
      */
-    private boolean hasSynchronizedOutput = false;
+    private volatile boolean hasSynchronizedOutput = false;
+
+    /**
+     * If true, wrap each frame in VT2026 Synchronized Output mode.
+     * Legacy terminals safely ignore these control sequences, so this
+     * defaults to true even before support probing completes.
+     */
+    private volatile boolean synchronizedOutputEnabled = true;
 
     /**
      * If true, this terminal requires explicitly overwriting images
@@ -467,6 +532,17 @@ public class ECMA48Terminal extends LogicalScreen
     private PrintWriter output;
 
     /**
+     * Serialize writes that must remain atomic on the terminal stream.
+     */
+    private final Object outputLock = new Object();
+
+    /**
+     * Buffer reused by writeFrame() to hand frame characters to the output
+     * writer.  Guarded by outputLock.
+     */
+    private char [] frameBuffer = new char[0];
+
+    /**
      * The listening object that run() wakes up on new input.
      * This field is volatile to ensure visibility across threads when the
      * listener is changed via setListener() while the reader thread is running.
@@ -482,14 +558,14 @@ public class ECMA48Terminal extends LogicalScreen
     private static int MYMAGENTA;
     private static int MYCYAN;
     private static int MYWHITE;
-    private static int MYBOLD_BLACK;
-    private static int MYBOLD_RED;
-    private static int MYBOLD_GREEN;
-    private static int MYBOLD_YELLOW;
-    private static int MYBOLD_BLUE;
-    private static int MYBOLD_MAGENTA;
-    private static int MYBOLD_CYAN;
-    private static int MYBOLD_WHITE;
+    private static int MYBRIGHT_BLACK;
+    private static int MYBRIGHT_RED;
+    private static int MYBRIGHT_GREEN;
+    private static int MYBRIGHT_YELLOW;
+    private static int MYBRIGHT_BLUE;
+    private static int MYBRIGHT_MAGENTA;
+    private static int MYBRIGHT_CYAN;
+    private static int MYBRIGHT_WHITE;
     private static int DEFAULT_FORECOLOR;
     private static int DEFAULT_BACKCOLOR;
 
@@ -623,15 +699,17 @@ public class ECMA48Terminal extends LogicalScreen
         // Send dtterm/xterm sequences, which will probably not work because
         // allowWindowOps is defaulted to false.
         if ((windowWidth > 0) && (windowHeight > 0)) {
-            if (debugToStderr) {
+            if (DEBUG_TO_STDERR) {
                 System.err.println("ECMA48Terminal() request screen size " +
                     getWidth() + " x " + getHeight());
             }
 
             String resizeString = String.format("\033[8;%d;%dt", windowHeight,
                 windowWidth);
-            this.output.write(resizeString);
-            this.output.flush();
+            synchronized (outputLock) {
+                this.output.write(resizeString);
+                this.output.flush();
+            }
         }
     }
 
@@ -667,7 +745,7 @@ public class ECMA48Terminal extends LogicalScreen
         this.listener = listener;
 
         // Always create a terminal instance - it manages streams and features
-        terminal = TerminalFactory.create(input, output, debugToStderr);
+        terminal = TerminalFactory.create(input, output, DEBUG_TO_STDERR);
 
         this.input = terminal.getReader();
 
@@ -695,40 +773,58 @@ public class ECMA48Terminal extends LogicalScreen
         // Get output writer from terminal
         this.output = terminal.getWriter();
 
-        // Request xterm version.  Due to the ambiguity between the response
-        // and Alt-P, this must be the first thing to request.
-        this.output.printf("%s", xtermReportVersion());
+        synchronized (outputLock) {
+            // Request xterm version.  Due to the ambiguity between the response
+            // and Alt-P, this must be the first thing to request.
+            this.output.printf("%s", xtermReportVersion());
 
-        // Request Device Attributes
-        this.output.printf("\033[c");
+            // Request xterm report window/cell dimensions in pixels
+            this.output.printf("%s", xtermReportPixelDimensions());
 
-        // Request xterm report window/cell dimensions in pixels
-        this.output.printf("%s", xtermReportPixelDimensions());
+            // Enable mouse reporting.  This also switches to the alternate
+            // screen buffer (smcup), which is why the Kitty keyboard flags are
+            // pushed only after this call, below: the protocol spec requires
+            // terminals to keep independent keyboard mode stacks for the main
+            // and alternate screens, so pushing before the switch would land
+            // the flags on the stack Casciian never actually runs on, and they
+            // would silently have no effect.
+            this.terminal.enableMouseReporting(true);
 
-        // Enable mouse reporting
-        this.terminal.enableMouseReporting(true);
+            // Ask for the Kitty keyboard protocol ("disambiguated keys").
+            // Terminals that do not support it, or have it turned off, ignore
+            // this and keep sending legacy VT sequences.  This must be sent
+            // before the Device Attributes request below: DA is answered by
+            // every terminal, so seeing its response without having first seen
+            // a reply to our capability query is how we conclude the protocol
+            // is not active (see enableKittyKeyboard()).
+            enableKittyKeyboard();
 
-        // Enable metaSendsEscape
-        this.output.printf("%s", xtermMetaSendsEscape(true));
+            // Request Device Attributes
+            this.output.printf("\033[c");
 
-        // Request xterm report Synchronized Output support
-        this.output.printf("%s", xtermQueryMode(2026));
+            // Enable metaSendsEscape
+            this.output.printf("%s", xtermMetaSendsEscape(true));
 
-        // Send CGA palette to terminal (unless using terminal's native palette)
-        if (!SystemProperties.isUseTerminalPalette()) {
-            sendPalette();
+            // Request xterm report Synchronized Output support
+            this.output.printf("%s", xtermQueryMode(2026));
+
+            // Send CGA palette to terminal (unless using terminal's native
+            // palette)
+            if (!SystemProperties.isUseTerminalPalette()) {
+                sendPalette();
+            }
+
+            // Request xterm report its ANSI colors
+            this.output.printf("%s", xtermQueryAnsiColors());
+
+            // Request xterm report sixelCursorOnRight support
+            this.output.printf("%s", xtermQueryMode(8452));
+
+            // Request xterm report its screen size
+            this.output.printf("%s", xtermQueryWindowSize());
+
+            this.output.flush();
         }
-
-        // Request xterm report its ANSI colors
-        this.output.printf("%s", xtermQueryAnsiColors());
-
-        // Request xterm report sixelCursorOnRight support
-        this.output.printf("%s", xtermQueryMode(8452));
-
-        // Request xterm report its screen size
-        this.output.printf("%s", xtermQueryWindowSize());
-
-        this.output.flush();
 
         // Query the screen size locally
         sessionInfo.queryWindowSize();
@@ -741,9 +837,11 @@ public class ECMA48Terminal extends LogicalScreen
 
         reloadOptions();
 
-        if (modifyOtherKeys) {
-            // Request modifyOtherKeys
-            this.output.printf("\033[>4;2m");
+        synchronized (outputLock) {
+            if (modifyOtherKeys) {
+                // Request modifyOtherKeys
+                this.output.printf("\033[>4;2m");
+            }
         }
 
         // Spin up the input reader
@@ -752,8 +850,10 @@ public class ECMA48Terminal extends LogicalScreen
         readerThread.start();
 
         // Clear the screen
-        this.output.write(clearAll());
-        this.output.flush();
+        synchronized (outputLock) {
+            this.output.write(clearAll());
+            this.output.flush();
+        }
 
     }
 
@@ -799,7 +899,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Create a terminal instance with the pre-wired streams
         // This allows future delegation of terminal features
-        terminal = TerminalFactory.create(input, reader, writer, debugToStderr);
+        terminal = TerminalFactory.create(input, reader, writer, DEBUG_TO_STDERR);
 
         this.input = reader;
 
@@ -824,37 +924,55 @@ public class ECMA48Terminal extends LogicalScreen
 
         this.output = writer;
 
-        // Request xterm version.  Due to the ambiguity between the response
-        // and Alt-P, this must be the first thing to request.
-        this.output.printf("%s", xtermReportVersion());
+        synchronized (outputLock) {
+            // Request xterm version.  Due to the ambiguity between the response
+            // and Alt-P, this must be the first thing to request.
+            this.output.printf("%s", xtermReportVersion());
+
+            // Request xterm report window/cell dimensions in pixels
+            this.output.printf("%s", xtermReportPixelDimensions());
+
+        // Enable mouse reporting.  This also switches to the alternate
+        // screen buffer (smcup), which is why the Kitty keyboard flags are
+        // pushed only after this call, below: the protocol spec requires
+        // terminals to keep independent keyboard mode stacks for the main
+        // and alternate screens, so pushing before the switch would land
+        // the flags on the stack Casciian never actually runs on, and they
+        // would silently have no effect.
+            this.terminal.enableMouseReporting(true);
+
+        // Ask for the Kitty keyboard protocol ("disambiguated keys").
+        // Terminals that do not support it, or have it turned off, ignore
+        // this and keep sending legacy VT sequences.  This must be sent
+        // before the Device Attributes request below: DA is answered by
+        // every terminal, so seeing its response without having first seen
+        // a reply to our capability query is how we conclude the protocol
+        // is not active (see enableKittyKeyboard()).
+        enableKittyKeyboard();
 
         // Request Device Attributes
         this.output.printf("\033[c");
 
-        // Request xterm report window/cell dimensions in pixels
-        this.output.printf("%s", xtermReportPixelDimensions());
+            // Enable metaSendsEscape
+            this.output.printf("%s", xtermMetaSendsEscape(true));
 
-        // Enable mouse reporting
-        this.terminal.enableMouseReporting(true);
+            // Request xterm report Synchronized Output support
+            this.output.printf("%s", xtermQueryMode(2026));
 
-        // Enable metaSendsEscape
-        this.output.printf("%s", xtermMetaSendsEscape(true));
+            // Send CGA palette to terminal (unless using terminal's native
+            // palette)
+            if (!SystemProperties.isUseTerminalPalette()) {
+                sendPalette();
+            }
 
-        // Request xterm report Synchronized Output support
-        this.output.printf("%s", xtermQueryMode(2026));
+            // Request xterm report its ANSI colors
+            this.output.printf("%s", xtermQueryAnsiColors());
 
-        // Send CGA palette to terminal (unless using terminal's native palette)
-        if (!SystemProperties.isUseTerminalPalette()) {
-            sendPalette();
+            // Request xterm report its screen size
+            this.output.printf("%s", xtermQueryWindowSize());
+
+            this.output.flush();
         }
-
-        // Request xterm report its ANSI colors
-        this.output.printf("%s", xtermQueryAnsiColors());
-
-        // Request xterm report its screen size
-        this.output.printf("%s", xtermQueryWindowSize());
-
-        this.output.flush();
 
         // Query the screen size locally
         sessionInfo.queryWindowSize();
@@ -867,9 +985,11 @@ public class ECMA48Terminal extends LogicalScreen
 
         reloadOptions();
 
-        if (modifyOtherKeys) {
-            // Request modifyOtherKeys
-            this.output.printf("\033[>4;2m");
+        synchronized (outputLock) {
+            if (modifyOtherKeys) {
+                // Request modifyOtherKeys
+                this.output.printf("\033[>4;2m");
+            }
         }
 
         // Spin up the input reader
@@ -878,8 +998,10 @@ public class ECMA48Terminal extends LogicalScreen
         readerThread.start();
 
         // Clear the screen
-        this.output.write(clearAll());
-        this.output.flush();
+        synchronized (outputLock) {
+            this.output.write(clearAll());
+            this.output.flush();
+        }
     }
 
     /**
@@ -912,9 +1034,31 @@ public class ECMA48Terminal extends LogicalScreen
      */
     @Override
     public void setTitle(final String title) {
-        if (output != null) {
-            output.write(getSetTitleString(title));
-            flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.write(getSetTitleString(title));
+                writer.flush();
+            }
+        }
+    }
+
+    /**
+     * Report the current working directory to the terminal (OSC 7).
+     *
+     * @param directory the new working directory
+     */
+    @Override
+    public void setWorkingDirectory(final String directory) {
+        if ((directory == null) || directory.isEmpty()) {
+            return;
+        }
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.write(getSetWorkingDirectoryString(directory));
+                writer.flush();
+            }
         }
     }
 
@@ -949,43 +1093,77 @@ public class ECMA48Terminal extends LogicalScreen
             textBlinkVisible = true;
         }
 
-        if (output != null) {
-            if (hasSynchronizedOutput) {
-                if (!sb.isEmpty()) {
-                    // Begin Synchronized Update (BSU)
-                    output.write("\033[?2026h");
-                    if (debugToStderr) {
-                        System.err.printf("Writing %d bytes to terminal (sync)\n",
-                            sb.length());
-                    }
-                    output.write(sb.toString());
-                    // End Synchronized Update (ESU)
-                    output.write("\033[?2026l");
-                }
-                if (debugToStderr) {
-                    System.err.printf("flushPhysical() \033[?2026h%s\033[?2026l\n",
-                        sb.toString());
-                }
-            } else {
-                if (!sb.isEmpty()) {
-                    if (debugToStderr) {
-                        System.err.printf("Writing %d bytes to terminal\n",
-                            sb.length());
-                    }
-                    output.write(sb.toString());
-                }
-            }
-            output.flush();
-
-            long now = System.currentTimeMillis();
-            if ((int) (now / 1000) == (int) (lastFlushTime / 1000)) {
-                bytesPerSecond += sb.length();
-            } else {
-                lastBytesPerSecond = sb.length();
-                bytesPerSecond = 0;
-            }
-            lastFlushTime = now;
+        final int frameChars = sb.length();
+        final boolean wrapFrame = synchronizedOutputEnabled && (frameChars > 0);
+        int frameLength = frameChars;
+        if (wrapFrame) {
+            frameLength += BEGIN_SYNCHRONIZED_UPDATE.length()
+                + END_SYNCHRONIZED_UPDATE.length();
         }
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                if (frameChars > 0) {
+                    if (DEBUG_TO_STDERR) {
+                        if (wrapFrame) {
+                            System.err.printf("Writing %d bytes to terminal (sync)\n",
+                                frameLength);
+                            System.err.printf("flushPhysical() %s%s%s\n",
+                                BEGIN_SYNCHRONIZED_UPDATE, sb,
+                                END_SYNCHRONIZED_UPDATE);
+                        } else {
+                            System.err.printf("Writing %d bytes to terminal\n",
+                                frameLength);
+                        }
+                    }
+                    if (wrapFrame) {
+                        writer.write(BEGIN_SYNCHRONIZED_UPDATE);
+                    }
+                    writeFrame(writer, sb);
+                    if (wrapFrame) {
+                        writer.write(END_SYNCHRONIZED_UPDATE);
+                    }
+                }
+                writer.flush();
+
+                long now = System.currentTimeMillis();
+                if ((int) (now / 1000) == (int) (lastFlushTime / 1000)) {
+                    bytesPerSecond += frameLength;
+                } else {
+                    lastBytesPerSecond = frameLength;
+                    bytesPerSecond = 0;
+                }
+                lastFlushTime = now;
+            }
+        }
+    }
+
+    /**
+     * Write the contents of a rendered frame to the terminal without
+     * allocating a String copy of it.  Frames up to
+     * {@link #FRAME_BUFFER_MAX_CHARS} are copied into a buffer that is reused
+     * across redraws; larger frames (for example those carrying image data)
+     * use a temporary buffer so that the memory is not retained.  Callers
+     * must hold outputLock.
+     *
+     * @param writer the writer to send the frame to
+     * @param frame  the rendered frame
+     */
+    private void writeFrame(final PrintWriter writer,
+        final StringBuilder frame) {
+
+        int length = frame.length();
+        char [] buffer;
+        if (length <= FRAME_BUFFER_MAX_CHARS) {
+            if (frameBuffer.length < length) {
+                frameBuffer = new char[length];
+            }
+            buffer = frameBuffer;
+        } else {
+            buffer = new char[length];
+        }
+        frame.getChars(0, length, buffer, 0);
+        writer.write(buffer, 0, length);
     }
 
     /**
@@ -997,7 +1175,7 @@ public class ECMA48Terminal extends LogicalScreen
             return;
         }
         if (!daResponseSeen) {
-            if (debugToStderr) {
+            if (DEBUG_TO_STDERR) {
                 System.err.println("resizeToScreen() -- ABORT no DA seen --");
             }
             // Do not resize immediately until we have seen device
@@ -1005,7 +1183,7 @@ public class ECMA48Terminal extends LogicalScreen
             return;
         }
 
-        if (debugToStderr) {
+        if (DEBUG_TO_STDERR) {
             System.err.println("resizeToScreen() " + getWidth() + " x " +
                 getHeight());
         }
@@ -1015,8 +1193,13 @@ public class ECMA48Terminal extends LogicalScreen
         String resizeString = String.format("\033[8;%d;%dt", getHeight(),
             getWidth());
         if (output != null) {
-            this.output.write(resizeString);
-            this.output.flush();
+            synchronized (outputLock) {
+                PrintWriter writer = output;
+                if (writer != null) {
+                    writer.write(resizeString);
+                    writer.flush();
+                }
+            }
         }
     }
 
@@ -1063,10 +1246,15 @@ public class ECMA48Terminal extends LogicalScreen
         try {
             readerThread.join();
         } catch (InterruptedException e) {
-            if (debugToStderr) {
+            if (DEBUG_TO_STDERR) {
                 e.printStackTrace();
             }
         }
+
+        // Pop the Kitty keyboard protocol flags before anything can close
+        // the output stream, so the host terminal is back in standard input
+        // mode.
+        disableKittyKeyboard();
 
         // Restore original xterm mouse pointer shape if it was changed
         restoreXtermMousePointer();
@@ -1075,11 +1263,15 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Disable mouse reporting and show cursor.  Defensive null check
         // here in case closeTerminal() is called twice.
-        if (output != null) {
-            this.terminal.enableMouseReporting(false);
-            output.printf("%s%s", cursor(true), defaultColor());
-            output.printf("\033[>4m");
-            output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                this.terminal.enableMouseReporting(false);
+                writer.printf("%s%s", cursor(true), defaultColor());
+                writer.write(END_SYNCHRONIZED_UPDATE);
+                writer.printf("\033[>4m");
+                writer.flush();
+            }
         }
 
         if (setRawMode) {
@@ -1097,9 +1289,11 @@ public class ECMA48Terminal extends LogicalScreen
                 }
                 input = null;
             }
-            if (output != null) {
-                output.close();
-                output = null;
+            synchronized (outputLock) {
+                if (output != null) {
+                    output.close();
+                    output = null;
+                }
             }
         }
 
@@ -1107,19 +1301,87 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Restore the terminal's palette to its original state.
+     * Push the Kitty keyboard protocol flags onto the terminal's keyboard
+     * mode stack, and register a shutdown hook that pops them again if the
+     * application dies before closeTerminal() runs.
      */
-    private void restorePalette() {
+    private void enableKittyKeyboard() {
+        if (!SystemProperties.isEcma48KittyKeyboard()) {
+            // We were told not to ask.  From the application's point of
+            // view this has the same effect as the terminal refusing: no
+            // keystroke will ever be disambiguated.
+            kittyKeyboardSupport = KittyKeyboard.SupportState.UNSUPPORTED;
+            return;
+        }
         if (output == null) {
             return;
         }
-
-        if (SystemProperties.isUseTerminalPalette()) {
+        if (!kittyKeyboardPushed.compareAndSet(false, true)) {
             return;
         }
 
-        output.print("\033]104\033\\");
-        output.flush();
+        // Push the flags, then immediately ask the terminal to report them
+        // back.  A terminal that honors the protocol answers with
+        // "CSI ? flags u"; one that does not (or has the feature turned off
+        // in its own config, as WezTerm does by default) stays silent.  The
+        // Device Attributes request sent right after this in the
+        // constructor is the sentinel that turns that silence into a
+        // definite answer: see the 'c' case in processChar().
+        output.printf("%s%s", KittyKeyboard.ENABLE, KittyKeyboard.QUERY);
+
+        kittyKeyboardShutdownHook = new Thread(this::disableKittyKeyboard,
+            "casciian-kitty-keyboard-restore");
+        try {
+            Runtime.getRuntime().addShutdownHook(kittyKeyboardShutdownHook);
+        } catch (IllegalStateException e) {
+            // The JVM is already shutting down.  Nothing to register.
+            kittyKeyboardShutdownHook = null;
+        }
+    }
+
+    /**
+     * Pop the Kitty keyboard protocol flags, returning the host terminal to
+     * standard input mode.  Safe to call more than once, and safe to call
+     * from the shutdown hook.
+     */
+    private void disableKittyKeyboard() {
+        if (!kittyKeyboardPushed.compareAndSet(true, false)) {
+            return;
+        }
+
+        PrintWriter out = output;
+        if (out != null) {
+            out.printf("%s", KittyKeyboard.DISABLE);
+            out.flush();
+        }
+
+        Thread hook = kittyKeyboardShutdownHook;
+        kittyKeyboardShutdownHook = null;
+        if ((hook != null) && (hook != Thread.currentThread())) {
+            try {
+                Runtime.getRuntime().removeShutdownHook(hook);
+            } catch (IllegalStateException e) {
+                // The JVM is already shutting down, the hook will simply be
+                // a no-op when it runs.
+            }
+        }
+    }
+
+    /**
+     * Restore the terminal's palette to its original state.
+     */
+    private void restorePalette() {
+        if (SystemProperties.isUseTerminalPalette()) {
+            return;
+        }
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer == null) {
+                return;
+            }
+            writer.print("\033]104\033\\");
+            writer.flush();
+        }
     }
 
     /**
@@ -1136,7 +1398,7 @@ public class ECMA48Terminal extends LogicalScreen
      * Reload options from System properties.
      */
     public void reloadOptions() {
-        if (debugToStderr) {
+        if (DEBUG_TO_STDERR) {
             System.err.println("reloadOptions()");
         }
 
@@ -1164,7 +1426,12 @@ public class ECMA48Terminal extends LogicalScreen
         sixelEncoder.reloadOptions();
 
         // Request xterm use the sixel settings we want
-        this.output.printf("%s", xtermSetSixelSettings());
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.printf("%s", xtermSetSixelSettings());
+            }
+        }
 
         if (!daResponseSeen) {
             // Default to using JPG Casciian images if terminal supports it.
@@ -1248,13 +1515,13 @@ public class ECMA48Terminal extends LogicalScreen
             try {
                 // We assume that if inputStream has bytes available, then
                 // input won't block on read().
-                if (debugToStderr) {
+                if (DEBUG_TO_STDERR) {
                     System.err.printf("Looking for input...");
                 }
 
                 int n = terminal.available();
 
-                if (debugToStderr) {
+                if (DEBUG_TO_STDERR) {
                     if (n == 0) {
                         System.err.println("none.");
                     }
@@ -1264,7 +1531,7 @@ public class ECMA48Terminal extends LogicalScreen
                 }
 
                 if (n > 0) {
-                    if (debugToStderr) {
+                    if (DEBUG_TO_STDERR) {
                         System.err.printf("%d bytes to read.\n", n);
                     }
 
@@ -1273,7 +1540,7 @@ public class ECMA48Terminal extends LogicalScreen
                         readBuffer = new char[readBuffer.length * 2];
                     }
 
-                    if (debugToStderr) {
+                    if (DEBUG_TO_STDERR) {
                         System.err.printf("B4 read(): readBuffer.length = %d\n",
                             readBuffer.length);
                     }
@@ -1286,14 +1553,14 @@ public class ECMA48Terminal extends LogicalScreen
                     */
 
                     if (rc == -1) {
-                        if (debugToStderr) {
+                        if (DEBUG_TO_STDERR) {
                             System.err.println(" ---- EOF ----");
                         }
 
                         // This is EOF
                         done = true;
                     } else {
-                        if (debugToStderr) {
+                        if (DEBUG_TO_STDERR) {
                             StringBuilder sb = new StringBuilder();
                             for (int i = 0; i < rc; i++) {
                                 sb.append(readBuffer[i]);
@@ -1310,26 +1577,26 @@ public class ECMA48Terminal extends LogicalScreen
                         if (!events.isEmpty()) {
                             // Add to the queue for the backend thread to
                             // be able to obtain.
-                            if (debugToStderr) {
+                            if (DEBUG_TO_STDERR) {
                                 System.err.printf("Checking eventQueue...");
                             }
 
                             synchronized (eventQueue) {
                                 eventQueue.addAll(events);
                             }
-                            if (debugToStderr) {
+                            if (DEBUG_TO_STDERR) {
                                 System.err.printf("done.\n");
                             }
 
                             if (listener != null) {
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.printf("Waking up listener...");
                                 }
 
                                 synchronized (listener) {
                                     listener.notifyAll();
                                 }
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.printf("done.\n");
                                 }
 
@@ -1338,31 +1605,31 @@ public class ECMA48Terminal extends LogicalScreen
                         }
                     }
                 } else {
-                    if (debugToStderr) {
+                    if (DEBUG_TO_STDERR) {
                         System.err.println("Looking for idle events");
                     }
                     getIdleEvents(events);
                     if (!events.isEmpty()) {
-                        if (debugToStderr) {
+                        if (DEBUG_TO_STDERR) {
                             System.err.printf("Checking eventQueue...");
                         }
 
                         synchronized (eventQueue) {
                             eventQueue.addAll(events);
                         }
-                        if (debugToStderr) {
+                        if (DEBUG_TO_STDERR) {
                             System.err.printf("done.\n");
                         }
 
                         if (listener != null) {
-                            if (debugToStderr) {
+                            if (DEBUG_TO_STDERR) {
                                 System.err.printf("Waking up listener...");
                             }
 
                             synchronized (listener) {
                                 listener.notifyAll();
                             }
-                            if (debugToStderr) {
+                            if (DEBUG_TO_STDERR) {
                                 System.err.printf("done.\n");
                             }
 
@@ -1370,8 +1637,9 @@ public class ECMA48Terminal extends LogicalScreen
                         events.clear();
                     }
 
-                    if (output != null) {
-                        if (output.checkError()) {
+                    synchronized (outputLock) {
+                        PrintWriter writer = output;
+                        if ((writer != null) && writer.checkError()) {
                             // This is EOF.
                             done = true;
                         }
@@ -1502,6 +1770,11 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Get the output writer.
      *
+     * <p>Writes made directly through the returned writer are not serialized
+     * with this terminal's own frame writes, and can therefore land in the
+     * middle of a synchronized update.  Prefer the methods on this class,
+     * which serialize all terminal writes.
+     *
      * @return the Writer
      */
     public PrintWriter getOutput() {
@@ -1553,9 +1826,55 @@ public class ECMA48Terminal extends LogicalScreen
      * Flush output.
      */
     public void flush() {
-        if (output != null) {
-            output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.flush();
+            }
         }
+    }
+
+    /**
+     * Check whether frame writes are wrapped in VT2026 Synchronized Output.
+     *
+     * @return true if Synchronized Output wrapping is enabled
+     */
+    public boolean isSynchronizedOutputEnabled() {
+        return synchronizedOutputEnabled;
+    }
+
+    /**
+     * Enable or disable VT2026 Synchronized Output frame wrapping.
+     *
+     * @param enabled if true, wrap frames in CSI ? 2026 h/l
+     */
+    public void setSynchronizedOutputEnabled(final boolean enabled) {
+        synchronizedOutputEnabled = enabled;
+    }
+
+    /**
+     * Build an OSC 8 hyperlink control sequence.  Passing a non-null URI
+     * opens (or changes) the hyperlink; passing null closes it.  The URI is
+     * sanitized to strip control characters so it cannot inject arbitrary
+     * escape sequences into the terminal stream.
+     *
+     * @param uri the hyperlink URI, or null to close the current hyperlink
+     * @return the OSC 8 escape sequence
+     */
+    private String hyperlinkSequence(final String uri) {
+        StringBuilder sb = new StringBuilder("\033]8;;");
+        if (uri != null) {
+            for (int i = 0; i < uri.length(); i++) {
+                char c = uri.charAt(i);
+                // Strip C0/C1 control characters and DEL to prevent escape
+                // sequence injection.
+                if ((c >= 0x20) && (c != 0x7F) && !((c >= 0x80) && (c <= 0x9F))) {
+                    sb.append(c);
+                }
+            }
+        }
+        sb.append("\033\\");
+        return sb.toString();
     }
 
     /**
@@ -1581,6 +1900,37 @@ public class ECMA48Terminal extends LogicalScreen
         }
         // Push textEnd to first column beyond the text area
         textEnd++;
+
+        // Wide-char glyphs occupy two cells: a LEFT half that carries the
+        // glyph and a RIGHT half that is never emitted on its own (the
+        // terminal auto-advances the cursor by two columns after the LEFT
+        // half is printed).  The diff loop below only re-emits cells that
+        // differ from the physical screen, so if just one half of a wide
+        // glyph changed it could position the cursor directly onto the
+        // RIGHT-half column (and then emit nothing there).  Some terminals
+        // -- notably Windows Terminal -- handle a cursor move onto the right
+        // half of a double-width glyph inconsistently, which shifts the rest
+        // of the line by one column and produces a ragged, drifting render.
+        // Keep wide glyphs anchored on their LEFT column by forcing both
+        // halves to be redrawn together whenever either half changed.
+        for (int x = 0; x < width - 1; x++) {
+            ComplexCell lLeft = logical[x][y];
+            ComplexCell lRight = logical[x + 1][y];
+            if ((lLeft.getWidth() == Cell.Width.LEFT)
+                && (lRight.getWidth() == Cell.Width.RIGHT)
+            ) {
+                boolean leftChanged = !lLeft.equals(physical[x][y]);
+                boolean rightChanged = !lRight.equals(physical[x + 1][y]);
+                if (leftChanged != rightChanged) {
+                    // Only one half differs.  Force the matching half to be
+                    // re-emitted as well so the pair is drawn as a unit
+                    // starting from the LEFT column, never landing the cursor
+                    // on the RIGHT half.
+                    physical[x][y].unset();
+                    physical[x + 1][y].unset();
+                }
+            }
+        }
 
         // DEBUG
         // reallyCleared = true;
@@ -1619,7 +1969,7 @@ public class ECMA48Terminal extends LogicalScreen
 
             if (!lCell.equals(pCell) || lCell.isPulse() || reallyCleared) {
 
-                if (debugToStderr && reallyDebug) {
+                if (DEBUG_TO_STDERR && reallyDebug) {
                     System.err.printf("\n--\n");
                     System.err.printf(" Y: %d X: %d lastX %d textEnd %d\n",
                         y, x, lastX, textEnd);
@@ -1637,7 +1987,7 @@ public class ECMA48Terminal extends LogicalScreen
                 // Place the cell
                 if ((lastX != (x - 1)) || (lastX == -1)) {
                     if (!lCell.isImage()) {
-                        if (debugToStderr && reallyDebug) {
+                        if (DEBUG_TO_STDERR && reallyDebug) {
                             System.err.println("1 gotoXY() " + x + " " + y +
                                 " lastX " + lastX);
                         }
@@ -1658,10 +2008,14 @@ public class ECMA48Terminal extends LogicalScreen
                     }
 
                     // Clear remaining line
-                    if (debugToStderr && reallyDebug) {
+                    if (DEBUG_TO_STDERR && reallyDebug) {
                         System.err.println("2 gotoXY() " + x + " " + y +
                             " lastX " + lastX);
                         System.err.println("X: " + x + " clearRemainingLine()");
+                    }
+                    // Close any open OSC 8 hyperlink before clearing.
+                    if (lastAttr.getHyperlink() != null) {
+                        sb.append(hyperlinkSequence(null));
                     }
                     sb.append(gotoXY(x, y));
                     sb.append(clearRemainingLine());
@@ -1682,7 +2036,7 @@ public class ECMA48Terminal extends LogicalScreen
 
                 assert (!lCell.isImage());
 
-                if (debugToStderr && reallyDebug) {
+                if (DEBUG_TO_STDERR && reallyDebug) {
                     System.err.println("3 gotoXY() " + x + " " + y +
                         " lastX " + lastX);
                 }
@@ -1690,18 +2044,55 @@ public class ECMA48Terminal extends LogicalScreen
                     sb.append(gotoXY(x, y));
                 }
 
-                // Now emit only the modified attributes
-                // Note: We do NOT emit SGR 1 for bold because casciian uses
-                // bright colors (90-97) to indicate bold instead of the SGR 1
-                // attribute. This avoids showing bold/thick text on terminals
-                // that support it.
+                // Now emit only the modified attributes.
+                //
+                // When the bold attribute is rendered as a bright color
+                // (treatBoldAsBright enabled), the brightness is carried by the
+                // color codes (90-97) below and we must NOT emit SGR 1.
+                // Otherwise the bold attribute is emitted transparently as a
+                // real SGR 1 / SGR 22 so the terminal decides how to show it.
                 StringBuilder attrSgr = new StringBuilder(8);
-                if (lCell.isUnderline() != lastAttr.isUnderline()) {
-                    if (lCell.isUnderline()) {
-                        attrSgr.append(";4");
+                boolean lCellBoldAsBright = lCell.isBoldAsBright();
+                boolean lastBoldAsBright = lastAttr.isBoldAsBright();
+                boolean lCellSgrBold = lCell.isBold() && !lCellBoldAsBright;
+                boolean lastSgrBold = lastAttr.isBold() && !lastBoldAsBright;
+                // Bold (SGR 1) and faint (SGR 2) share the same "normal
+                // intensity" reset code (SGR 22), so they must be resolved
+                // together: at most one of them can be active at a time.
+                int lCellIntensity = lCellSgrBold ? 1
+                    : (lCell.isFaint() ? 2 : 0);
+                int lastIntensity = lastSgrBold ? 1
+                    : (lastAttr.isFaint() ? 2 : 0);
+                if (lCellIntensity != lastIntensity) {
+                    if ((lCellIntensity != 0) && (lastIntensity != 0)) {
+                        attrSgr.append(";22");
+                    }
+                    switch (lCellIntensity) {
+                        case 1 -> attrSgr.append(";1");
+                        case 2 -> attrSgr.append(";2");
+                        default -> {
+                            if (lastIntensity != 0) {
+                                attrSgr.append(";22");
+                            }
+                        }
+                    }
+                }
+                if (lCell.isItalic() != lastAttr.isItalic()) {
+                    if (lCell.isItalic()) {
+                        attrSgr.append(";3");
                     } else {
+                        attrSgr.append(";23");
+                    }
+                }
+                int lCellUnderlineStyle = lCell.getUnderlineStyle();
+                int lastUnderlineStyle = lastAttr.getUnderlineStyle();
+                if (lCellUnderlineStyle != lastUnderlineStyle) {
+                    if ((lastUnderlineStyle != CellAttributes.UNDERLINE_STYLE_NONE)
+                        && (lCellUnderlineStyle != CellAttributes.UNDERLINE_STYLE_NONE)
+                    ) {
                         attrSgr.append(";24");
                     }
+                    appendUnderlineSgr(attrSgr, lCellUnderlineStyle);
                 }
                 if (lCell.isBlink() != lastAttr.isBlink()) {
                     if (lCell.isBlink()) {
@@ -1717,8 +2108,22 @@ public class ECMA48Terminal extends LogicalScreen
                         attrSgr.append(";27");
                     }
                 }
+                if (lCell.isHidden() != lastAttr.isHidden()) {
+                    if (lCell.isHidden()) {
+                        attrSgr.append(";8");
+                    } else {
+                        attrSgr.append(";28");
+                    }
+                }
+                if (lCell.isStrikethrough() != lastAttr.isStrikethrough()) {
+                    if (lCell.isStrikethrough()) {
+                        attrSgr.append(";9");
+                    } else {
+                        attrSgr.append(";29");
+                    }
+                }
                 if (attrSgr.length() > 0) {
-                    if (debugToStderr && reallyDebug) {
+                    if (DEBUG_TO_STDERR && reallyDebug) {
                         System.err.println("2 attr: " + attrSgr.substring(1));
                     }
                     sb.append("\033[");
@@ -1747,31 +2152,73 @@ public class ECMA48Terminal extends LogicalScreen
                     && ((lCell.getForeColorRGB() != lastAttr.getForeColorRGB())
                     || (lastAttr.getForeColorRGB() < 0)))
                 ) {
-                    if (debugToStderr && reallyDebug) {
+                    if (DEBUG_TO_STDERR && reallyDebug) {
                         System.err.println("3a set foreColorRGB");
                     }
                     sb.append(colorRGB(foreColorRGB, true));
+                } else if ((lCell.getForeColorPalette() >= 0)
+                    && !lCell.isDefaultColor(true)
+                    && ((lCell.getForeColorPalette()
+                        != lastAttr.getForeColorPalette())
+                    || (lastAttr.getForeColorPalette() < 0))
+                ) {
+                    if (DEBUG_TO_STDERR && reallyDebug) {
+                        System.err.println("3p set foreColorPalette");
+                    }
+                    sb.append(colorPalette(lCell.getForeColorPalette(), true));
                 } else if (lCell.isDefaultColor(true)) {
                     if (!lastAttr.isDefaultColor(true)) {
-                        if (debugToStderr && reallyDebug) {
+                        if (DEBUG_TO_STDERR && reallyDebug) {
                             System.err.println("3b set DEFAULT foreColor");
                         }
                         sb.append("\033[39m");
                     }
                 } else {
                     if ((lCell.getForeColorRGB() < 0)
+                        && (lCell.getForeColorPalette() < 0)
                         && ((lastAttr.getForeColorRGB() >= 0)
+                        || (lastAttr.getForeColorPalette() >= 0)
                         || !lCell.getForeColor().equals(lastAttr.getForeColor())
                         || lastAttr.isDefaultColor(true)
-                        || lCell.isBold() != lastAttr.isBold())
+                        || lCellBoldAsBright != lastBoldAsBright
+                        || lCellSgrBold != lastSgrBold)
                     ) {
-                        if (debugToStderr && reallyDebug) {
+                        if (DEBUG_TO_STDERR && reallyDebug) {
                             System.err.println("4 set foreColor");
                         }
-                        sb.append(color(lCell.getForeColor(), true, true,
-                            lCell.isBold()));
-                        sb.append(rgbColor(lCell.isBold(),
-                            lCell.getForeColor(), true));
+                        if (lCellSgrBold
+                            && !lCell.getForeColor().isBright()
+                        ) {
+                            // Bold text that must NOT be brightened: pin the
+                            // foreground to its normal RGB value so a terminal
+                            // that would otherwise render SGR 1 as a bright
+                            // color cannot.  The SGR 1 emitted above still
+                            // provides the bold weight.  This is safe under
+                            // useTerminalPalette too: the terminal's own
+                            // ANSI colors are always queried (see
+                            // xtermQueryAnsiColors()) and reconciled into the
+                            // MY* palette via setColorFromOsc(), triggering a
+                            // full redraw, so getPaletteColor() already
+                            // reflects the terminal's native colors once it
+                            // responds -- the same trust model rgbColor()
+                            // already relies on.
+                            if (SystemProperties.isPaletteColor()
+                                && !SystemProperties.isRgbColor()
+                            ) {
+                                sb.append(forcedPaletteColor(false,
+                                    lCell.getForeColor(), true));
+                            } else {
+                                sb.append(forcedRgbColor(false,
+                                    lCell.getForeColor(), true));
+                            }
+                        } else {
+                            sb.append(color(lCell.getForeColor(), true, true,
+                                lCellBoldAsBright));
+                            sb.append(rgbColor(lCellBoldAsBright,
+                                lCell.getForeColor(), true));
+                            sb.append(paletteColor(lCellBoldAsBright,
+                                lCell.getForeColor(), true));
+                        }
                     }
                 }
 
@@ -1781,31 +2228,55 @@ public class ECMA48Terminal extends LogicalScreen
                     || (lastAttr.getBackColorRGB() < 0))
                 ) {
                     //noinspection ConstantValue
-                    if (debugToStderr && reallyDebug) {
+                    if (DEBUG_TO_STDERR && reallyDebug) {
                         System.err.println("5 set backColorRGB");
                     }
                     sb.append(colorRGB(lCell.getBackColorRGB(), false));
+                } else if ((lCell.getBackColorPalette() >= 0)
+                    && !lCell.isDefaultColor(false)
+                    && ((lCell.getBackColorPalette()
+                        != lastAttr.getBackColorPalette())
+                    || (lastAttr.getBackColorPalette() < 0))
+                ) {
+                    //noinspection ConstantValue
+                    if (DEBUG_TO_STDERR && reallyDebug) {
+                        System.err.println("5p set backColorPalette");
+                    }
+                    sb.append(colorPalette(lCell.getBackColorPalette(), false));
                 } else if (lCell.isDefaultColor(false)) {
                     if (!lastAttr.isDefaultColor(false)) {
                         //noinspection ConstantValue
-                        if (debugToStderr && reallyDebug) {
+                        if (DEBUG_TO_STDERR && reallyDebug) {
                             System.err.println("5b set DEFAULT backColor");
                         }
                         sb.append("\033[49m");
                     }
                 } else {
                     if ((lCell.getBackColorRGB() < 0)
+                        && (lCell.getBackColorPalette() < 0)
                         && ((lastAttr.getBackColorRGB() >= 0)
+                        || (lastAttr.getBackColorPalette() >= 0)
                         || !lCell.getBackColor().equals(lastAttr.getBackColor())
                         || lastAttr.isDefaultColor(false))
                     ) {
-                        if (debugToStderr && reallyDebug) {
+                        if (DEBUG_TO_STDERR && reallyDebug) {
                             System.err.println("6 set backColor");
                         }
                         sb.append(color(lCell.getBackColor(), false, true));
                         sb.append(rgbColor(false,
                             lCell.getBackColor(), false));
+                        sb.append(paletteColor(false,
+                            lCell.getBackColor(), false));
                     }
+                }
+
+                // OSC 8 hyperlink: open, change, or close the hyperlink as
+                // the cell's hyperlink URI changes relative to the last
+                // emitted cell.  An empty URI closes the current hyperlink.
+                if (!Objects.equals(lCell.getHyperlink(),
+                        lastAttr.getHyperlink())
+                ) {
+                    sb.append(hyperlinkSequence(lCell.getHyperlink()));
                 }
 
                 // Emit the character
@@ -1824,6 +2295,19 @@ public class ECMA48Terminal extends LogicalScreen
             } // if (!lCell.equals(pCell) || (reallyCleared == true))
 
         } // for (int x = 0; x < width; x++)
+
+        // Close any OSC 8 hyperlink still open at the end of this row.  A
+        // hyperlink never spans rows, and the OSC 8 state is a stream-global
+        // toggle (unaffected by cursor moves), so if it is left open the next
+        // row's text -- and everything drawn afterwards -- would incorrectly
+        // become part of the link.  The clearRemainingLine() path above only
+        // closes the link when there is blank space to the right of the text
+        // (textEnd < width - 1); when the text reaches the right edge that
+        // path is skipped, so the close must happen here as well.
+        if ((lastAttr != null) && (lastAttr.getHyperlink() != null)) {
+            sb.append(hyperlinkSequence(null));
+            lastAttr.setHyperlink(null);
+        }
     }
 
     /**
@@ -1831,10 +2315,8 @@ public class ECMA48Terminal extends LogicalScreen
      * knows how to process ECMA-48/ANSI X3.64 escape sequences.
      *
      * @param sb StringBuilder to write escape sequences to
-     * @return escape sequences string that provides the updates to the
-     * physical screen
      */
-    private String flushString(final StringBuilder sb) {
+    private void flushString(final StringBuilder sb) {
         final boolean reallyDebug = false;
 
         CellAttributes attr = null;
@@ -1886,7 +2368,7 @@ public class ECMA48Terminal extends LogicalScreen
                 ) {
                     blankImageRow = new ArrayList<Cell>(width);
                     Cell blank = new Cell();
-                    ImageRGB newImage = new ImageRGB(textWidthPixels,
+                    ImageRGB newImage = new ArrayImageRGB(textWidthPixels,
                         textHeightPixels);
                     newImage.fillRect(0, 0, newImage.getWidth(),
                         newImage.getHeight(), 0x000000);
@@ -1914,9 +2396,13 @@ public class ECMA48Terminal extends LogicalScreen
          */
         ExecutorService imageExecutor = null;
         List<Future<String>> imageResults = null;
+        // Virtual threads are unbounded, so imageThreadCount is enforced with
+        // a semaphore that limits how many encodings run at the same time.
+        final Semaphore imagePermits = (imageThreadCount > 1 ?
+            new Semaphore(imageThreadCount) : null);
 
         if (imageThreadCount > 1) {
-            imageExecutor = Executors.newFixedThreadPool(imageThreadCount);
+            imageExecutor = Executors.newVirtualThreadPerTaskExecutor();
             imageResults = new ArrayList<Future<String>>();
         }
 
@@ -1982,13 +2468,18 @@ public class ECMA48Terminal extends LogicalScreen
                         callCells = new ArrayList<Cell>(cellsToDraw);
                         imageResults.add(imageExecutor.submit(new Callable<String>() {
                             @Override
-                            public String call() {
-                                if (jexerImageOption != JexerImageOption.DISABLED) {
-                                    return toJexerImage(callX, callY, callCells);
-                                } else if (sixel) {
-                                    return toSixel(callX, callY, callCells);
-                                } else {
-                                    return toPseudoImage(callX, callY, callCells);
+                            public String call() throws InterruptedException {
+                                imagePermits.acquire();
+                                try {
+                                    if (jexerImageOption != JexerImageOption.DISABLED) {
+                                        return toJexerImage(callX, callY, callCells);
+                                    } else if (sixel) {
+                                        return toSixel(callX, callY, callCells);
+                                    } else {
+                                        return toPseudoImage(callX, callY, callCells);
+                                    }
+                                } finally {
+                                    imagePermits.release();
                                 }
                             }
                         }));
@@ -2023,13 +2514,18 @@ public class ECMA48Terminal extends LogicalScreen
             flushLine(y, sb, attr);
         }
 
+        // Close any OSC 8 hyperlink still open at the end of the flush so it
+        // does not bleed into subsequent output.
+        if ((attr != null) && (attr.getHyperlink() != null)) {
+            sb.append(hyperlinkSequence(null));
+            attr.setHyperlink(null);
+        }
+
         reallyCleared = false;
 
-        String result = sb.toString();
-        if (debugToStderr && !hasSynchronizedOutput) {
-            System.err.printf("flushString(): %s\n", result);
+        if (DEBUG_TO_STDERR && !hasSynchronizedOutput) {
+            System.err.printf("flushString(): %s\n", sb.toString());
         }
-        return result;
     }
 
     /**
@@ -2059,6 +2555,23 @@ public class ECMA48Terminal extends LogicalScreen
      */
     public boolean isFocused() {
         return hasFocus;
+    }
+
+    /**
+     * Report whether the terminal has been observed to actively honor the
+     * Kitty keyboard protocol (CSI u / "disambiguated keys").
+     *
+     * <p>This starts as UNKNOWN and settles to SUPPORTED or UNSUPPORTED
+     * shortly after the connection is established, once either a reply to
+     * the capability query or a sentinel response (proving the query was
+     * ignored) has arrived.  Applications can poll this to adjust their UI,
+     * for example to avoid advertising a Ctrl+I shortcut that a terminal
+     * will only ever deliver as plain Tab.</p>
+     *
+     * @return the current support determination
+     */
+    public KittyKeyboard.SupportState getKittyKeyboardSupport() {
+        return kittyKeyboardSupport;
     }
 
     /**
@@ -2522,7 +3035,7 @@ public class ECMA48Terminal extends LogicalScreen
                 || (newHeight != windowResize.getHeight())
             ) {
 
-                if (debugToStderr) {
+                if (DEBUG_TO_STDERR) {
                     System.err.println("Screen size changed, old size " +
                         windowResize);
                     System.err.println("                     new size " +
@@ -2531,9 +3044,12 @@ public class ECMA48Terminal extends LogicalScreen
                         getTextWidth() + " x " + getTextHeight());
                 }
 
-                if (output != null) {
-                    output.printf("%s", xtermReportPixelDimensions());
-                    output.flush();
+                synchronized (outputLock) {
+                    PrintWriter writer = output;
+                    if (writer != null) {
+                        writer.printf("%s", xtermReportPixelDimensions());
+                        writer.flush();
+                    }
                 }
 
                 TResizeEvent event = new TResizeEvent(backend,
@@ -2558,26 +3074,37 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Set of CSI parameters indicating Shift key was pressed.
+     * Decode a CSI keyboard modifier parameter into its bitmask.  The wire
+     * value is 1 + bitmask (Shift = 1, Alt = 2, Ctrl = 4, Super = 8, ...).
+     * Any colon sub-parameter (the Kitty event type) is discarded.
+     *
+     * @param x the parameter text, for example "5" or "5:1"
+     * @return the modifier bitmask, or 0 if the parameter is absent or
+     * malformed
      */
-    private static final Set<String> CSI_SHIFT_PARAMS = Set.of("2", "4", "6", "8");
-
-    /**
-     * Set of CSI parameters indicating Alt key was pressed.
-     */
-    private static final Set<String> CSI_ALT_PARAMS = Set.of("3", "4", "7", "8");
-
-    /**
-     * Set of CSI parameters indicating Ctrl key was pressed.
-     */
-    private static final Set<String> CSI_CTRL_PARAMS = Set.of("5", "6", "7", "8");
+    private static int csiModifiers(final String x) {
+        if ((x == null) || x.isEmpty()) {
+            return 0;
+        }
+        String base = x;
+        int colon = base.indexOf(':');
+        if (colon >= 0) {
+            base = base.substring(0, colon);
+        }
+        try {
+            int value = Integer.parseInt(base);
+            return (value > 0 ? value - 1 : 0);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
 
     /**
      * Returns true if the CSI parameter for a keyboard command means that
      * shift was down.
      */
     private boolean csiIsShift(final String x) {
-        return CSI_SHIFT_PARAMS.contains(x);
+        return KittyKeyboard.isShift(csiModifiers(x));
     }
 
     /**
@@ -2585,7 +3112,7 @@ public class ECMA48Terminal extends LogicalScreen
      * alt was down.
      */
     private boolean csiIsAlt(final String x) {
-        return CSI_ALT_PARAMS.contains(x);
+        return KittyKeyboard.isAlt(csiModifiers(x));
     }
 
     /**
@@ -2593,7 +3120,26 @@ public class ECMA48Terminal extends LogicalScreen
      * ctrl was down.
      */
     private boolean csiIsCtrl(final String x) {
-        return CSI_CTRL_PARAMS.contains(x);
+        return KittyKeyboard.isCtrl(csiModifiers(x));
+    }
+
+    /**
+     * Produce a keystroke from a Kitty keyboard protocol CSI u sequence.
+     * Key release events are dropped: Casciian has no representation for
+     * them.
+     *
+     * @return one KEYPRESS event, or null if the sequence was malformed,
+     * named a key Casciian cannot represent, or was a key release
+     */
+    private TInputEvent parseKittyKey() {
+        KittyKeyboard.KeyEvent keyEvent = KittyKeyboard.parse(params);
+        if (keyEvent == null) {
+            return null;
+        }
+        if (keyEvent.isRelease()) {
+            return null;
+        }
+        return new TKeypressEvent(backend, keyEvent.key());
     }
 
     /**
@@ -2602,7 +3148,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @param text the xtversion text string
      */
     private void fingerprintTerminal(final String text) {
-        if (debugToStderr) {
+        if (DEBUG_TO_STDERR) {
             System.err.println("fingerprintTerminal(): '" + text + "'");
         }
         if (text.length() > 1) {
@@ -2610,12 +3156,12 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         if (text.contains(XTVERSION_FOR_XTERM)) {
-            if (debugToStderr) {
+            if (DEBUG_TO_STDERR) {
                 System.err.println("  -- Genuine(tm) XTerm! -- ");
             }
             isGenuineXTerm = true;
             if (sixel && (textBlinkOption == TextBlinkOption.AUTO)) {
-                if (debugToStderr) {
+                if (DEBUG_TO_STDERR) {
                     System.err.println("  -- sixel enabled, so soft blink -- ");
                 }
                 textBlinkOption = TextBlinkOption.SOFT;
@@ -2629,44 +3175,55 @@ public class ECMA48Terminal extends LogicalScreen
         if (text.contains(XTVERSION_FOR_KONSOLE)) {
             String str = System.getProperty("casciian.ECMA48.explicitlyDestroyImages");
             if ((str != null) && (str.equals("false"))) {
-                if (debugToStderr) {
+                if (DEBUG_TO_STDERR) {
                     System.err.println("  -- terminal requires " +
                         "explicitlyDestroyImages, but is disabled in config");
                 }
                 explicitlyDestroyImages = false;
             } else {
-                if (debugToStderr) {
+                if (DEBUG_TO_STDERR) {
                     System.err.println("  -- terminal requires explicitlyDestroyImages");
                 }
                 //explicitlyDestroyImages = true;
             }
 
             // Konsole doesn't support changing the palette, and the contrast between regular and bright colors
-            // is too low in the default profile. So, we force sending full rgb colors, unless the user has
-            // explicitly configured casciian.ECMA48.rgbColor.
-            setRgbColorIfNotConfigured();
+            // is too low in the default profile. So, we force sending fixed 256-color palette (color cube)
+            // colors, unless the user has explicitly configured casciian.ECMA48.paletteColor or casciian.ECMA48.rgbColor.
+            setPaletteOrRgbColorIfNotConfigured();
         }
 
         if (text.contains(XTVERSION_FOR_WARP)) {
             // Warp doesn't support changing the palette, and the contrast between regular and bright colors
             // is too low in the default profile. So, we force sending full rgb colors, unless the user has
             // explicitly configured casciian.ECMA48.rgbColor.
-            setRgbColorIfNotConfigured();
+            setPaletteOrRgbColorIfNotConfigured();
         }
 
         setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
     }
 
     /**
-     * Enable RGB color mode if the terminal palette is not in use and the
+     * Enable 256-color palette mode or RGB color mode if the terminal palette is not in use and the
      * user has not explicitly configured the system property.
      */
-    private void setRgbColorIfNotConfigured() {
-        if (!SystemProperties.isUseTerminalPalette() || SystemProperties.isTranslucence()) {
+    private void setPaletteOrRgbColorIfNotConfigured() {
+        if (!SystemProperties.isUseTerminalPalette()) {
+
             String rgbColorProperty = System.getProperty(
-                    SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
-            if (rgbColorProperty == null) {
-                SystemProperties.setRgbColor(true);
+                SystemProperties.CASCIIAN_ECMA48_RGB_COLOR);
+            String paletteColorProperty = System.getProperty(
+                SystemProperties.CASCIIAN_ECMA48_PALETTE_COLOR);
+
+            // Only force a color mode when the user has not explicitly
+            // configured either property, so we never enable both modes at
+            // once or override the user's choice.
+            if ((rgbColorProperty == null) && (paletteColorProperty == null)) {
+                if (SystemProperties.isTranslucence()) {
+                    SystemProperties.setRgbColor(true);
+                } else {
+                    SystemProperties.setPaletteColor(true);
+                }
             }
         }
     }
@@ -2677,7 +3234,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @param text the OSC response string
      */
     void oscResponse(final String text) {
-        if (debugToStderr) {
+        if (DEBUG_TO_STDERR) {
             System.err.println("oscResponse(): '" + text + "'");
         }
 
@@ -2719,7 +3276,7 @@ public class ECMA48Terminal extends LogicalScreen
                 return;
             }
             rgb = rgb.substring(4);
-            if (debugToStderr) {
+            if (DEBUG_TO_STDERR) {
                 System.err.println("  Color " + color + " is " + rgb);
             }
             String[] rgbs = rgb.split("/");
@@ -2738,7 +3295,7 @@ public class ECMA48Terminal extends LogicalScreen
             if (rgbs[2].length() == 4) {
                 blue = blue >> 8;
             }
-            if (debugToStderr) {
+            if (DEBUG_TO_STDERR) {
                 System.err.printf("    RGB %02x%02x%02x\n",
                     red, green, blue);
             }
@@ -2759,79 +3316,79 @@ public class ECMA48Terminal extends LogicalScreen
      * @param colorIndex the color index (0-15 for palette, 39 for default foreground, 49 for default background)
      * @param rgbColor   the RGB color value
      */
-    private void setColorFromOsc(final int colorIndex, final int rgbColor) {
+    private static void setColorFromOsc(final int colorIndex, final int rgbColor) {
         switch (colorIndex) {
             case 0 -> {
                 MYBLACK = rgbColor;
-                if (debugToStderr) System.err.println("    Set BLACK");
+                if (DEBUG_TO_STDERR) System.err.println("    Set BLACK");
             }
             case 1 -> {
                 MYRED = rgbColor;
-                if (debugToStderr) System.err.println("    Set RED");
+                if (DEBUG_TO_STDERR) System.err.println("    Set RED");
             }
             case 2 -> {
                 MYGREEN = rgbColor;
-                if (debugToStderr) System.err.println("    Set GREEN");
+                if (DEBUG_TO_STDERR) System.err.println("    Set GREEN");
             }
             case 3 -> {
                 MYYELLOW = rgbColor;
-                if (debugToStderr) System.err.println("    Set YELLOW");
+                if (DEBUG_TO_STDERR) System.err.println("    Set YELLOW");
             }
             case 4 -> {
                 MYBLUE = rgbColor;
-                if (debugToStderr) System.err.println("    Set BLUE");
+                if (DEBUG_TO_STDERR) System.err.println("    Set BLUE");
             }
             case 5 -> {
                 MYMAGENTA = rgbColor;
-                if (debugToStderr) System.err.println("    Set MAGENTA");
+                if (DEBUG_TO_STDERR) System.err.println("    Set MAGENTA");
             }
             case 6 -> {
                 MYCYAN = rgbColor;
-                if (debugToStderr) System.err.println("    Set CYAN");
+                if (DEBUG_TO_STDERR) System.err.println("    Set CYAN");
             }
             case 7 -> {
                 MYWHITE = rgbColor;
-                if (debugToStderr) System.err.println("    Set WHITE");
+                if (DEBUG_TO_STDERR) System.err.println("    Set WHITE");
             }
             case 8 -> {
-                MYBOLD_BLACK = rgbColor;
-                if (debugToStderr) System.err.println("    Set BOLD BLACK");
+                MYBRIGHT_BLACK = rgbColor;
+                if (DEBUG_TO_STDERR) System.err.println("    Set BOLD BLACK");
             }
             case 9 -> {
-                MYBOLD_RED = rgbColor;
-                if (debugToStderr) System.err.println("    Set BOLD RED");
+                MYBRIGHT_RED = rgbColor;
+                if (DEBUG_TO_STDERR) System.err.println("    Set BOLD RED");
             }
             case 10 -> {
-                MYBOLD_GREEN = rgbColor;
-                if (debugToStderr) System.err.println("    Set BOLD GREEN");
+                MYBRIGHT_GREEN = rgbColor;
+                if (DEBUG_TO_STDERR) System.err.println("    Set BOLD GREEN");
             }
             case 11 -> {
-                MYBOLD_YELLOW = rgbColor;
-                if (debugToStderr) System.err.println("    Set BOLD YELLOW");
+                MYBRIGHT_YELLOW = rgbColor;
+                if (DEBUG_TO_STDERR) System.err.println("    Set BOLD YELLOW");
             }
             case 12 -> {
-                MYBOLD_BLUE = rgbColor;
-                if (debugToStderr) System.err.println("    Set BOLD BLUE");
+                MYBRIGHT_BLUE = rgbColor;
+                if (DEBUG_TO_STDERR) System.err.println("    Set BOLD BLUE");
             }
             case 13 -> {
-                MYBOLD_MAGENTA = rgbColor;
-                if (debugToStderr) System.err.println("    Set BOLD MAGENTA");
+                MYBRIGHT_MAGENTA = rgbColor;
+                if (DEBUG_TO_STDERR) System.err.println("    Set BOLD MAGENTA");
             }
             case 14 -> {
-                MYBOLD_CYAN = rgbColor;
-                if (debugToStderr) System.err.println("    Set BOLD CYAN");
+                MYBRIGHT_CYAN = rgbColor;
+                if (DEBUG_TO_STDERR) System.err.println("    Set BOLD CYAN");
             }
             case 15 -> {
-                MYBOLD_WHITE = rgbColor;
-                if (debugToStderr) System.err.println("    Set BOLD WHITE");
+                MYBRIGHT_WHITE = rgbColor;
+                if (DEBUG_TO_STDERR) System.err.println("    Set BOLD WHITE");
             }
             case 39 -> {
                 DEFAULT_FORECOLOR = rgbColor;
-                if (debugToStderr) System.err.println("    Set DEFAULT FOREGROUND");
+                if (DEBUG_TO_STDERR) System.err.println("    Set DEFAULT FOREGROUND");
             }
             case 49 -> {
                 DEFAULT_BACKCOLOR = rgbColor;
-                if (debugToStderr) System.err.println("    Set DEFAULT BACKGROUND");
+                if (DEBUG_TO_STDERR) System.err.println("    Set DEFAULT BACKGROUND");
             }
             default -> {
                 // Unknown color index, ignore
@@ -2864,7 +3421,7 @@ public class ECMA48Terminal extends LogicalScreen
         boolean alt = false;
         boolean shift = false;
 
-        if (debugToStderr) {
+        if (DEBUG_TO_STDERR) {
             System.err.printf("state: %s ch %c\r\n", state, ch);
         }
 
@@ -3088,6 +3645,14 @@ public class ECMA48Terminal extends LogicalScreen
                     params.add("");
                     return;
                 }
+                // Sub-parameter separator.  The Kitty keyboard protocol uses
+                // these for alternate key codes and event types; keep them
+                // attached to the parameter they qualify.
+                if (ch == ':') {
+                    params.set(params.size() - 1,
+                        params.get(params.size() - 1) + ch);
+                    return;
+                }
 
                 if (ch == '~') {
                     events.add(csiFnKey());
@@ -3166,6 +3731,26 @@ public class ECMA48Terminal extends LogicalScreen
                             events.add(new TKeypressEvent(backend, kbEnd, alt, ctrl, shift));
                             resetParser();
                             return;
+                        case 'u':
+                            if (decPrivateModeFlag) {
+                                // CSI ? flags u: the terminal is answering
+                                // our capability query, not sending a
+                                // keystroke.  Its mere arrival proves the
+                                // protocol is active right now, regardless
+                                // of the specific flags value reported.
+                                kittyKeyboardSupport =
+                                    KittyKeyboard.SupportState.SUPPORTED;
+                                resetParser();
+                                return;
+                            }
+                            // Kitty keyboard protocol ("disambiguated
+                            // keys"): CSI keycode ; modifiers [: event] u
+                            TInputEvent kittyEvent = parseKittyKey();
+                            if (kittyEvent != null) {
+                                events.add(kittyEvent);
+                            }
+                            resetParser();
+                            return;
                         case 'S':
                             // Report graphics property.
                             if (!decPrivateModeFlag) {
@@ -3175,7 +3760,7 @@ public class ECMA48Terminal extends LogicalScreen
                             if ((params.size() > 2)
                                 && (!params.get(1).equals("0"))
                             ) {
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.printf("Graphics query error: " +
                                         params);
                                 }
@@ -3183,7 +3768,7 @@ public class ECMA48Terminal extends LogicalScreen
                             }
 
                             if (params.size() > 2) {
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.printf("Graphics result: " +
                                             "status %s Ps %s Pv %s\n", params.get(0),
                                         params.get(1), params.get(2));
@@ -3192,7 +3777,7 @@ public class ECMA48Terminal extends LogicalScreen
                                     int registers = sixelEncoder.getPaletteSize();
                                     try {
                                         registers = Integer.parseInt(params.get(2));
-                                        if (debugToStderr) {
+                                        if (DEBUG_TO_STDERR) {
                                             System.err.println("Terminal reports " +
                                                 registers + " sixel colors, current " +
                                                 "size = " +
@@ -3203,19 +3788,19 @@ public class ECMA48Terminal extends LogicalScreen
                                         ) {
                                             try {
                                                 sixelEncoder.setPaletteSize(Integer.highestOneBit(registers));
-                                                if (debugToStderr) {
+                                                if (DEBUG_TO_STDERR) {
                                                     System.err.println("New palette size: "
                                                         + sixelEncoder.getPaletteSize());
                                                 }
                                             } catch (IllegalArgumentException e) {
-                                                if (debugToStderr) {
+                                                if (DEBUG_TO_STDERR) {
                                                     System.err.println("Unsupported palette size: "
                                                         + registers);
                                                 }
                                             }
                                         }
                                     } catch (NumberFormatException e) {
-                                        if (debugToStderr) {
+                                        if (DEBUG_TO_STDERR) {
                                             e.printStackTrace();
                                         }
                                     }
@@ -3229,22 +3814,36 @@ public class ECMA48Terminal extends LogicalScreen
                             }
                             daResponseSeen = true;
 
+                            if (kittyKeyboardSupport
+                                == KittyKeyboard.SupportState.UNKNOWN
+                            ) {
+                                // Every terminal answers Device Attributes.
+                                // Its arrival without an earlier reply to
+                                // our "CSI ? u" capability query (sent
+                                // before this request) means that query was
+                                // ignored: the protocol is not active right
+                                // now, whether because the terminal does
+                                // not implement it or has it turned off.
+                                kittyKeyboardSupport =
+                                    KittyKeyboard.SupportState.UNSUPPORTED;
+                            }
+
                             boolean reportsJexerImages = false;
                             boolean reportsSixelImages = false;
                             for (String x : params) {
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.println("Device Attributes: x = " + x);
                                 }
                                 if (x.equals("4")) {
                                     // Terminal reports sixel support
-                                    if (debugToStderr) {
+                                    if (DEBUG_TO_STDERR) {
                                         System.err.println("Device Attributes: sixel");
                                     }
                                     reportsSixelImages = true;
                                     if (isGenuineXTerm
                                         && (textBlinkOption == TextBlinkOption.AUTO)
                                     ) {
-                                        if (debugToStderr) {
+                                        if (DEBUG_TO_STDERR) {
                                             System.err.println("  -- GenuineXTerm, so soft blink -- ");
                                         }
                                         textBlinkOption = TextBlinkOption.SOFT;
@@ -3252,7 +3851,7 @@ public class ECMA48Terminal extends LogicalScreen
                                 }
                                 if (x.equals("52")) {
                                     // Terminal reports OSC 52 support
-                                    if (debugToStderr) {
+                                    if (DEBUG_TO_STDERR) {
                                         System.err.println("Device Attributes: OSC52");
                                     }
 
@@ -3266,7 +3865,7 @@ public class ECMA48Terminal extends LogicalScreen
 
                                 if (x.equals("445")) {
                                     // Terminal reports Casciian images support
-                                    if (debugToStderr) {
+                                    if (DEBUG_TO_STDERR) {
                                         System.err.println("Device Attributes: Casciian images");
                                     }
                                     reportsJexerImages = true;
@@ -3275,14 +3874,14 @@ public class ECMA48Terminal extends LogicalScreen
                             if (!reportsSixelImages) {
                                 // Terminal does not support Sixel images, disable them.
                                 sixel = false;
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.println("Device Attributes: Disable Sixel images");
                                 }
                             }
                             if (!reportsJexerImages) {
                                 // Terminal does not support Casciian images, disable them.
                                 jexerImageOption = JexerImageOption.DISABLED;
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.println("Device Attributes: Disable Casciian images");
                                 }
                             }
@@ -3291,7 +3890,7 @@ public class ECMA48Terminal extends LogicalScreen
                         case 't':
                             // windowOps
                             if ((params.size() > 2) && (params.get(0).equals("4"))) {
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.printf("windowOp 4t pixels: " +
                                             "height %s width %s\n",
                                         params.get(1), params.get(2));
@@ -3300,7 +3899,7 @@ public class ECMA48Terminal extends LogicalScreen
                                     widthPixels = Integer.parseInt(params.get(2));
                                     heightPixels = Integer.parseInt(params.get(1));
                                 } catch (NumberFormatException e) {
-                                    if (debugToStderr) {
+                                    if (DEBUG_TO_STDERR) {
                                         e.printStackTrace();
                                     }
                                 }
@@ -3321,7 +3920,7 @@ public class ECMA48Terminal extends LogicalScreen
                                 if (h > 0) {
                                     cachedEstimatedTextHeight = heightPixels / h;
                                 }
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.printf("   screen pixels: %d x %d",
                                         widthPixels, heightPixels);
                                     System.err.println("  new cell size: " +
@@ -3329,7 +3928,7 @@ public class ECMA48Terminal extends LogicalScreen
                                 }
                             }
                             if ((params.size() > 2) && (params.get(0).equals("6"))) {
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.printf("windowOp 6t text cell pixels: " +
                                             "cell height %s cell width %s\n",
                                         params.get(1), params.get(2));
@@ -3340,17 +3939,17 @@ public class ECMA48Terminal extends LogicalScreen
                                     textWidthPixels = Integer.parseInt(params.get(2));
                                     textHeightPixels = Integer.parseInt(params.get(1));
                                 } catch (NumberFormatException e) {
-                                    if (debugToStderr) {
+                                    if (DEBUG_TO_STDERR) {
                                         e.printStackTrace();
                                     }
                                 }
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.println("  new cell size: " +
                                         textWidthPixels + " x " + textHeightPixels);
                                 }
                             }
                             if ((params.size() > 2) && (params.get(0).equals("8"))) {
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.printf("windowOp 8t screen size: " +
                                             "height %s width %s\n",
                                         params.get(1), params.get(2));
@@ -3362,7 +3961,7 @@ public class ECMA48Terminal extends LogicalScreen
                                 // spawning stty.
                                 if (sessionInfo instanceof TTYSessionInfo) {
                                     TTYSessionInfo tty = (TTYSessionInfo) sessionInfo;
-                                    tty.output = output;
+                                    tty.windowSizeQuery = this::sendWindowSizeQuery;
                                     tty.lastFallbackQueryTime = System.currentTimeMillis();
 
                                     int newHeight = height;
@@ -3371,11 +3970,11 @@ public class ECMA48Terminal extends LogicalScreen
                                         newWidth = Integer.parseInt(params.get(2));
                                         newHeight = Integer.parseInt(params.get(1));
                                     } catch (NumberFormatException e) {
-                                        if (debugToStderr) {
+                                        if (DEBUG_TO_STDERR) {
                                             e.printStackTrace();
                                         }
                                     }
-                                    if (debugToStderr) {
+                                    if (DEBUG_TO_STDERR) {
                                         System.err.println("  reported window size: " +
                                             newWidth + " x " + newHeight);
                                     }
@@ -3406,7 +4005,7 @@ public class ECMA48Terminal extends LogicalScreen
                             return;
                         case 'y':
                             if (decPrivateModeFlag && decDollarModeFlag) {
-                                if (debugToStderr) {
+                                if (DEBUG_TO_STDERR) {
                                     System.err.println("DECRPM: " + params);
                                 }
                                 // DECRPM response
@@ -3421,14 +4020,14 @@ public class ECMA48Terminal extends LogicalScreen
                                         // This option was recognized, and is in some
                                         // state.
                                         if (pd.equals("2026")) {
-                                            if (debugToStderr) {
+                                            if (DEBUG_TO_STDERR) {
                                                 System.err.println("DECRPM: " +
                                                     "has Synchronized Output support");
                                             }
                                             hasSynchronizedOutput = true;
                                         }
                                         if (pd.equals("8452")) {
-                                            if (debugToStderr) {
+                                            if (DEBUG_TO_STDERR) {
                                                 System.err.println("DECRPM: " +
                                                     "has sixelCursorOnRight support");
                                             }
@@ -3599,6 +4198,157 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private String getSetTitleString(final String title) {
         return "\033]2;" + title + "\007";
+    }
+
+    /**
+     * Create the escape sequence(s) used to report the current working
+     * directory.  xterm-compatible terminals use OSC 7.  On Windows, and in
+     * WSL when hosted by Windows Terminal, emit the Windows Terminal /
+     * ConEmu OSC 9 ; 9 extension as well.
+     *
+     * @param directory the new working directory
+     * @return the string to emit to the terminal
+     */
+    private String getSetWorkingDirectoryString(final String directory) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\033]7;");
+        sb.append(directoryToFileUri(directory));
+        sb.append("\033\\");
+        String windowsTerminalPath =
+            getWindowsTerminalWorkingDirectoryPath(directory);
+        if (windowsTerminalPath != null) {
+            sb.append("\033]9;9;");
+            sb.append(windowsTerminalPath);
+            sb.append("\033\\");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Determine the path to report through Windows Terminal's OSC 9 ; 9
+     * extension, if this session needs it.
+     *
+     * @param directory the directory path
+     * @return the path to emit, or null if OSC 9 ; 9 should be skipped
+     */
+    private String getWindowsTerminalWorkingDirectoryPath(
+        final String directory
+    ) {
+        if (OsUtils.isWindows()) {
+            return directoryToWindowsTerminalPath(directory);
+        }
+        if (isWindowsTerminalSession()) {
+            return wslDirectoryToWindowsTerminalPath(directory);
+        }
+        return null;
+    }
+
+    /**
+     * Convert a filesystem path into a file:// URI as expected by OSC 7.
+     *
+     * @param directory the directory path
+     * @return the file:// URI
+     */
+    private static String directoryToFileUri(final String directory) {
+        String path = directory.replace('\\', '/');
+        if (!path.startsWith("/")) {
+            // Windows-style absolute (C:/...) or relative paths.
+            path = "/" + path;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("file://");
+        sb.append(HOSTNAME);
+        for (byte b: path.getBytes(StandardCharsets.UTF_8)) {
+            int ch = b & 0xFF;
+            if (((ch >= 'A') && (ch <= 'Z'))
+                || ((ch >= 'a') && (ch <= 'z'))
+                || ((ch >= '0') && (ch <= '9'))
+                || (ch == '/') || (ch == '-') || (ch == '_')
+                || (ch == '.') || (ch == '~') || (ch == ':')
+            ) {
+                sb.append((char) ch);
+            } else {
+                sb.append(String.format("%%%02X", ch));
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Convert a filesystem path into the native Windows path format expected
+     * by Windows Terminal's OSC 9 ; 9 extension.
+     *
+     * @param directory the directory path
+     * @return the Windows path
+     */
+    private static String directoryToWindowsTerminalPath(
+        final String directory
+    ) {
+        return directory.replace('/', '\\');
+    }
+
+    /**
+     * Determine if this process is hosted by Windows Terminal.
+     *
+     * @return true if Windows Terminal's WT_SESSION variable is present
+     */
+    protected boolean isWindowsTerminalSession() {
+        String wtSession = System.getenv("WT_SESSION");
+        return (wtSession != null) && !wtSession.isEmpty();
+    }
+
+    /**
+     * Convert a WSL/Linux path to the Windows path syntax expected by
+     * Windows Terminal's OSC 9 ; 9 extension.
+     *
+     * @param directory the directory path
+     * @return the Windows path, or null if conversion fails
+     */
+    protected String wslDirectoryToWindowsTerminalPath(
+        final String directory
+    ) {
+        try {
+            Process process = new ProcessBuilder("wslpath", "-w", directory)
+                .redirectErrorStream(true)
+                .start();
+            byte[] output = process.getInputStream().readAllBytes();
+            if (process.waitFor() == 0) {
+                String path = new String(output, StandardCharsets.UTF_8)
+                    .trim();
+                if (!path.isEmpty()) {
+                    return path;
+                }
+            }
+        } catch (IOException e) {
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        return null;
+    }
+
+    /**
+     * Obtain the local hostname to use in OSC 7 file:// URIs.
+     *
+     * @return the hostname, or "localhost" if it cannot be determined
+     */
+    private static String getHostname() {
+        String name = System.getenv("HOSTNAME");
+        if ((name == null) || name.isEmpty()) {
+            name = System.getenv("COMPUTERNAME");
+        }
+        if ((name == null) || name.isEmpty()) {
+            try {
+                name = java.net.InetAddress.getLocalHost().getHostName();
+            } catch (java.net.UnknownHostException e) {
+                name = null;
+            }
+        }
+        if ((name == null) || name.isEmpty()) {
+            name = "localhost";
+        }
+        return name;
     }
 
     /**
@@ -3900,7 +4650,7 @@ public class ECMA48Terminal extends LogicalScreen
             totalWidth += cell.getImage().getWidth();
         }
 
-        ImageRGB image = new ImageRGB(fullWidth, tileHeight);
+        ImageRGB image = new ArrayImageRGB(fullWidth, tileHeight);
 
         int[] rgbArray;
         for (int i = 0; i < cells.size() - 1; i++) {
@@ -4143,14 +4893,14 @@ public class ECMA48Terminal extends LogicalScreen
         MYMAGENTA = 0xaa00aa;
         MYCYAN = 0x00aaaa;
         MYWHITE = 0xaaaaaa;
-        MYBOLD_BLACK = 0x555555;
-        MYBOLD_RED = 0xff5555;
-        MYBOLD_GREEN = 0x55ff55;
-        MYBOLD_YELLOW = 0xffff55;
-        MYBOLD_BLUE = 0x5555ff;
-        MYBOLD_MAGENTA = 0xff55ff;
-        MYBOLD_CYAN = 0x55ffff;
-        MYBOLD_WHITE = 0xffffff;
+        MYBRIGHT_BLACK = 0x555555;
+        MYBRIGHT_RED = 0xff5555;
+        MYBRIGHT_GREEN = 0x55ff55;
+        MYBRIGHT_YELLOW = 0xffff55;
+        MYBRIGHT_BLUE = 0x5555ff;
+        MYBRIGHT_MAGENTA = 0xff55ff;
+        MYBRIGHT_CYAN = 0x55ffff;
+        MYBRIGHT_WHITE = 0xffffff;
         DEFAULT_FORECOLOR = MYWHITE;
         DEFAULT_BACKCOLOR = MYBLACK;
     }
@@ -4169,14 +4919,14 @@ public class ECMA48Terminal extends LogicalScreen
         MYMAGENTA = getCustomColor("casciian.ECMA48.color5", MYMAGENTA);
         MYCYAN = getCustomColor("casciian.ECMA48.color6", MYCYAN);
         MYWHITE = getCustomColor("casciian.ECMA48.color7", MYWHITE);
-        MYBOLD_BLACK = getCustomColor("casciian.ECMA48.color8", MYBOLD_BLACK);
-        MYBOLD_RED = getCustomColor("casciian.ECMA48.color9", MYBOLD_RED);
-        MYBOLD_GREEN = getCustomColor("casciian.ECMA48.color10", MYBOLD_GREEN);
-        MYBOLD_YELLOW = getCustomColor("casciian.ECMA48.color11", MYBOLD_YELLOW);
-        MYBOLD_BLUE = getCustomColor("casciian.ECMA48.color12", MYBOLD_BLUE);
-        MYBOLD_MAGENTA = getCustomColor("casciian.ECMA48.color13", MYBOLD_MAGENTA);
-        MYBOLD_CYAN = getCustomColor("casciian.ECMA48.color14", MYBOLD_CYAN);
-        MYBOLD_WHITE = getCustomColor("casciian.ECMA48.color15", MYBOLD_WHITE);
+        MYBRIGHT_BLACK = getCustomColor("casciian.ECMA48.color8", MYBRIGHT_BLACK);
+        MYBRIGHT_RED = getCustomColor("casciian.ECMA48.color9", MYBRIGHT_RED);
+        MYBRIGHT_GREEN = getCustomColor("casciian.ECMA48.color10", MYBRIGHT_GREEN);
+        MYBRIGHT_YELLOW = getCustomColor("casciian.ECMA48.color11", MYBRIGHT_YELLOW);
+        MYBRIGHT_BLUE = getCustomColor("casciian.ECMA48.color12", MYBRIGHT_BLUE);
+        MYBRIGHT_MAGENTA = getCustomColor("casciian.ECMA48.color13", MYBRIGHT_MAGENTA);
+        MYBRIGHT_CYAN = getCustomColor("casciian.ECMA48.color14", MYBRIGHT_CYAN);
+        MYBRIGHT_WHITE = getCustomColor("casciian.ECMA48.color15", MYBRIGHT_WHITE);
 
         DEFAULT_FORECOLOR = getCustomColor("casciian.ECMA48.color39",
             DEFAULT_FORECOLOR);
@@ -4231,21 +4981,29 @@ public class ECMA48Terminal extends LogicalScreen
             return rgb;
         }
 
-        int colorValue = attr.getForeColor().getValue();
-        if (attr.isBold()) {
-            return switch (colorValue) {
-                case 0 -> MYBOLD_BLACK;  // Color.BLACK
-                case 1 -> MYBOLD_RED;    // Color.RED
-                case 2 -> MYBOLD_GREEN;  // Color.GREEN
-                case 3 -> MYBOLD_YELLOW; // Color.YELLOW
-                case 4 -> MYBOLD_BLUE;   // Color.BLUE
-                case 5 -> MYBOLD_MAGENTA;// Color.MAGENTA
-                case 6 -> MYBOLD_CYAN;   // Color.CYAN
-                case 7 -> MYBOLD_WHITE;  // Color.WHITE
-                default -> throw new IllegalArgumentException("Invalid color: " + colorValue);
+        int paletteIndex = attr.getForeColorPalette();
+        if (paletteIndex >= 0) {
+            return Palette256.toRgb(paletteIndex);
+        }
+
+        Color foreColor = attr.getForeColor();
+        // A bright color (Color.BRIGHT_*) selects the high-intensity palette
+        // entry.  The bold attribute does so only when treatBoldAsBright is
+        // enabled (see CellAttributes.isBoldAsBright()).
+        if (foreColor.isBright() || attr.isBoldAsBright()) {
+            return switch (foreColor.getValue() & 0x07) {
+                case 0 -> MYBRIGHT_BLACK;  // Color.BLACK
+                case 1 -> MYBRIGHT_RED;    // Color.RED
+                case 2 -> MYBRIGHT_GREEN;  // Color.GREEN
+                case 3 -> MYBRIGHT_YELLOW; // Color.YELLOW
+                case 4 -> MYBRIGHT_BLUE;   // Color.BLUE
+                case 5 -> MYBRIGHT_MAGENTA;// Color.MAGENTA
+                case 6 -> MYBRIGHT_CYAN;   // Color.CYAN
+                case 7 -> MYBRIGHT_WHITE;  // Color.WHITE
+                default -> throw new IllegalArgumentException("Invalid color: " + foreColor.getValue());
             };
         }
-        return switch (colorValue) {
+        return switch (foreColor.getValue()) {
             case 0 -> MYBLACK;   // Color.BLACK
             case 1 -> MYRED;     // Color.RED
             case 2 -> MYGREEN;   // Color.GREEN
@@ -4254,7 +5012,7 @@ public class ECMA48Terminal extends LogicalScreen
             case 5 -> MYMAGENTA; // Color.MAGENTA
             case 6 -> MYCYAN;    // Color.CYAN
             case 7 -> MYWHITE;   // Color.WHITE
-            default -> throw new IllegalArgumentException("Invalid color: " + colorValue);
+            default -> throw new IllegalArgumentException("Invalid color: " + foreColor.getValue());
         };
     }
 
@@ -4274,7 +5032,28 @@ public class ECMA48Terminal extends LogicalScreen
             return rgb;
         }
 
-        return switch (attr.getBackColor().getValue()) {
+        int paletteIndex = attr.getBackColorPalette();
+        if (paletteIndex >= 0) {
+            return Palette256.toRgb(paletteIndex);
+        }
+
+        Color backColor = attr.getBackColor();
+        // A bright background color (Color.BRIGHT_*) selects the
+        // high-intensity palette entry.
+        if (backColor.isBright()) {
+            return switch (backColor.getValue() & 0x07) {
+                case 0 -> MYBRIGHT_BLACK;  // Color.BLACK
+                case 1 -> MYBRIGHT_RED;    // Color.RED
+                case 2 -> MYBRIGHT_GREEN;  // Color.GREEN
+                case 3 -> MYBRIGHT_YELLOW; // Color.YELLOW
+                case 4 -> MYBRIGHT_BLUE;   // Color.BLUE
+                case 5 -> MYBRIGHT_MAGENTA;// Color.MAGENTA
+                case 6 -> MYBRIGHT_CYAN;   // Color.CYAN
+                case 7 -> MYBRIGHT_WHITE;  // Color.WHITE
+                default -> throw new IllegalArgumentException("Invalid color: " + backColor.getValue());
+            };
+        }
+        return switch (backColor.getValue()) {
             case 0 -> MYBLACK;   // Color.BLACK
             case 1 -> MYRED;     // Color.RED
             case 2 -> MYGREEN;   // Color.GREEN
@@ -4283,7 +5062,7 @@ public class ECMA48Terminal extends LogicalScreen
             case 5 -> MYMAGENTA; // Color.MAGENTA
             case 6 -> MYCYAN;    // Color.CYAN
             case 7 -> MYWHITE;   // Color.WHITE
-            default -> throw new IllegalArgumentException("Invalid color: " + attr.getBackColor().getValue());
+            default -> throw new IllegalArgumentException("Invalid color: " + backColor.getValue());
         };
     }
 
@@ -4303,21 +5082,6 @@ public class ECMA48Terminal extends LogicalScreen
      */
     public static int getDefaultBackColorRGB() {
         return DEFAULT_BACKCOLOR;
-    }
-
-    /**
-     * Create a T.416 RGB parameter sequence for a custom system color.
-     *
-     * @param colorRGB one of the MYBLACK, MYBOLD_BLUE, etc. colors
-     * @return the color portion of the string to emit to an ANSI /
-     * ECMA-style terminal
-     */
-    private String systemColorRGB(final int colorRGB) {
-        int colorRed = (colorRGB >>> 16) & 0xFF;
-        int colorGreen = (colorRGB >>> 8) & 0xFF;
-        int colorBlue = colorRGB & 0xFF;
-
-        return String.format("%d;%d;%d", colorRed, colorGreen, colorBlue);
     }
 
     /**
@@ -4345,6 +5109,22 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Create a SGR indexed-color (256-color palette) parameter sequence for a
+     * single color change.
+     *
+     * @param index      a 256-color palette index (0-255)
+     * @param foreground if true, this is a foreground color
+     * @return the string to emit to an ANSI / ECMA-style terminal,
+     * e.g. "\033[38;5;Nm"
+     */
+    private String colorPalette(final int index, final boolean foreground) {
+        if (foreground) {
+            return String.format("\033[38;5;%dm", index & 0xFF);
+        }
+        return String.format("\033[48;5;%dm", index & 0xFF);
+    }
+
+    /**
      * Get the palette color for a Color constant.
      *
      * @param color the Color constant
@@ -4352,16 +5132,16 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the RGB palette color value
      */
     private static int getPaletteColor(final Color color, final boolean bold) {
-        return bold ? switch (color.getValue()) {
-            case 0 -> MYBOLD_BLACK;
-            case 1 -> MYBOLD_RED;
-            case 2 -> MYBOLD_GREEN;
-            case 3 -> MYBOLD_YELLOW;
-            case 4 -> MYBOLD_BLUE;
-            case 5 -> MYBOLD_MAGENTA;
-            case 6 -> MYBOLD_CYAN;
-            case 7 -> MYBOLD_WHITE;
-            default -> MYBOLD_WHITE;
+        return (bold || color.isBright()) ? switch (color.getValue() & 0x07) {
+            case 0 -> MYBRIGHT_BLACK;
+            case 1 -> MYBRIGHT_RED;
+            case 2 -> MYBRIGHT_GREEN;
+            case 3 -> MYBRIGHT_YELLOW;
+            case 4 -> MYBRIGHT_BLUE;
+            case 5 -> MYBRIGHT_MAGENTA;
+            case 6 -> MYBRIGHT_CYAN;
+            case 7 -> MYBRIGHT_WHITE;
+            default -> MYBRIGHT_WHITE;
         } : switch (color.getValue()) {
             case 0 -> MYBLACK;
             case 1 -> MYRED;
@@ -4373,6 +5153,74 @@ public class ECMA48Terminal extends LogicalScreen
             case 7 -> MYWHITE;
             default -> MYWHITE;
         };
+    }
+
+    /**
+     * Create a T.416 RGB parameter sequence for a palette color,
+     * unconditionally, regardless of the {@code casciian.ECMA48.rgbColor}
+     * system property.  Shared by {@link #rgbColor} (which applies that
+     * property's gate) and by callers that must force an exact RGB value
+     * regardless of the property, such as bold-pinning in the render loop.
+     *
+     * @param bold       if true, use the bright palette variant
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param foreground if true, this is a foreground color
+     * @return the string to emit to an ANSI/ECMA-style terminal,
+     * e.g. "\033[38;2;RR;GG;BBm"
+     */
+    private String forcedRgbColor(final boolean bold, final Color color,
+                            final boolean foreground) {
+        return colorRGB(getPaletteColor(color, bold), foreground);
+    }
+
+    /**
+     * Create a SGR indexed-color (256-color palette) parameter sequence for a
+     * palette color, unconditionally, regardless of the
+     * {@code casciian.ECMA48.paletteColor} system property.  The terminal-
+     * neutral xterm color cube entry closest to the named color is used, so
+     * the exact color is pinned even on terminals whose 16-color palette is
+     * remapped or low-contrast.
+     *
+     * @param bold       if true, use the bright palette variant
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param foreground if true, this is a foreground color
+     * @return the string to emit to an ANSI/ECMA-style terminal,
+     * e.g. "\033[38;5;Nm"
+     */
+    private String forcedPaletteColor(final boolean bold, final Color color,
+                            final boolean foreground) {
+        return colorPalette(Palette256.fromRgb(getPaletteColor(color, bold)), foreground);
+    }
+
+    /**
+     * Create a SGR indexed-color (256-color palette) parameter sequence for a
+     * single color change, but only when the
+     * {@code casciian.ECMA48.paletteColor} system property is enabled.  This
+     * mirrors {@link #rgbColor(boolean, Color, boolean)}: the terminal-neutral
+     * xterm color cube entry closest to the named color is emitted so that
+     * terminals with a low-contrast or remapped 16-color palette still render
+     * a well-defined color.
+     *
+     * @param bold       if true, use the bright palette variant
+     * @param color      one of the Color.WHITE, Color.BLUE, etc. constants
+     * @param foreground if true, this is a foreground color
+     * @return the string to emit to an ANSI/ECMA-style terminal,
+     * e.g. "\033[38;5;Nm", or "" if palette color mode is disabled
+     */
+    private String paletteColor(final boolean bold, final Color color,
+                                final boolean foreground) {
+        if (!SystemProperties.isPaletteColor()
+            || SystemProperties.isRgbColor()
+        ) {
+            // RGB color takes precedence over the 256-color palette; do not
+            // emit an indexed-color sequence that would override it.
+            return "";
+        }
+        if (bold) {
+            // Bold implies foreground only
+            return colorPalette(Palette256.fromRgb(getPaletteColor(color, true)), true);
+        }
+        return colorPalette(Palette256.fromRgb(getPaletteColor(color, false)), foreground);
     }
 
     /**
@@ -4389,17 +5237,11 @@ public class ECMA48Terminal extends LogicalScreen
         if (!SystemProperties.isRgbColor()) {
             return "";
         }
-        StringBuilder sb = new StringBuilder("\033[");
         if (bold) {
             // Bold implies foreground only
-            sb.append("38;2;");
-            sb.append(systemColorRGB(getPaletteColor(color, true)));
-        } else {
-            sb.append(foreground ? "38;2;" : "48;2;");
-            sb.append(systemColorRGB(getPaletteColor(color, false)));
+            return forcedRgbColor(true, color, true);
         }
-        sb.append("m");
-        return sb.toString();
+        return forcedRgbColor(false, color, foreground);
     }
 
     /**
@@ -4455,12 +5297,13 @@ public class ECMA48Terminal extends LogicalScreen
     private String color(final Color color, final boolean foreground,
                          final boolean header, final boolean bold) {
 
-        int ecmaColor = color.getValue();
+        int ecmaColor = color.getValue() & 0x07;
+        boolean bright = bold || color.isBright();
 
         // Convert Color.* values to SGR numerics
         if (foreground) {
-            if (bold) {
-                // Use bright foreground colors (90-97) for bold text.
+            if (bright) {
+                // Use bright foreground colors (90-97) for bold/bright text.
                 // This is the AIXterm-style bright colors which are widely
                 // supported and do not rely on SGR 1 to switch to bright colors.
                 ecmaColor += 90;
@@ -4468,13 +5311,53 @@ public class ECMA48Terminal extends LogicalScreen
                 ecmaColor += 30;
             }
         } else {
-            ecmaColor += 40;
+            if (color.isBright()) {
+                // Use bright background colors (100-107) for bright
+                // background colors.
+                ecmaColor += 100;
+            } else {
+                ecmaColor += 40;
+            }
         }
 
         if (header) {
             return String.format("\033[%dm", ecmaColor);
         } else {
             return String.format("%d;", ecmaColor);
+        }
+    }
+
+    /**
+     * Append the SGR sequence for an underline style.
+     *
+     * @param attrSgr builder to append to
+     * @param underlineStyle underline style
+     */
+    private static void appendUnderlineSgr(final StringBuilder attrSgr,
+            final int underlineStyle) {
+
+        switch (underlineStyle) {
+        case CellAttributes.UNDERLINE_STYLE_NONE:
+            attrSgr.append(";24");
+            break;
+        case CellAttributes.UNDERLINE_STYLE_SINGLE:
+            attrSgr.append(";4");
+            break;
+        case CellAttributes.UNDERLINE_STYLE_DOUBLE:
+            attrSgr.append(";21");
+            break;
+        case CellAttributes.UNDERLINE_STYLE_CURLY:
+            attrSgr.append(";4:3");
+            break;
+        case CellAttributes.UNDERLINE_STYLE_DOTTED:
+            attrSgr.append(";4:4");
+            break;
+        case CellAttributes.UNDERLINE_STYLE_DASHED:
+            attrSgr.append(";4:5");
+            break;
+        default:
+            throw new IllegalArgumentException(
+                "Invalid underline style: " + underlineStyle);
         }
     }
 
@@ -4598,6 +5481,22 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Send a CSI 18 t screen size query to the terminal, serialized with all
+     * other writes to the terminal stream.  This is handed to
+     * {@link TTYSessionInfo} once the terminal has proven it answers CSI 8 t,
+     * so that the session info does not write to the terminal on its own.
+     */
+    private void sendWindowSizeQuery() {
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.write(xtermQueryWindowSize());
+                writer.flush();
+            }
+        }
+    }
+
+    /**
      * Request (u)xterm report support for a specific mode.
      *
      * @param mode the mode to query
@@ -4606,7 +5505,7 @@ public class ECMA48Terminal extends LogicalScreen
     private String xtermQueryMode(final int mode) {
         if (mode > 0) {
             String str = String.format("\033[?%d$p", mode);
-            if (debugToStderr) {
+            if (DEBUG_TO_STDERR) {
                 System.err.printf("Sending DECRQM: %s\n", str);
             }
             return str;
@@ -4635,12 +5534,16 @@ public class ECMA48Terminal extends LogicalScreen
      * @param shape the pointer shape name (e.g., "arrow", "xterm")
      */
     private void setXtermMousePointer(final String shape) {
-        if (output != null) {
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer == null) {
+                return;
+            }
             mousePointerShapeChanged = true;
             // OSC 22 ; shape ST - set pointer shape
-            output.printf("\033]%s;%s\033\\", OSC_POINTER_SHAPE, shape);
-            output.flush();
-            if (debugToStderr) {
+            writer.printf("\033]%s;%s\033\\", OSC_POINTER_SHAPE, shape);
+            writer.flush();
+            if (DEBUG_TO_STDERR) {
                 System.err.println("Set pointer shape to: " + shape);
             }
         }
@@ -4651,11 +5554,13 @@ public class ECMA48Terminal extends LogicalScreen
      * This is called when the terminal is closed.
      */
     private void restoreXtermMousePointer() {
-        if (mousePointerShapeChanged && output != null) {
-            setXtermMousePointer(POINTER_SHAPE_DEFAULT);
-            mousePointerShapeChanged = false;
-            if (debugToStderr) {
-                System.err.println("Restored pointer shape to: " + POINTER_SHAPE_DEFAULT);
+        synchronized (outputLock) {
+            if (mousePointerShapeChanged && (output != null)) {
+                setXtermMousePointer(POINTER_SHAPE_DEFAULT);
+                mousePointerShapeChanged = false;
+                if (DEBUG_TO_STDERR) {
+                    System.err.println("Restored pointer shape to: " + POINTER_SHAPE_DEFAULT);
+                }
             }
         }
     }
@@ -4669,8 +5574,13 @@ public class ECMA48Terminal extends LogicalScreen
     public void xtermSetClipboardText(final String text) {
         byte[] textBytes = text.getBytes(StandardCharsets.UTF_8);
         String textToCopy = StringUtils.toBase64(textBytes);
-        this.output.printf("\033]52;c;%s\033\\", textToCopy);
-        this.output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.printf("\033]52;c;%s\033\\", textToCopy);
+                writer.flush();
+            }
+        }
     }
 
     /**
@@ -4686,7 +5596,7 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private void sendPalette() {
         if (output == null) {
-            if (debugToStderr) {
+            if (DEBUG_TO_STDERR) {
                 System.err.println("sendPalette(): output is null, skipping palette transmission");
             }
             return;
@@ -4694,10 +5604,16 @@ public class ECMA48Terminal extends LogicalScreen
 
         String command = buildSendPaletteCommand();
 
-        output.write(command);
-        output.flush();
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer == null) {
+                return;
+            }
+            writer.write(command);
+            writer.flush();
+        }
 
-        if (debugToStderr) {
+        if (DEBUG_TO_STDERR) {
             System.err.println("Sent CGA palette (16 colors) to terminal");
         }
     }
@@ -4736,14 +5652,14 @@ public class ECMA48Terminal extends LogicalScreen
             MYMAGENTA,      // 5: Magenta
             MYCYAN,         // 6: Cyan
             MYWHITE,        // 7: White (light gray)
-            MYBOLD_BLACK,   // 8: Bright Black (dark gray)
-            MYBOLD_RED,     // 9: Bright Red
-            MYBOLD_GREEN,   // 10: Bright Green
-            MYBOLD_YELLOW,  // 11: Bright Yellow
-            MYBOLD_BLUE,    // 12: Bright Blue
-            MYBOLD_MAGENTA, // 13: Bright Magenta
-            MYBOLD_CYAN,    // 14: Bright Cyan
-            MYBOLD_WHITE    // 15: Bright White
+            MYBRIGHT_BLACK,   // 8: Bright Black (dark gray)
+            MYBRIGHT_RED,     // 9: Bright Red
+            MYBRIGHT_GREEN,   // 10: Bright Green
+            MYBRIGHT_YELLOW,  // 11: Bright Yellow
+            MYBRIGHT_BLUE,    // 12: Bright Blue
+            MYBRIGHT_MAGENTA, // 13: Bright Magenta
+            MYBRIGHT_CYAN,    // 14: Bright Cyan
+            MYBRIGHT_WHITE    // 15: Bright White
         };
 
         // Pre-size to avoid internal resizing: ~50 bytes/color * 16 colors ≈ 800 bytes

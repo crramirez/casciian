@@ -305,7 +305,11 @@ public class TChangeDirBox extends TWindow {
 
         File dir = new File(dirPath).getCanonicalFile();
         if (dir.isDirectory()) {
-            SystemProperties.setUserDir(dir.getCanonicalPath());
+            String canonical = dir.getCanonicalPath();
+            // SystemProperties.setUserDir() notifies its registered
+            // listeners, which keeps the hosting terminal's reported
+            // working directory (OSC 7) automatically synchronized.
+            SystemProperties.setUserDir(canonical);
         }
     }
 

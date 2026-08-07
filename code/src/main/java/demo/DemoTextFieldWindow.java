@@ -45,6 +45,7 @@ public class DemoTextFieldWindow extends TWindow {
      * The name of the resource bundle for this class.
      */
     public static final String RESOURCE_BUNDLE_NAME = DemoTextFieldWindow.class.getName() + "Bundle";
+    private static final String LABEL_FORMAT = "%-10s";
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -64,7 +65,7 @@ public class DemoTextFieldWindow extends TWindow {
     /**
      * Day of week label is updated with TSpinner clicks.
      */
-    TLabel dayOfWeekLabel;
+    TLabel<?> dayOfWeekLabel;
 
     /**
      * Day of week to demonstrate TSpinner.  Has to be at class scope so that
@@ -94,7 +95,7 @@ public class DemoTextFieldWindow extends TWindow {
     DemoTextFieldWindow(final TApplication parent, final int flags) {
         // Construct a demo window.  X and Y don't matter because it
         // will be centered on screen.
-        super(parent, "", 0, 0, 60, 20, flags);
+        super(parent, "", 0, 0, 60, 24, flags);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -104,20 +105,24 @@ public class DemoTextFieldWindow extends TWindow {
 
         int row = 1;
 
-        addLabel(i18n.getString("textField1"), 1, row);
-        addField(35, row++, 15, false, i18n.getString("fieldText"));
-        addLabel(i18n.getString("textField2"), 1, row);
-        addField(35, row++, 15, true);
-        addLabel(i18n.getString("textField3"), 1, row);
-        addPasswordField(35, row++, 15, false);
-        addLabel(i18n.getString("textField4"), 1, row);
-        addPasswordField(35, row++, 15, true, "hunter2");
-        addLabel(i18n.getString("textField5"), 1, row);
-        TField selected = addField(35, row++, 40, false,
-            i18n.getString("textField6"));
-        row += 1;
+        addLabel(i18n.getString("textField1"), 1, row,
+            addField(35, row++, 15, false, i18n.getString("fieldText")));
+        row++;
+        addLabel(i18n.getString("textField2"), 1, row,
+            addField(35, row++, 15, true));
+        row++;
+        addLabel(i18n.getString("textField3"), 1, row,
+            addPasswordField(35, row++, 15, false));
+        row++;
+        addLabel(i18n.getString("textField4"), 1, row,
+            addPasswordField(35, row++, 15, true, "hunter2"));
+        row++;
+        TField selected = addLabelFor(i18n.getString("textField5"), 1, row,
+            addField(35, row++, 40, false, i18n.getString("textField6")));
 
-        calendar = addCalendar(1, row++,
+        row++;
+
+        calendar = addCalendar(1, row,
             new TAction() {
                 public void DO() {
                     getApplication().messageBox(i18n.getString("calendarTitle"),
@@ -128,16 +133,16 @@ public class DemoTextFieldWindow extends TWindow {
             }
         );
 
-        dayOfWeekLabel = addLabel("Wednesday-", 35, row - 1, "tmenu", false);
-        dayOfWeekLabel.setLabel(String.format("%-10s",
+        dayOfWeekLabel = addLabel("Wednesday-", 35, row, "tmenu", false);
+        dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
                 dayOfWeekCalendar.getDisplayName(Calendar.DAY_OF_WEEK,
                     Calendar.LONG, Locale.getDefault())));
 
-        addSpinner(35 + dayOfWeekLabel.getWidth(), row - 1,
+        addSpinner(35 + dayOfWeekLabel.getWidth(), row,
             new TAction() {
                 public void DO() {
                     dayOfWeekCalendar.add(Calendar.DAY_OF_WEEK, 1);
-                    dayOfWeekLabel.setLabel(String.format("%-10s",
+                    dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
                             dayOfWeekCalendar.getDisplayName(
                             Calendar.DAY_OF_WEEK, Calendar.LONG,
                             Locale.getDefault())));
@@ -146,7 +151,7 @@ public class DemoTextFieldWindow extends TWindow {
             new TAction() {
                 public void DO() {
                     dayOfWeekCalendar.add(Calendar.DAY_OF_WEEK, -1);
-                    dayOfWeekLabel.setLabel(String.format("%-10s",
+                    dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
                             dayOfWeekCalendar.getDisplayName(
                             Calendar.DAY_OF_WEEK, Calendar.LONG,
                             Locale.getDefault())));
@@ -154,6 +159,10 @@ public class DemoTextFieldWindow extends TWindow {
             }
         );
 
+        row += 2;
+
+        addHyperlink(i18n.getString("hyperlinkText"),
+            "https://github.com/crramirez/casciian", 35, row);
 
         addButton(i18n.getString("closeWindow"),
             (getWidth() - 14) / 2, getHeight() - 4,

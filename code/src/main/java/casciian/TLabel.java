@@ -14,19 +14,19 @@
  */
 package casciian;
 
-import java.util.List;
-
-import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
-import casciian.bits.ComplexCell;
+import casciian.bits.ColorTheme;
 import casciian.bits.MnemonicString;
 import casciian.bits.StringUtils;
+import casciian.event.TMouseEvent;
 
 /**
  * TLabel implements a simple label, with an optional mnemonic hotkey action
  * associated with it.
+ *
+ * @param <F> the type of widget this label is for
  */
-public class TLabel extends TWidget {
+public class TLabel<F extends TWidget> extends TWidget {
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -38,14 +38,9 @@ public class TLabel extends TWidget {
     private MnemonicString mnemonic;
 
     /**
-     * A mnemonic raw text as complex cells.
-     */
-    private List<ComplexCell> cells = null;
-
-    /**
      * The action to perform when the mnemonic shortcut is pressed.
      */
-    private TAction action;
+    private final TAction action;
 
     /**
      * Label color.
@@ -57,12 +52,17 @@ public class TLabel extends TWidget {
      */
     private boolean matchWindowBackground = true;
 
+    /**
+     * The widget this label is associated with.
+     */
+    private F labelFor;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
 
     /**
-     * Public constructor, using the default "tlabel" for colorKey.
+     * Public constructor, using the default ColorTheme.TLABEL for colorKey.
      *
      * @param parent parent widget
      * @param text label on the screen
@@ -72,11 +72,34 @@ public class TLabel extends TWidget {
     public TLabel(final TWidget parent, final String text, final int x,
         final int y) {
 
-        this(parent, text, x, y, "tlabel");
+        this(parent, text, x, y, ColorTheme.TLABEL);
     }
 
     /**
-     * Public constructor, using the default "tlabel" for colorKey.
+     * Public constructor, using the default ColorTheme.TLABEL for colorKey.
+     *
+     * @param parent parent widget
+     * @param text label on the screen
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param labelFor the widget this label is for
+     */
+    public TLabel(final TWidget parent, final String text, final int x,
+        final int y, final F labelFor) {
+
+        this(parent, text, x, y, ColorTheme.TLABEL, true, new TAction() {
+
+            @Override
+            public void DO() {
+                if (labelFor != null) {
+                    labelFor.activate();
+                }
+            }
+        }, labelFor);
+    }
+
+    /**
+     * Public constructor, using the default ColorTheme.TLABEL for colorKey.
      *
      * @param parent parent widget
      * @param text label on the screen
@@ -87,7 +110,7 @@ public class TLabel extends TWidget {
     public TLabel(final TWidget parent, final String text, final int x,
         final int y, final TAction action) {
 
-        this(parent, text, x, y, "tlabel", action);
+        this(parent, text, x, y, ColorTheme.TLABEL, action);
     }
 
     /**
@@ -118,7 +141,7 @@ public class TLabel extends TWidget {
     public TLabel(final TWidget parent, final String text, final int x,
         final int y, final String colorKey, final TAction action) {
 
-        this(parent, text, x, y, colorKey, true, action);
+        this(parent, text, x, y, colorKey, true, action, null);
     }
 
     /**
@@ -135,7 +158,7 @@ public class TLabel extends TWidget {
     public TLabel(final TWidget parent, final String text, final int x,
         final int y, final String colorKey, final boolean matchWindowBackground) {
 
-        this(parent, text, x, y, colorKey, matchWindowBackground, null);
+        this(parent, text, x, y, colorKey, matchWindowBackground, null, null);
     }
 
     /**
@@ -149,11 +172,12 @@ public class TLabel extends TWidget {
      * @param matchWindowBackground if true, use the window's background
      * color
      * @param action to call when shortcut is pressed
+     * @param labelFor the widget this label is for
      */
     @SuppressWarnings("this-escape")
     public TLabel(final TWidget parent, final String text, final int x,
         final int y, final String colorKey, final boolean matchWindowBackground,
-        final TAction action) {
+        final TAction action, final F labelFor) {
 
         // Set parent and window
         super(parent, false, x, y, 0, 1);
@@ -162,6 +186,37 @@ public class TLabel extends TWidget {
         this.colorKey = colorKey;
         this.matchWindowBackground = matchWindowBackground;
         this.action = action;
+        this.labelFor = labelFor;
+    }
+
+    // ------------------------------------------------------------------------
+    // Event handlers ---------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+
+    /**
+     * Returns true if the mouse is currently on the label.
+     *
+     * @param mouse mouse event
+     * @return true if the mouse is over this label
+     */
+    private boolean mouseOnLabel(final TMouseEvent mouse) {
+        return (mouse.getY() == 0)
+            && (mouse.getX() >= 0)
+            && (mouse.getX() < getWidth());
+    }
+
+    /**
+     * Handle mouse button releases: clicking the label activates the labelFor widget.
+     *
+     * @param mouse mouse button release event
+     */
+    @Override
+    public void onMouseUp(final TMouseEvent mouse) {
+        if (mouseOnLabel(mouse) && mouse.isMouse1() && labelFor != null) {
+            labelFor.activate();
+        }
+        super.onMouseUp(mouse);
     }
 
     // ------------------------------------------------------------------------
@@ -197,8 +252,31 @@ public class TLabel extends TWidget {
         // Setup my color
         CellAttributes color = new CellAttributes();
         CellAttributes mnemonicColor = new CellAttributes();
-        color.setTo(getTheme().getColor(colorKey));
-        mnemonicColor.setTo(getTheme().getColor("tlabel.mnemonic"));
+
+        boolean active =  labelFor != null && labelFor.isAbsoluteActive();
+        String colorKeyToDraw = colorKey;
+        if (active) {
+            String activeColorKey = colorKey + ".active";
+            if (colorKey.startsWith("tlabel")
+                || getTheme().getColor(activeColorKey) != null
+            ) {
+                colorKeyToDraw = activeColorKey;
+            }
+        }
+
+        String suffix = "";
+        if ((getWindow() != null) && getWindow().isModal()
+            && colorKeyToDraw.startsWith(ColorTheme.TLABEL)
+            && !colorKeyToDraw.endsWith(".modal")
+        ) {
+            suffix = ".modal";
+        }
+        color.setTo(getTheme().getColor(colorKeyToDraw + suffix));
+        CellAttributes mnemonicAttr = getTheme().getColor(colorKeyToDraw + ".mnemonic" + suffix);
+        if (mnemonicAttr == null) {
+            mnemonicAttr = color;
+        }
+        mnemonicColor.setTo(mnemonicAttr);
 
         if (matchWindowBackground) {
             putForegroundStringXY(0, 0, mnemonic.getRawLabel(), color);
@@ -284,6 +362,24 @@ public class TLabel extends TWidget {
      */
     public void setMatchWindowBackground(final boolean matchWindowBackground) {
         this.matchWindowBackground = matchWindowBackground;
+    }
+
+    /**
+     * Get the widget this label is associated with.
+     *
+     * @return the widget this label is for
+     */
+    public F getLabelFor() {
+        return labelFor;
+    }
+
+    /**
+     * Set the widget this label is associated with.
+     *
+     * @param labelFor the widget this label is for
+     */
+    public void setLabelFor(final F labelFor) {
+        this.labelFor = labelFor;
     }
 
     /**

@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.bits;
 
@@ -25,8 +30,7 @@ import java.util.ArrayList;
  *   <li>GB3 is deliberately ignored.</li>
  *   <li>GB4 and GB5 will break at all control characters including CR.</li>
  *   <li>GB9c is not implemented.</li>
- *   <li>GB11 and GB12 do not count "evenness" of previous regional
- *       indicator (RI) symbols, instead always joining.</li>
+ *   <li>GB11 is implemented for emoji ZWJ sequences.</li>
  * </ul>
  */
 public class ExtendedGraphemeClusterUtils {
@@ -1974,7 +1978,24 @@ public class ExtendedGraphemeClusterUtils {
             return false;
         }
 
-        // GB3, GB4, GB9c, GB12, and GB13 - Will not implement
+        // GB11: do not break within emoji ZWJ sequences.  When the previous
+        // codepoint is a ZWJ that follows an emoji (guaranteed by GB9, which
+        // joins the emoji and any Extend* to the ZWJ), do not break before a
+        // following Extended_Pictographic codepoint.
+        if (isZWJ(firstCh)
+            && (isEmoji(secondCh) || isEmojiBMP(secondCh))
+        ) {
+            // System.err.println("GB11 false");
+            return false;
+        }
+
+        if (isRegionalIndicator(firstCh) && isRegionalIndicator(secondCh)) {
+            // GB12 and GB13 need the parity of the current RI run, which is
+            // tracked by toComplexCells().
+            return true;
+        }
+
+        // GB3, GB4, and GB9c - Will not implement
 
         if ((isEmoji(firstCh)
                 || isEmojiBMP(firstCh)
@@ -2005,8 +2026,12 @@ public class ExtendedGraphemeClusterUtils {
         int [] grapheme = null;
         int begin = 0;
         int lastCh = 0;
+        int regionalIndicatorCount = 0;
         if (codePoints.length > 0) {
             lastCh = codePoints[0];
+            if (isRegionalIndicator(lastCh)) {
+                regionalIndicatorCount = 1;
+            }
         }
 
         // As per GB1, any codepoint after the start of text (sot) begins a
@@ -2014,7 +2039,14 @@ public class ExtendedGraphemeClusterUtils {
         for (int i = 1; i < codePoints.length; i++) {
             int ch = codePoints[i];
 
-            if (shouldBreak(lastCh, ch)) {
+            boolean riPair = isRegionalIndicator(lastCh)
+                && isRegionalIndicator(ch);
+            boolean shouldBreak = shouldBreak(lastCh, ch);
+            if (riPair) {
+                shouldBreak = ((regionalIndicatorCount % 2) == 0);
+            }
+
+            if (shouldBreak) {
                 // Everything before this is one grapheme.
                 int n = i - begin;
                 assert (n > 0);
@@ -2022,6 +2054,11 @@ public class ExtendedGraphemeClusterUtils {
                 ComplexCell cell = new ComplexCell(grapheme);
                 result.add(cell);
                 begin = i;
+                regionalIndicatorCount = isRegionalIndicator(ch) ? 1 : 0;
+            } else if (riPair) {
+                regionalIndicatorCount++;
+            } else if (!isRegionalIndicator(ch)) {
+                regionalIndicatorCount = 0;
             }
 
             lastCh = ch;

@@ -293,7 +293,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      */
     public final boolean mouseWouldHit(final TMouseEvent mouse) {
 
-        if (!enabled) {
+        if (!enabled && !(this instanceof TLabel<?> label && label.getLabelFor() != null)) {
             return false;
         }
 
@@ -382,9 +382,8 @@ public abstract class TWidget implements Comparable<TWidget> {
         // If I have any labels on me AND this is an Alt-key that matches
         // its mnemonic, call its action.
         for (TWidget widget: children) {
-            if (widget instanceof TLabel) {
-                TLabel label = (TLabel) widget;
-                if (!keypress.getKey().isFnKey()
+            if (widget instanceof TLabel<?> label
+                    && !keypress.getKey().isFnKey()
                     && keypress.getKey().isAlt()
                     && !keypress.getKey().isCtrl()
                     && (Character.toLowerCase(label.getMnemonic().getShortcut())
@@ -394,7 +393,7 @@ public abstract class TWidget implements Comparable<TWidget> {
                     label.dispatch();
                     return;
                 }
-            }
+
         }
 
         // If I have any radiobuttons on me AND this is an Alt-key that
@@ -872,7 +871,38 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param active if true, this widget will receive events
      */
     public final void setActive(final boolean active) {
+        setActiveFlag(active);
+    }
+
+    /**
+     * Set the active flag, calling {@link #onActivate()} when the widget was
+     * not active before.  All the places that make a widget the active one
+     * must go through here so that the hook is always fired exactly once per
+     * transition.
+     *
+     * @param active if true, this widget will receive events
+     */
+    private void setActiveFlag(final boolean active) {
+        boolean wasActive = this.active;
         this.active = active;
+        if (active && !wasActive) {
+            onActivate();
+        }
+    }
+
+    /**
+     * Called when this widget becomes the active one, i.e. when it gains the
+     * keyboard focus within its container.  Subclasses can override this to
+     * react to being focused; the default implementation does nothing.
+     *
+     * <p>
+     * Note that this can be called while the widget is still being
+     * constructed, because a container activates a newly added child: an
+     * override must tolerate its own fields not being initialized yet.
+     * </p>
+     */
+    protected void onActivate() {
+        // Nothing to do by default.
     }
 
     /**
@@ -1060,7 +1090,7 @@ public abstract class TWidget implements Comparable<TWidget> {
     public void setEnabled(final boolean enabled) {
         this.enabled = enabled;
         if (!enabled) {
-            active = false;
+            setActiveFlag(false);
             // See if there are any active siblings to switch to
             boolean foundSibling = false;
             if (parent != null) {
@@ -1435,6 +1465,27 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
+     * Retrieve a theme color, automatically preferring the {@code .modal}
+     * variant when this widget is painted inside a modal window.
+     * <p>
+     * This is a convenience wrapper around
+     * {@link ColorTheme#getColor(String, boolean)} that inspects the
+     * containing {@link TWindow}.  Widgets should use this method for their
+     * own color lookups so that theme designers can style them differently
+     * on modal vs. modeless windows.  If the {@code .modal} variant is not
+     * registered in the active theme, the base key is returned, so callers
+     * remain backwards-compatible with themes that don't define modal
+     * overrides.
+     *
+     * @param key theme color name, e.g. "tbutton.active"
+     * @return the color registered for {@code key} (or its modal variant)
+     */
+    public final CellAttributes getWidgetColor(final String key) {
+        TWindow w = getWindow();
+        return getTheme().getColor(key, (w != null) && w.isModal());
+    }
+
+    /**
      * See if this widget can be drawn onto a screen.
      *
      * @return true if this widget is part of the hierarchy that can draw to
@@ -1593,9 +1644,9 @@ public abstract class TWidget implements Comparable<TWidget> {
             && !(child instanceof TVScroller)
         ) {
             for (TWidget widget: children) {
-                widget.active = false;
+                widget.setActiveFlag(false);
             }
-            child.active = true;
+            child.setActiveFlag(true);
             activeChild = child;
         }
         resetTabOrder();
@@ -1629,16 +1680,16 @@ public abstract class TWidget implements Comparable<TWidget> {
 
         if (children.size() == 1) {
             if (children.get(0).enabled == true) {
-                child.active = true;
+                child.setActiveFlag(true);
                 activeChild = child;
             }
         } else {
             for (TWidget widget: children) {
                 if (widget != child) {
-                    widget.active = false;
+                    widget.setActiveFlag(false);
                 }
             }
-            child.active = true;
+            child.setActiveFlag(true);
             activeChild = child;
         }
     }
@@ -1652,7 +1703,7 @@ public abstract class TWidget implements Comparable<TWidget> {
     public final void activate(final int tabOrder) {
         if (children.size() == 1) {
             if (children.get(0).enabled == true) {
-                children.get(0).active = true;
+                children.get(0).setActiveFlag(true);
                 activeChild = children.get(0);
             }
             return;
@@ -1674,10 +1725,10 @@ public abstract class TWidget implements Comparable<TWidget> {
 
             for (TWidget widget: children) {
                 if (widget != child) {
-                    widget.active = false;
+                    widget.setActiveFlag(false);
                 }
             }
-            child.active = true;
+            child.setActiveFlag(true);
             activeChild = child;
         }
     }
@@ -1726,9 +1777,9 @@ public abstract class TWidget implements Comparable<TWidget> {
         if (children.size() == 1) {
             if (children.get(0).enabled == true) {
                 activeChild = children.get(0);
-                activeChild.active = true;
+                activeChild.setActiveFlag(true);
             } else {
-                children.get(0).active = false;
+                children.get(0).setActiveFlag(false);
                 activeChild = null;
             }
             return;
@@ -1779,10 +1830,10 @@ public abstract class TWidget implements Comparable<TWidget> {
         if (activeChild != null) {
             assert (children.get(tabOrder).enabled);
 
-            activeChild.active = false;
+            activeChild.setActiveFlag(false);
         }
         if (children.get(tabOrder).enabled == true) {
-            children.get(tabOrder).active = true;
+            children.get(tabOrder).setActiveFlag(true);
             activeChild = children.get(tabOrder);
         }
     }
@@ -2413,8 +2464,55 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param y row relative to parent
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y) {
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y) {
         return addLabel(text, x, y, "tlabel");
+    }
+
+    /**
+     * Convenience function to add a hyperlink to this container/window.
+     *
+     * @param text visible text of the link
+     * @param uri hyperlink target URI
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @return the new hyperlink
+     */
+    @SuppressWarnings("UnusedReturnValue")
+    public final THyperLink addHyperlink(final String text, final String uri,
+                                         final int x, final int y) {
+
+        return new THyperLink(this, text, uri, x, y);
+    }
+
+    /**
+     * Convenience function to add a label to this container/window.
+     *
+     * @param <F> the type of widget this label is for
+     * @param text label
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param labelFor the widget this label is for
+     * @return the new label
+     */
+    public final <F extends TWidget> TLabel<F> addLabel(final String text, final int x, final int y,
+        final F labelFor) {
+        return new TLabel<>(this, text, x, y, labelFor);
+    }
+
+    /**
+     * Convenience function to add a label to this container/window, returning the widget for the label.
+     *
+     * @param <F> the type of widget this label is for
+     * @param text label
+     * @param x column relative to parent
+     * @param y row relative to parent
+     * @param labelFor the widget this label is for
+     * @return the widget this label is for
+     */
+    public final <F extends TWidget> F addLabelFor(final String text, final int x, final int y,
+        final F labelFor) {
+        new TLabel<>(this, text, x, y, labelFor);
+        return labelFor;
     }
 
     /**
@@ -2426,7 +2524,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param action to call when shortcut is pressed
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y,
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y,
         final TAction action) {
 
         return addLabel(text, x, y, "tlabel", action);
@@ -2442,10 +2540,10 @@ public abstract class TWidget implements Comparable<TWidget> {
      * Default is "tlabel"
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y,
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y,
         final String colorKey) {
 
-        return new TLabel(this, text, x, y, colorKey);
+        return new TLabel<>(this, text, x, y, colorKey);
     }
 
     /**
@@ -2459,10 +2557,10 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param action to call when shortcut is pressed
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y,
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y,
         final String colorKey, final TAction action) {
 
-        return new TLabel(this, text, x, y, colorKey, action);
+        return new TLabel<>(this, text, x, y, colorKey, action);
     }
 
     /**
@@ -2477,10 +2575,10 @@ public abstract class TWidget implements Comparable<TWidget> {
      * color
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y,
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y,
         final String colorKey, final boolean matchWindowBackground) {
 
-        return new TLabel(this, text, x, y, colorKey, matchWindowBackground);
+        return new TLabel<>(this, text, x, y, colorKey, matchWindowBackground);
     }
 
     /**
@@ -2496,12 +2594,12 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param action to call when shortcut is pressed
      * @return the new label
      */
-    public final TLabel addLabel(final String text, final int x, final int y,
+    public final TLabel<TWidget> addLabel(final String text, final int x, final int y,
         final String colorKey, final boolean matchWindowBackground,
         final TAction action) {
 
-        return new TLabel(this, text, x, y, colorKey, matchWindowBackground,
-            action);
+        return new TLabel<>(this, text, x, y, colorKey, matchWindowBackground,
+            action, null);
     }
 
     /**

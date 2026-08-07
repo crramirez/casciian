@@ -64,7 +64,55 @@ public final class Color {
     private static final int SGRWHITE   = 7;
 
     /**
-     * Black.  Bold + black = dark grey
+     * Offset added to a normal SGR color value (0-7) to produce its bright
+     * variant (8-15).  Bright colors map to the AIXterm-style SGR foreground
+     * codes 90-97 and background codes 100-107.
+     */
+    private static final int BRIGHT_OFFSET = 8;
+
+    /**
+     * SGR bright black value = 8.
+     */
+    private static final int SGRBRIGHTBLACK   = SGRBLACK + BRIGHT_OFFSET;
+
+    /**
+     * SGR bright red value = 9.
+     */
+    private static final int SGRBRIGHTRED     = SGRRED + BRIGHT_OFFSET;
+
+    /**
+     * SGR bright green value = 10.
+     */
+    private static final int SGRBRIGHTGREEN   = SGRGREEN + BRIGHT_OFFSET;
+
+    /**
+     * SGR bright yellow value = 11.
+     */
+    private static final int SGRBRIGHTYELLOW  = SGRYELLOW + BRIGHT_OFFSET;
+
+    /**
+     * SGR bright blue value = 12.
+     */
+    private static final int SGRBRIGHTBLUE    = SGRBLUE + BRIGHT_OFFSET;
+
+    /**
+     * SGR bright magenta value = 13.
+     */
+    private static final int SGRBRIGHTMAGENTA = SGRMAGENTA + BRIGHT_OFFSET;
+
+    /**
+     * SGR bright cyan value = 14.
+     */
+    private static final int SGRBRIGHTCYAN    = SGRCYAN + BRIGHT_OFFSET;
+
+    /**
+     * SGR bright white value = 15.
+     */
+    private static final int SGRBRIGHTWHITE   = SGRWHITE + BRIGHT_OFFSET;
+
+    /**
+     * Black.  See {@link #BRIGHT_BLACK} for the dark-grey, high-intensity
+     * variant.
      */
     public static final Color BLACK = new Color(SGRBLACK);
 
@@ -103,6 +151,46 @@ public final class Color {
      */
     public static final Color WHITE = new Color(SGRWHITE);
 
+    /**
+     * Bright black (dark grey).  Maps to SGR foreground 90 / background 100.
+     */
+    public static final Color BRIGHT_BLACK = new Color(SGRBRIGHTBLACK);
+
+    /**
+     * Bright red.  Maps to SGR foreground 91 / background 101.
+     */
+    public static final Color BRIGHT_RED = new Color(SGRBRIGHTRED);
+
+    /**
+     * Bright green.  Maps to SGR foreground 92 / background 102.
+     */
+    public static final Color BRIGHT_GREEN = new Color(SGRBRIGHTGREEN);
+
+    /**
+     * Bright yellow.  Maps to SGR foreground 93 / background 103.
+     */
+    public static final Color BRIGHT_YELLOW = new Color(SGRBRIGHTYELLOW);
+
+    /**
+     * Bright blue.  Maps to SGR foreground 94 / background 104.
+     */
+    public static final Color BRIGHT_BLUE = new Color(SGRBRIGHTBLUE);
+
+    /**
+     * Bright magenta.  Maps to SGR foreground 95 / background 105.
+     */
+    public static final Color BRIGHT_MAGENTA = new Color(SGRBRIGHTMAGENTA);
+
+    /**
+     * Bright cyan.  Maps to SGR foreground 96 / background 106.
+     */
+    public static final Color BRIGHT_CYAN = new Color(SGRBRIGHTCYAN);
+
+    /**
+     * Bright white.  Maps to SGR foreground 97 / background 107.
+     */
+    public static final Color BRIGHT_WHITE = new Color(SGRBRIGHTWHITE);
+
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -140,6 +228,41 @@ public final class Color {
     }
 
     /**
+     * Determine whether this is a bright (high-intensity) color.
+     *
+     * @return true if this is one of the BRIGHT_* colors (SGR value 8-15)
+     */
+    public boolean isBright() {
+        return value >= BRIGHT_OFFSET;
+    }
+
+    /**
+     * Get the bright (high-intensity) variant of this color.
+     *
+     * @return the matching BRIGHT_* color, or this color if it is already
+     * bright
+     */
+    public Color toBright() {
+        if (isBright()) {
+            return this;
+        }
+        return getSgrColor(value + BRIGHT_OFFSET);
+    }
+
+    /**
+     * Get the normal (non-bright) variant of this color.
+     *
+     * @return the matching normal color, or this color if it is already
+     * normal
+     */
+    public Color toNormal() {
+        if (isBright()) {
+            return getSgrColor(value - BRIGHT_OFFSET);
+        }
+        return this;
+    }
+
+    /**
      * Public constructor returns one of the static Color instances.
      *
      * @param colorName "red", "blue", etc.
@@ -170,7 +293,8 @@ public final class Color {
      * @return the inverted color
      */
     public Color invert() {
-        return switch (value) {
+        Color base = toNormal();
+        Color inverted = switch (base.value) {
             case SGRBLACK -> Color.WHITE;
             case SGRWHITE -> Color.BLACK;
             case SGRRED -> Color.CYAN;
@@ -181,6 +305,7 @@ public final class Color {
             case SGRYELLOW -> Color.BLUE;
             default -> throw new IllegalArgumentException("Invalid Color value: " + value);
         };
+        return isBright() ? inverted.toBright() : inverted;
     }
 
     /**
@@ -215,7 +340,8 @@ public final class Color {
      */
     @Override
     public String toString() {
-        return switch (value) {
+        String prefix = isBright() ? "bright " : "";
+        return prefix + switch (toNormal().value) {
             case SGRBLACK -> "black";
             case SGRWHITE -> "white";
             case SGRRED -> "red";
@@ -240,7 +366,7 @@ public final class Color {
     /**
      * Convert this color to an RGB string.
      *
-     * @param bright if true, return the bright/bold color
+     * @param bright if true, return the bright color
      * @return the RGB string
      */
     public String toRgbString(final boolean bright) {
@@ -266,8 +392,8 @@ public final class Color {
             "#FFFFFF",              // COLOR_WHITE
         };
 
-        if (bright) {
-            return brightColors[value];
+        if (bright || isBright()) {
+            return brightColors[value & 0x07];
         }
         return normalColors[value];
     }
@@ -289,6 +415,14 @@ public final class Color {
             case 5 -> Color.MAGENTA;
             case 6 -> Color.CYAN;
             case 7 -> Color.WHITE;
+            case 8 -> Color.BRIGHT_BLACK;
+            case 9 -> Color.BRIGHT_RED;
+            case 10 -> Color.BRIGHT_GREEN;
+            case 11 -> Color.BRIGHT_YELLOW;
+            case 12 -> Color.BRIGHT_BLUE;
+            case 13 -> Color.BRIGHT_MAGENTA;
+            case 14 -> Color.BRIGHT_CYAN;
+            case 15 -> Color.BRIGHT_WHITE;
             default -> throw new IllegalArgumentException("Invalid Color value: " +
                 sgrValue);
         };

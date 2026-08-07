@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
@@ -34,12 +39,12 @@ public class TDirectoryTreeItem extends TTreeItem {
     /**
      * File corresponding to this list item.
      */
-    private File file;
+    private final File file;
 
     /**
      * The TTreeViewScrollable containing this directory tree.
      */
-    private TTreeViewScrollable treeViewWidget;
+    private final TTreeViewScrollable treeViewWidget;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -77,8 +82,7 @@ public class TDirectoryTreeItem extends TTreeItem {
 
         this.treeViewWidget = view;
 
-        List<String> parentFiles = new LinkedList<String>();
-        boolean oldExpanded = expanded;
+        List<String> parentFiles = new LinkedList<>();
 
         // Convert to canonical path
         File rootFile = new File(text);
@@ -105,7 +109,6 @@ public class TDirectoryTreeItem extends TTreeItem {
         } else {
             // This is a relative path.  We got here because openParents was
             // false.
-            assert (!openParents);
             setText(rootFile.getName());
         }
         onExpand();
@@ -126,7 +129,7 @@ public class TDirectoryTreeItem extends TTreeItem {
             }
             unselect();
             getTreeView().setSelected(childFile, true);
-            setExpanded(oldExpanded);
+            setExpanded(expanded);
         }
 
         view.reflowData();
@@ -159,11 +162,7 @@ public class TDirectoryTreeItem extends TTreeItem {
         getChildren().clear();
 
         // Make sure we can read it before trying to.
-        if (file.canRead()) {
-            setSelectable(true);
-        } else {
-            setSelectable(false);
-        }
+        setSelectable(file.canRead());
         assert (file.isDirectory());
         setExpandable(true);
 
@@ -190,12 +189,19 @@ public class TDirectoryTreeItem extends TTreeItem {
 
                     item.level = this.level + 1;
                     getChildren().add(item);
-                } catch (IOException e) {
-                    continue;
+                } catch (IOException ignored) {
                 }
             }
         }
-        Collections.sort(getChildren());
+        getChildren().sort((leftWidget, rightWidget) -> {
+
+            TDirectoryTreeItem left = (TDirectoryTreeItem) leftWidget;
+            TDirectoryTreeItem right = (TDirectoryTreeItem) rightWidget;
+            String leftName = left.getFile().getName();
+            String rightName = right.getFile().getName();
+
+            return leftName.compareToIgnoreCase(rightName);
+        });
     }
 
 }

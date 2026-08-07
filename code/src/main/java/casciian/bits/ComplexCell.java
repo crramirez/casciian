@@ -188,7 +188,7 @@ public class ComplexCell extends Cell {
      */
     @Override
     public void unset() {
-        super.reset();
+        super.unset();
         codePoints = new int[1];
         codePoints[0] = super.getChar();
     }

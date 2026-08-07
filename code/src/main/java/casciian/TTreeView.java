@@ -17,6 +17,7 @@ package casciian;
 import casciian.TAction;
 import casciian.TKeypress;
 import casciian.TWidget;
+import casciian.bits.ControlPadding;
 import casciian.event.TKeypressEvent;
 import static casciian.TKeypress.*;
 
@@ -54,6 +55,15 @@ public class TTreeView extends TWidget {
      */
     private int leftColumn = 0;
 
+    /**
+     * Extra left/right padding applied to each tree row.  The value is
+     * resolved once at construction from the active
+     * {@link ControlPadding} style (system property
+     * {@code casciian.controls.padding}).  Row contents are drawn offset
+     * by this amount from the left edge of the widget.
+     */
+    final int padding;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -87,6 +97,7 @@ public class TTreeView extends TWidget {
         final int width, final int height, final TAction action) {
 
         super(parent, x, y, width, height);
+        this.padding = ControlPadding.current().getCells();
         this.action = action;
     }
 

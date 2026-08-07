@@ -146,7 +146,7 @@ public class TPanel extends TWidget {
     @Override
     public void draw() {
         CellAttributes borderColor;
-        borderColor = getTheme().getColor("tpanel.border");
+        borderColor = getWidgetColor("tpanel.border");
 
         drawBox(0, 0, getWidth(), getHeight(), borderColor, borderColor,
             borderStyle);

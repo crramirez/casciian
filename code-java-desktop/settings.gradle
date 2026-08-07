@@ -1,0 +1,23 @@
+/*
+ * Multi-project settings for the Casciian Java Desktop add-on and its demo.
+ *
+ * The add-on (casciian-java-desktop) is publishable to Maven Central. Users can
+ * opt into it when they want to use Java Desktop capabilities (e.g. ImageIO)
+ * and don't want to build a GraalVM native image.
+ *
+ * For local development we use a Gradle composite build that points at the
+ * sibling `code/` project, so changes to casciian itself are picked up without
+ * needing to publish a snapshot first.
+ */
+rootProject.name = 'code-java-desktop'
+
+include 'casciian-java-desktop'
+include 'demo'
+
+// Composite build: substitute io.github.crramirez:casciian with the sibling
+// casciian project so local builds work without publishing first.
+includeBuild('../code') {
+    dependencySubstitution {
+        substitute module('io.github.crramirez:casciian') using project(':')
+    }
+}

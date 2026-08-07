@@ -119,10 +119,10 @@ public class Highlighter {
             "boolean", "byte", "short", "int", "long", "char", "float",
             "double", "void",
         };
-        color = new CellAttributes();
-        color.setForeColor(Color.GREEN);
-        color.setBackColor(Color.BLUE);
-        color.setBold(true);
+        color = CellAttributes.builder()
+            .foreColor(Color.BRIGHT_GREEN)
+            .backColor(Color.BLUE)
+            .build();
         for (String str: types) {
             colors.put(str, color);
         }
@@ -131,10 +131,10 @@ public class Highlighter {
             "abstract", "final", "native", "private", "protected", "public",
             "static", "strictfp", "synchronized", "transient", "volatile",
         };
-        color = new CellAttributes();
-        color.setForeColor(Color.WHITE);
-        color.setBackColor(Color.BLUE);
-        color.setBold(true);
+        color = CellAttributes.builder()
+            .foreColor(Color.BRIGHT_WHITE)
+            .backColor(Color.BLUE)
+            .build();
         for (String str: modifiers) {
             colors.put(str, color);
         }
@@ -144,10 +144,10 @@ public class Highlighter {
             "if", "else", "do", "while", "for", "break", "continue",
             "switch", "case", "default",
         };
-        color = new CellAttributes();
-        color.setForeColor(Color.YELLOW);
-        color.setBackColor(Color.BLUE);
-        color.setBold(true);
+        color = CellAttributes.builder()
+            .foreColor(Color.BRIGHT_YELLOW)
+            .backColor(Color.BLUE)
+            .build();
         for (String str: keywords) {
             colors.put(str, color);
         }
@@ -160,10 +160,10 @@ public class Highlighter {
             ">", "<", ">=", "<=", "!=", "==",
             ",", ";", ".", "?", ":",
         };
-        color = new CellAttributes();
-        color.setForeColor(Color.CYAN);
-        color.setBackColor(Color.BLUE);
-        color.setBold(true);
+        color = CellAttributes.builder()
+            .foreColor(Color.BRIGHT_CYAN)
+            .backColor(Color.BLUE)
+            .build();
         for (String str: operators) {
             colors.put(str, color);
         }
@@ -171,10 +171,10 @@ public class Highlighter {
         String [] packageKeywords = {
             "package", "import",
         };
-        color = new CellAttributes();
-        color.setForeColor(Color.GREEN);
-        color.setBackColor(Color.BLUE);
-        color.setBold(true);
+        color = CellAttributes.builder()
+            .foreColor(Color.BRIGHT_GREEN)
+            .backColor(Color.BLUE)
+            .build();
         for (String str: packageKeywords) {
             colors.put(str, color);
         }

@@ -37,6 +37,20 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @DisplayName("TerminalFactory Tests")
 class TerminalFactoryTest {
 
+    static {
+        // Force JLine's org.jline.utils.OSUtils to initialize now, while
+        // os.name still reflects the real operating system. OSUtils caches
+        // IS_WINDOWS in a static final field computed once at class-load
+        // time. Several tests below fake os.name to "Windows" to exercise
+        // Windows-specific code paths on non-Windows CI; if OSUtils happened
+        // to load for the first time during one of those tests, its
+        // IS_WINDOWS flag would be permanently (and incorrectly) poisoned to
+        // true for the rest of the JVM, causing later tests to attempt to
+        // load native Windows libraries (e.g. Kernel32) and fail with
+        // UnsatisfiedLinkError/NoClassDefFoundError on Linux/macOS.
+        boolean ignored = org.jline.utils.OSUtils.IS_WINDOWS;
+    }
+
     private String originalOsName;
 
     @BeforeEach

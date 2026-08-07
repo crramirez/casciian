@@ -1,20 +1,23 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.backend;
-
-import java.io.PrintWriter;
 
 import casciian.backend.terminal.Terminal;
 import casciian.backend.terminal.TerminalJlineImpl;
@@ -77,11 +80,12 @@ public class TTYSessionInfo implements SessionInfo {
     private int idleTime = Integer.MAX_VALUE;
 
     /**
-     * If set, this session can only use CSI 8 t to get window size.  Note
-     * package private access.
+     * If set, this session can only use CSI 8 t to get window size.  Running
+     * it emits the CSI 18 t query on the terminal.  Note package private
+     * access.
      */
     @SuppressWarnings("java:S3077")
-    volatile PrintWriter output = null;
+    volatile Runnable windowSizeQuery = null;
 
     /**
      * The terminal to use for querying window size.
@@ -212,16 +216,17 @@ public class TTYSessionInfo implements SessionInfo {
         // Also send CSI 18 t if the terminal supports it.
         // The response (CSI 8 t) will update windowWidth/windowHeight
         // via ECMA48Terminal when it arrives.
-        if (output != null) {
-            output.write(ECMA48Terminal.xtermQueryWindowSize());
-            output.flush();
+        Runnable query = windowSizeQuery;
+        if (query != null) {
+            query.run();
         }
 
         // Determine if we should query the terminal directly.
         // JLine tracks SIGWINCH automatically, so getWindowWidth/Height() is cheap.
         // For stty (TerminalShImpl), each query spawns a process, which is expensive.
-        // When CSI 18 t mode is enabled (output != null), the terminal supports
-        // CSI 18 t queries, and we rely on CSI 8 t responses for size updates.
+        // When CSI 18 t mode is enabled (windowSizeQuery != null), the terminal
+        // supports CSI 18 t queries, and we rely on CSI 8 t responses for size
+        // updates.
         // However, when running inside ptypipe, CSI 8 t responses are stripped,
         // so we need to query JLine (which tracks SIGWINCH) to catch those resizes.
         boolean useDirectQuery = false;
@@ -230,7 +235,7 @@ public class TTYSessionInfo implements SessionInfo {
             if (terminal instanceof TerminalJlineImpl) {
                 // JLine tracks SIGWINCH automatically, always query it (cheap)
                 useDirectQuery = true;
-            } else if (output == null) {
+            } else if (query == null) {
                 // CSI 18 t not enabled, must use direct query
                 useDirectQuery = true;
             } else {
@@ -243,7 +248,9 @@ public class TTYSessionInfo implements SessionInfo {
                     // Do a fallback stty query every 3 seconds
                     useFallbackQuery = true;
                     lastFallbackQueryTime = nowTime;
-                    output = null; // If we don't receive CSI 18 t anymore, we'll again spam stty
+                    // If we don't receive CSI 18 t anymore, we'll again spam
+                    // stty
+                    windowSizeQuery = null;
                 }
             }
         }

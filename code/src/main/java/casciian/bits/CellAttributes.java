@@ -1,20 +1,30 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.bits;
 
 import casciian.backend.Backend;
+import casciian.backend.SystemProperties;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * The attributes used by a Cell: color, bold, blink, etc.
@@ -41,14 +51,39 @@ public class CellAttributes {
     private static final int REVERSE    = 0x04;
 
     /**
-     * Underline attribute.
+     * No underline.
      */
-    private static final int UNDERLINE  = 0x08;
+    public static final int UNDERLINE_STYLE_NONE = 0;
+
+    /**
+     * Single underline.
+     */
+    public static final int UNDERLINE_STYLE_SINGLE = 1;
+
+    /**
+     * Double underline.
+     */
+    public static final int UNDERLINE_STYLE_DOUBLE = 2;
+
+    /**
+     * Curly underline.
+     */
+    public static final int UNDERLINE_STYLE_CURLY = 3;
+
+    /**
+     * Dotted underline.
+     */
+    public static final int UNDERLINE_STYLE_DOTTED = 4;
+
+    /**
+     * Dashed underline.
+     */
+    public static final int UNDERLINE_STYLE_DASHED = 5;
 
     /**
      * Protected attribute.
      */
-    private static final int PROTECT    = 0x10;
+    private static final int PROTECT    = 0x08;
 
     /**
      * Default foreground color.
@@ -59,6 +94,36 @@ public class CellAttributes {
      * Default background color.
      */
     private static final int DEFAULT_BACKCOLOR    = 0x40;
+
+    /**
+     * Bold-transparent attribute.  When set, the bold attribute of this cell
+     * must never be reinterpreted as a bright (high-intensity) color,
+     * regardless of the {@code casciian.treatBoldAsBright} system property.
+     * This is set on cells produced by terminal emulators (which parse an
+     * incoming SGR stream) so that a received bold attribute is reproduced
+     * faithfully.
+     */
+    private static final int BOLD_TRANSPARENT     = 0x80;
+
+    /**
+     * Faint (decreased intensity / dim) attribute.
+     */
+    private static final int FAINT                = 0x100;
+
+    /**
+     * Italic attribute.
+     */
+    private static final int ITALIC               = 0x200;
+
+    /**
+     * Hidden (invisible) attribute.
+     */
+    private static final int HIDDEN               = 0x400;
+
+    /**
+     * Strikethrough (crossed-out) attribute.
+     */
+    private static final int STRIKETHROUGH        = 0x800;
 
     /**
      * Animation bits for time-dependent transforms.
@@ -96,6 +161,11 @@ public class CellAttributes {
     private int flags = 0;
 
     /**
+     * Underline style.
+     */
+    private int underlineStyle = UNDERLINE_STYLE_NONE;
+
+    /**
      * Foreground color.  Color.WHITE, Color.RED, etc.
      */
     private Color foreColor = Color.WHITE;
@@ -115,9 +185,42 @@ public class CellAttributes {
      */
     private int backColorRGB = -1;
 
+    /**
+     * Foreground color as a 256-color palette index (0-255).  Negative value
+     * means not set.
+     *
+     * @see Palette256
+     */
+    private int foreColorPalette = -1;
+
+    /**
+     * Background color as a 256-color palette index (0-255).  Negative value
+     * means not set.
+     *
+     * @see Palette256
+     */
+    private int backColorPalette = -1;
+
+    /**
+     * The OSC 8 hyperlink URI associated with this cell, or null if this cell
+     * is not part of a hyperlink.  Consecutive cells that share the same URI
+     * form a single clickable hyperlink when rendered to a terminal that
+     * supports OSC 8 hyperlinks.
+     */
+    private String hyperlink = null;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Get a new Builder instance.
+     *
+     * @return the builder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
 
     /**
      * Public constructor sets default values of the cell to white-on-black,
@@ -167,12 +270,59 @@ public class CellAttributes {
     }
 
     /**
+     * Getter for bold-transparent.
+     *
+     * @return bold-transparent value
+     * @see #BOLD_TRANSPARENT
+     */
+    public final boolean isBoldTransparent() {
+        return ((flags & BOLD_TRANSPARENT) != 0);
+    }
+
+    /**
+     * Setter for bold-transparent.  When set, the bold attribute of this cell
+     * is never reinterpreted as a bright color, regardless of the
+     * {@code casciian.treatBoldAsBright} system property.
+     *
+     * @param boldTransparent new bold-transparent value
+     * @see #BOLD_TRANSPARENT
+     */
+    public final void setBoldTransparent(final boolean boldTransparent) {
+        if (boldTransparent) {
+            flags |= BOLD_TRANSPARENT;
+        } else {
+            flags &= ~BOLD_TRANSPARENT;
+        }
+    }
+
+    /**
+     * Determine whether the bold attribute of this cell should be rendered as
+     * a bright (high-intensity) color.
+     *
+     * <p>
+     * Historically Casciian rendered bold text using the bright color
+     * palette.  Since 1.6.0 the bold attribute is transparent by default: it
+     * is emitted as a real SGR bold and the terminal decides how to display
+     * it.  Bold selects the bright palette only when the
+     * {@code casciian.treatBoldAsBright} system property is enabled and this
+     * cell is not marked {@link #isBoldTransparent() bold-transparent}.
+     * </p>
+     *
+     * @return true if this cell's bold attribute should map to a bright color
+     */
+    public final boolean isBoldAsBright() {
+        return isBold()
+            && !isBoldTransparent()
+            && SystemProperties.isTreatBoldAsBright();
+    }
+
+    /**
      * Getter for blink.
      *
      * @return blink value
      */
     public final boolean isBlink() {
-        return ((flags & BLINK) == 0 ? false : true);
+        return ((flags & BLINK) != 0);
     }
 
     /**
@@ -194,7 +344,7 @@ public class CellAttributes {
      * @return reverse value
      */
     public final boolean isReverse() {
-        return ((flags & REVERSE) == 0 ? false : true);
+        return ((flags & REVERSE) != 0);
     }
 
     /**
@@ -216,7 +366,7 @@ public class CellAttributes {
      * @return underline value
      */
     public final boolean isUnderline() {
-        return ((flags & UNDERLINE) == 0 ? false : true);
+        return (underlineStyle != UNDERLINE_STYLE_NONE);
     }
 
     /**
@@ -225,10 +375,127 @@ public class CellAttributes {
      * @param underline new underline value
      */
     public final void setUnderline(final boolean underline) {
-        if (underline) {
-            flags |= UNDERLINE;
+        if (!underline) {
+            underlineStyle = UNDERLINE_STYLE_NONE;
+            return;
+        }
+        if (underlineStyle == UNDERLINE_STYLE_NONE) {
+            underlineStyle = UNDERLINE_STYLE_SINGLE;
+        }
+    }
+
+    /**
+     * Getter for underline style.
+     *
+     * @return underline style
+     */
+    public final int getUnderlineStyle() {
+        return underlineStyle;
+    }
+
+    /**
+     * Setter for underline style.
+     *
+     * @param underlineStyle new underline style
+     */
+    public final void setUnderlineStyle(final int underlineStyle) {
+        this.underlineStyle = switch (underlineStyle) {
+        case UNDERLINE_STYLE_NONE,
+             UNDERLINE_STYLE_SINGLE,
+             UNDERLINE_STYLE_DOUBLE,
+             UNDERLINE_STYLE_CURLY,
+             UNDERLINE_STYLE_DOTTED,
+             UNDERLINE_STYLE_DASHED -> underlineStyle;
+        default -> throw new IllegalArgumentException(
+            "Invalid underline style: " + underlineStyle);
+        };
+    }
+
+    /**
+     * Getter for faint.
+     *
+     * @return faint value
+     */
+    public final boolean isFaint() {
+        return ((flags & FAINT) != 0);
+    }
+
+    /**
+     * Setter for faint.
+     *
+     * @param faint new faint value
+     */
+    public final void setFaint(final boolean faint) {
+        if (faint) {
+            flags |= FAINT;
         } else {
-            flags &= ~UNDERLINE;
+            flags &= ~FAINT;
+        }
+    }
+
+    /**
+     * Getter for italic.
+     *
+     * @return italic value
+     */
+    public final boolean isItalic() {
+        return ((flags & ITALIC) != 0);
+    }
+
+    /**
+     * Setter for italic.
+     *
+     * @param italic new italic value
+     */
+    public final void setItalic(final boolean italic) {
+        if (italic) {
+            flags |= ITALIC;
+        } else {
+            flags &= ~ITALIC;
+        }
+    }
+
+    /**
+     * Getter for hidden.
+     *
+     * @return hidden value
+     */
+    public final boolean isHidden() {
+        return ((flags & HIDDEN) != 0);
+    }
+
+    /**
+     * Setter for hidden.
+     *
+     * @param hidden new hidden value
+     */
+    public final void setHidden(final boolean hidden) {
+        if (hidden) {
+            flags |= HIDDEN;
+        } else {
+            flags &= ~HIDDEN;
+        }
+    }
+
+    /**
+     * Getter for strikethrough.
+     *
+     * @return strikethrough value
+     */
+    public final boolean isStrikethrough() {
+        return ((flags & STRIKETHROUGH) != 0);
+    }
+
+    /**
+     * Setter for strikethrough.
+     *
+     * @param strikethrough new strikethrough value
+     */
+    public final void setStrikethrough(final boolean strikethrough) {
+        if (strikethrough) {
+            flags |= STRIKETHROUGH;
+        } else {
+            flags &= ~STRIKETHROUGH;
         }
     }
 
@@ -238,7 +505,7 @@ public class CellAttributes {
      * @return protect value
      */
     public final boolean isProtect() {
-        return ((flags & PROTECT) == 0 ? false : true);
+        return ((flags & PROTECT) != 0);
     }
 
     /**
@@ -286,9 +553,9 @@ public class CellAttributes {
      */
     public final boolean isDefaultColor(final boolean foreground) {
         if (foreground) {
-            return ((flags & DEFAULT_FORECOLOR) == 0 ? false : true);
+            return ((flags & DEFAULT_FORECOLOR) != 0);
         }
-        return ((flags & DEFAULT_BACKCOLOR) == 0 ? false : true);
+        return ((flags & DEFAULT_BACKCOLOR) != 0);
     }
 
     /**
@@ -327,6 +594,7 @@ public class CellAttributes {
     public final void setForeColor(final Color foreColor) {
         this.foreColor = foreColor;
         this.foreColorRGB = -1;
+        this.foreColorPalette = -1;
     }
 
     /**
@@ -346,6 +614,7 @@ public class CellAttributes {
     public final void setBackColor(final Color backColor) {
         this.backColor = backColor;
         this.backColorRGB = -1;
+        this.backColorPalette = -1;
     }
 
     /**
@@ -369,9 +638,9 @@ public class CellAttributes {
         }
 
         int offsetSlice = (flags & ANIMATION_TIME_MASK) >>> 16;
-        int slice = 0;
+        int slice;
         int sliceN = 16;
-        int sliceI = 0;
+        int sliceI;
         if ((flags & ANIMATION_PULSE_FAST) == 0) {
             // This is a fast pulse: 32 steps / second
             sliceN = 32;
@@ -386,11 +655,9 @@ public class CellAttributes {
             sliceI = sliceN - sliceI;
         }
         int pulseColorRGB = getPulseColorRGB();
-        int foreColorRGB = backend.attrToForegroundColor(this);
-        double fraction = (double) sliceI * 2.0 / (sliceN - 1);
-        int finalColor = ImageUtils.rgbMove(foreColorRGB, pulseColorRGB,
-            fraction);
-        return finalColor;
+        int fgRGB = backend.attrToForegroundColor(this);
+        double fraction = sliceI * 2.0 / (sliceN - 1);
+        return ImageUtils.rgbMove(fgRGB, pulseColorRGB, fraction);
     }
 
     /**
@@ -411,6 +678,7 @@ public class CellAttributes {
     public final void setForeColorRGB(final int foreColorRGB) {
         this.foreColorRGB = foreColorRGB & 0xFFFFFF;
         this.foreColor = Color.WHITE;
+        this.foreColorPalette = -1;
     }
 
     /**
@@ -431,6 +699,67 @@ public class CellAttributes {
     public final void setBackColorRGB(final int backColorRGB) {
         this.backColorRGB = backColorRGB & 0xFFFFFF;
         this.backColor = Color.BLACK;
+        this.backColorPalette = -1;
+    }
+
+    /**
+     * Getter for foreColor 256-color palette index.
+     *
+     * @return foreColor palette index (0-255).  Negative means unset.
+     * @see Palette256
+     */
+    public final int getForeColorPalette() {
+        return foreColorPalette;
+    }
+
+    /**
+     * Setter for foreColor 256-color palette index.  This is mutually
+     * exclusive with the RGB foreground color: setting a palette index clears
+     * any RGB foreground color.
+     *
+     * @param foreColorPalette new foreColor palette index (0-255), or a
+     * negative value to unset
+     * @throws IllegalArgumentException if foreColorPalette is greater than 255
+     * @see Palette256
+     */
+    public final void setForeColorPalette(final int foreColorPalette) {
+        if (foreColorPalette > 255) {
+            throw new IllegalArgumentException("foreColorPalette must be "
+                + "0-255, or negative to unset");
+        }
+        this.foreColorPalette = (foreColorPalette < 0) ? -1 : foreColorPalette;
+        this.foreColorRGB = -1;
+        this.foreColor = Color.WHITE;
+    }
+
+    /**
+     * Getter for backColor 256-color palette index.
+     *
+     * @return backColor palette index (0-255).  Negative means unset.
+     * @see Palette256
+     */
+    public final int getBackColorPalette() {
+        return backColorPalette;
+    }
+
+    /**
+     * Setter for backColor 256-color palette index.  This is mutually
+     * exclusive with the RGB background color: setting a palette index clears
+     * any RGB background color.
+     *
+     * @param backColorPalette new backColor palette index (0-255), or a
+     * negative value to unset
+     * @throws IllegalArgumentException if backColorPalette is greater than 255
+     * @see Palette256
+     */
+    public final void setBackColorPalette(final int backColorPalette) {
+        if (backColorPalette > 255) {
+            throw new IllegalArgumentException("backColorPalette must be "
+                + "0-255, or negative to unset");
+        }
+        this.backColorPalette = (backColorPalette < 0) ? -1 : backColorPalette;
+        this.backColorRGB = -1;
+        this.backColor = Color.BLACK;
     }
 
     /**
@@ -443,15 +772,58 @@ public class CellAttributes {
     }
 
     /**
+     * See if this cell uses a 256-color palette index for either its
+     * foreground or background color.
+     *
+     * @return true if this cell has a 256-color palette color
+     * @see Palette256
+     */
+    public final boolean isPalette() {
+        return (foreColorPalette >= 0) || (backColorPalette >= 0);
+    }
+
+    /**
+     * Get the OSC 8 hyperlink URI associated with this cell.
+     *
+     * @return the hyperlink URI, or null if this cell is not part of a
+     * hyperlink
+     */
+    public final String getHyperlink() {
+        return hyperlink;
+    }
+
+    /**
+     * Set the OSC 8 hyperlink URI associated with this cell.
+     *
+     * @param hyperlink the hyperlink URI, or null to clear the hyperlink
+     */
+    public final void setHyperlink(final String hyperlink) {
+        this.hyperlink = hyperlink;
+    }
+
+    /**
+     * See if this cell is part of a hyperlink.
+     *
+     * @return true if this cell has an OSC 8 hyperlink URI
+     */
+    public final boolean isHyperlink() {
+        return (hyperlink != null);
+    }
+
+    /**
      * Set to default: white foreground on black background, no
      * bold/underline/blink/rever/protect.
      */
     public void reset() {
         flags           = 0;
+        underlineStyle  = UNDERLINE_STYLE_NONE;
         foreColor       = Color.WHITE;
         backColor       = Color.BLACK;
         foreColorRGB    = -1;
         backColorRGB    = -1;
+        foreColorPalette = -1;
+        backColorPalette = -1;
+        hyperlink       = null;
     }
 
     /**
@@ -462,16 +834,19 @@ public class CellAttributes {
      */
     @Override
     public boolean equals(final Object rhs) {
-        if (!(rhs instanceof CellAttributes)) {
+        if (!(rhs instanceof CellAttributes that)) {
             return false;
         }
 
-        CellAttributes that = (CellAttributes) rhs;
         return ((flags == that.flags)
+            && (underlineStyle == that.underlineStyle)
             && (foreColor == that.foreColor)
             && (backColor == that.backColor)
             && (foreColorRGB == that.foreColorRGB)
-            && (backColorRGB == that.backColorRGB));
+            && (backColorRGB == that.backColorRGB)
+            && (foreColorPalette == that.foreColorPalette)
+            && (backColorPalette == that.backColorPalette)
+            && Objects.equals(hyperlink, that.hyperlink));
     }
 
     /**
@@ -481,14 +856,18 @@ public class CellAttributes {
      */
     @Override
     public int hashCode() {
-        int A = 13;
-        int B = 23;
-        int hash = A;
-        hash = (B * hash) + flags;
-        hash = (B * hash) + foreColor.hashCode();
-        hash = (B * hash) + backColor.hashCode();
-        hash = (B * hash) + foreColorRGB;
-        hash = (B * hash) + backColorRGB;
+        int a = 13;
+        int b = 23;
+        int hash = a;
+        hash = (b * hash) + flags;
+        hash = (b * hash) + underlineStyle;
+        hash = (b * hash) + foreColor.hashCode();
+        hash = (b * hash) + backColor.hashCode();
+        hash = (b * hash) + foreColorRGB;
+        hash = (b * hash) + backColorRGB;
+        hash = (b * hash) + foreColorPalette;
+        hash = (b * hash) + backColorPalette;
+        hash = (b * hash) + (hyperlink != null ? hyperlink.hashCode() : 0);
         return hash;
     }
 
@@ -501,10 +880,14 @@ public class CellAttributes {
         CellAttributes that = (CellAttributes) rhs;
 
         this.flags              = that.flags;
+        this.underlineStyle     = that.underlineStyle;
         this.foreColor          = that.foreColor;
         this.backColor          = that.backColor;
         this.foreColorRGB       = that.foreColorRGB;
         this.backColorRGB       = that.backColorRGB;
+        this.foreColorPalette   = that.foreColorPalette;
+        this.backColorPalette   = that.backColorPalette;
+        this.hyperlink          = that.hyperlink;
     }
 
     /**
@@ -514,6 +897,26 @@ public class CellAttributes {
      */
     @Override
     public String toString() {
+        if ((foreColorPalette >= 0) || (backColorPalette >= 0)) {
+            StringBuilder sb = new StringBuilder("Palette: ");
+
+            if (foreColorPalette >= 0) {
+                sb.append(foreColorPalette);
+            } else if (foreColorRGB >= 0) {
+                sb.append(String.format("#%06x", (foreColorRGB & 0xFFFFFF)));
+            } else {
+                sb.append(foreColor.toString());
+            }
+            sb.append(" on ");
+            if (backColorPalette >= 0) {
+                sb.append(backColorPalette);
+            } else if (backColorRGB >= 0) {
+                sb.append(String.format("#%06x", (backColorRGB & 0xFFFFFF)));
+            } else {
+                sb.append(backColor.toString());
+            }
+            return sb.toString();
+        }
         if ((foreColorRGB >= 0) || (backColorRGB >= 0)) {
             StringBuilder sb = new StringBuilder("RGB: ");
 
@@ -532,8 +935,11 @@ public class CellAttributes {
             }
             return sb.toString();
         }
-        return String.format("%s%s%s on %s", (isBold() ? "bold " : ""),
-            (isBlink() ? "blink " : ""), foreColor, backColor);
+        return String.format("%s%s%s%s%s%s%s%s on %s", (isBold() ? "bold " : ""),
+            (isFaint() ? "faint " : ""), (isItalic() ? "italic " : ""),
+            getUnderlineDescription(), (isBlink() ? "blink " : ""),
+            (isStrikethrough() ? "strikethrough " : ""),
+            (isHidden() ? "hidden " : ""), foreColor, backColor);
     }
 
     /**
@@ -543,37 +949,86 @@ public class CellAttributes {
      * @return the HTML string
      */
     public String toHtml() {
-        String fontWeight = "normal";
-        String textDecoration = "none";
+        // The bold attribute maps to a bright color only when
+        // treatBoldAsBright is enabled; otherwise it is rendered as a real
+        // bold font weight so the appearance is left to the reader.
+        boolean boldBright = isBoldAsBright();
+        String fontWeight = (isBold() && !boldBright) ? "bold" : "normal";
+        String fontStyle = isItalic() ? "italic" : "normal";
         String fgText;
         String bgText;
 
-        if (isBlink() && isUnderline()) {
-            textDecoration = "blink, underline";
-        } else if (isUnderline()) {
-            textDecoration = "underline";
-        } else if (isBlink()) {
-            textDecoration = "blink";
+        List<String> decorations = new ArrayList<>();
+        if (isUnderline()) {
+            decorations.add("underline");
         }
+        if (isStrikethrough()) {
+            decorations.add("line-through");
+        }
+        if (isBlink()) {
+            decorations.add("blink");
+        }
+        String textDecoration = decorations.isEmpty()
+            ? "none" : String.join(" ", decorations);
+        String textDecorationStyle = getUnderlineCssStyle();
+
         if (isReverse()) {
             fgText = backColor.toRgbString(false);
-            if (isBold()) {
+            if (boldBright) {
                 bgText = foreColor.toRgbString(true);
             } else {
                 bgText = foreColor.toRgbString(false);
             }
         } else {
             bgText = backColor.toRgbString(false);
-            if (isBold()) {
+            if (boldBright) {
                 fgText = foreColor.toRgbString(true);
             } else {
                 fgText = foreColor.toRgbString(false);
             }
         }
 
+        if (isHidden()) {
+            fgText = "transparent";
+        }
+        String opacity = isFaint() ? "0.5" : "1";
+
         return String.format("style=\"color: %s; background-color: %s; " +
-            "text-decoration: %s; font-weight: %s\"",
-            fgText, bgText, textDecoration, fontWeight);
+            "text-decoration: %s; text-decoration-style: %s; font-weight: %s; "
+            + "font-style: %s; opacity: %s\"",
+            fgText, bgText, textDecoration, textDecorationStyle, fontWeight,
+            fontStyle, opacity);
+    }
+
+    /**
+     * Get a human-readable underline description.
+     *
+     * @return underline description with trailing space, or empty string
+     */
+    private String getUnderlineDescription() {
+        return switch (underlineStyle) {
+        case UNDERLINE_STYLE_SINGLE -> "underline ";
+        case UNDERLINE_STYLE_DOUBLE -> "double underline ";
+        case UNDERLINE_STYLE_CURLY -> "curly underline ";
+        case UNDERLINE_STYLE_DOTTED -> "dotted underline ";
+        case UNDERLINE_STYLE_DASHED -> "dashed underline ";
+        default -> "";
+        };
+    }
+
+    /**
+     * Get the CSS text-decoration-style value for this underline style.
+     *
+     * @return CSS text-decoration-style value
+     */
+    private String getUnderlineCssStyle() {
+        return switch (underlineStyle) {
+        case UNDERLINE_STYLE_DOUBLE -> "double";
+        case UNDERLINE_STYLE_CURLY -> "wavy";
+        case UNDERLINE_STYLE_DOTTED -> "dotted";
+        case UNDERLINE_STYLE_DASHED -> "dashed";
+        default -> "solid";
+        };
     }
 
     /**
@@ -582,10 +1037,7 @@ public class CellAttributes {
      * @return pulse value
      */
     public final boolean isPulse() {
-        if ((flags & (ANIMATION_PULSE | ANIMATION_PULSE_FAST)) != 0) {
-            return true;
-        }
-        return false;
+        return (flags & (ANIMATION_PULSE | ANIMATION_PULSE_FAST)) != 0;
     }
 
     /**
@@ -603,10 +1055,8 @@ public class CellAttributes {
         if (!pulse && !fast) {
             return;
         }
-        int sliceN = 16;
         if (fast) {
             flags |= ANIMATION_PULSE_FAST;
-            sliceN = 32;
             offset &= 0x1F;
         } else {
             flags |= ANIMATION_PULSE;
@@ -623,11 +1073,9 @@ public class CellAttributes {
      */
     public final int getPulseColorRGB() {
         int pulseColor = (flags >>> 24) & 0xFF;
-        int colorRGB = ((pulseColor & 0xE0) << 16)
+        return ((pulseColor & 0xE0) << 16)
                 | ((pulseColor & 0x1C) << 11)
                 | ((pulseColor & 0x03) << 6);
-
-        return colorRGB;
     }
 
     /**
@@ -643,7 +1091,6 @@ public class CellAttributes {
         flags &= ~ANIMATION_COLOR_MASK;
         flags |= color << 24;
 
-        // System.err.printf("setPulseColorRGB(): %08x\n", getPulseColorRGB());
     }
 
     /**
@@ -683,7 +1130,282 @@ public class CellAttributes {
         }
 
         foreColorRGB = ImageUtils.rgbMove(foreColorRGB, backRGB,
-            (double) percent / 100.0);
+            percent / 100.0);
+    }
+
+    /**
+     * Builder for CellAttributes.
+     */
+    public static class Builder {
+
+        private final CellAttributes attributes = new CellAttributes();
+
+        /**
+         * Public constructor.
+         */
+        public Builder() {
+            // NOP
+        }
+
+        /**
+         * Set the bold flag.
+         *
+         * @param bold new bold flag
+         * @return this builder
+         */
+        public Builder bold(final boolean bold) {
+            attributes.setBold(bold);
+            return this;
+        }
+
+        /**
+         * Set the bold-transparent flag.
+         *
+         * @param boldTransparent new bold-transparent flag
+         * @return this builder
+         * @see CellAttributes#setBoldTransparent(boolean)
+         */
+        public Builder boldTransparent(final boolean boldTransparent) {
+            attributes.setBoldTransparent(boldTransparent);
+            return this;
+        }
+
+        /**
+         * Set the blink flag.
+         *
+         * @param blink new blink flag
+         * @return this builder
+         */
+        public Builder blink(final boolean blink) {
+            attributes.setBlink(blink);
+            return this;
+        }
+
+        /**
+         * Set the reverse flag.
+         *
+         * @param reverse new reverse flag
+         * @return this builder
+         */
+        public Builder reverse(final boolean reverse) {
+            attributes.setReverse(reverse);
+            return this;
+        }
+
+        /**
+         * Set the underline flag.
+         *
+         * @param underline new underline flag
+         * @return this builder
+         */
+        public Builder underline(final boolean underline) {
+            attributes.setUnderline(underline);
+            return this;
+        }
+
+        /**
+         * Set the underline style.
+         *
+         * @param underlineStyle new underline style
+         * @return this builder
+         */
+        public Builder underlineStyle(final int underlineStyle) {
+            attributes.setUnderlineStyle(underlineStyle);
+            return this;
+        }
+
+        /**
+         * Set the faint flag.
+         *
+         * @param faint new faint flag
+         * @return this builder
+         */
+        public Builder faint(final boolean faint) {
+            attributes.setFaint(faint);
+            return this;
+        }
+
+        /**
+         * Set the italic flag.
+         *
+         * @param italic new italic flag
+         * @return this builder
+         */
+        public Builder italic(final boolean italic) {
+            attributes.setItalic(italic);
+            return this;
+        }
+
+        /**
+         * Set the hidden flag.
+         *
+         * @param hidden new hidden flag
+         * @return this builder
+         */
+        public Builder hidden(final boolean hidden) {
+            attributes.setHidden(hidden);
+            return this;
+        }
+
+        /**
+         * Set the strikethrough flag.
+         *
+         * @param strikethrough new strikethrough flag
+         * @return this builder
+         */
+        public Builder strikethrough(final boolean strikethrough) {
+            attributes.setStrikethrough(strikethrough);
+            return this;
+        }
+
+        /**
+         * Set the protect flag.
+         *
+         * @param protect new protect flag
+         * @return this builder
+         */
+        public Builder protect(final boolean protect) {
+            attributes.setProtect(protect);
+            return this;
+        }
+
+        /**
+         * Set the foreground color.
+         *
+         * @param foreColor new foreground color
+         * @return this builder
+         */
+        public Builder foreColor(final Color foreColor) {
+            attributes.setForeColor(foreColor);
+            return this;
+        }
+
+        /**
+         * Set the background color.
+         *
+         * @param backColor new background color
+         * @return this builder
+         */
+        public Builder backColor(final Color backColor) {
+            attributes.setBackColor(backColor);
+            return this;
+        }
+
+        /**
+         * Set the foreground RGB color.
+         *
+         * @param foreColorRGB new foreground RGB color
+         * @return this builder
+         */
+        public Builder foreColorRGB(final int foreColorRGB) {
+            attributes.setForeColorRGB(foreColorRGB);
+            return this;
+        }
+
+        /**
+         * Set the background RGB color.
+         *
+         * @param backColorRGB new background RGB color
+         * @return this builder
+         */
+        public Builder backColorRGB(final int backColorRGB) {
+            attributes.setBackColorRGB(backColorRGB);
+            return this;
+        }
+
+        /**
+         * Set the foreground 256-color palette index.
+         *
+         * @param foreColorPalette new foreground palette index (0-255)
+         * @return this builder
+         * @see Palette256
+         */
+        public Builder foreColorPalette(final int foreColorPalette) {
+            attributes.setForeColorPalette(foreColorPalette);
+            return this;
+        }
+
+        /**
+         * Set the background 256-color palette index.
+         *
+         * @param backColorPalette new background palette index (0-255)
+         * @return this builder
+         * @see Palette256
+         */
+        public Builder backColorPalette(final int backColorPalette) {
+            attributes.setBackColorPalette(backColorPalette);
+            return this;
+        }
+
+        /**
+         * Set whether the foreground or background uses its default color.
+         *
+         * @param foreground if true, update the foreground default color flag;
+         * otherwise update the background default color flag
+         * @param defaultColor new default color flag
+         * @return this builder
+         */
+        public Builder defaultColor(final boolean foreground,
+            final boolean defaultColor) {
+            attributes.setDefaultColor(foreground, defaultColor);
+            return this;
+        }
+
+        /**
+         * Set the OSC 8 hyperlink URI.
+         *
+         * @param hyperlink new hyperlink URI, or null to clear
+         * @return this builder
+         */
+        public Builder hyperlink(final String hyperlink) {
+            attributes.setHyperlink(hyperlink);
+            return this;
+        }
+
+        /**
+         * Set the animation flags.
+         *
+         * @param animationFlags new animation flags
+         * @return this builder
+         */
+        public Builder animations(final int animationFlags) {
+            attributes.setAnimations(animationFlags);
+            return this;
+        }
+
+        /**
+         * Set the pulse animation state.
+         *
+         * @param pulse new pulse flag
+         * @param fast new fast pulse flag
+         * @param offset new pulse offset
+         * @return this builder
+         */
+        public Builder pulse(final boolean pulse, final boolean fast,
+            final int offset) {
+            attributes.setPulse(pulse, fast, offset);
+            return this;
+        }
+
+        /**
+         * Set the pulse color RGB value.
+         *
+         * @param pulseColorRGB new pulse color RGB value
+         * @return this builder
+         */
+        public Builder pulseColorRGB(final int pulseColorRGB) {
+            attributes.setPulseColorRGB(pulseColorRGB);
+            return this;
+        }
+
+        /**
+         * Build a new CellAttributes instance.
+         *
+         * @return new CellAttributes instance
+         */
+        public CellAttributes build() {
+            return new CellAttributes(attributes);
+        }
     }
 
 

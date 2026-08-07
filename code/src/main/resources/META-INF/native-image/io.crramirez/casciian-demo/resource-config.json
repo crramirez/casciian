@@ -6,6 +6,9 @@
             },
             {
                 "pattern": "\\Qhelp.xml\\E"
+            },
+            {
+                "pattern": "\\Qdemo/ansi-demo.ansi\\E"
             }
         ]
     },
@@ -47,6 +50,13 @@
         },
         {
             "name": "demo.DemoEditorWindowBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
+            "name": "demo.DemoKeyboardWindowBundle",
             "locales": [
                 "",
                 "es"

@@ -200,8 +200,8 @@ public class THScroller extends TWidget {
      */
     @Override
     public void draw() {
-        CellAttributes arrowColor = getTheme().getColor("tscroller.arrows");
-        CellAttributes barColor = getTheme().getColor("tscroller.bar");
+        CellAttributes arrowColor = getWidgetColor("tscroller.arrows");
+        CellAttributes barColor = getWidgetColor("tscroller.bar");
         putCharXY(0, 0, GraphicsChars.CP437[0x11], arrowColor);
         putCharXY(getWidth() - 1, 0, GraphicsChars.CP437[0x10], arrowColor);
 

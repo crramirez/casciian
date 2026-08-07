@@ -875,6 +875,28 @@ public class TMenu extends TWindow {
     }
 
     /**
+     * Recompute this menu's width and the width of all of its items.  This
+     * keeps the menu correctly sized when a setting that affects item widths,
+     * such as menu icons, is toggled at runtime.
+     */
+    public void recomputeWidth() {
+        int newWidth = StringUtils.width(getTitle()) + 4;
+        for (TWidget widget: getChildren()) {
+            if (widget instanceof TMenuItem) {
+                TMenuItem item = (TMenuItem) widget;
+                item.recomputeWidth();
+                if (item.getWidth() + 2 > newWidth) {
+                    newWidth = item.getWidth() + 2;
+                }
+            }
+        }
+        setWidth(newWidth);
+        for (TWidget widget: getChildren()) {
+            widget.setWidth(getWidth() - 2);
+        }
+    }
+
+    /**
      * Convenience function to add one of the default menu items.
      *
      * @param id menu item ID.  Must be between 0 (inclusive) and 1023

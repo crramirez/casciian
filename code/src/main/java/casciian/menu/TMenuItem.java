@@ -137,9 +137,9 @@ public class TMenuItem extends TWidget {
         setHeight(1);
         this.label = mnemonic.getRawLabel();
         if (SystemProperties.isMenuIcons()) {
-            setWidth(StringUtils.width(label) + 4 + SystemProperties.getMenuIconsOffset());
+            setWidth(StringUtils.width(this.label) + 4 + SystemProperties.getMenuIconsOffset());
         } else {
-            setWidth(StringUtils.width(label) + 4);
+            setWidth(StringUtils.width(this.label) + 4);
         }
         this.id = id;
         this.icon = icon;
@@ -403,6 +403,22 @@ public class TMenuItem extends TWidget {
     public final void setIcon(final int [] icon) {
         this.icon = new int[icon.length];
         System.arraycopy(icon, 0, this.icon, 0, icon.length);
+    }
+
+    /**
+     * Recompute this menu item's width based on its label, optional
+     * accelerator key, and the current menu-icons setting.  This allows the
+     * width to stay correct when the menu-icons option is toggled at runtime.
+     */
+    public void recomputeWidth() {
+        int newWidth = StringUtils.width(label) + 4;
+        if (key != null) {
+            newWidth += StringUtils.width(key.toString()) + 2;
+        }
+        if (SystemProperties.isMenuIcons()) {
+            newWidth += SystemProperties.getMenuIconsOffset();
+        }
+        setWidth(newWidth);
     }
 
     /**

@@ -67,14 +67,22 @@ public class TCommandEvent extends TInputEvent {
             return false;
         }
 
-        if (rhs instanceof TCommandEvent) {
-            TCommandEvent that = (TCommandEvent) rhs;
+        if (rhs instanceof TCommandEvent that) {
             return (cmd.equals(that.cmd)
                 && (getTime().equals(that.getTime())));
         }
 
-        TCommand that = (TCommand) rhs;
-        return (cmd.equals(that));
+        return matchesCommand( (TCommand) rhs);
+    }
+
+    /**
+     * Check if this event's command matches the given TCommand.
+     *
+     * @param rhs the TCommand to compare against
+     * @return true if the commands are equal
+     */
+    public boolean matchesCommand(final TCommand rhs) {
+        return cmd.equals(rhs);
     }
 
     /**
