@@ -6,8 +6,14 @@
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_STRING" value="-Xlint -Xdiags:verbose -Xlint:-requires-automatic" />
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="code" options="-Xlint -Xdiags:verbose -Xlint:-requires-automatic --add-modules jdk.incubator.vector" />
       <module name="code-java-desktop" options="" />
       <module name="code-terminal-component" options="" />
+      <module name="code.main" options="-Xlint -Xdiags:verbose -Xlint:-requires-automatic --add-modules jdk.incubator.vector" />
+      <module name="code.test" options="-Xlint -Xdiags:verbose -Xlint:-requires-automatic --add-modules jdk.incubator.vector" />
+      <module name="io.github.crramirez.casciian" options="-Xlint -Xdiags:verbose -Xlint:-requires-automatic --add-modules jdk.incubator.vector" />
+      <module name="io.github.crramirez.casciian.main" options="-Xlint -Xdiags:verbose -Xlint:-requires-automatic --add-modules jdk.incubator.vector" />
+      <module name="io.github.crramirez.casciian.test" options="-Xlint -Xdiags:verbose -Xlint:-requires-automatic --add-modules jdk.incubator.vector" />
     </option>
   </component>
 </project>

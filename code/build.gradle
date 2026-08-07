@@ -240,6 +240,8 @@ graalvmNative {
                 ?.toString()
                 ?.equalsIgnoreCase('true')) {
                 buildArgs.add('-Os')
+            } else {
+                buildArgs.add('-H:+EnableFallbackCompilation')
             }
 
             // Target instruction set. The native-image default (x86-64-v3 on
