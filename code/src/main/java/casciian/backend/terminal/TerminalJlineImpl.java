@@ -311,7 +311,7 @@ public class TerminalJlineImpl implements Terminal {
         if (jlineTerminal == null) {
             throw new IllegalStateException("Terminal not initialized");
         }
-        return jlineTerminal.getWidth();
+        return jlineTerminal.getColumns();
     }
 
     /**
@@ -326,6 +326,6 @@ public class TerminalJlineImpl implements Terminal {
         if (jlineTerminal == null) {
             throw new IllegalStateException("Terminal not initialized");
         }
-        return jlineTerminal.getHeight();
+        return jlineTerminal.getRows();
     }
 }
