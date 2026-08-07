@@ -26,7 +26,7 @@ subprojects {
 
     tasks.withType(JavaCompile).configureEach {
         options.encoding = 'UTF-8'
-        options.compilerArgs += ['-Xlint', '-Xdiags:verbose', '-Xlint:-requires-automatic']
+        options.compilerArgs += ['-Xlint', '-Xdiags:verbose']
     }
 
     tasks.withType(Test).configureEach {
