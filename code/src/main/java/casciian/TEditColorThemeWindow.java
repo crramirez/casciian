@@ -468,7 +468,7 @@ public class TEditColorThemeWindow extends TWindow {
                 }
             }
         );
-        addLabel(i18n.getString("colorName"), 2, 1, colorNames);
+        addLabelFor(i18n.getString("colorName"), 2, 1, colorNames);
         foreground = new ColorPicker(this, 42, 1, 14, 8, i18n.getString("foregroundLabel"));
         background = new ColorPicker(this, 42, 9, 14, 8, i18n.getString("backgroundLabel"));
         refreshFromTheme(colors.getFirst());

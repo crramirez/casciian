@@ -45,7 +45,7 @@ public class DemoTextFieldWindow extends TWindow {
      * The name of the resource bundle for this class.
      */
     public static final String RESOURCE_BUNDLE_NAME = DemoTextFieldWindow.class.getName() + "Bundle";
-    private static final String LABEL_FORMAT = "%-10s";
+    private static final String LABEL_FORMAT = "%-12s";
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -105,19 +105,20 @@ public class DemoTextFieldWindow extends TWindow {
 
         int row = 1;
 
-        addLabel(i18n.getString("textField1"), 1, row,
-            addField(35, row++, 15, false, i18n.getString("fieldText")));
+        final int fieldWidth = 17;
+        TField selected = addLabelFor(i18n.getString("textField1"), 1, row,
+            addField(35, row++, fieldWidth, false, i18n.getString("fieldText")));
         row++;
-        addLabel(i18n.getString("textField2"), 1, row,
-            addField(35, row++, 15, true));
+        addLabelFor(i18n.getString("textField2"), 1, row,
+            addField(35, row++, fieldWidth, true));
         row++;
-        addLabel(i18n.getString("textField3"), 1, row,
-            addPasswordField(35, row++, 15, false));
+        addLabelFor(i18n.getString("textField3"), 1, row,
+            addPasswordField(35, row++, fieldWidth, false));
         row++;
-        addLabel(i18n.getString("textField4"), 1, row,
-            addPasswordField(35, row++, 15, true, "hunter2"));
+        addLabelFor(i18n.getString("textField4"), 1, row,
+            addPasswordField(35, row++, fieldWidth, true, "hunter2"));
         row++;
-        TField selected = addLabelFor(i18n.getString("textField5"), 1, row,
+        addLabelFor(i18n.getString("textField5"), 1, row,
             addField(35, row++, 40, false, i18n.getString("textField6")));
 
         row++;

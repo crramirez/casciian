@@ -2485,21 +2485,6 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
-     * Convenience function to add a label to this container/window.
-     *
-     * @param <F> the type of widget this label is for
-     * @param text label
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param labelFor the widget this label is for
-     * @return the new label
-     */
-    public final <F extends TWidget> TLabel<F> addLabel(final String text, final int x, final int y,
-        final F labelFor) {
-        return new TLabel<>(this, text, x, y, labelFor);
-    }
-
-    /**
      * Convenience function to add a label to this container/window, returning the widget for the label.
      *
      * @param <F> the type of widget this label is for
