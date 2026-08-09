@@ -405,9 +405,10 @@ class TTextBaseTest {
     private void mouse(final TWidget widget, final TMouseEvent.Type type,
         final int x, final int y) {
 
+        boolean mouse1 = type != TMouseEvent.Type.MOUSE_UP;
         TMouseEvent event = new TMouseEvent(null, type, x, y,
             widget.getAbsoluteX() + x, widget.getAbsoluteY() + y, 0, 0,
-            true, false, false, false, false, false, false, false);
+            mouse1, false, false, false, false, false, false, false);
         switch (type) {
         case MOUSE_DOWN:
             widget.onMouseDown(event);
@@ -438,8 +439,7 @@ class TTextBaseTest {
 
         // Press inside the field, then drag to the left past its border.
         mouse(field, TMouseEvent.Type.MOUSE_DOWN, field.getTextAreaX(), 0);
-        int startColumn = field.getLeftColumn();
-        int previous = startColumn;
+        int previous = field.getLeftColumn();
         for (int i = 1; i <= 3; i++) {
             mouse(field, TMouseEvent.Type.MOUSE_MOTION,
                 field.getTextAreaX() - i, 0);
