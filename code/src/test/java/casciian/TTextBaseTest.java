@@ -18,6 +18,7 @@ package casciian;
 import org.junit.jupiter.api.Test;
 
 import casciian.backend.HeadlessBackend;
+import casciian.bits.StringUtils;
 import casciian.bits.Clipboard;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
@@ -293,6 +294,7 @@ class TTextBaseTest {
         text.selectAll();
         assertTrue(text.hasSelection());
         assertTrue(text.getSelection().startsWith("hello"));
+        assertEquals(StringUtils.width("hello"), text.getSelectionEndColumn());
     }
 
     @Test

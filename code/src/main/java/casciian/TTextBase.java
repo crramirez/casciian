@@ -1448,7 +1448,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     public void selectAll() {
         int lastRow = document.getLineCount() - 1;
-        int lastColumn = document.getLine(lastRow).getDisplayLength();
+        int lastColumn = StringUtils.width(document.getLine(lastRow).getRawString());
         setSelection(0, 0, lastRow, lastColumn);
     }
 
