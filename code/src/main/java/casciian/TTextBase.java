@@ -346,12 +346,13 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     public void onMouseMotion(final TMouseEvent mouse) {
 
         if (mouse.isMouse1() && (inSelection || mouseOnTextArea(mouse))) {
-            // Set the row and column
-            int newLine = documentLineFor(mouse);
-            int newX = documentColumnFor(mouse);
-            if ((newLine < 0) || (newX < 0)) {
-                return;
-            }
+            // Set the row and column.  When the mouse is dragged past the
+            // left or top border the computed position can be negative: clamp
+            // it to the beginning of the document so that the view keeps
+            // scrolling towards it, the same way dragging past the right or
+            // bottom border scrolls the other way.
+            int newLine = Math.max(0, documentLineFor(mouse));
+            int newX = Math.max(0, documentColumnFor(mouse));
 
             // Selection.
             if (inSelection) {
@@ -1011,17 +1012,30 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             return;
         }
         if (newLine < 0) {
-            return;
+            // The mouse is above the text area: follow it to the top of the
+            // document.
+            newLine = 0;
         }
 
         document.setLineNumber(newLine);
+        if (newLine < topLine) {
+            // The mouse went above the visible area: scroll up to follow it.
+            topLine = newLine;
+        } else if (newLine > topLine + Math.max(1, getTextAreaHeight()) - 1) {
+            // The mouse went below the visible area: scroll down to follow
+            // it.
+            topLine = newLine - (Math.max(1, getTextAreaHeight()) - 1);
+        }
         setCursorY(getTextAreaY() + newLine - topLine);
         if (newX >= document.getCurrentLine().getDisplayLength()) {
             document.end();
             alignCursor();
         } else {
             document.setCursor(Math.max(0, newX));
-            setCursorX(getTextAreaX() + document.getCursor() - leftColumn);
+            // alignCursor() rather than setCursorX(): the mouse can be
+            // dragged past the left border, and then the view must scroll
+            // left to bring the new cursor position back in.
+            alignCursor();
         }
     }
 

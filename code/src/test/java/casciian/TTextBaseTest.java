@@ -395,6 +395,94 @@ class TTextBaseTest {
     }
 
     /**
+     * Send a mouse event to a widget.
+     *
+     * @param widget the widget
+     * @param type the type of event
+     * @param x the column, relative to the widget
+     * @param y the row, relative to the widget
+     */
+    private void mouse(final TWidget widget, final TMouseEvent.Type type,
+        final int x, final int y) {
+
+        TMouseEvent event = new TMouseEvent(null, type, x, y,
+            widget.getAbsoluteX() + x, widget.getAbsoluteY() + y, 0, 0,
+            true, false, false, false, false, false, false, false);
+        switch (type) {
+        case MOUSE_DOWN:
+            widget.onMouseDown(event);
+            break;
+        case MOUSE_UP:
+            widget.onMouseUp(event);
+            break;
+        default:
+            widget.onMouseMotion(event);
+            break;
+        }
+    }
+
+    /**
+     * Dragging the mouse past the left border of a field scrolls the view
+     * back towards the beginning of the text, the same way dragging past the
+     * right border scrolls towards its end.
+     */
+    @Test
+    void fieldDraggingPastTheLeftBorderScrollsLeft() {
+        TWindow window = makeWindow();
+        TField field = new TField(window, 1, 1, 10, false,
+            "the quick brown fox jumps over the lazy dog");
+        window.activate(field);
+
+        field.end();
+        assertTrue(field.getLeftColumn() > 0);
+
+        // Press inside the field, then drag to the left past its border.
+        mouse(field, TMouseEvent.Type.MOUSE_DOWN, field.getTextAreaX(), 0);
+        int startColumn = field.getLeftColumn();
+        int previous = startColumn;
+        for (int i = 1; i <= 3; i++) {
+            mouse(field, TMouseEvent.Type.MOUSE_MOTION,
+                field.getTextAreaX() - i, 0);
+            assertTrue(field.getLeftColumn() < previous,
+                "dragging left did not scroll the field: "
+                + field.getLeftColumn());
+            previous = field.getLeftColumn();
+        }
+
+        // Dragging far past the left border stops at the beginning.
+        mouse(field, TMouseEvent.Type.MOUSE_MOTION,
+            field.getTextAreaX() - 100, 0);
+        assertEquals(0, field.getLeftColumn());
+        assertEquals(1, field.getEditingColumnNumber());
+        assertTrue(field.hasSelection());
+    }
+
+    /**
+     * Dragging the mouse past the top border of an editor scrolls the view up.
+     */
+    @Test
+    void editorDraggingPastTheTopBorderScrollsUp() {
+        TWindow window = makeWindow();
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < 30; i++) {
+            text.append("line ").append(i).append("\n");
+        }
+        TEditor editor = new TEditor(window, text.toString(), 1, 1, 20, 5);
+        window.activate(editor);
+
+        editor.setTopLine(10);
+
+        mouse(editor, TMouseEvent.Type.MOUSE_DOWN, editor.getTextAreaX(),
+            editor.getTextAreaY() + 2);
+        int startLine = editor.getTopLine();
+        mouse(editor, TMouseEvent.Type.MOUSE_MOTION, editor.getTextAreaX(),
+            editor.getTextAreaY() - 2);
+        assertTrue(editor.getTopLine() < startLine,
+            "dragging above the editor did not scroll up: "
+            + editor.getTopLine());
+    }
+
+    /**
      * Clicking on a field to focus it puts the cursor where the mouse is
      * instead of leaving the whole text selected.
      */
