@@ -6,20 +6,8 @@
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_STRING" value="-Xlint -Xdiags:verbose" />
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="code" options="-Xlint -Xdiags:verbose" />
       <module name="code-java-desktop" options="" />
-      <module name="code-java-desktop.casciian-java-desktop" options="-Xlint -Xdiags:verbose" />
-      <module name="code-java-desktop.casciian-java-desktop.main" options="-Xlint -Xdiags:verbose" />
-      <module name="code-java-desktop.casciian-java-desktop.test" options="-Xlint -Xdiags:verbose" />
-      <module name="code-java-desktop.demo" options="-Xlint -Xdiags:verbose" />
-      <module name="code-java-desktop.demo.main" options="-Xlint -Xdiags:verbose" />
-      <module name="code-java-desktop.demo.test" options="-Xlint -Xdiags:verbose" />
       <module name="code-terminal-component" options="" />
-      <module name="code.main" options="-Xlint -Xdiags:verbose" />
-      <module name="code.test" options="-Xlint -Xdiags:verbose" />
-      <module name="io.github.crramirez.casciian" options="-Xlint -Xdiags:verbose" />
-      <module name="io.github.crramirez.casciian.main" options="-Xlint -Xdiags:verbose" />
-      <module name="io.github.crramirez.casciian.test" options="-Xlint -Xdiags:verbose" />
     </option>
   </component>
 </project>
