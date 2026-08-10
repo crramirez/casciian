@@ -434,6 +434,21 @@ public class TField extends TTextBase {
     }
 
     /**
+     * Handle mouse double-click events: select all text in the field.
+     *
+     * @param mouse mouse double-click event
+     */
+    @Override
+    public void onMouseDoubleClick(final TMouseEvent mouse) {
+        this.mouse = mouse;
+
+        if (mouse.isMouse1() && mouseOnField()) {
+            selectAll();
+        }
+        syncFields();
+    }
+
+    /**
      * Handle keystrokes.
      *
      * @param keypress keystroke event
