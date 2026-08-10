@@ -495,8 +495,11 @@ public abstract class TWidget implements Comparable<TWidget> {
         for (int i = children.size() - 1 ; i >= 0 ; i--) {
             TWidget widget = children.get(i);
             if (widget.mouseWouldHit(mouse)) {
-                // Dispatch to this child, also activate it
-                activate(widget);
+                // Dispatch to this child, and activate it only if it is
+                // enabled.
+                if (widget.enabled) {
+                    activate(widget);
+                }
 
                 // Set x and y relative to the child's coordinates
                 mouse.setX(mouse.getAbsoluteX() - widget.getAbsoluteX());
@@ -528,8 +531,11 @@ public abstract class TWidget implements Comparable<TWidget> {
         for (int i = children.size() - 1 ; i >= 0 ; i--) {
             TWidget widget = children.get(i);
             if (widget.mouseWouldHit(mouse)) {
-                // Dispatch to this child, also activate it
-                activate(widget);
+                // Dispatch to this child, and activate it only if it is
+                // enabled.
+                if (widget.enabled) {
+                    activate(widget);
+                }
 
                 // Set x and y relative to the child's coordinates
                 mouse.setX(mouse.getAbsoluteX() - widget.getAbsoluteX());

@@ -416,6 +416,9 @@ class TTextBaseTest {
         case MOUSE_UP:
             widget.onMouseUp(event);
             break;
+        case MOUSE_DOUBLE_CLICK:
+            widget.onMouseDoubleClick(event);
+            break;
         default:
             widget.onMouseMotion(event);
             break;
@@ -505,6 +508,44 @@ class TTextBaseTest {
 
         assertFalse(field.hasVisibleSelection());
         assertEquals(3, field.getEditingColumnNumber());
+    }
+
+    /**
+     * Double-clicking inside a field selects all of its text.
+     */
+    @Test
+    void fieldDoubleClickSelectsAllText() {
+        TWindow window = makeWindow();
+        TField field = new TField(window, 1, 1, 20, false, "hello world");
+        window.activate(field);
+
+        mouse(field, TMouseEvent.Type.MOUSE_DOWN, field.getTextAreaX() + 2, 0);
+        assertFalse(field.hasVisibleSelection());
+
+        mouse(field, TMouseEvent.Type.MOUSE_DOUBLE_CLICK,
+            field.getTextAreaX() + 2, 0);
+        assertEquals("hello world", field.getSelection());
+    }
+
+    /**
+     * Clicking a field's label while the field is already active does not
+     * re-trigger select-all on the field.
+     */
+    @Test
+    void clickingLabelForAnActiveFieldKeepsItsCollapsedSelection() {
+        TWindow window = makeWindow();
+        TField field = new TField(window, 1, 1, 20, false, "hello world");
+        TLabel<TField> label = new TLabel<>(window, "Name", 1, 2, field);
+
+        window.activate(field);
+        mouse(window, TMouseEvent.Type.MOUSE_DOWN, field.getX() + 2, field.getY());
+        assertFalse(field.hasVisibleSelection());
+
+        mouse(window, TMouseEvent.Type.MOUSE_DOWN, label.getX(), label.getY());
+        mouse(window, TMouseEvent.Type.MOUSE_UP, label.getX(), label.getY());
+
+        assertTrue(field.isAbsoluteActive());
+        assertFalse(field.hasVisibleSelection());
     }
 
     /**
