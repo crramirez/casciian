@@ -1979,40 +1979,40 @@ public class ColorTheme {
 
         // TList
         colors.put(TLIST, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
+            .foreColor(BLACK)
+            .backColor(CYAN)
             .build());
         colors.put(TLIST_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
             .build());
         colors.put(TLIST_SELECTED, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
+            .foreColor(BRIGHT_WHITE)
+            .backColor(GREEN)
             .build());
         colors.put(TLIST_SELECTED_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(GREEN)
             .build());
         colors.put(TLIST_UNREADABLE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
+            .foreColor(BRIGHT_WHITE)
+            .backColor(GREEN)
             .build());
         colors.put(TLIST_UNREADABLE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_WHITE)
             .backColor(GREEN)
             .build());
         colors.put(TLIST_INACTIVE, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
+            .foreColor(BLACK)
+            .backColor(CYAN)
             .build());
         colors.put(TLIST_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(CYAN)
             .build());
         colors.put(TLIST_SELECTED_INACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
+            .foreColor(BRIGHT_YELLOW)
+            .backColor(CYAN)
             .build());
         colors.put(TLIST_SELECTED_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)

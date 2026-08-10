@@ -107,7 +107,6 @@ public class TScrollable extends TWidget implements Scrollable {
 
             reflowData();
             placeScrollbars();
-            return;
         } else {
             super.onResize(event);
         }

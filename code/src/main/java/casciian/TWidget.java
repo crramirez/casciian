@@ -1036,7 +1036,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param width new widget width
      * @param height new widget height
      */
-    public final void setDimensions(final int x, final int y, final int width,
+    public void setDimensions(final int x, final int y, final int width,
         final int height) {
 
         this.x = x;
