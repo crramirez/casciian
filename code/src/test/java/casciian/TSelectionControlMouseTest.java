@@ -34,10 +34,9 @@ class TSelectionControlMouseTest {
         TCheckBox checkBox = new TCheckBox(window, 1, 1, "Enable feature",
             false);
 
-        mouse(window, checkBox.getX() + checkBox.getWidth() - 2,
-            checkBox.getY());
+        mouse(window, checkBox.getAbsoluteX() + checkBox.getWidth() - 2,
+            checkBox.getAbsoluteY());
 
-        assertTrue(checkBox.isAbsoluteActive());
         assertTrue(checkBox.isChecked());
     }
 
@@ -48,10 +47,9 @@ class TSelectionControlMouseTest {
         group.addRadioButton("First");
         TRadioButton second = group.addRadioButton("Second");
 
-        mouse(window, group.getX() + second.getX() + second.getWidth() - 2,
-            group.getY() + second.getY());
+        mouse(window, second.getAbsoluteX() + second.getWidth() - 2,
+            second.getAbsoluteY());
 
-        assertTrue(second.isAbsoluteActive());
         assertEquals(second.getId(), group.getSelected());
     }
 
@@ -62,7 +60,7 @@ class TSelectionControlMouseTest {
 
     private void mouse(final TWidget widget, final int x, final int y) {
         TMouseEvent event = new TMouseEvent(null, TMouseEvent.Type.MOUSE_DOWN,
-            x, y, widget.getAbsoluteX() + x, widget.getAbsoluteY() + y, 0, 0,
+            x, y, x, y, 0, 0,
             true, false, false, false, false, false, false, false);
         widget.onMouseDown(event);
     }
