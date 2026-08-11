@@ -1889,12 +1889,12 @@ public class ColorTheme {
             .backColor(BLUE)
             .build());
         colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(BLUE)
+            .foreColor(BRIGHT_RED)
+            .backColor(BLACK)
             .build());
         colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(BLUE)
+            .foreColor(BRIGHT_RED)
+            .backColor(BLACK)
             .build());
 
         // TMenu
