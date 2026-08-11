@@ -259,10 +259,12 @@ public class TCheckBox extends TWidget {
         }
         if (matchWindowBackground) {
             putForegroundCharXY(padding + 2, 0, ']', checkboxColor);
+            putForegroundCharXY(padding + 3, 0, ' ', checkboxColor);
             putForegroundStringXY(padding + 4, 0, mnemonic.getRawLabel(),
                 checkboxColor);
         } else {
             putCharXY(padding + 2, 0, ']', checkboxColor);
+            putCharXY(padding + 3, 0, ' ', checkboxColor);
             putStringXY(padding + 4, 0, mnemonic.getRawLabel(), checkboxColor);
         }
         if (mnemonic.getScreenShortcutIdx() >= 0) {
