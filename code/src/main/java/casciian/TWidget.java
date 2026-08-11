@@ -396,6 +396,30 @@ public abstract class TWidget implements Comparable<TWidget> {
 
         }
 
+        // If I have any radio groups on me AND this is an Alt-key that
+        // matches the group's mnemonic, activate the group.
+        for (TWidget widget: children) {
+            if (widget instanceof TRadioGroup) {
+                TRadioGroup group = (TRadioGroup) widget;
+                if (group.isEnabled()
+                    && !keypress.getKey().isFnKey()
+                    && keypress.getKey().isAlt()
+                    && !keypress.getKey().isCtrl()
+                    && (Character.toLowerCase(group.getMnemonic().getShortcut())
+                        == Character.toLowerCase(keypress.getKey().getChar()))
+                ) {
+                    activate(group);
+                    TRadioButton selectedButton = group.getSelectedButton();
+                    if ((selectedButton != null) && selectedButton.isEnabled()) {
+                        group.activate(selectedButton);
+                    } else if (group.getChildren().size() > 0) {
+                        group.activate(0);
+                    }
+                    return;
+                }
+            }
+        }
+
         // If I have any radiobuttons on me AND this is an Alt-key that
         // matches its mnemonic, select it and send a Space to it.
         for (TWidget widget: children) {
@@ -437,7 +461,7 @@ public abstract class TWidget implements Comparable<TWidget> {
         }
 
         // If I have any checkboxes on me AND this is an Alt-key that matches
-        // its mnemonic, select it and set it to checked.
+        // its mnemonic, select it and toggle it.
         for (TWidget widget: children) {
             if (widget instanceof TCheckBox) {
                 TCheckBox checkBox = (TCheckBox) widget;
@@ -449,8 +473,8 @@ public abstract class TWidget implements Comparable<TWidget> {
                         == Character.toLowerCase(keypress.getKey().getChar()))
                 ) {
                     activate(checkBox);
-                    checkBox.setChecked(true);
-                    checkBox.dispatch();
+                    checkBox.onKeypress(new TKeypressEvent(keypress.getBackend(),
+                            kbSpace));
                     return;
                 }
             }
