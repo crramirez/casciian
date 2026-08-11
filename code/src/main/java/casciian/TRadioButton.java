@@ -19,6 +19,11 @@
  */
 package casciian;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+
 import casciian.bits.CellAttributes;
 import casciian.bits.ControlPadding;
 import casciian.bits.GraphicsChars;
@@ -36,6 +41,98 @@ import static casciian.TKeypress.*;
  * If the user presses escape on this button, it is unselected.
  */
 public class TRadioButton extends TWidget {
+
+    // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * System property key that selects the active radio-button style.
+     */
+    public static final String PROPERTY_KEY = "casciian.TRadioButton.style";
+
+    /**
+     * Default radio-button style name.
+     */
+    public static final String DEFAULT_STYLE_NAME = "bullet";
+
+    /**
+     * Available radio-button styles.
+     */
+    public static enum Style {
+
+        /**
+         * Use the classic bullet.
+         */
+        BULLET("bullet", GraphicsChars.CP437[0x07]),
+
+        /**
+         * Use the smaller bullet glyph.
+         */
+        SMALL_BULLET("smallbullet", GraphicsChars.CP437[0xF9]),
+
+        /**
+         * Use an asterisk.
+         */
+        ASTERISK("asterisk", '*');
+
+        /**
+         * The canonical style name.
+         */
+        private final String styleName;
+
+        /**
+         * The symbol rendered for the selected state.
+         */
+        private final char symbol;
+
+        Style(final String styleName, final char symbol) {
+            this.styleName = styleName;
+            this.symbol = symbol;
+        }
+
+        /**
+         * Get the selected-state symbol.
+         *
+         * @return the symbol to render between parentheses
+         */
+        public char getSymbol() {
+            return symbol;
+        }
+
+        /**
+         * Resolve a style name.
+         *
+         * @param styleName the style name
+         * @return the matching style, or BULLET for unknown values
+         */
+        public static Style fromStyleName(final String styleName) {
+            if (styleName == null) {
+                return BULLET;
+            }
+            String key = styleName.toLowerCase(Locale.ROOT);
+            if (key.equals("default")) {
+                return BULLET;
+            }
+            for (Style style: values()) {
+                if (style.styleName.equals(key)) {
+                    return style;
+                }
+            }
+            return BULLET;
+        }
+
+        /**
+         * Get style names for the desktop styles dialog.
+         *
+         * @return supported radio-button style names
+         */
+        public static List<String> getStyleNames() {
+            return Collections.unmodifiableList(Arrays.asList(
+                BULLET.styleName, SMALL_BULLET.styleName,
+                ASTERISK.styleName));
+        }
+    }
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -61,6 +158,11 @@ public class TRadioButton extends TWidget {
      * If true, use the window's background color.
      */
     private boolean matchWindowBackground = true;
+
+    /**
+     * The style used for the selected-state symbol.
+     */
+    private Style style = Style.BULLET;
 
     /**
      * Extra left/right padding applied to the control.  The value is
@@ -109,6 +211,7 @@ public class TRadioButton extends TWidget {
         this.padding = padding;
         mnemonic = new MnemonicString(label);
         this.id = id;
+        setStyle((String) null);
 
         setCursorVisible(true);
         setCursorX(padding + 1);
@@ -226,20 +329,11 @@ public class TRadioButton extends TWidget {
                     "tradiobutton.pulse")));
         }
 
-        if (padding > 0) {
-            // Paint the left and right padding cells with the radio button
-            // background color so they blend with the control.
+        for (int i = 0; i < getWidth(); i++) {
             if (matchWindowBackground) {
-                for (int i = 0; i < padding; i++) {
-                    putForegroundCharXY(i, 0, ' ', radioButtonColor);
-                    putForegroundCharXY(getWidth() - 1 - i, 0, ' ',
-                        radioButtonColor);
-                }
+                putForegroundCharXY(i, 0, ' ', radioButtonColor);
             } else {
-                for (int i = 0; i < padding; i++) {
-                    putCharXY(i, 0, ' ', radioButtonColor);
-                    putCharXY(getWidth() - 1 - i, 0, ' ', radioButtonColor);
-                }
+                putCharXY(i, 0, ' ', radioButtonColor);
             }
         }
 
@@ -250,17 +344,10 @@ public class TRadioButton extends TWidget {
         }
         if (selected) {
             if (matchWindowBackground) {
-                putForegroundCharXY(padding + 1, 0, GraphicsChars.CP437[0x07],
+                putForegroundCharXY(padding + 1, 0, style.getSymbol(),
                     radioButtonColor);
             } else {
-                putCharXY(padding + 1, 0, GraphicsChars.CP437[0x07],
-                    radioButtonColor);
-            }
-        } else {
-            if (matchWindowBackground) {
-                putForegroundCharXY(padding + 1, 0, ' ', radioButtonColor);
-            } else {
-                putCharXY(padding + 1, 0, ' ', radioButtonColor);
+                putCharXY(padding + 1, 0, style.getSymbol(), radioButtonColor);
             }
         }
         if (matchWindowBackground) {
@@ -335,6 +422,15 @@ public class TRadioButton extends TWidget {
     }
 
     /**
+     * Get the supported radio-button style names.
+     *
+     * @return supported radio-button style names
+     */
+    public static List<String> getStyleNames() {
+        return Style.getStyleNames();
+    }
+
+    /**
      * Get the window background option.
      *
      * @return true if the window's background color will be used
@@ -351,6 +447,39 @@ public class TRadioButton extends TWidget {
      */
     public void setMatchWindowBackground(final boolean matchWindowBackground) {
         this.matchWindowBackground = matchWindowBackground;
+    }
+
+    /**
+     * Set the radio-button style.
+     *
+     * @param style the radio-button style
+     */
+    public void setStyle(final Style style) {
+        this.style = style;
+    }
+
+    /**
+     * Set the radio-button style.
+     *
+     * @param radioButtonStyle the style string, or null to use the value from
+     * {@value #PROPERTY_KEY}
+     */
+    public void setStyle(final String radioButtonStyle) {
+        String styleString = System.getProperty(PROPERTY_KEY,
+            DEFAULT_STYLE_NAME);
+        if (radioButtonStyle != null) {
+            styleString = radioButtonStyle;
+        }
+        style = Style.fromStyleName(styleString);
+    }
+
+    /**
+     * Internal helper to widen the radio button to the group's content width.
+     *
+     * @param width the width to use for the widget
+     */
+    void setDisplayWidth(final int width) {
+        super.setWidth(width);
     }
 
 }
