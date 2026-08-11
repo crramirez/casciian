@@ -549,6 +549,26 @@ public class ColorTheme {
     public static final String TRADIOGROUP_ACTIVE_MODAL = "tradiogroup.active.modal";
 
     /**
+     * Color key for TRadioGroup mnemonic character.
+     */
+    public static final String TRADIOGROUP_MNEMONIC = "tradiogroup.mnemonic";
+
+    /**
+     * Color key for TRadioGroup mnemonic character in modal mode.
+     */
+    public static final String TRADIOGROUP_MNEMONIC_MODAL = "tradiogroup.mnemonic.modal";
+
+    /**
+     * Color key for TRadioGroup mnemonic character when highlighted.
+     */
+    public static final String TRADIOGROUP_MNEMONIC_HIGHLIGHTED = "tradiogroup.mnemonic.highlighted";
+
+    /**
+     * Color key for TRadioGroup mnemonic character when highlighted in modal mode.
+     */
+    public static final String TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL = "tradiogroup.mnemonic.highlighted.modal";
+
+    /**
      * Color key for TMenu.
      */
     public static final String TMENU = "tmenu";
@@ -1860,6 +1880,22 @@ public class ColorTheme {
             .foreColor(BRIGHT_YELLOW)
             .backColor(BLUE)
             .build());
+        colors.put(TRADIOGROUP_MNEMONIC, CellAttributes.builder()
+            .foreColor(BRIGHT_YELLOW)
+            .backColor(BLUE)
+            .build());
+        colors.put(TRADIOGROUP_MNEMONIC_MODAL, CellAttributes.builder()
+            .foreColor(BRIGHT_YELLOW)
+            .backColor(BLUE)
+            .build());
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
+            .foreColor(BRIGHT_RED)
+            .backColor(BLACK)
+            .build());
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, CellAttributes.builder()
+            .foreColor(BRIGHT_RED)
+            .backColor(BLACK)
+            .build());
 
         // TMenu
         colors.put(TMENU, CellAttributes.builder()
@@ -2253,6 +2289,10 @@ public class ColorTheme {
         color.setForeColor(BRIGHT_MAGENTA);
         color.setBackColor(BLACK);
         colors.put(TRADIOGROUP_ACTIVE, color);
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_MAGENTA);
+        color.setBackColor(BLACK);
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, color);
         color = new CellAttributes();
         color.setForeColor(BRIGHT_MAGENTA);
         color.setBackColor(BLACK);
@@ -2749,6 +2789,22 @@ public class ColorTheme {
         color.setForeColor(BRIGHT_YELLOW);
         color.setBackColor(BLUE);
         colors.put(TRADIOGROUP_ACTIVE_MODAL, color);
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_YELLOW);
+        color.setBackColor(BLUE);
+        colors.put(TRADIOGROUP_MNEMONIC, color);
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_YELLOW);
+        color.setBackColor(BLUE);
+        colors.put(TRADIOGROUP_MNEMONIC_MODAL, color);
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_YELLOW);
+        color.setBackColor(BLUE);
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, color);
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_YELLOW);
+        color.setBackColor(BLUE);
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, color);
 
         // TMenu
         color = new CellAttributes();
@@ -3229,6 +3285,10 @@ public class ColorTheme {
         colors.put(TRADIOGROUP_INACTIVE_MODAL, rgbToPalette(fgText, bgWindow));
         colors.put(TRADIOGROUP_ACTIVE, rgbToPalette(fgYellow, bgWindow));
         colors.put(TRADIOGROUP_ACTIVE_MODAL, rgbToPalette(fgYellow, bgWindow));
+        colors.put(TRADIOGROUP_MNEMONIC, rgbToPalette(fgYellow, bgWindow));
+        colors.put(TRADIOGROUP_MNEMONIC_MODAL, rgbToPalette(fgYellow, bgWindow));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, rgbToPalette(fgYellow, bgSelect));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(fgYellow, bgSelect));
         colors.put(TCOMBOBOX_INACTIVE, rgbToPalette(fgText, bgField));
         colors.put(TCOMBOBOX_INACTIVE_MODAL, rgbToPalette(fgText, bgField));
         colors.put(TCOMBOBOX_ACTIVE, rgbToPalette(fgYellow, bgSelect));
@@ -3421,6 +3481,10 @@ public class ColorTheme {
         colors.put(TRADIOGROUP_INACTIVE_MODAL, attr(BLACK, WHITE));
         colors.put(TRADIOGROUP_ACTIVE, attr(BRIGHT_YELLOW, BLUE));
         colors.put(TRADIOGROUP_ACTIVE_MODAL, attr(BLACK, WHITE));
+        colors.put(TRADIOGROUP_MNEMONIC, attr(BRIGHT_YELLOW, BLUE));
+        colors.put(TRADIOGROUP_MNEMONIC_MODAL, attr(BLUE, WHITE));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_YELLOW, CYAN));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, attr(BLUE, CYAN));
         colors.put(TCOMBOBOX_INACTIVE, attr(WHITE, BLUE));
         colors.put(TCOMBOBOX_INACTIVE_MODAL, attr(WHITE, BLUE));
         colors.put(TCOMBOBOX_ACTIVE, attr(BLACK, CYAN));
@@ -3595,6 +3659,10 @@ public class ColorTheme {
         colors.put(TRADIOGROUP_INACTIVE_MODAL, rgbToPalette(fgText, bgBlack));
         colors.put(TRADIOGROUP_ACTIVE, rgbToPalette(accentCyan, bgBlack));
         colors.put(TRADIOGROUP_ACTIVE_MODAL, rgbToPalette(accentCyan, bgBlack));
+        colors.put(TRADIOGROUP_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
+        colors.put(TRADIOGROUP_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellw, bgSelection));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(accentYellw, bgSelection));
         colors.put(TCOMBOBOX_INACTIVE, rgbToPalette(fgText, bgSubtle));
         colors.put(TCOMBOBOX_INACTIVE_MODAL, rgbToPalette(fgText, bgSubtle));
         colors.put(TCOMBOBOX_ACTIVE, rgbToPalette(fgWhite, bgSelection));
@@ -3808,6 +3876,10 @@ public class ColorTheme {
         colors.put(TRADIOGROUP_INACTIVE_MODAL, rgb(fgText, bgPanel));
         colors.put(TRADIOGROUP_ACTIVE, rgb(accent, bgPanel));
         colors.put(TRADIOGROUP_ACTIVE_MODAL, rgb(accent, bgPanel));
+        colors.put(TRADIOGROUP_MNEMONIC, rgb(accent, bgPanel));
+        colors.put(TRADIOGROUP_MNEMONIC_MODAL, rgb(accent, bgPanel));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, rgb(fgBrightText, bgListSel));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, rgb(fgBrightText, bgListSel));
         colors.put(TCOMBOBOX_INACTIVE, rgb(fgChrome, bgInput));
         colors.put(TCOMBOBOX_INACTIVE_MODAL, rgb(fgChrome, bgInput));
         colors.put(TCOMBOBOX_ACTIVE, rgb(fgBrightText, bgListSel));
@@ -4021,6 +4093,10 @@ public class ColorTheme {
         colors.put(TRADIOGROUP_INACTIVE_MODAL, rgb(fgChrome, bgPanel));
         colors.put(TRADIOGROUP_ACTIVE, rgb(accent, bgPanel, true));
         colors.put(TRADIOGROUP_ACTIVE_MODAL, rgb(accent, bgPanel, true));
+        colors.put(TRADIOGROUP_MNEMONIC, rgb(accent, bgPanel));
+        colors.put(TRADIOGROUP_MNEMONIC_MODAL, rgb(accent, bgPanel));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, rgb(0xffffff, bgListSel));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, rgb(0xffffff, bgListSel));
         colors.put(TCOMBOBOX_INACTIVE, rgb(fgChrome, bgInput));
         colors.put(TCOMBOBOX_INACTIVE_MODAL, rgb(fgChrome, bgInput));
         colors.put(TCOMBOBOX_ACTIVE, rgb(0xffffff, bgListSel));
