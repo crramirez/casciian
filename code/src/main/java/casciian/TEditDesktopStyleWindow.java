@@ -240,7 +240,7 @@ public class TEditDesktopStyleWindow extends TWindow {
             TCheckBox.DEFAULT_STYLE_NAME);
         checkBoxStyle.setText(checkBoxStyleString);
 
-        checkBox1 = addCheckBox(24, 18, i18n.getString("checkBox1"), true);
+        checkBox1 = addCheckBox(25, 18, i18n.getString("checkBox1"), true);
         checkBox1.setStyle(checkBoxStyleString);
 
         List<String> radioButtonStyles = TRadioButton.getStyleNames();

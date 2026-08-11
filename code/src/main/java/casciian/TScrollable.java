@@ -133,6 +133,11 @@ public class TScrollable extends TWidget implements Scrollable {
         }
     }
 
+    /**
+     * Compute the horizontal scrollbar width for the current geometry.
+     *
+     * @return the horizontal scrollbar width, at least 1 cell
+     */
     protected int calculateHScrollerWidth() {
         TWindow window = getWindow();
         boolean atTheBotton = (window != null)

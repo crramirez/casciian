@@ -52,7 +52,7 @@ public class TRadioGroup extends TWidget {
     /**
      * If true, use the window's background color.
      */
-    private boolean matchWindowBackground = true;
+    private boolean matchWindowBackground = false;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -133,7 +133,7 @@ public class TRadioGroup extends TWidget {
 
         BorderStyle borderStyle;
         borderStyle = BorderStyle.getStyle(System.getProperty(
-            "casciian.TRadioGroup.borderStyle", "singleVdoubleH"));
+            "casciian.TRadioGroup.borderStyle", BorderStyle.NONE.toString()));
 
         if (matchWindowBackground) {
             drawForegroundBox(0, 0, getWidth(), getHeight(), radioGroupColor,

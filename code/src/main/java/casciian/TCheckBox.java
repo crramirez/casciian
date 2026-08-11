@@ -52,12 +52,12 @@ public class TCheckBox extends TWidget {
     /**
      * Default checkbox style name.
      */
-    public static final String DEFAULT_STYLE_NAME = "check";
+    public static final String DEFAULT_STYLE_NAME = Style.UPPER_X.styleName;
 
     /**
      * Available checkbox styles.
      */
-    public static enum Style {
+    public enum Style {
 
         /**
          * Use the classic square-root check mark.
@@ -135,6 +135,15 @@ public class TCheckBox extends TWidget {
                 "default", CHECK.styleName, UPPER_X.styleName,
                 LOWER_X.styleName, TIMES.styleName));
         }
+
+        /**
+         * Get the serialized style name.
+         *
+         * @return style name used for preferences and configuration
+         */
+        public String getStyleName() {
+            return styleName;
+        }
     }
 
     // ------------------------------------------------------------------------
@@ -159,7 +168,7 @@ public class TCheckBox extends TWidget {
     /**
      * If true, use the window's background color.
      */
-    private boolean matchWindowBackground = true;
+    private boolean matchWindowBackground = false;
 
     /**
      * The style used for the checked-state symbol.
@@ -251,13 +260,9 @@ public class TCheckBox extends TWidget {
      * @return true if the mouse is currently on the checkbox
      */
     private boolean mouseOnCheckBox(final TMouseEvent mouse) {
-        if ((mouse.getY() == 0)
+        return (mouse.getY() == 0)
             && (mouse.getX() >= 0)
-            && (mouse.getX() < getWidth())
-        ) {
-            return true;
-        }
-        return false;
+            && (mouse.getX() < getWidth());
     }
 
     /**

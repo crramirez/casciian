@@ -54,12 +54,12 @@ public class TRadioButton extends TWidget {
     /**
      * Default radio-button style name.
      */
-    public static final String DEFAULT_STYLE_NAME = "bullet";
+    public static final String DEFAULT_STYLE_NAME = Style.SMALL_BULLET.styleName;
 
     /**
      * Available radio-button styles.
      */
-    public static enum Style {
+    public enum Style {
 
         /**
          * Use the classic bullet.
@@ -132,6 +132,16 @@ public class TRadioButton extends TWidget {
                 "default", BULLET.styleName, SMALL_BULLET.styleName,
                 ASTERISK.styleName));
         }
+
+        /**
+         * Get the serialized style name.
+         *
+         * @return style name used for preferences and configuration
+         */
+        public String getStyleName() {
+            return styleName;
+        }
+
     }
 
     // ------------------------------------------------------------------------
@@ -157,7 +167,7 @@ public class TRadioButton extends TWidget {
     /**
      * If true, use the window's background color.
      */
-    private boolean matchWindowBackground = true;
+    private boolean matchWindowBackground = false;
 
     /**
      * The style used for the selected-state symbol.
