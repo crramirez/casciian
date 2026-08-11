@@ -18,6 +18,7 @@ package casciian;
 import org.junit.jupiter.api.Test;
 
 import casciian.backend.HeadlessBackend;
+import casciian.bits.ControlPadding;
 import casciian.event.TMouseEvent;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,9 +54,48 @@ class TSelectionControlMouseTest {
         assertEquals(second.getId(), group.getSelected());
     }
 
+    @Test
+    void checkboxSeparatorSpaceUsesCheckboxColor() {
+        TWindow window = makeWindow();
+        TCheckBox checkBox = new TCheckBox(window, 1, 1, "Enable feature",
+            false);
+
+        assertSeparatorPainted(checkBox);
+
+        checkBox.setMatchWindowBackground(false);
+        assertSeparatorPainted(checkBox);
+    }
+
+    @Test
+    void radioButtonSeparatorSpaceUsesRadioButtonColor() {
+        TWindow window = makeWindow();
+        TRadioGroup group = new TRadioGroup(window, 1, 1, "Choices");
+        TRadioButton radioButton = group.addRadioButton("Second");
+
+        assertSeparatorPainted(radioButton);
+
+        radioButton.setMatchWindowBackground(false);
+        assertSeparatorPainted(radioButton);
+    }
+
     private TWindow makeWindow() {
         return new TWindow(new TApplication(new HeadlessBackend()), "test",
             0, 0, 40, 10);
+    }
+
+    private void assertSeparatorPainted(final TWidget control) {
+
+        control.getWindow().drawChildren();
+
+        int padding = ControlPadding.current().getCells();
+        int gapX = control.getAbsoluteX() + padding + 3;
+        int y = control.getAbsoluteY();
+
+        assertEquals(' ', control.getScreen().getCharXY(gapX, y).getChar());
+        assertEquals(control.getScreen().getAttrXY(gapX - 1, y),
+            control.getScreen().getAttrXY(gapX, y));
+        assertEquals(control.getScreen().getAttrXY(gapX, y),
+            control.getScreen().getAttrXY(gapX + 1, y));
     }
 
     private void mouse(final TWidget widget, final int x, final int y) {

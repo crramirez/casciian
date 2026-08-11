@@ -265,10 +265,12 @@ public class TRadioButton extends TWidget {
         }
         if (matchWindowBackground) {
             putForegroundCharXY(padding + 2, 0, ')', radioButtonColor);
+            putForegroundCharXY(padding + 3, 0, ' ', radioButtonColor);
             putForegroundStringXY(padding + 4, 0, mnemonic.getRawLabel(),
                 radioButtonColor);
         } else {
             putCharXY(padding + 2, 0, ')', radioButtonColor);
+            putCharXY(padding + 3, 0, ' ', radioButtonColor);
             putStringXY(padding + 4, 0, mnemonic.getRawLabel(),
                 radioButtonColor);
         }
