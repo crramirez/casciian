@@ -19,8 +19,11 @@ import org.junit.jupiter.api.Test;
 
 import casciian.backend.HeadlessBackend;
 import casciian.bits.ControlPadding;
+import casciian.event.TKeypressEvent;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests checkbox and radio-button style rendering.
@@ -98,6 +101,54 @@ class TSelectionControlStyleTest {
             window.getScreen().getAttrXY(trailingX, y));
     }
 
+    @Test
+    void checkboxMnemonicTogglesState() {
+        TWindow window = makeWindow();
+        TCheckBox checkBox = new TCheckBox(window, 1, 1, "&Enable feature",
+            false);
+
+        pressMnemonic(window, 'e');
+        assertTrue(checkBox.isChecked());
+
+        pressMnemonic(window, 'e');
+        assertFalse(checkBox.isChecked());
+    }
+
+    @Test
+    void radioGroupMnemonicActivatesSelectedButton() {
+        TWindow window = makeWindow();
+        TCheckBox checkBox = new TCheckBox(window, 1, 1, "&Enable feature",
+            false);
+        TRadioGroup group = new TRadioGroup(window, 1, 3, 20, "&Choices");
+        group.addRadioButton("&First");
+        TRadioButton second = group.addRadioButton("&Second");
+        group.setSelected(second.getId());
+        window.activate(checkBox);
+
+        pressMnemonic(window, 'c');
+
+        assertTrue(group.isActive());
+        assertTrue(second.isActive());
+        assertEquals(second.getId(), group.getSelected());
+    }
+
+    @Test
+    void radioGroupDrawsMnemonicUsingRadioButtonMnemonicColorDefaults() {
+        TWindow window = makeWindow();
+        TRadioGroup group = new TRadioGroup(window, 1, 1, 20, "&Choices");
+
+        window.drawChildren();
+
+        assertEquals(window.getTheme().getColor("tradiobutton.mnemonic"),
+            window.getTheme().getColor("tradiogroup.mnemonic"));
+        assertEquals(window.getTheme().getColor("tradiogroup.mnemonic"),
+            window.getScreen().getAttrXY(group.getAbsoluteX() + 2,
+                group.getAbsoluteY()));
+        assertEquals('C',
+            window.getScreen().getCharXY(group.getAbsoluteX() + 2,
+                group.getAbsoluteY()).getChar());
+    }
+
     private TWindow makeWindow() {
         return new TWindow(new TApplication(new HeadlessBackend()), "test",
             0, 0, 40, 10);
@@ -121,5 +172,10 @@ class TSelectionControlStyleTest {
                 System.setProperty(key, oldValue);
             }
         }
+    }
+
+    private void pressMnemonic(final TWidget widget, final char ch) {
+        widget.onKeypress(new TKeypressEvent(null,
+            new TKeypress(false, 0, ch, true, false, false)));
     }
 }
