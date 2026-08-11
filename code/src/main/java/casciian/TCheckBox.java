@@ -19,6 +19,11 @@
  */
 package casciian;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+
 import static casciian.TKeypress.kbEnter;
 import static casciian.TKeypress.kbEsc;
 import static casciian.TKeypress.kbSpace;
@@ -34,6 +39,103 @@ import casciian.event.TMouseEvent;
  * TCheckBox implements an on/off checkbox.
  */
 public class TCheckBox extends TWidget {
+
+    // ------------------------------------------------------------------------
+    // Constants --------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * System property key that selects the active checkbox style.
+     */
+    public static final String PROPERTY_KEY = "casciian.TCheckBox.style";
+
+    /**
+     * Default checkbox style name.
+     */
+    public static final String DEFAULT_STYLE_NAME = "check";
+
+    /**
+     * Available checkbox styles.
+     */
+    public static enum Style {
+
+        /**
+         * Use the classic square-root check mark.
+         */
+        CHECK("check", GraphicsChars.CHECK),
+
+        /**
+         * Use an uppercase X.
+         */
+        UPPER_X("upperx", 'X'),
+
+        /**
+         * Use a lowercase x.
+         */
+        LOWER_X("lowerx", 'x'),
+
+        /**
+         * Use a multiplication sign.
+         */
+        TIMES("times", '\u00D7');
+
+        /**
+         * The canonical style name.
+         */
+        private final String styleName;
+
+        /**
+         * The symbol rendered for the checked state.
+         */
+        private final char symbol;
+
+        Style(final String styleName, final char symbol) {
+            this.styleName = styleName;
+            this.symbol = symbol;
+        }
+
+        /**
+         * Get the checked-state symbol.
+         *
+         * @return the symbol to render between brackets
+         */
+        public char getSymbol() {
+            return symbol;
+        }
+
+        /**
+         * Resolve a style name.
+         *
+         * @param styleName the style name
+         * @return the matching style, or CHECK for unknown values
+         */
+        public static Style fromStyleName(final String styleName) {
+            if (styleName == null) {
+                return CHECK;
+            }
+            String key = styleName.toLowerCase(Locale.ROOT);
+            if (key.equals("default")) {
+                return CHECK;
+            }
+            for (Style style: values()) {
+                if (style.styleName.equals(key)) {
+                    return style;
+                }
+            }
+            return CHECK;
+        }
+
+        /**
+         * Get style names for the desktop styles dialog.
+         *
+         * @return supported checkbox style names
+         */
+        public static List<String> getStyleNames() {
+            return Collections.unmodifiableList(Arrays.asList(
+                "default", CHECK.styleName, UPPER_X.styleName,
+                LOWER_X.styleName, TIMES.styleName));
+        }
+    }
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -58,6 +160,11 @@ public class TCheckBox extends TWidget {
      * If true, use the window's background color.
      */
     private boolean matchWindowBackground = true;
+
+    /**
+     * The style used for the checked-state symbol.
+     */
+    private Style style = Style.CHECK;
 
     /**
      * Extra left/right padding applied to the control.  The value is
@@ -127,6 +234,7 @@ public class TCheckBox extends TWidget {
         mnemonic = new MnemonicString(label);
         this.checked = checked;
         this.action = action;
+        setStyle((String) null);
 
         setCursorVisible(true);
         setCursorX(padding + 1);
@@ -221,20 +329,11 @@ public class TCheckBox extends TWidget {
 
         }
 
-        if (padding > 0) {
-            // Paint the left and right padding cells with the checkbox
-            // background color so they blend with the control.
+        for (int i = 0; i < getWidth(); i++) {
             if (matchWindowBackground) {
-                for (int i = 0; i < padding; i++) {
-                    putForegroundCharXY(i, 0, ' ', checkboxColor);
-                    putForegroundCharXY(getWidth() - 1 - i, 0, ' ',
-                        checkboxColor);
-                }
+                putForegroundCharXY(i, 0, ' ', checkboxColor);
             } else {
-                for (int i = 0; i < padding; i++) {
-                    putCharXY(i, 0, ' ', checkboxColor);
-                    putCharXY(getWidth() - 1 - i, 0, ' ', checkboxColor);
-                }
+                putCharXY(i, 0, ' ', checkboxColor);
             }
         }
 
@@ -245,16 +344,10 @@ public class TCheckBox extends TWidget {
         }
         if (checked) {
             if (matchWindowBackground) {
-                putForegroundCharXY(padding + 1, 0, GraphicsChars.CHECK,
+                putForegroundCharXY(padding + 1, 0, style.getSymbol(),
                     checkboxColor);
             } else {
-                putCharXY(padding + 1, 0, GraphicsChars.CHECK, checkboxColor);
-            }
-        } else {
-            if (matchWindowBackground) {
-                putForegroundCharXY(padding + 1, 0, ' ', checkboxColor);
-            } else {
-                putCharXY(padding + 1, 0, ' ', checkboxColor);
+                putCharXY(padding + 1, 0, style.getSymbol(), checkboxColor);
             }
         }
         if (matchWindowBackground) {
@@ -311,6 +404,15 @@ public class TCheckBox extends TWidget {
     }
 
     /**
+     * Get the supported checkbox style names.
+     *
+     * @return supported checkbox style names
+     */
+    public static List<String> getStyleNames() {
+        return Style.getStyleNames();
+    }
+
+    /**
      * Get the window background option.
      *
      * @return true if the window's background color will be used
@@ -327,6 +429,30 @@ public class TCheckBox extends TWidget {
      */
     public void setMatchWindowBackground(final boolean matchWindowBackground) {
         this.matchWindowBackground = matchWindowBackground;
+    }
+
+    /**
+     * Set the checkbox style.
+     *
+     * @param style the checkbox style
+     */
+    public void setStyle(final Style style) {
+        this.style = style;
+    }
+
+    /**
+     * Set the checkbox style.
+     *
+     * @param checkboxStyle the checkbox style string, or null to use the
+     * value from {@value #PROPERTY_KEY}
+     */
+    public void setStyle(final String checkboxStyle) {
+        String styleString = System.getProperty(PROPERTY_KEY,
+            DEFAULT_STYLE_NAME);
+        if (checkboxStyle != null) {
+            styleString = checkboxStyle;
+        }
+        style = Style.fromStyleName(styleString);
     }
 
     /**

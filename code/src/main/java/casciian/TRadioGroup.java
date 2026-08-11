@@ -259,8 +259,20 @@ public class TRadioGroup extends TWidget {
             getParent().getLayoutManager().resetSize(this);
         }
 
+        syncRadioButtonWidths();
+
         // Default to the first item on the list.
         activate(getChildren().get(0));
+    }
+
+    /**
+     * Resize all radio-button rows to match the group's content width.
+     */
+    private void syncRadioButtonWidths() {
+        int buttonWidth = Math.max(0, getWidth() - 2);
+        for (TWidget widget: getChildren()) {
+            ((TRadioButton) widget).setDisplayWidth(buttonWidth);
+        }
     }
 
     /**
