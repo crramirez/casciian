@@ -132,8 +132,8 @@ public class TCheckBox extends TWidget {
          */
         public static List<String> getStyleNames() {
             return Collections.unmodifiableList(Arrays.asList(
-                CHECK.styleName, UPPER_X.styleName, LOWER_X.styleName,
-                TIMES.styleName));
+                "default", CHECK.styleName, UPPER_X.styleName,
+                LOWER_X.styleName, TIMES.styleName));
         }
     }
 

@@ -129,7 +129,7 @@ public class TRadioButton extends TWidget {
          */
         public static List<String> getStyleNames() {
             return Collections.unmodifiableList(Arrays.asList(
-                BULLET.styleName, SMALL_BULLET.styleName,
+                "default", BULLET.styleName, SMALL_BULLET.styleName,
                 ASTERISK.styleName));
         }
     }
