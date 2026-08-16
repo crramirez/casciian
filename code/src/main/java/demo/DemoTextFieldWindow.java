@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package demo;
 
@@ -134,32 +139,22 @@ public class DemoTextFieldWindow extends TWindow {
             }
         );
 
-        dayOfWeekLabel = addField(35, row, StringUtils.width("Wednesday-"), true);
+        final int dayOfWeekWidth = getDayOfWeekWidth();
+        dayOfWeekLabel = addField(35, row, dayOfWeekWidth, true);
         dayOfWeekLabel.setEnabled(false);
-        dayOfWeekLabel.setText(String.format(LABEL_FORMAT,
-                dayOfWeekCalendar.getDisplayName(Calendar.DAY_OF_WEEK,
-                    Calendar.LONG, Locale.getDefault())));
-        dayOfWeekLabel.setWidth(StringUtils.width(dayOfWeekLabel.getText()));
+        dayOfWeekLabel.setText(getDayOfWeekText());
 
-        addSpinner(35 + dayOfWeekLabel.getWidth(), row,
+        addSpinner(35 + dayOfWeekWidth, row,
             new TAction() {
                 public void DO() {
                     dayOfWeekCalendar.add(Calendar.DAY_OF_WEEK, 1);
-                    dayOfWeekLabel.setText(String.format(LABEL_FORMAT,
-                            dayOfWeekCalendar.getDisplayName(
-                            Calendar.DAY_OF_WEEK, Calendar.LONG,
-                            Locale.getDefault())));
-                    dayOfWeekLabel.setWidth(StringUtils.width(dayOfWeekLabel.getText()));
+                    dayOfWeekLabel.setText(getDayOfWeekText());
                 }
             },
             new TAction() {
                 public void DO() {
                     dayOfWeekCalendar.add(Calendar.DAY_OF_WEEK, -1);
-                    dayOfWeekLabel.setText(String.format(LABEL_FORMAT,
-                            dayOfWeekCalendar.getDisplayName(
-                            Calendar.DAY_OF_WEEK, Calendar.LONG,
-                            Locale.getDefault())));
-                    dayOfWeekLabel.setWidth(StringUtils.width(dayOfWeekLabel.getText()));
+                    dayOfWeekLabel.setText(getDayOfWeekText());
                 }
             }
         );
@@ -189,6 +184,24 @@ public class DemoTextFieldWindow extends TWindow {
             i18n.getString("statusBarOpen"));
         statusBar.addShortcutKeypress(kbF10, cmExit,
             i18n.getString("statusBarExit"));
+    }
+
+    private String getDayOfWeekText() {
+        return String.format(LABEL_FORMAT,
+            dayOfWeekCalendar.getDisplayName(Calendar.DAY_OF_WEEK,
+                Calendar.LONG, Locale.getDefault()));
+    }
+
+    private int getDayOfWeekWidth() {
+        int width = 0;
+        GregorianCalendar calendar = new GregorianCalendar();
+        for (int day = Calendar.SUNDAY; day <= Calendar.SATURDAY; day++) {
+            calendar.set(Calendar.DAY_OF_WEEK, day);
+            width = Math.max(width, StringUtils.width(String.format(LABEL_FORMAT,
+                    calendar.getDisplayName(Calendar.DAY_OF_WEEK,
+                        Calendar.LONG, Locale.getDefault()))));
+        }
+        return width;
     }
 
 }

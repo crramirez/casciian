@@ -3437,7 +3437,8 @@ public class ColorTheme {
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_CYAN, CYAN));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(BRIGHT_BLUE, CYAN));
 
-        // Fields / inputs: MC input is lightgray on blue.
+        // Fields / inputs: inactive fields are black on white, active input is
+        // black on cyan.
         colors.put(TFIELD_INACTIVE, attr(BLACK, WHITE));
         colors.put(TFIELD_INACTIVE_MODAL, attr(BRIGHT_BLACK, CYAN));
         colors.put(TFIELD_ACTIVE, attr(BLACK, CYAN));
