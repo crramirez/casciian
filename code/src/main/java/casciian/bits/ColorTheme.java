@@ -1886,19 +1886,19 @@ public class ColorTheme {
             .build());
         colors.put(TRADIOGROUP_MNEMONIC, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
+            .backColor(BLUE)
             .build());
         colors.put(TRADIOGROUP_MNEMONIC_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
+            .backColor(WHITE)
             .build());
         colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
+            .backColor(BLUE)
             .build());
         colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
+            .backColor(WHITE)
             .build());
 
         // TMenu
