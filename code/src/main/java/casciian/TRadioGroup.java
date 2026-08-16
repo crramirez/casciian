@@ -155,27 +155,17 @@ public class TRadioGroup extends TWidget {
         } else {
             hLineXY(1, 0, StringUtils.width(label) + 2, ' ', radioGroupColor);
         }
-        if (borderStyle.equals(BorderStyle.NONE)) {
-            if (matchWindowBackground) {
-                putForegroundStringXY(1, 0, label, radioGroupColor);
-            } else {
-                putStringXY(1, 0, label, radioGroupColor);
-            }
+        if (matchWindowBackground) {
+            putForegroundStringXY(2, 0, label, radioGroupColor);
         } else {
-            if (matchWindowBackground) {
-                putForegroundStringXY(2, 0, label, radioGroupColor);
-            } else {
-                putStringXY(2, 0, label, radioGroupColor);
-            }
+            putStringXY(2, 0, label, radioGroupColor);
         }
-        int mnemonicOffset = borderStyle.equals(BorderStyle.NONE) ? 1 : 2;
         if (mnemonic.getScreenShortcutIdx() >= 0) {
             if (matchWindowBackground) {
-                putForegroundCharXY(mnemonicOffset
-                    + mnemonic.getScreenShortcutIdx(), 0,
+                putForegroundCharXY(2 + mnemonic.getScreenShortcutIdx(), 0,
                     mnemonic.getShortcut(), mnemonicColor);
             } else {
-                putCharXY(mnemonicOffset + mnemonic.getScreenShortcutIdx(), 0,
+                putCharXY(2 + mnemonic.getScreenShortcutIdx(), 0,
                     mnemonic.getShortcut(), mnemonicColor);
             }
         }
