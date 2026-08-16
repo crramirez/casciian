@@ -25,9 +25,9 @@ import casciian.TAction;
 import casciian.TApplication;
 import casciian.TCalendar;
 import casciian.TField;
-import casciian.TLabel;
 import casciian.TMessageBox;
 import casciian.TWindow;
+import casciian.bits.StringUtils;
 import casciian.layout.StretchLayoutManager;
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
@@ -54,7 +54,7 @@ public class DemoTextFieldWindow extends TWindow {
     /**
      * Translated strings.
      */
-    private ResourceBundle i18n = null;
+    private final ResourceBundle i18n;
 
     /**
      * Calendar.  Has to be at class scope so that it can be accessed by the
@@ -65,7 +65,7 @@ public class DemoTextFieldWindow extends TWindow {
     /**
      * Day of week label is updated with TSpinner clicks.
      */
-    TLabel<?> dayOfWeekLabel;
+    TField dayOfWeekLabel;
 
     /**
      * Day of week to demonstrate TSpinner.  Has to be at class scope so that
@@ -134,28 +134,32 @@ public class DemoTextFieldWindow extends TWindow {
             }
         );
 
-        dayOfWeekLabel = addLabel("Wednesday-", 35, row, "tmenu", false);
-        dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
+        dayOfWeekLabel = addField(35, row, StringUtils.width("Wednesday-"), true);
+        dayOfWeekLabel.setEnabled(false);
+        dayOfWeekLabel.setText(String.format(LABEL_FORMAT,
                 dayOfWeekCalendar.getDisplayName(Calendar.DAY_OF_WEEK,
                     Calendar.LONG, Locale.getDefault())));
+        dayOfWeekLabel.setWidth(StringUtils.width(dayOfWeekLabel.getText()));
 
         addSpinner(35 + dayOfWeekLabel.getWidth(), row,
             new TAction() {
                 public void DO() {
                     dayOfWeekCalendar.add(Calendar.DAY_OF_WEEK, 1);
-                    dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
+                    dayOfWeekLabel.setText(String.format(LABEL_FORMAT,
                             dayOfWeekCalendar.getDisplayName(
                             Calendar.DAY_OF_WEEK, Calendar.LONG,
                             Locale.getDefault())));
+                    dayOfWeekLabel.setWidth(StringUtils.width(dayOfWeekLabel.getText()));
                 }
             },
             new TAction() {
                 public void DO() {
                     dayOfWeekCalendar.add(Calendar.DAY_OF_WEEK, -1);
-                    dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
+                    dayOfWeekLabel.setText(String.format(LABEL_FORMAT,
                             dayOfWeekCalendar.getDisplayName(
                             Calendar.DAY_OF_WEEK, Calendar.LONG,
                             Locale.getDefault())));
+                    dayOfWeekLabel.setWidth(StringUtils.width(dayOfWeekLabel.getText()));
                 }
             }
         );

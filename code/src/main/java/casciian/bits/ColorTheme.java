@@ -1742,15 +1742,15 @@ public class ColorTheme {
             .build());
         colors.put(TCOMBOBOX_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
-            .backColor(WHITE)
+            .backColor(GREEN)
             .build());
         colors.put(TCOMBOBOX_ACTIVE, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(CYAN)
             .build());
         colors.put(TCOMBOBOX_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
+            .foreColor(BRIGHT_WHITE)
+            .backColor(GREEN)
             .build());
 
         // TSpinner
@@ -1760,15 +1760,15 @@ public class ColorTheme {
             .build());
         colors.put(TSPINNER_INACTIVE_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
-            .backColor(WHITE)
+            .backColor(GREEN)
             .build());
         colors.put(TSPINNER_ACTIVE, CellAttributes.builder()
             .foreColor(BLUE)
             .backColor(CYAN)
             .build());
         colors.put(TSPINNER_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
+            .foreColor(BRIGHT_WHITE)
+            .backColor(GREEN)
             .build());
 
         // TCalendar
@@ -3113,8 +3113,8 @@ public class ColorTheme {
     /**
      * Build a CellAttributes with named fore/back colors.
      */
-    private static CellAttributes attr(final Color fg, final Color bg,
-                                       final boolean bold) {
+    @SuppressWarnings("SameParameterValue")
+    private static CellAttributes attr(final Color fg, final Color bg, final boolean bold) {
         return CellAttributes.builder()
             .foreColor(fg)
             .backColor(bg)
@@ -3135,8 +3135,8 @@ public class ColorTheme {
     /**
      * Build a CellAttributes with RGB fore/back colors (24-bit).
      */
-    private static CellAttributes rgb(final int fgRGB, final int bgRGB,
-                                      final boolean bold) {
+    @SuppressWarnings("SameParameterValue")
+    private static CellAttributes rgb(final int fgRGB, final int bgRGB, final boolean bold) {
         return CellAttributes.builder()
             .foreColorRGB(fgRGB)
             .backColorRGB(bgRGB)
@@ -3151,24 +3151,6 @@ public class ColorTheme {
         return CellAttributes.builder()
             .foreColorRGB(fgRGB)
             .backColorRGB(bgRGB)
-            .build();
-    }
-
-    /**
-     * Build a CellAttributes with 256-color palette fore/back colors mapped
-     * from 24-bit RGB values.  When {@code casciian.ECMA48.rgbColor} is
-     * enabled, emits full 24-bit RGB instead so themes stay faithful when
-     * the user has forced RGB output.
-     */
-    private static CellAttributes rgbToPalette(final int fgRGB, final int bgRGB,
-                                      final boolean bold) {
-        if (SystemProperties.isRgbColor()) {
-            return rgb(fgRGB, bgRGB, bold);
-        }
-        return CellAttributes.builder()
-            .foreColorPalette(Palette256.fromRgb(fgRGB))
-            .backColorPalette(Palette256.fromRgb(bgRGB))
-            .bold(bold)
             .build();
     }
 
@@ -3456,7 +3438,7 @@ public class ColorTheme {
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(BRIGHT_BLUE, CYAN));
 
         // Fields / inputs: MC input is lightgray on blue.
-        colors.put(TFIELD_INACTIVE, attr(WHITE, BLUE));
+        colors.put(TFIELD_INACTIVE, attr(BLACK, WHITE));
         colors.put(TFIELD_INACTIVE_MODAL, attr(BRIGHT_BLACK, CYAN));
         colors.put(TFIELD_ACTIVE, attr(BLACK, CYAN));
         colors.put(TFIELD_ACTIVE_MODAL, attr(BLACK, CYAN));
@@ -3492,7 +3474,7 @@ public class ColorTheme {
         colors.put(TCOMBOBOX_INACTIVE, attr(WHITE, BLUE));
         colors.put(TCOMBOBOX_INACTIVE_MODAL, attr(WHITE, BLUE));
         colors.put(TCOMBOBOX_ACTIVE, attr(BLACK, CYAN));
-        colors.put(TCOMBOBOX_ACTIVE_MODAL, attr(BLACK, CYAN));
+        colors.put(TCOMBOBOX_ACTIVE_MODAL, attr(WHITE, BLUE));
 
         // Lists / tree / editor / table: selected = MC "marked" = yellow on
         // blue; focus selected = black on cyan (MC "selected").
