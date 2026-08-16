@@ -133,7 +133,7 @@ class TSelectionControlStyleTest {
     }
 
     @Test
-    void radioGroupDrawsMnemonicUsingRadioButtonMnemonicColorDefaults() {
+    void radioGroupDrawsMnemonicUsingGroupMnemonicColor() {
         TWindow window = makeWindow();
         TCheckBox checkBox = new TCheckBox(window, 1, 1, "Other", false);
         TRadioGroup group = new TRadioGroup(window, 1, 3, 20, "&Choices");
@@ -141,24 +141,22 @@ class TSelectionControlStyleTest {
 
         window.drawChildren();
 
-        assertEquals(window.getTheme().getColor("tradiobutton.mnemonic"),
-            window.getTheme().getColor("tradiogroup.mnemonic"));
         assertEquals(window.getTheme().getColor("tradiogroup.mnemonic"),
-            window.getScreen().getAttrXY(group.getAbsoluteX() + 2,
+            window.getScreen().getAttrXY(group.getAbsoluteX() + 1,
                 group.getAbsoluteY()));
         assertEquals('C',
-            window.getScreen().getCharXY(group.getAbsoluteX() + 2,
+            window.getScreen().getCharXY(group.getAbsoluteX() + 1,
                 group.getAbsoluteY()).getChar());
     }
 
     @Test
-    void radioGroupHighlightedMnemonicDefaultsMirrorTRadioButtonHighlighted() {
+    void radioGroupHighlightedMnemonicDefaultsMirrorNonHighlighted() {
         TWindow window = makeWindow();
         new TRadioGroup(window, 1, 1, 20, "&Choices");
 
-        assertEquals(window.getTheme().getColor("tradiobutton.mnemonic.highlighted"),
+        assertEquals(window.getTheme().getColor("tradiogroup.mnemonic"),
             window.getTheme().getColor("tradiogroup.mnemonic.highlighted"));
-        assertEquals(window.getTheme().getColor("tradiobutton.mnemonic.highlighted"),
+        assertEquals(window.getTheme().getColor("tradiogroup.mnemonic.modal"),
             window.getTheme().getColor("tradiogroup.mnemonic.highlighted.modal"));
     }
 

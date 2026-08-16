@@ -17,6 +17,7 @@ package casciian;
 import java.util.List;
 
 import casciian.bits.CellAttributes;
+import casciian.bits.ColorTheme;
 import casciian.bits.GraphicsChars;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
@@ -35,27 +36,22 @@ public class TComboBox extends TWidget {
     /**
      * The list of items in the drop-down.
      */
-    private TList list;
+    private final TList list;
 
     /**
      * The edit field containing the value to return.
      */
-    private TField field;
-
-    /**
-     * The action to perform when the user selects an item (clicks or enter).
-     */
-    private TAction updateAction = null;
+    private final TField field;
 
     /**
      * If true, the field cannot be updated to a value not on the list.
      */
-    private boolean limitToListValue;
+    private final boolean limitToListValue;
 
     /**
      * The maximum height of the values drop-down when it is visible.
      */
-    private int maxValuesHeight = 3;
+    private final int maxValuesHeight;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -91,7 +87,6 @@ public class TComboBox extends TWidget {
             throw new IllegalArgumentException("values cannot be null");
         }
 
-        this.updateAction = updateAction;
         this.maxValuesHeight = maxValuesHeight;
         this.limitToListValue = limitToListValue;
 
@@ -101,7 +96,7 @@ public class TComboBox extends TWidget {
         }
 
         list = addList(values, 0, 1, width,
-            Math.max(3, Math.min(values.size() + 1, maxValuesHeight)),
+            getListHeight(values.size()),
             new TAction() {
                 public void DO() {
                     field.setText(list.getSelected());
@@ -165,13 +160,9 @@ public class TComboBox extends TWidget {
      * @return true if the mouse is currently on the down arrow
      */
     private boolean mouseOnArrow(final TMouseEvent mouse) {
-        if ((mouse.getY() == 0)
+        return (mouse.getY() == 0)
             && (mouse.getX() >= getWidth() - 3)
-            && (mouse.getX() <= getWidth() - 1)
-        ) {
-            return true;
-        }
-        return false;
+            && (mouse.getX() <= getWidth() - 1);
     }
 
     /**
@@ -201,21 +192,21 @@ public class TComboBox extends TWidget {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        if (keypress.equals(kbEsc)) {
+        if (keypress.matchesKey(kbEsc)) {
             if (list.isActive()) {
                 hideList();
                 return;
             }
         }
 
-        if (keypress.equals(kbAltDown)) {
+        if (keypress.matchesKey(kbAltDown)) {
             showList();
             return;
         }
 
-        if (keypress.equals(kbTab)
-            || (keypress.equals(kbShiftTab))
-            || (keypress.equals(kbBackTab))
+        if (keypress.matchesKey(kbTab)
+            || (keypress.matchesKey(kbShiftTab))
+            || (keypress.matchesKey(kbBackTab))
         ) {
             if (list.isActive()) {
                 hideList();
@@ -273,22 +264,38 @@ public class TComboBox extends TWidget {
         }
 
         if (isAbsoluteActive()) {
-            comboBoxColor = getWidgetColor("tcombobox.active");
+            comboBoxColor = getWidgetColor(ColorTheme.TCOMBOBOX_ACTIVE);
         } else {
-            comboBoxColor = getWidgetColor("tcombobox.inactive");
+            comboBoxColor = getWidgetColor(ColorTheme.TCOMBOBOX_INACTIVE);
         }
 
+        var borderColor = CellAttributes.builder()
+            .foreColor(getWidgetColor(ColorTheme.TWINDOW_BACKGROUND).getBackColor())
+            .backColor(comboBoxColor.getBackColor())
+            .build();
+
         putCharXY(getWidth() - 3, 0, GraphicsChars.DOWNARROWLEFT,
-            comboBoxColor);
+            borderColor);
         putCharXY(getWidth() - 2, 0, GraphicsChars.DOWNARROW,
             comboBoxColor);
         putCharXY(getWidth() - 1, 0, GraphicsChars.DOWNARROWRIGHT,
-            comboBoxColor);
+            borderColor);
     }
 
     // ------------------------------------------------------------------------
     // TComboBox --------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Calculate the drop-down list height for the given number of items.
+     *
+     * @param itemCount number of items in the drop-down list
+     * @return the drop-down list height
+     */
+    @SuppressWarnings("MathClampMigration")
+    private int getListHeight(final int itemCount) {
+        return Math.max(3, Math.min(itemCount + 1, maxValuesHeight));
+    }
 
     /**
      * Hide the drop-down list.
@@ -297,7 +304,7 @@ public class TComboBox extends TWidget {
         list.setEnabled(false);
         list.setVisible(false);
         super.setHeight(1);
-        if (limitToListValue == false) {
+        if (!limitToListValue) {
             activate(field);
         }
     }
@@ -341,13 +348,13 @@ public class TComboBox extends TWidget {
         field.setText(text);
         for (int i = 0; i <= list.getMaxSelectedIndex(); i++) {
             String item = list.getListItem(i);
-            if (caseSensitive == true) {
+            if (caseSensitive) {
                 if (item.equals(text)) {
                     list.setSelectedIndex(i);
                     return;
                 }
             } else {
-                if (item.toLowerCase().equals(text.toLowerCase())) {
+                if (item.equalsIgnoreCase(text)) {
                     list.setSelectedIndex(i);
                     return;
                 }
@@ -383,8 +390,7 @@ public class TComboBox extends TWidget {
      */
     public final void setList(final List<String> list) {
         this.list.setList(list);
-        this.list.setHeight(Math.max(3, Math.min(list.size() + 1,
-                    maxValuesHeight)));
+        this.list.setHeight(getListHeight(list.size()));
         field.setText("");
     }
 }
