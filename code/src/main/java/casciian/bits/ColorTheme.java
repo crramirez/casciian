@@ -199,18 +199,6 @@ public class ColorTheme {
     public static final String TBUTTON_DEFAULT_MNEMONIC_MODAL = "tbutton.default.mnemonic.modal";
 
     /**
-     * Color key for a window's default TButton mnemonic character when
-     * highlighted.
-     */
-    public static final String TBUTTON_DEFAULT_MNEMONIC_HIGHLIGHTED = "tbutton.default.mnemonic.highlighted";
-
-    /**
-     * Color key for a window's default TButton mnemonic character when
-     * highlighted in modal mode.
-     */
-    public static final String TBUTTON_DEFAULT_MNEMONIC_HIGHLIGHTED_MODAL = "tbutton.default.mnemonic.highlighted.modal";
-
-    /**
      * Color key for TLabel.
      */
     public static final String TLABEL = "tlabel";
@@ -1468,10 +1456,6 @@ public class ColorTheme {
         copyColor(TBUTTON_ACTIVE_MODAL, TBUTTON_DEFAULT_MODAL);
         copyColor(TBUTTON_MNEMONIC, TBUTTON_DEFAULT_MNEMONIC);
         copyColor(TBUTTON_MNEMONIC_MODAL, TBUTTON_DEFAULT_MNEMONIC_MODAL);
-        copyColor(TBUTTON_MNEMONIC_HIGHLIGHTED,
-            TBUTTON_DEFAULT_MNEMONIC_HIGHLIGHTED);
-        copyColor(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL,
-            TBUTTON_DEFAULT_MNEMONIC_HIGHLIGHTED_MODAL);
     }
 
     /**

@@ -163,10 +163,6 @@ class ColorThemeTest {
             {ColorTheme.TBUTTON_MNEMONIC, ColorTheme.TBUTTON_DEFAULT_MNEMONIC},
             {ColorTheme.TBUTTON_MNEMONIC_MODAL,
                 ColorTheme.TBUTTON_DEFAULT_MNEMONIC_MODAL},
-            {ColorTheme.TBUTTON_MNEMONIC_HIGHLIGHTED,
-                ColorTheme.TBUTTON_DEFAULT_MNEMONIC_HIGHLIGHTED},
-            {ColorTheme.TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL,
-                ColorTheme.TBUTTON_DEFAULT_MNEMONIC_HIGHLIGHTED_MODAL},
         };
 
         for (Map.Entry<String, Consumer<ColorTheme>> entry : themes.entrySet()) {
