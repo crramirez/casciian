@@ -502,20 +502,20 @@ public abstract class TWidget implements Comparable<TWidget> {
                     return;
                 }
             }
-
-            /**
-             * Hook for subclasses to handle a keypress after mnemonic processing but
-             * before the normal child dispatch path.
-             *
-             * @param keypress keystroke event
-             * @return true if the keypress was consumed
-             */
-            protected boolean handleKeypressBeforeActiveChild(
-                final TKeypressEvent keypress) {
-
-                return false;
-            }
         }
+    }
+
+    /**
+     * Hook for subclasses to handle a keypress after mnemonic processing but
+     * before the normal child dispatch path.
+     *
+     * @param keypress keystroke event
+     * @return true if the keypress was consumed
+     */
+    protected boolean handleKeypressBeforeActiveChild(
+        final TKeypressEvent keypress) {
+
+        return false;
     }
 
     /**
