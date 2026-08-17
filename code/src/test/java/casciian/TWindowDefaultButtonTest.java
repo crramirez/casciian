@@ -40,7 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests window-level default button behavior.
+ * Tests window-level default button behavior and related widget interactions
+ * (ComboBox Down-arrow, CheckBox Enter/Space, and other widgets that consume
+ * Enter when a default button is present).
  */
 class TWindowDefaultButtonTest {
 
