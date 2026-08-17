@@ -25,7 +25,7 @@ import static casciian.TKeypress.*;
 
 /**
  * TComboBox implements a combobox containing a drop-down list and edit
- * field.  Alt-Down can be used to show the drop-down.
+ * field.  Down or Alt-Down can be used to show the drop-down.
  */
 public class TComboBox extends TWidget {
 
@@ -199,7 +199,9 @@ public class TComboBox extends TWidget {
             }
         }
 
-        if (keypress.matchesKey(kbAltDown)) {
+        if (keypress.matchesKey(kbAltDown)
+            || (keypress.matchesKey(kbDown) && !list.isActive())
+        ) {
             showList();
             return;
         }

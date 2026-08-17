@@ -287,7 +287,7 @@ public class TCheckBox extends TWidget {
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
         if (keypress.equals(kbSpace)
-            || keypress.equals(kbEnter)
+            || (keypress.equals(kbEnter) && !hasWindowDefaultButton())
         ) {
             checked = !checked;
             dispatch();
@@ -305,8 +305,10 @@ public class TCheckBox extends TWidget {
     }
 
     /**
-     * A checkbox toggles on Enter (like Space), so it must keep the keypress
-     * instead of activating the window default button.
+     * A checkbox toggles on Enter (like Space) only when the window has no
+     * default button.  When a default button is set, Enter activates that
+     * button and the checkbox is toggled with Space instead, so the keypress
+     * must not be kept here.
      *
      * @param keypress keystroke event
      * @return true if this widget should handle the keypress first
@@ -315,7 +317,17 @@ public class TCheckBox extends TWidget {
     protected boolean receivesKeypressBeforeWindowDefaultButton(
         final TKeypressEvent keypress) {
 
-        return keypress.equals(kbEnter);
+        return keypress.equals(kbEnter) && !hasWindowDefaultButton();
+    }
+
+    /**
+     * Returns true if this checkbox's window has a default button.
+     *
+     * @return true if a window default button is set
+     */
+    private boolean hasWindowDefaultButton() {
+        TWindow window = getWindow();
+        return (window != null) && (window.getDefaultButton() != null);
     }
 
     // ------------------------------------------------------------------------

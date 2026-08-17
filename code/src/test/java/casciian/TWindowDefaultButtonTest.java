@@ -28,6 +28,7 @@ import static casciian.TKeypress.kbAltN;
 import static casciian.TKeypress.kbAltO;
 import static casciian.TKeypress.kbAltY;
 import static casciian.TKeypress.kbC;
+import static casciian.TKeypress.kbDown;
 import static casciian.TKeypress.kbEnter;
 import static casciian.TKeypress.kbN;
 import static casciian.TKeypress.kbO;
@@ -342,7 +343,7 @@ class TWindowDefaultButtonTest {
     }
 
     @Test
-    void checkBoxTogglesOnEnterInsteadOfActivatingDefaultButton() {
+    void checkBoxDoesNotToggleOnEnterWhenDefaultButtonIsSet() {
         TWindow window = makeWindow();
         TCheckBox checkBox = new TCheckBox(window, 1, 1, "Check", false);
         int[] activations = new int[1];
@@ -353,8 +354,25 @@ class TWindowDefaultButtonTest {
         assertFalse(checkBox.isChecked());
         press(window, kbEnter);
 
+        // The default button is activated and the checkbox is unchanged.
+        assertFalse(checkBox.isChecked());
+        assertEquals(1, activations[0]);
+
+        // Space still toggles the checkbox.
+        press(window, kbSpace);
         assertTrue(checkBox.isChecked());
-        assertEquals(0, activations[0]);
+    }
+
+    @Test
+    void checkBoxTogglesOnEnterWhenNoDefaultButton() {
+        TWindow window = makeWindow();
+        TCheckBox checkBox = new TCheckBox(window, 1, 1, "Check", false);
+        window.activate(checkBox);
+
+        assertFalse(checkBox.isChecked());
+        press(window, kbEnter);
+
+        assertTrue(checkBox.isChecked());
     }
 
     @Test
@@ -378,6 +396,19 @@ class TWindowDefaultButtonTest {
 
         assertEquals(1, treeEnters[0]);
         assertEquals(0, activations[0]);
+    }
+
+    @Test
+    void comboBoxDownArrowOpensDropDownList() {
+        TWindow window = makeWindow();
+        TComboBox comboBox = new TComboBox(window, 1, 1, 15,
+            java.util.Arrays.asList("one", "two", "three"), 0, 5, null);
+        window.activate(comboBox);
+
+        // The list starts hidden; Down opens it.
+        press(window, kbDown);
+        assertTrue(comboBox.getChildren().stream()
+            .anyMatch(w -> (w instanceof TList) && w.isActive()));
     }
 
     private TWindow makeWindow() {
