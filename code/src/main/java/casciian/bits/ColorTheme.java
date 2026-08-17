@@ -178,6 +178,39 @@ public class ColorTheme {
     public static final String TBUTTON_PULSE_MODAL = "tbutton.pulse.modal";
 
     /**
+     * Color key for a window's default TButton.
+     */
+    public static final String TBUTTON_DEFAULT = "tbutton.default";
+
+    /**
+     * Color key for a window's default TButton in modal mode.
+     */
+    public static final String TBUTTON_DEFAULT_MODAL = "tbutton.default.modal";
+
+    /**
+     * Color key for a window's default TButton mnemonic character.
+     */
+    public static final String TBUTTON_DEFAULT_MNEMONIC = "tbutton.default.mnemonic";
+
+    /**
+     * Color key for a window's default TButton mnemonic character in modal
+     * mode.
+     */
+    public static final String TBUTTON_DEFAULT_MNEMONIC_MODAL = "tbutton.default.mnemonic.modal";
+
+    /**
+     * Color key for a window's default TButton mnemonic character when
+     * highlighted.
+     */
+    public static final String TBUTTON_DEFAULT_MNEMONIC_HIGHLIGHTED = "tbutton.default.mnemonic.highlighted";
+
+    /**
+     * Color key for a window's default TButton mnemonic character when
+     * highlighted in modal mode.
+     */
+    public static final String TBUTTON_DEFAULT_MNEMONIC_HIGHLIGHTED_MODAL = "tbutton.default.mnemonic.highlighted.modal";
+
+    /**
      * Color key for TLabel.
      */
     public static final String TLABEL = "tlabel";
@@ -1426,6 +1459,35 @@ public class ColorTheme {
     }
 
     /**
+     * Populate the window default-button color keys by copying the active
+     * TButton color keys.  This keeps the default button visually identical
+     * to a normal active button until a theme overrides these keys.
+     */
+    private void applyDefaultButtonColors() {
+        copyColor(TBUTTON_ACTIVE, TBUTTON_DEFAULT);
+        copyColor(TBUTTON_ACTIVE_MODAL, TBUTTON_DEFAULT_MODAL);
+        copyColor(TBUTTON_MNEMONIC, TBUTTON_DEFAULT_MNEMONIC);
+        copyColor(TBUTTON_MNEMONIC_MODAL, TBUTTON_DEFAULT_MNEMONIC_MODAL);
+        copyColor(TBUTTON_MNEMONIC_HIGHLIGHTED,
+            TBUTTON_DEFAULT_MNEMONIC_HIGHLIGHTED);
+        copyColor(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL,
+            TBUTTON_DEFAULT_MNEMONIC_HIGHLIGHTED_MODAL);
+    }
+
+    /**
+     * Copy the color stored under one key into another key.
+     *
+     * @param from the source color key
+     * @param to the destination color key
+     */
+    private void copyColor(final String from, final String to) {
+        CellAttributes source = colors.get(from);
+        if (source != null) {
+            colors.put(to, new CellAttributes(source));
+        }
+    }
+
+    /**
      * Sets to defaults that resemble the Borland IDE colors.
      */
     public void setDefaultTheme() {
@@ -2194,6 +2256,8 @@ public class ColorTheme {
             .foreColor(BRIGHT_YELLOW)
             .backColor(CYAN)
             .build());
+
+        applyDefaultButtonColors();
     }
 
     /**
@@ -2305,6 +2369,8 @@ public class ColorTheme {
         color.setForeColor(BRIGHT_MAGENTA);
         color.setBackColor(BLACK);
         colors.put(TCHECKBOX_ACTIVE, color);
+
+        applyDefaultButtonColors();
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -3104,6 +3170,8 @@ public class ColorTheme {
         color.setBackColor(CYAN);
         colors.put(THELPWINDOW_LINK_ACTIVE, color);
 
+
+        applyDefaultButtonColors();
     }
 
     // ------------------------------------------------------------------------
@@ -3375,6 +3443,8 @@ public class ColorTheme {
         colors.put(THELPWINDOW_LINK, rgbToPalette(fgYellow, bgWindow));
         colors.put(THELPWINDOW_LINK_ACTIVE, rgbToPalette(fgYellow, bgSelect));
         colors.put(THELPWINDOW_WINDOWMOVE, rgbToPalette(fgGreen, bgWindow));
+
+        applyDefaultButtonColors();
     }
 
     /**
@@ -3532,6 +3602,8 @@ public class ColorTheme {
         colors.put(THELPWINDOW_TEXT, attr(WHITE, BLUE));
         colors.put(THELPWINDOW_LINK, attr(BRIGHT_YELLOW, BLUE));
         colors.put(THELPWINDOW_LINK_ACTIVE, attr(BLACK, CYAN));
+
+        applyDefaultButtonColors();
     }
 
     /**
@@ -3752,6 +3824,8 @@ public class ColorTheme {
         colors.put(THELPWINDOW_LINK, rgbToPalette(accentBlue, bgBlack));
         colors.put(THELPWINDOW_LINK_ACTIVE, rgbToPalette(fgWhite, bgSelection));
         colors.put(THELPWINDOW_WINDOWMOVE, rgbToPalette(accentGreen, bgBlack));
+
+        applyDefaultButtonColors();
     }
 
     /**
@@ -3972,6 +4046,8 @@ public class ColorTheme {
         colors.put(THELPWINDOW_LINK, rgb(accent, bgPanel));
         colors.put(THELPWINDOW_LINK_ACTIVE, rgb(fgBrightText, bgListSel));
         colors.put(THELPWINDOW_WINDOWMOVE, rgb(accentHot, bgPanel));
+
+        applyDefaultButtonColors();
     }
 
     /**
@@ -4189,6 +4265,8 @@ public class ColorTheme {
         colors.put(THELPWINDOW_LINK, rgb(accent, bgPanel));
         colors.put(THELPWINDOW_LINK_ACTIVE, rgb(0xffffff, bgListSel));
         colors.put(THELPWINDOW_WINDOWMOVE, rgb(accentHot, bgPanel));
+
+        applyDefaultButtonColors();
     }
 
     /**
