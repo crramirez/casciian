@@ -141,7 +141,7 @@ public class DemoCheckBoxWindow extends TWindow {
         comboValues.add(i18n.getString("comboBoxString9"));
         comboValues.add(i18n.getString("comboBoxString10"));
 
-        comboBox = addComboBox(40, row, 12, comboValues, 2, 6,
+        comboBox = addComboBox(40, row, 14, comboValues, 2, 6,
             new TAction() {
                 public void DO() {
                     getApplication().messageBox(i18n.getString("messageBoxTitle"),

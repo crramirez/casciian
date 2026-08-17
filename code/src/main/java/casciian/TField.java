@@ -334,13 +334,26 @@ public class TField extends TTextBase {
 
     /**
      * Align visible cursor with document cursor.
+     *
+     * <p>For non-fixed fields the viewport scrolls so that exactly one blank
+     * cell is always visible to the right of the cursor, regardless of the
+     * active control padding.</p>
      */
     @Override
     protected void alignCursor() {
         if (fixed) {
             setLeftColumn(0);
         } else {
-            super.alignCursor();
+            // Keep cursor - leftColumn <= getWidth() - padding - 2 so that
+            // one blank cell remains visible to the right of the cursor no
+            // matter what the padding setting is.
+            int maxOffset = Math.max(0, getWidth() - padding - 2);
+            int desiredX = document.getCursor() - getLeftColumn();
+            if (desiredX < 0) {
+                setLeftColumn(document.getCursor());
+            } else if (desiredX > maxOffset) {
+                setLeftColumn(document.getCursor() - maxOffset);
+            }
         }
         syncFields();
         updateCursor();
@@ -790,7 +803,7 @@ public class TField extends TTextBase {
             updateCursor();
             return;
         }
-        setLeftColumn(document.getCursor() - (textAreaWidth() - 1));
+        setLeftColumn(document.getCursor() - Math.max(0, getWidth() - padding - 2));
         windowStart = getLeftColumn();
 
         updateCursor();
@@ -845,7 +858,7 @@ public class TField extends TTextBase {
                 document.setCursor(Math.max(0, textAreaWidth() - 1));
             }
         } else {
-            setLeftColumn(StringUtils.width(getText()) - textAreaWidth() + 1);
+            setLeftColumn(StringUtils.width(getText()) - Math.max(0, getWidth() - padding - 2));
         }
         syncFields();
         updateCursor();
