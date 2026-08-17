@@ -519,6 +519,19 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
+     * Hook for subclasses to keep handling a keypress themselves before the
+     * window-level default button can consume it.
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should receive the keypress first
+     */
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return false;
+    }
+
+    /**
      * Method that subclasses can override to handle mouse button presses.
      *
      * @param mouse mouse button event

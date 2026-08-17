@@ -119,6 +119,27 @@ class TWindowDefaultButtonTest {
     }
 
     @Test
+    void fieldEnterActionTakesPrecedenceOverDefaultButton() {
+        TWindow window = makeWindow();
+        int[] fieldEnters = new int[1];
+        TField field = new TField(window, 1, 1, 12, false, "",
+            new TAction() {
+                public void DO() {
+                    fieldEnters[0]++;
+                }
+            }, null);
+        int[] activations = new int[1];
+        TButton ok = button(window, "&OK", 1, 3, activations, 0);
+        window.setDefaultButton(ok);
+        window.activate(field);
+
+        press(window, kbEnter);
+
+        assertEquals(1, fieldEnters[0]);
+        assertEquals(0, activations[0]);
+    }
+
+    @Test
     void defaultButtonCanChangeOrBeRemovedDynamically() {
         TWindow window = makeWindow();
         int[] fieldEnters = new int[1];
@@ -131,7 +152,7 @@ class TWindowDefaultButtonTest {
         int[] activations = new int[2];
         TButton first = button(window, "&First", 1, 3, activations, 0);
         TButton second = button(window, "&Second", 12, 3, activations, 1);
-        window.activate(field);
+        window.activate(second);
 
         window.setDefaultButton(first);
         press(window, kbEnter);
@@ -144,6 +165,7 @@ class TWindowDefaultButtonTest {
         assertEquals(1, activations[1]);
 
         window.setDefaultButton(null);
+        window.activate(field);
         press(window, kbEnter);
         assertEquals(1, activations[0]);
         assertEquals(1, activations[1]);

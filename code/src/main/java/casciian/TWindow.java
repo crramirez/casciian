@@ -489,6 +489,12 @@ public class TWindow extends TWidget {
         if (!keypress.equals(kbEnter)) {
             return false;
         }
+        TWidget activeWidget = getActiveChild();
+        if ((activeWidget != null)
+            && activeWidget.receivesKeypressBeforeWindowDefaultButton(keypress)
+        ) {
+            return false;
+        }
         TButton button = defaultButton;
         if ((button == null)
             || (button.getWindow() != this)

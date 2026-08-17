@@ -488,6 +488,20 @@ public class TField extends TTextBase {
     }
 
     /**
+     * A field-level enter action takes precedence over a window default
+     * button.
+     *
+     * @param keypress keystroke event
+     * @return true if this field should handle the keypress first
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return keypress.equals(kbEnter) && (enterAction != null);
+    }
+
+    /**
      * Handle posted command events.
      *
      * @param command command event
