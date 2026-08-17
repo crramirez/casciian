@@ -155,6 +155,11 @@ public class TWindow extends TWidget {
      */
     protected TMouseEvent mouse;
 
+    /**
+     * The button activated by Enter when this window is focused.
+     */
+    private TButton defaultButton;
+
     // For moving the window.  resizing also uses moveWindowMouseX/Y
     private int moveWindowMouseX;
     private int moveWindowMouseY;
@@ -468,6 +473,32 @@ public class TWindow extends TWidget {
      */
     protected void onHide() {
         // Default: do nothing
+    }
+
+    /**
+     * Handle a keypress after mnemonic processing but before normal child
+     * dispatch.
+     *
+     * @param keypress keystroke event
+     * @return true if the keypress was consumed
+     */
+    @Override
+    protected boolean handleKeypressBeforeActiveChild(
+        final TKeypressEvent keypress) {
+
+        if (!keypress.equals(kbEnter)) {
+            return false;
+        }
+        TButton button = defaultButton;
+        if ((button == null)
+            || (button.getWindow() != this)
+            || !button.isEnabled()
+            || !button.isVisible()
+        ) {
+            return false;
+        }
+        button.dispatch();
+        return true;
     }
 
     /**
@@ -1445,6 +1476,32 @@ public class TWindow extends TWidget {
      */
     public boolean inMovements() {
         return inWindowResize || inWindowMove || inKeyboardResize;
+    }
+
+    /**
+     * Get the default button.
+     *
+     * @return the default button, or null if none is set
+     */
+    public final TButton getDefaultButton() {
+        return defaultButton;
+    }
+
+    /**
+     * Set the default button.
+     *
+     * @param button the button to activate on Enter, or null to clear it
+     */
+    public final void setDefaultButton(final TButton button) {
+        if (button == null) {
+            defaultButton = null;
+            return;
+        }
+        if (button.getWindow() != this) {
+            throw new IllegalArgumentException(
+                "default button must belong to this window");
+        }
+        defaultButton = button;
     }
 
     /**

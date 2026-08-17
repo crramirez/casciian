@@ -279,6 +279,9 @@ public abstract class TWidget implements Comparable<TWidget> {
      * called by TWindow.onClose().
      */
     public void close() {
+        if ((window != null) && containsWidget(window.getDefaultButton())) {
+            window.setDefaultButton(null);
+        }
         // Default: call close() on children.
         children.forEach(TWidget::close);
         children.clear();
@@ -480,6 +483,10 @@ public abstract class TWidget implements Comparable<TWidget> {
             }
         }
 
+        if (handleKeypressBeforeActiveChild(keypress)) {
+            return;
+        }
+
         if (echoKeystrokes) {
             // Dispatch the keypress to every widget, even if not the active
             // widget
@@ -494,6 +501,19 @@ public abstract class TWidget implements Comparable<TWidget> {
                     widget.onKeypress(keypress);
                     return;
                 }
+            }
+
+            /**
+             * Hook for subclasses to handle a keypress after mnemonic processing but
+             * before the normal child dispatch path.
+             *
+             * @param keypress keystroke event
+             * @return true if the keypress was consumed
+             */
+            protected boolean handleKeypressBeforeActiveChild(
+                final TKeypressEvent keypress) {
+
+                return false;
             }
         }
     }
@@ -807,6 +827,9 @@ public abstract class TWidget implements Comparable<TWidget> {
             throw new IndexOutOfBoundsException("child widget is not in " +
                 "list of children of this parent");
         }
+        if ((window != null) && child.containsWidget(window.getDefaultButton())) {
+            window.setDefaultButton(null);
+        }
         if (doClose) {
             child.close();
         }
@@ -830,6 +853,27 @@ public abstract class TWidget implements Comparable<TWidget> {
      */
     public boolean hasChild(final TWidget child) {
         return children.contains(child);
+    }
+
+    /**
+     * See if a widget is this widget or one of its descendants.
+     *
+     * @param widget the widget to check
+     * @return true if widget is this widget or a descendant
+     */
+    private boolean containsWidget(final TWidget widget) {
+        if (widget == null) {
+            return false;
+        }
+        if (this == widget) {
+            return true;
+        }
+        for (TWidget child: children) {
+            if (child.containsWidget(widget)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
