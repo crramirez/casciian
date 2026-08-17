@@ -304,6 +304,20 @@ public class TCheckBox extends TWidget {
         super.onKeypress(keypress);
     }
 
+    /**
+     * A checkbox toggles on Enter (like Space), so it must keep the keypress
+     * instead of activating the window default button.
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should handle the keypress first
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return keypress.equals(kbEnter);
+    }
+
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------

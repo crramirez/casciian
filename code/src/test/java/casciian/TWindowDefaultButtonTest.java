@@ -34,7 +34,9 @@ import static casciian.TKeypress.kbO;
 import static casciian.TKeypress.kbSpace;
 import static casciian.TKeypress.kbY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests window-level default button behavior.
@@ -261,6 +263,121 @@ class TWindowDefaultButtonTest {
             pressMessageBoxShortcut(TMessageBox.Type.YESNOCANCEL, kbC));
         assertEquals(TMessageBox.Result.CANCEL,
             pressMessageBoxShortcut(TMessageBox.Type.YESNOCANCEL, kbAltC));
+    }
+
+    @Test
+    void editorEnterInsertsNewlineInsteadOfActivatingDefaultButton() {
+        TWindow window = makeWindow();
+        TEditor editor = new TEditor(window, "line", 1, 1, 20, 5);
+        int[] activations = new int[1];
+        TButton ok = button(window, "&OK", 1, 7, activations, 0);
+        window.setDefaultButton(ok);
+        window.activate(editor);
+
+        assertEquals(1, editor.getLineCount());
+        press(window, kbEnter);
+
+        assertEquals(0, activations[0]);
+        assertEquals(2, editor.getLineCount());
+    }
+
+    @Test
+    void tableKeepsEnterInsteadOfActivatingDefaultButton() {
+        TWindow window = makeWindow();
+        TTable table = new TTable(window, 1, 1, 30, 6, 2, 2);
+        int[] activations = new int[1];
+        TButton ok = button(window, "&OK", 1, 8, activations, 0);
+        window.setDefaultButton(ok);
+        window.activate(table);
+
+        press(window, kbEnter);
+
+        assertEquals(0, activations[0]);
+    }
+
+    @Test
+    void listKeepsEnterInsteadOfActivatingDefaultButton() {
+        TWindow window = makeWindow();
+        List<String> values = new ArrayList<>();
+        values.add("one");
+        values.add("two");
+        int[] listEnters = new int[1];
+        TList list = new TList(window, values, 1, 1, 20, 4,
+            new TAction() {
+                public void DO() {
+                    listEnters[0]++;
+                }
+            });
+        list.setSelectedIndex(0);
+        int[] activations = new int[1];
+        TButton ok = button(window, "&OK", 1, 6, activations, 0);
+        window.setDefaultButton(ok);
+        window.activate(list);
+
+        press(window, kbEnter);
+
+        assertEquals(1, listEnters[0]);
+        assertEquals(0, activations[0]);
+    }
+
+    @Test
+    void calendarKeepsEnterInsteadOfActivatingDefaultButton() {
+        TWindow window = makeWindow();
+        int[] calendarEnters = new int[1];
+        TCalendar calendar = new TCalendar(window, 1, 1,
+            new TAction() {
+                public void DO() {
+                    calendarEnters[0]++;
+                }
+            });
+        int[] activations = new int[1];
+        TButton ok = button(window, "&OK", 1, 9, activations, 0);
+        window.setDefaultButton(ok);
+        window.activate(calendar);
+
+        press(window, kbEnter);
+
+        assertEquals(1, calendarEnters[0]);
+        assertEquals(0, activations[0]);
+    }
+
+    @Test
+    void checkBoxTogglesOnEnterInsteadOfActivatingDefaultButton() {
+        TWindow window = makeWindow();
+        TCheckBox checkBox = new TCheckBox(window, 1, 1, "Check", false);
+        int[] activations = new int[1];
+        TButton ok = button(window, "&OK", 1, 3, activations, 0);
+        window.setDefaultButton(ok);
+        window.activate(checkBox);
+
+        assertFalse(checkBox.isChecked());
+        press(window, kbEnter);
+
+        assertTrue(checkBox.isChecked());
+        assertEquals(0, activations[0]);
+    }
+
+    @Test
+    void treeViewKeepsEnterInsteadOfActivatingDefaultButton() {
+        TWindow window = makeWindow();
+        int[] treeEnters = new int[1];
+        TTreeView tree = new TTreeView(window, 1, 1, 20, 5,
+            new TAction() {
+                public void DO() {
+                    treeEnters[0]++;
+                }
+            });
+        TTreeItem root = new TTreeItem(tree, "root", true);
+        tree.setSelected(root, false);
+        int[] activations = new int[1];
+        TButton ok = button(window, "&OK", 1, 7, activations, 0);
+        window.setDefaultButton(ok);
+        window.activate(tree);
+
+        press(window, kbEnter);
+
+        assertEquals(1, treeEnters[0]);
+        assertEquals(0, activations[0]);
     }
 
     private TWindow makeWindow() {

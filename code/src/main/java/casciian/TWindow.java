@@ -489,11 +489,17 @@ public class TWindow extends TWidget {
         if (!keypress.equals(kbEnter)) {
             return false;
         }
-        TWidget activeWidget = getActiveChild();
-        if ((activeWidget != null)
-            && activeWidget.receivesKeypressBeforeWindowDefaultButton(keypress)
+        // If the focused widget, or any of its ancestors up to this window,
+        // wants to handle Enter itself (e.g. a text editor inserting a
+        // newline, a table editing a cell, a list/tree/calendar firing its
+        // own action), let it keep the keypress.
+        for (TWidget widget = getActiveChild();
+             (widget != null) && (widget != this);
+             widget = widget.getParent()
         ) {
-            return false;
+            if (widget.receivesKeypressBeforeWindowDefaultButton(keypress)) {
+                return false;
+            }
         }
         TButton button = defaultButton;
         if ((button == null)

@@ -236,6 +236,20 @@ public class TCalendar extends TWidget {
 
     }
 
+    /**
+     * The calendar uses Enter to fire its update action, so it must keep the
+     * keypress instead of activating the window default button.
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should handle the keypress first
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return keypress.equals(kbEnter);
+    }
+
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------

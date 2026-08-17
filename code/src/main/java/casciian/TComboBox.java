@@ -218,6 +218,22 @@ public class TComboBox extends TWidget {
         super.onKeypress(keypress);
     }
 
+    /**
+     * A combobox with an open drop-down list uses Enter to select the
+     * highlighted value, so it must keep the keypress instead of activating the
+     * window default button.  (When the edit field has focus, the field's own
+     * enter action, if any, already takes precedence.)
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should handle the keypress first
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return keypress.matchesKey(kbEnter) && list.isActive();
+    }
+
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------

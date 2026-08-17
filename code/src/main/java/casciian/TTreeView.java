@@ -152,6 +152,20 @@ public class TTreeView extends TWidget {
         }
     }
 
+    /**
+     * The tree view uses Enter to fire the selected item's action, so it must
+     * keep the keypress instead of activating the window default button.
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should handle the keypress first
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return keypress.equals(kbEnter);
+    }
+
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------
