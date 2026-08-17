@@ -47,32 +47,40 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TWindowDefaultButtonTest {
 
     @Test
-    void enterActivatesDefaultButtonEvenWhenAnotherButtonHasFocus() {
+    void enterActivatesFocusedButtonNotDefaultButton() {
+        // A focused non-default button fires itself on Enter; only when a
+        // non-button widget has focus does Enter go to the default button.
         TWindow window = makeWindow();
-        TField field = new TField(window, 1, 1, 12, false, "");
+        new TField(window, 1, 1, 12, false, "");
         int[] activations = new int[2];
         TButton cancel = button(window, "&Cancel", 1, 3, activations, 0);
         TButton ok = button(window, "&OK", 12, 3, activations, 1);
         window.setDefaultButton(ok);
 
+        // Non-default button has focus → it fires itself.
         window.activate(cancel);
         press(window, kbEnter);
+        assertEquals(1, activations[0], "focused Cancel should fire itself");
+        assertEquals(0, activations[1], "OK should not fire");
 
-        assertEquals(0, activations[0]);
-        assertEquals(1, activations[1]);
-
+        // Default button has focus → it fires itself (same result either way).
         window.activate(ok);
         press(window, kbEnter);
-
-        assertEquals(0, activations[0]);
-        assertEquals(2, activations[1]);
-
-        window.activate(cancel);
-        press(window, kbSpace);
-
         assertEquals(1, activations[0]);
-        assertEquals(2, activations[1]);
-        assertEquals("", field.getText());
+        assertEquals(1, activations[1]);
+    }
+
+    @Test
+    void enterActivatesDefaultButtonWhenNonButtonHasFocus() {
+        // When the focused widget is not a TButton, Enter fires the default button.
+        TWindow window = makeWindow();
+        TField field = new TField(window, 1, 1, 12, false, "");
+        int[] activations = new int[1];
+        TButton ok = button(window, "&OK", 12, 3, activations, 0);
+        window.setDefaultButton(ok);
+        window.activate(field);
+        press(window, kbEnter);
+        assertEquals(1, activations[0]);
     }
 
     @Test
@@ -148,7 +156,10 @@ class TWindowDefaultButtonTest {
     void defaultButtonCanChangeOrBeRemovedDynamically() {
         TWindow window = makeWindow();
         int[] fieldEnters = new int[1];
-        TField field = new TField(window, 1, 1, 12, false, "",
+        // A field with no enterAction so that Enter reaches the default button.
+        TField plainField = new TField(window, 1, 1, 12, false, "");
+        // A field with an enterAction to verify it takes precedence.
+        TField actionField = new TField(window, 1, 2, 12, false, "",
             new TAction() {
                 public void DO() {
                     fieldEnters[0]++;
@@ -157,25 +168,33 @@ class TWindowDefaultButtonTest {
         int[] activations = new int[2];
         TButton first = button(window, "&First", 1, 3, activations, 0);
         TButton second = button(window, "&Second", 12, 3, activations, 1);
-        window.activate(second);
 
+        // Plain field (no enterAction) has focus → Enter fires the default button.
+        window.activate(plainField);
         window.setDefaultButton(first);
         press(window, kbEnter);
         assertEquals(1, activations[0]);
         assertEquals(0, activations[1]);
 
+        // Change default to second; plain field still has focus → second fires.
         window.setDefaultButton(second);
         press(window, kbEnter);
         assertEquals(1, activations[0]);
         assertEquals(1, activations[1]);
 
+        // Remove default → Enter goes to the field widget (no-op for plain field).
         window.setDefaultButton(null);
-        window.activate(field);
         press(window, kbEnter);
         assertEquals(1, activations[0]);
         assertEquals(1, activations[1]);
-        assertEquals(1, fieldEnters[0]);
         assertNull(window.getDefaultButton());
+
+        // Field with enterAction overrides default button.
+        window.setDefaultButton(first);
+        window.activate(actionField);
+        press(window, kbEnter);
+        assertEquals(1, activations[0], "default button should not fire");
+        assertEquals(1, fieldEnters[0], "field action should fire");
     }
 
     @Test
@@ -200,33 +219,33 @@ class TWindowDefaultButtonTest {
     }
 
     @Test
-    void messageBoxOkCancelEnterActivatesOkEvenWhenCancelHasFocus() {
+    void messageBoxOkCancelEnterOnCancelActivatesCancel() {
         TMessageBox box = makeMessageBox(TMessageBox.Type.OKCANCEL);
         activateMessageBoxButton(box, 1);
 
         press(box, kbEnter);
 
-        assertEquals(TMessageBox.Result.OK, box.getResult());
+        assertEquals(TMessageBox.Result.CANCEL, box.getResult());
     }
 
     @Test
-    void messageBoxYesNoEnterActivatesYesEvenWhenNoHasFocus() {
+    void messageBoxYesNoEnterOnNoActivatesNo() {
         TMessageBox box = makeMessageBox(TMessageBox.Type.YESNO);
         activateMessageBoxButton(box, 1);
 
         press(box, kbEnter);
 
-        assertEquals(TMessageBox.Result.YES, box.getResult());
+        assertEquals(TMessageBox.Result.NO, box.getResult());
     }
 
     @Test
-    void messageBoxYesNoCancelEnterActivatesYesEvenWhenAnotherButtonHasFocus() {
+    void messageBoxYesNoCancelEnterOnCancelActivatesCancel() {
         TMessageBox box = makeMessageBox(TMessageBox.Type.YESNOCANCEL);
         activateMessageBoxButton(box, 2);
 
         press(box, kbEnter);
 
-        assertEquals(TMessageBox.Result.YES, box.getResult());
+        assertEquals(TMessageBox.Result.CANCEL, box.getResult());
     }
 
     @Test

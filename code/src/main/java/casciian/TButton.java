@@ -255,6 +255,20 @@ public class TButton extends TWidget {
     }
 
     /**
+     * Returns true so that a focused button keeps Enter for itself rather
+     * than ceding it to the window default button.
+     *
+     * @param keypress the keypress event (kbEnter in practice)
+     * @return true
+     */
+    @Override
+    public boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return true;
+    }
+
+    /**
      * Override TWidget's width: we can only set width at construction time.
      *
      * @param width new widget width (ignored)
