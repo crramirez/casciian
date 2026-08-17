@@ -332,6 +332,20 @@ public class TList extends TScrollable {
     }
 
     /**
+     * The list uses Enter to trigger its selection action, so it must keep the
+     * keypress instead of activating the window default button.
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should handle the keypress first
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return keypress.matchesKey(kbEnter);
+    }
+
+    /**
      * Handle window/screen resize events.
      *
      * @param event resize event

@@ -25,7 +25,7 @@ import static casciian.TKeypress.*;
 
 /**
  * TComboBox implements a combobox containing a drop-down list and edit
- * field.  Alt-Down can be used to show the drop-down.
+ * field.  Down or Alt-Down can be used to show the drop-down.
  */
 public class TComboBox extends TWidget {
 
@@ -199,7 +199,9 @@ public class TComboBox extends TWidget {
             }
         }
 
-        if (keypress.matchesKey(kbAltDown)) {
+        if (keypress.matchesKey(kbAltDown)
+            || (keypress.matchesKey(kbDown) && !list.isActive())
+        ) {
             showList();
             return;
         }
@@ -216,6 +218,22 @@ public class TComboBox extends TWidget {
 
         // Pass to parent for the things we don't care about.
         super.onKeypress(keypress);
+    }
+
+    /**
+     * A combobox with an open drop-down list uses Enter to select the
+     * highlighted value, so it must keep the keypress instead of activating the
+     * window default button.  (When the edit field has focus, the field's own
+     * enter action, if any, already takes precedence.)
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should handle the keypress first
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return keypress.matchesKey(kbEnter) && list.isActive();
     }
 
     // ------------------------------------------------------------------------

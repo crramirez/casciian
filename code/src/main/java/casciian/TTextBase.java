@@ -196,6 +196,21 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     }
 
     /**
+     * An editable multi-line text widget consumes Enter to insert a newline,
+     * so it must keep the keypress instead of activating the window default
+     * button.
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should handle the keypress first
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return keypress.equals(kbEnter) && isEditable() && supportsNewline();
+    }
+
+    /**
      * Get the column of the widget where the document text begins.
      *
      * @return the X position of the text area, relative to this widget

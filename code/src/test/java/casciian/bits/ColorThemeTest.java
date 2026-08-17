@@ -141,6 +141,44 @@ class ColorThemeTest {
         }
     }
 
+    /**
+     * Every built-in theme must define the window default-button color keys,
+     * and for now they must match the corresponding active TButton colors.
+     */
+    @Test
+    void testAllThemesDefineDefaultButtonColorsMatchingActive() {
+        Map<String, Consumer<ColorTheme>> themes = new LinkedHashMap<>();
+        themes.put("default", ColorTheme::setDefaultTheme);
+        themes.put("femme", ColorTheme::setFemme);
+        themes.put("qmodem5", ColorTheme::setQmodem5);
+        themes.put("darkDefault", ColorTheme::setDarkDefault);
+        themes.put("midnightCommander", ColorTheme::setMidnightCommander);
+        themes.put("flatDark", ColorTheme::setFlatDark);
+        themes.put("vsCodeDark", ColorTheme::setVSCodeDark);
+        themes.put("vsCodeLight", ColorTheme::setVSCodeLight);
+
+        String[][] pairs = {
+            {ColorTheme.TBUTTON_ACTIVE, ColorTheme.TBUTTON_DEFAULT},
+            {ColorTheme.TBUTTON_ACTIVE_MODAL, ColorTheme.TBUTTON_DEFAULT_MODAL},
+            {ColorTheme.TBUTTON_MNEMONIC, ColorTheme.TBUTTON_DEFAULT_MNEMONIC},
+            {ColorTheme.TBUTTON_MNEMONIC_MODAL,
+                ColorTheme.TBUTTON_DEFAULT_MNEMONIC_MODAL},
+        };
+
+        for (Map.Entry<String, Consumer<ColorTheme>> entry : themes.entrySet()) {
+            String name = entry.getKey();
+            ColorTheme theme = new ColorTheme();
+            entry.getValue().accept(theme);
+
+            for (String[] pair : pairs) {
+                assertNotNull(theme.getColor(pair[1]),
+                    name + " does not define " + pair[1]);
+                assertEquals(theme.getColor(pair[0]), theme.getColor(pair[1]),
+                    name + ": " + pair[1] + " must match " + pair[0]);
+            }
+        }
+    }
+
     @Test
     void testMixedRgbForegroundNamedBackground() {
         ColorTheme theme = new ColorTheme();
