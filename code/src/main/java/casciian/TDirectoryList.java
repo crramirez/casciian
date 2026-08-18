@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import casciian.backend.SystemProperties;
-import casciian.bits.ControlPadding;
 import casciian.bits.StringUtils;
 
 /**
@@ -243,10 +242,13 @@ public class TDirectoryList extends TList {
      */
     private String renderFile(final File file) {
         String name = file.getName();
-        int pad = ControlPadding.current().getCells();
-        int maxWidth = Math.max(1, getWidth() - 8 - 2 * pad);
+        int maxWidth = Math.max(1, getWidth() - 8 - 2 * padding);
         if (StringUtils.width(name) > maxWidth) {
-            name = name.substring(0, maxWidth - 3) + "...";
+            if (maxWidth >= 3) {
+                name = name.substring(0, maxWidth - 3) + "...";
+            } else {
+                name = name.substring(0, maxWidth);
+            }
         }
         return String.format("%-" + maxWidth + "s %5dk", name,
             (file.length() / 1024));
