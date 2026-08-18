@@ -344,10 +344,9 @@ public class TField extends TTextBase {
         if (fixed) {
             setLeftColumn(0);
         } else {
-            // Keep cursor - leftColumn <= getWidth() - padding - 1 so that
-            // zero blank cells remain to the right of the cursor after
-            // scrolling, regardless of the padding setting.
-            int maxOffset = Math.max(0, getWidth() - padding - 1);
+            // Keep cursor - leftColumn <= getWidth() - 1 so that the cursor
+            // can reach the right edge (including padding space) after scrolling.
+            int maxOffset = Math.max(0, getWidth() - 1);
             int desiredX = document.getCursor() - getLeftColumn();
             if (desiredX < 0) {
                 setLeftColumn(document.getCursor());
@@ -785,8 +784,9 @@ public class TField extends TTextBase {
 
         if ((cursor >= textAreaWidth()) && fixed) {
             setCursorX(padding + Math.max(0, textAreaWidth() - 1));
-        } else if ((cursor - start >= textAreaWidth()) && !fixed) {
-            setCursorX(padding + textAreaWidth() - 1);
+        } else if ((cursor - start >= getWidth() - padding) && !fixed) {
+            // Cursor can invade the right padding space; clamp to the right edge.
+            setCursorX(getWidth() - 1);
         } else {
             setCursorX(padding + cursor - start);
         }
@@ -803,7 +803,7 @@ public class TField extends TTextBase {
             updateCursor();
             return;
         }
-        setLeftColumn(document.getCursor() - Math.max(0, getWidth() - padding - 1));
+        setLeftColumn(document.getCursor() - Math.max(0, getWidth() - 1));
         windowStart = getLeftColumn();
 
         updateCursor();
