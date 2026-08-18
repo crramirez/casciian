@@ -335,19 +335,19 @@ public class TField extends TTextBase {
     /**
      * Align visible cursor with document cursor.
      *
-     * <p>For non-fixed fields the viewport scrolls so that exactly one blank
-     * cell is always visible to the right of the cursor, regardless of the
-     * active control padding.</p>
+     * <p>For non-fixed fields the viewport scrolls so that zero blank
+     * cells are visible to the right of the cursor after scrolling,
+     * regardless of the active control padding.</p>
      */
     @Override
     protected void alignCursor() {
         if (fixed) {
             setLeftColumn(0);
         } else {
-            // Keep cursor - leftColumn <= getWidth() - padding - 2 so that
-            // one blank cell remains visible to the right of the cursor no
-            // matter what the padding setting is.
-            int maxOffset = Math.max(0, getWidth() - padding - 2);
+            // Keep cursor - leftColumn <= getWidth() - padding - 1 so that
+            // zero blank cells remain to the right of the cursor after
+            // scrolling, regardless of the padding setting.
+            int maxOffset = Math.max(0, getWidth() - padding - 1);
             int desiredX = document.getCursor() - getLeftColumn();
             if (desiredX < 0) {
                 setLeftColumn(document.getCursor());
@@ -803,7 +803,7 @@ public class TField extends TTextBase {
             updateCursor();
             return;
         }
-        setLeftColumn(document.getCursor() - Math.max(0, getWidth() - padding - 2));
+        setLeftColumn(document.getCursor() - Math.max(0, getWidth() - padding - 1));
         windowStart = getLeftColumn();
 
         updateCursor();
@@ -858,7 +858,7 @@ public class TField extends TTextBase {
                 document.setCursor(Math.max(0, textAreaWidth() - 1));
             }
         } else {
-            setLeftColumn(StringUtils.width(getText()) - Math.max(0, getWidth() - padding - 2));
+            setLeftColumn(StringUtils.width(getText()) - Math.max(0, getWidth() - padding - 1));
         }
         syncFields();
         updateCursor();
