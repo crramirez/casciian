@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import casciian.backend.HeadlessBackend;
 import casciian.backend.Screen;
 import casciian.bits.CellAttributes;
+import casciian.bits.ControlPadding;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -223,6 +224,41 @@ class TTextBaseRenderTest {
         field.onKeypress(new TKeypressEvent(null, TKeypress.kbEnd));
         assertTrue(field.getCursorX() < field.getWidth());
         assertEquals("abcde", field.getText());
+    }
+
+    /**
+     * With control padding active a fixed field keeps its text capacity
+     * (both paddings reserved), but the cursor may reach the right padding
+     * cell after the last character instead of being pulled back onto it.
+     */
+    @Test
+    void fixedFieldCursorReachesRightPaddingCell() {
+        String previous = System.getProperty(ControlPadding.PROPERTY_KEY);
+        System.setProperty(ControlPadding.PROPERTY_KEY, "single");
+        try {
+            TWindow w = makeWindow();
+            // Width 8, single padding: text area is 8 - 2 = 6 cells.
+            TField field = new TField(w, 1, 1, 8, true, "abcdefgh");
+            w.activate(field);
+
+            field.onKeypress(new TKeypressEvent(null, TKeypress.kbEnd));
+            drawWidget(field);
+
+            // Capacity is unchanged: only six characters are kept.
+            assertEquals("abcdef", field.getText());
+            // The row shows the left padding, the six characters, and a
+            // blank right padding cell.
+            assertEquals(" abcdef ",
+                screenText(field.getAbsoluteX(), field.getAbsoluteY(), 8));
+            // The cursor sits over the right padding cell (the last cell).
+            assertEquals(field.getWidth() - 1, field.getCursorX());
+        } finally {
+            if (previous == null) {
+                System.clearProperty(ControlPadding.PROPERTY_KEY);
+            } else {
+                System.setProperty(ControlPadding.PROPERTY_KEY, previous);
+            }
+        }
     }
 
     /**

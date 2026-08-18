@@ -143,6 +143,23 @@ public class TField extends TTextBase {
         return Math.max(0, getWidth() - 2 * padding);
     }
 
+    /**
+     * Get the maximum document cursor index for a fixed field.  A fixed
+     * field's text capacity is {@link #textAreaWidth()} and it normally
+     * cannot place the cursor past its last cell.  When control padding
+     * reserves a right padding cell, the cursor may sit one position
+     * further, over the right padding, mirroring a non-fixed field.  The
+     * text capacity is unchanged, so only the cursor reaches the padding.
+     *
+     * @return the maximum cursor index, never negative
+     */
+    private int fixedCursorMax() {
+        if (padding > 0) {
+            return textAreaWidth();
+        }
+        return Math.max(0, textAreaWidth() - 1);
+    }
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -691,10 +708,11 @@ public class TField extends TTextBase {
      */
     private void syncFields() {
         if (fixed && (textAreaWidth() > 0)
-            && (document.getCursor() > textAreaWidth() - 1)
+            && (document.getCursor() > fixedCursorMax())
         ) {
-            // A fixed field cannot put the cursor past its last cell.
-            document.setCursor(textAreaWidth() - 1);
+            // A fixed field cannot put the cursor past its last cell (plus
+            // the right padding cell, when control padding is active).
+            document.setCursor(fixedCursorMax());
         }
         text = document.getLine(0).getRawString();
         position = document.getCurrentLine().getRawCursor();
@@ -800,7 +818,7 @@ public class TField extends TTextBase {
         int start = getLeftColumn();
 
         if ((cursor >= textAreaWidth()) && fixed) {
-            setCursorX(padding + Math.max(0, textAreaWidth() - 1));
+            setCursorX(Math.min(getWidth() - 1, padding + fixedCursorMax()));
         } else if ((cursor - start >= getWidth() - padding) && !fixed) {
             // Cursor can invade the right padding space; clamp to the right edge.
             setCursorX(getWidth() - 1);
@@ -869,10 +887,10 @@ public class TField extends TTextBase {
         document.end();
         if (fixed) {
             setLeftColumn(0);
-            if ((document.getCursor() >= textAreaWidth())
+            if ((document.getCursor() > fixedCursorMax())
                 && (document.getCursor() > 0)
             ) {
-                document.setCursor(Math.max(0, textAreaWidth() - 1));
+                document.setCursor(fixedCursorMax());
             }
         } else {
             setLeftColumn(StringUtils.width(getText()) - Math.max(0, getWidth() - padding - 1));
