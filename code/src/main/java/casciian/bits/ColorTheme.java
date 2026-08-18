@@ -1447,31 +1447,6 @@ public class ColorTheme {
     }
 
     /**
-     * Populate the window default-button color keys by copying the active
-     * TButton color keys.  This keeps the default button visually identical
-     * to a normal active button until a theme overrides these keys.
-     */
-    private void applyDefaultButtonColors() {
-        copyColor(TBUTTON_ACTIVE, TBUTTON_DEFAULT);
-        copyColor(TBUTTON_ACTIVE_MODAL, TBUTTON_DEFAULT_MODAL);
-        copyColor(TBUTTON_MNEMONIC, TBUTTON_DEFAULT_MNEMONIC);
-        copyColor(TBUTTON_MNEMONIC_MODAL, TBUTTON_DEFAULT_MNEMONIC_MODAL);
-    }
-
-    /**
-     * Copy the color stored under one key into another key.
-     *
-     * @param from the source color key
-     * @param to the destination color key
-     */
-    private void copyColor(final String from, final String to) {
-        CellAttributes source = colors.get(from);
-        if (source != null) {
-            colors.put(to, new CellAttributes(source));
-        }
-    }
-
-    /**
      * Sets to defaults that resemble the Borland IDE colors.
      */
     public void setDefaultTheme() {
@@ -1559,10 +1534,18 @@ public class ColorTheme {
             .backColor(GREEN)
             .build());
         colors.put(TBUTTON_ACTIVE, CellAttributes.builder()
-            .foreColor(BRIGHT_CYAN)
+            .foreColor(BRIGHT_WHITE)
             .backColor(GREEN)
             .build());
         colors.put(TBUTTON_ACTIVE_MODAL, CellAttributes.builder()
+            .foreColor(BRIGHT_WHITE)
+            .backColor(GREEN)
+            .build());
+        colors.put(TBUTTON_DEFAULT, CellAttributes.builder()
+            .foreColor(BRIGHT_CYAN)
+            .backColor(GREEN)
+            .build());
+        colors.put(TBUTTON_DEFAULT_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_CYAN)
             .backColor(GREEN)
             .build());
@@ -1579,6 +1562,14 @@ public class ColorTheme {
             .backColor(GREEN)
             .build());
         colors.put(TBUTTON_MNEMONIC_MODAL, CellAttributes.builder()
+            .foreColor(BRIGHT_YELLOW)
+            .backColor(GREEN)
+            .build());
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, CellAttributes.builder()
+            .foreColor(BRIGHT_YELLOW)
+            .backColor(GREEN)
+            .build());
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, CellAttributes.builder()
             .foreColor(BRIGHT_YELLOW)
             .backColor(GREEN)
             .build());
@@ -2240,8 +2231,6 @@ public class ColorTheme {
             .foreColor(BRIGHT_YELLOW)
             .backColor(CYAN)
             .build());
-
-        applyDefaultButtonColors();
     }
 
     /**
@@ -2288,6 +2277,8 @@ public class ColorTheme {
         color.setBackColorRGB(pink);
         colors.put(TBUTTON_ACTIVE, color);
         colors.put(TBUTTON_ACTIVE_MODAL, color);
+        colors.put(TBUTTON_DEFAULT, color);
+        colors.put(TBUTTON_DEFAULT_MODAL, color);
         color = new CellAttributes();
         color.setForeColor(BLACK);
         color.setBackColorRGB(pink);
@@ -2305,6 +2296,8 @@ public class ColorTheme {
         color.setBackColorRGB(pink);
         colors.put(TBUTTON_MNEMONIC, color);
         colors.put(TBUTTON_MNEMONIC_MODAL, color);
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, color);
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, color);
         color = new CellAttributes();
         color.setForeColor(RED);
         colors.put(TBUTTON_PULSE, color);
@@ -2353,8 +2346,6 @@ public class ColorTheme {
         color.setForeColor(BRIGHT_MAGENTA);
         color.setBackColor(BLACK);
         colors.put(TCHECKBOX_ACTIVE, color);
-
-        applyDefaultButtonColors();
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -2505,6 +2496,14 @@ public class ColorTheme {
         color.setBackColor(GREEN);
         colors.put(TBUTTON_ACTIVE_MODAL, color);
         color = new CellAttributes();
+        color.setForeColor(BRIGHT_CYAN);
+        color.setBackColor(GREEN);
+        colors.put(TBUTTON_DEFAULT, color);
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_CYAN);
+        color.setBackColor(GREEN);
+        colors.put(TBUTTON_DEFAULT_MODAL, color);
+        color = new CellAttributes();
         color.setForeColor(BRIGHT_BLACK);
         color.setBackColor(WHITE);
         colors.put(TBUTTON_DISABLED, color);
@@ -2520,6 +2519,14 @@ public class ColorTheme {
         color.setForeColor(BRIGHT_YELLOW);
         color.setBackColor(GREEN);
         colors.put(TBUTTON_MNEMONIC_MODAL, color);
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_YELLOW);
+        color.setBackColor(GREEN);
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, color);
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_YELLOW);
+        color.setBackColor(GREEN);
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, color);
         color = new CellAttributes();
         color.setForeColor(BRIGHT_YELLOW);
         color.setBackColor(GREEN);
@@ -3153,9 +3160,6 @@ public class ColorTheme {
         color.setForeColor(BRIGHT_YELLOW);
         color.setBackColor(CYAN);
         colors.put(THELPWINDOW_LINK_ACTIVE, color);
-
-
-        applyDefaultButtonColors();
     }
 
     // ------------------------------------------------------------------------
@@ -3427,8 +3431,6 @@ public class ColorTheme {
         colors.put(THELPWINDOW_LINK, rgbToPalette(fgYellow, bgWindow));
         colors.put(THELPWINDOW_LINK_ACTIVE, rgbToPalette(fgYellow, bgSelect));
         colors.put(THELPWINDOW_WINDOWMOVE, rgbToPalette(fgGreen, bgWindow));
-
-        applyDefaultButtonColors();
     }
 
     /**
@@ -3484,10 +3486,14 @@ public class ColorTheme {
         colors.put(TBUTTON_INACTIVE_MODAL, attr(BLACK, WHITE));
         colors.put(TBUTTON_ACTIVE, attr(BRIGHT_WHITE, CYAN));
         colors.put(TBUTTON_ACTIVE_MODAL, attr(BLACK, CYAN));
+        colors.put(TBUTTON_DEFAULT, attr(BRIGHT_WHITE, CYAN));
+        colors.put(TBUTTON_DEFAULT_MODAL, attr(BLACK, CYAN));
         colors.put(TBUTTON_DISABLED, attr(WHITE, BLUE));
         colors.put(TBUTTON_DISABLED_MODAL, attr(BRIGHT_BLACK, WHITE));
         colors.put(TBUTTON_MNEMONIC, attr(BRIGHT_CYAN, BLUE));
         colors.put(TBUTTON_MNEMONIC_MODAL, attr(BRIGHT_BLUE, WHITE));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, attr(BRIGHT_CYAN, BLUE));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, attr(BRIGHT_BLUE, WHITE));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_CYAN, CYAN));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(BRIGHT_BLUE, CYAN));
 
@@ -3586,8 +3592,6 @@ public class ColorTheme {
         colors.put(THELPWINDOW_TEXT, attr(WHITE, BLUE));
         colors.put(THELPWINDOW_LINK, attr(BRIGHT_YELLOW, BLUE));
         colors.put(THELPWINDOW_LINK_ACTIVE, attr(BLACK, CYAN));
-
-        applyDefaultButtonColors();
     }
 
     /**
@@ -3665,10 +3669,14 @@ public class ColorTheme {
         colors.put(TBUTTON_INACTIVE_MODAL, rgbToPalette(accentCyan, bgBlack));
         colors.put(TBUTTON_ACTIVE, rgbToPalette(fgWhite, bgSelection));
         colors.put(TBUTTON_ACTIVE_MODAL, rgbToPalette(fgWhite, bgSelection));
+        colors.put(TBUTTON_DEFAULT, rgbToPalette(fgWhite, bgSelection));
+        colors.put(TBUTTON_DEFAULT_MODAL, rgbToPalette(fgWhite, bgSelection));
         colors.put(TBUTTON_DISABLED, rgbToPalette(fgBorder, bgAccentDim));
         colors.put(TBUTTON_DISABLED_MODAL, rgbToPalette(fgBorder, bgAccentDim));
         colors.put(TBUTTON_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
         colors.put(TBUTTON_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellw, bgSelection));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(accentYellw, bgSelection));
 
@@ -3808,8 +3816,6 @@ public class ColorTheme {
         colors.put(THELPWINDOW_LINK, rgbToPalette(accentBlue, bgBlack));
         colors.put(THELPWINDOW_LINK_ACTIVE, rgbToPalette(fgWhite, bgSelection));
         colors.put(THELPWINDOW_WINDOWMOVE, rgbToPalette(accentGreen, bgBlack));
-
-        applyDefaultButtonColors();
     }
 
     /**
@@ -3884,10 +3890,14 @@ public class ColorTheme {
         colors.put(TBUTTON_INACTIVE_MODAL, rgb(fgBrightText, buttonBg));
         colors.put(TBUTTON_ACTIVE, rgb(fgBrightText, accentHot));
         colors.put(TBUTTON_ACTIVE_MODAL, rgb(fgBrightText, accentHot));
+        colors.put(TBUTTON_DEFAULT, rgb(fgBrightText, accentHot));
+        colors.put(TBUTTON_DEFAULT_MODAL, rgb(fgBrightText, accentHot));
         colors.put(TBUTTON_DISABLED, rgb(fgMuted, bgInput));
         colors.put(TBUTTON_DISABLED_MODAL, rgb(fgMuted, bgInput));
         colors.put(TBUTTON_MNEMONIC, rgb(0xffcc00, buttonBg));
         colors.put(TBUTTON_MNEMONIC_MODAL, rgb(0xffcc00, buttonBg));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, rgb(0xffcc00, buttonBg));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, rgb(0xffcc00, buttonBg));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgb(0xffcc00, accentHot));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgb(0xffcc00, accentHot));
 
@@ -4030,8 +4040,6 @@ public class ColorTheme {
         colors.put(THELPWINDOW_LINK, rgb(accent, bgPanel));
         colors.put(THELPWINDOW_LINK_ACTIVE, rgb(fgBrightText, bgListSel));
         colors.put(THELPWINDOW_WINDOWMOVE, rgb(accentHot, bgPanel));
-
-        applyDefaultButtonColors();
     }
 
     /**
@@ -4103,10 +4111,14 @@ public class ColorTheme {
         colors.put(TBUTTON_INACTIVE_MODAL, rgb(0xffffff, buttonBg));
         colors.put(TBUTTON_ACTIVE, rgb(0xffffff, accentHot));
         colors.put(TBUTTON_ACTIVE_MODAL, rgb(0xffffff, accentHot));
+        colors.put(TBUTTON_DEFAULT, rgb(0xffffff, accentHot));
+        colors.put(TBUTTON_DEFAULT_MODAL, rgb(0xffffff, accentHot));
         colors.put(TBUTTON_DISABLED, rgb(fgMuted, borderDim));
         colors.put(TBUTTON_DISABLED_MODAL, rgb(fgMuted, borderDim));
         colors.put(TBUTTON_MNEMONIC, rgb(0xffcc00, buttonBg));
         colors.put(TBUTTON_MNEMONIC_MODAL, rgb(0xffcc00, buttonBg));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, rgb(0xffcc00, buttonBg));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, rgb(0xffcc00, buttonBg));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgb(0xffcc00, accentHot));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgb(0xffcc00, accentHot));
 
@@ -4249,8 +4261,6 @@ public class ColorTheme {
         colors.put(THELPWINDOW_LINK, rgb(accent, bgPanel));
         colors.put(THELPWINDOW_LINK_ACTIVE, rgb(0xffffff, bgListSel));
         colors.put(THELPWINDOW_WINDOWMOVE, rgb(accentHot, bgPanel));
-
-        applyDefaultButtonColors();
     }
 
     /**
