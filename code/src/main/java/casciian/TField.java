@@ -334,13 +334,28 @@ public class TField extends TTextBase {
 
     /**
      * Align visible cursor with document cursor.
+     *
+     * <p>For non-fixed fields the viewport scrolls so that zero blank
+     * cells are visible to the right of the cursor after scrolling,
+     * regardless of the active control padding.</p>
      */
     @Override
     protected void alignCursor() {
         if (fixed) {
             setLeftColumn(0);
         } else {
-            super.alignCursor();
+            // Keep cursor - leftColumn <= getWidth() - padding - 1 so that
+            // zero blank cells remain to the right of the cursor after scrolling.
+            // The cursor is allowed to invade the right padding space (up to
+            // getWidth() - 1) when it is at the right edge; scrolling is
+            // triggered one column before that edge to position it correctly.
+            int maxOffset = Math.max(0, getWidth() - padding - 1);
+            int desiredX = document.getCursor() - getLeftColumn();
+            if (desiredX < 0) {
+                setLeftColumn(document.getCursor());
+            } else if (desiredX > maxOffset) {
+                setLeftColumn(document.getCursor() - maxOffset);
+            }
         }
         syncFields();
         updateCursor();
@@ -786,8 +801,9 @@ public class TField extends TTextBase {
 
         if ((cursor >= textAreaWidth()) && fixed) {
             setCursorX(padding + Math.max(0, textAreaWidth() - 1));
-        } else if ((cursor - start >= textAreaWidth()) && !fixed) {
-            setCursorX(padding + textAreaWidth() - 1);
+        } else if ((cursor - start >= getWidth() - padding) && !fixed) {
+            // Cursor can invade the right padding space; clamp to the right edge.
+            setCursorX(getWidth() - 1);
         } else {
             setCursorX(padding + cursor - start);
         }
@@ -804,7 +820,7 @@ public class TField extends TTextBase {
             updateCursor();
             return;
         }
-        setLeftColumn(document.getCursor() - (textAreaWidth() - 1));
+        setLeftColumn(document.getCursor() - Math.max(0, getWidth() - padding - 1));
         windowStart = getLeftColumn();
 
         updateCursor();
@@ -859,7 +875,7 @@ public class TField extends TTextBase {
                 document.setCursor(Math.max(0, textAreaWidth() - 1));
             }
         } else {
-            setLeftColumn(StringUtils.width(getText()) - textAreaWidth() + 1);
+            setLeftColumn(StringUtils.width(getText()) - Math.max(0, getWidth() - padding - 1));
         }
         syncFields();
         updateCursor();
