@@ -210,6 +210,49 @@ class TTextBaseRenderTest {
     }
 
     /**
+     * With SINGLE control padding active, a fixed field reclaims the right
+     * padding cell just like a non-fixed field: it can hold one more
+     * character (width - padding), draw it into the right padding column,
+     * and place the cursor over the right padding.
+     */
+    @Test
+    void fixedFieldReclaimsRightPaddingWhenPadded() {
+        String previous = System.getProperty(
+            casciian.bits.ControlPadding.PROPERTY_KEY);
+        System.setProperty(casciian.bits.ControlPadding.PROPERTY_KEY,
+            "single");
+        try {
+            TWindow w = makeWindow();
+            // width 8, padding 1 -> a fixed field holds 8 - 1 = 7 chars.
+            TField field = new TField(w, 1, 1, 8, true, "");
+            w.activate(field);
+            for (char c = 'a'; c <= 'j'; c++) {
+                field.onKeypress(new TKeypressEvent(null,
+                    new TKeypress(false, 0, c, false, false, false)));
+            }
+
+            // The field grew into the right padding cell (7 chars, not 6).
+            assertEquals("abcdefg", field.getText());
+            // The cursor sits on the last (right padding) column.
+            assertEquals(field.getWidth() - 1, field.getCursorX());
+
+            drawWidget(field);
+            int x = field.getAbsoluteX();
+            int y = field.getAbsoluteY();
+            // The text is drawn from the left padding into the right padding.
+            assertEquals(" abcdefg", screenText(x, y, 8));
+        } finally {
+            if (previous == null) {
+                System.clearProperty(
+                    casciian.bits.ControlPadding.PROPERTY_KEY);
+            } else {
+                System.setProperty(
+                    casciian.bits.ControlPadding.PROPERTY_KEY, previous);
+            }
+        }
+    }
+
+    /**
      * On a fixed field the cursor never leaves the text area.
      */
     @Test
