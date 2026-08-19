@@ -2291,13 +2291,13 @@ public class ColorTheme {
         color.setBackColorRGB(pink);
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, color);
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, color);
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, color);
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, color);
         color = new CellAttributes();
         color.setForeColorRGB(blue);
         color.setBackColorRGB(pink);
         colors.put(TBUTTON_MNEMONIC, color);
         colors.put(TBUTTON_MNEMONIC_MODAL, color);
-        colors.put(TBUTTON_DEFAULT_MNEMONIC, color);
-        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, color);
         color = new CellAttributes();
         color.setForeColor(RED);
         colors.put(TBUTTON_PULSE, color);
@@ -3494,8 +3494,8 @@ public class ColorTheme {
         colors.put(TBUTTON_MNEMONIC_MODAL, attr(BRIGHT_BLUE, WHITE));
         colors.put(TBUTTON_DEFAULT_MNEMONIC, attr(BRIGHT_CYAN, BLUE));
         colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, attr(BRIGHT_BLUE, WHITE));
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_CYAN, CYAN));
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(BRIGHT_BLUE, CYAN));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_CYAN, BLUE));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(BRIGHT_BLUE, WHITE));
 
         // Fields / inputs: inactive fields are black on white, active input is
         // black on cyan.
@@ -3675,8 +3675,8 @@ public class ColorTheme {
         colors.put(TBUTTON_DISABLED_MODAL, rgbToPalette(fgBorder, bgAccentDim));
         colors.put(TBUTTON_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
         colors.put(TBUTTON_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TBUTTON_DEFAULT_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, rgbToPalette(accentYellw, bgSelection));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgSelection));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellw, bgSelection));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(accentYellw, bgSelection));
 
@@ -3896,8 +3896,8 @@ public class ColorTheme {
         colors.put(TBUTTON_DISABLED_MODAL, rgb(fgMuted, bgInput));
         colors.put(TBUTTON_MNEMONIC, rgb(0xffcc00, buttonBg));
         colors.put(TBUTTON_MNEMONIC_MODAL, rgb(0xffcc00, buttonBg));
-        colors.put(TBUTTON_DEFAULT_MNEMONIC, rgb(0xffcc00, buttonBg));
-        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, rgb(0xffcc00, buttonBg));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, rgb(0xffcc00, accentHot));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, rgb(0xffcc00, accentHot));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgb(0xffcc00, accentHot));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgb(0xffcc00, accentHot));
 
@@ -4117,8 +4117,8 @@ public class ColorTheme {
         colors.put(TBUTTON_DISABLED_MODAL, rgb(fgMuted, borderDim));
         colors.put(TBUTTON_MNEMONIC, rgb(0xffcc00, buttonBg));
         colors.put(TBUTTON_MNEMONIC_MODAL, rgb(0xffcc00, buttonBg));
-        colors.put(TBUTTON_DEFAULT_MNEMONIC, rgb(0xffcc00, buttonBg));
-        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, rgb(0xffcc00, buttonBg));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, rgb(0xffcc00, accentHot));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, rgb(0xffcc00, accentHot));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgb(0xffcc00, accentHot));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgb(0xffcc00, accentHot));
 
