@@ -1453,134 +1453,56 @@ public class ColorTheme {
         invalidateIsDarkThemeCache();
 
         // TWindow border
-        colors.put(TWINDOW_BORDER, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(BLUE)
-            .build());
+        colors.put(TWINDOW_BORDER, attr(BRIGHT_WHITE, BLUE));
 
         // TWindow background
-        colors.put(TWINDOW_BACKGROUND, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(BLUE)
-            .build());
+        colors.put(TWINDOW_BACKGROUND, attr(BRIGHT_YELLOW, BLUE));
 
         // TWindow border - inactive
-        colors.put(TWINDOW_BORDER_INACTIVE, CellAttributes.builder()
-            .foreColor(BRIGHT_BLACK)
-            .backColor(BLUE)
-            .build());
+        colors.put(TWINDOW_BORDER_INACTIVE, attr(BRIGHT_BLACK, BLUE));
 
         // TWindow background - inactive
-        colors.put(TWINDOW_BACKGROUND_INACTIVE, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(BLUE)
-            .build());
+        colors.put(TWINDOW_BACKGROUND_INACTIVE, attr(BRIGHT_YELLOW, BLUE));
 
         // TWindow border - modal
-        colors.put(TWINDOW_BORDER_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(WHITE)
-            .build());
+        colors.put(TWINDOW_BORDER_MODAL, attr(BRIGHT_WHITE, WHITE));
 
         // TWindow background - modal
-        colors.put(TWINDOW_BACKGROUND_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
+        colors.put(TWINDOW_BACKGROUND_MODAL, attr(BLACK, WHITE));
 
         // TWindow border - modal + inactive
-        colors.put(TWINDOW_BORDER_MODAL_INACTIVE, CellAttributes.builder()
-            .foreColor(BRIGHT_BLACK)
-            .backColor(WHITE)
-            .build());
+        colors.put(TWINDOW_BORDER_MODAL_INACTIVE, attr(BRIGHT_BLACK, WHITE));
 
         // TWindow background - modal + inactive
-        colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
+        colors.put(TWINDOW_BACKGROUND_MODAL_INACTIVE, attr(BLACK, WHITE));
 
         // TWindow border - during window movement - modal
-        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, CellAttributes.builder()
-            .foreColor(BRIGHT_GREEN)
-            .backColor(WHITE)
-            .build());
+        colors.put(TWINDOW_BORDER_MODAL_WINDOWMOVE, attr(BRIGHT_GREEN, WHITE));
 
         // TWindow border - during window movement
-        colors.put(TWINDOW_BORDER_WINDOWMOVE, CellAttributes.builder()
-            .foreColor(BRIGHT_GREEN)
-            .backColor(BLUE)
-            .build());
+        colors.put(TWINDOW_BORDER_WINDOWMOVE, attr(BRIGHT_GREEN, BLUE));
 
         // TWindow background - during window movement
-        colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, CellAttributes.builder()
-            .foreColor(YELLOW)
-            .backColor(BLUE)
-            .build());
+        colors.put(TWINDOW_BACKGROUND_WINDOWMOVE, attr(YELLOW, BLUE));
 
         // TDesktop background
-        colors.put(TDESKTOP_BACKGROUND, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(WHITE)
-            .build());
+        colors.put(TDESKTOP_BACKGROUND, attr(BLUE, WHITE));
 
         // TButton text
-        colors.put(TBUTTON_INACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(GREEN)
-            .build());
-        colors.put(TBUTTON_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(GREEN)
-            .build());
-        colors.put(TBUTTON_ACTIVE, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(GREEN)
-            .build());
-        colors.put(TBUTTON_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(GREEN)
-            .build());
-        colors.put(TBUTTON_DEFAULT, CellAttributes.builder()
-            .foreColor(BRIGHT_CYAN)
-            .backColor(GREEN)
-            .build());
-        colors.put(TBUTTON_DEFAULT_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_CYAN)
-            .backColor(GREEN)
-            .build());
-        colors.put(TBUTTON_DISABLED, CellAttributes.builder()
-            .foreColor(BRIGHT_BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TBUTTON_DISABLED_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TBUTTON_MNEMONIC, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(GREEN)
-            .build());
-        colors.put(TBUTTON_MNEMONIC_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(GREEN)
-            .build());
-        colors.put(TBUTTON_DEFAULT_MNEMONIC, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(GREEN)
-            .build());
-        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(GREEN)
-            .build());
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(GREEN)
-            .build());
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(GREEN)
-            .build());
+        colors.put(TBUTTON_INACTIVE, attr(BLACK, GREEN));
+        colors.put(TBUTTON_INACTIVE_MODAL, attr(BLACK, GREEN));
+        colors.put(TBUTTON_ACTIVE, attr(BRIGHT_WHITE, GREEN));
+        colors.put(TBUTTON_ACTIVE_MODAL, attr(BRIGHT_WHITE, GREEN));
+        colors.put(TBUTTON_DEFAULT, attr(BRIGHT_CYAN, GREEN));
+        colors.put(TBUTTON_DEFAULT_MODAL, attr(BRIGHT_CYAN, GREEN));
+        colors.put(TBUTTON_DISABLED, attr(BRIGHT_BLACK, WHITE));
+        colors.put(TBUTTON_DISABLED_MODAL, attr(BRIGHT_BLACK, WHITE));
+        colors.put(TBUTTON_MNEMONIC, attr(BRIGHT_YELLOW, GREEN));
+        colors.put(TBUTTON_MNEMONIC_MODAL, attr(BRIGHT_YELLOW, GREEN));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, attr(BRIGHT_YELLOW, GREEN));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, attr(BRIGHT_YELLOW, GREEN));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_YELLOW, GREEN));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(BRIGHT_YELLOW, GREEN));
         colors.put(TBUTTON_MNEMONIC_PULSE, CellAttributes.builder()
             .foreColor(BRIGHT_BLACK)
             .build());
@@ -1595,54 +1517,18 @@ public class ColorTheme {
             .build());
 
         // TLabel text
-        colors.put(TLABEL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TLABEL_ACTIVE, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TLABEL_DISABLED, CellAttributes.builder()
-            .foreColor(BRIGHT_BLACK)
-            .backColor(BLUE)
-            .build());
-        colors.put(TLABEL_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TLABEL_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(WHITE)
-            .build());
-        colors.put(TLABEL_DISABLED_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TLABEL_MNEMONIC, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(BLUE)
-            .build());
-        colors.put(TLABEL_ACTIVE_MNEMONIC, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(BLUE)
-            .build());
-        colors.put(TLABEL_DISABLED_MNEMONIC, CellAttributes.builder()
-            .foreColor(BRIGHT_BLACK)
-            .backColor(BLUE)
-            .build());
-        colors.put(TLABEL_MNEMONIC_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(WHITE)
-            .build());
-        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(WHITE)
-            .build());
-        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_BLACK)
-            .backColor(WHITE)
-            .build());
+        colors.put(TLABEL, attr(WHITE, BLUE));
+        colors.put(TLABEL_ACTIVE, attr(BRIGHT_WHITE, BLUE));
+        colors.put(TLABEL_DISABLED, attr(BRIGHT_BLACK, BLUE));
+        colors.put(TLABEL_MODAL, attr(BLACK, WHITE));
+        colors.put(TLABEL_ACTIVE_MODAL, attr(BRIGHT_WHITE, WHITE));
+        colors.put(TLABEL_DISABLED_MODAL, attr(BRIGHT_BLACK, WHITE));
+        colors.put(TLABEL_MNEMONIC, attr(BRIGHT_YELLOW, BLUE));
+        colors.put(TLABEL_ACTIVE_MNEMONIC, attr(BRIGHT_YELLOW, BLUE));
+        colors.put(TLABEL_DISABLED_MNEMONIC, attr(BRIGHT_BLACK, BLUE));
+        colors.put(TLABEL_MNEMONIC_MODAL, attr(BRIGHT_YELLOW, WHITE));
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, attr(BRIGHT_YELLOW, WHITE));
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, attr(BRIGHT_BLACK, WHITE));
 
         // THyperLink
         colors.put(THYPERLINK, CellAttributes.builder()
@@ -1667,58 +1553,25 @@ public class ColorTheme {
             .build());
 
         // TText text
-        colors.put(TTEXT, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTEXT_BOLD, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTEXT_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
+        colors.put(TTEXT, attr(WHITE, BLUE));
+        colors.put(TTEXT_BOLD, attr(BRIGHT_WHITE, BLUE));
+        colors.put(TTEXT_MODAL, attr(BLACK, WHITE));
         colors.put(TTEXT_BOLD_MODAL, CellAttributes.builder()
             .foreColor(BLACK)
             .backColor(WHITE)
             .bold(true)
             .build());
         // Same as TEDITOR_SELECTED / TEDITOR_SELECTED_MODAL.
-        colors.put(TTEXT_SELECTED, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TTEXT_SELECTED_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
+        colors.put(TTEXT_SELECTED, attr(BLACK, CYAN));
+        colors.put(TTEXT_SELECTED_MODAL, attr(BLACK, CYAN));
 
         // TField text
-        colors.put(TFIELD_INACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TFIELD_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TFIELD_ACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TFIELD_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TFIELD_SELECTED, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(GREEN)
-            .build());
-        colors.put(TFIELD_SELECTED_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(GREEN)
-            .build());
+        colors.put(TFIELD_INACTIVE, attr(BLACK, WHITE));
+        colors.put(TFIELD_INACTIVE_MODAL, attr(BRIGHT_WHITE, BLUE));
+        colors.put(TFIELD_ACTIVE, attr(BLACK, CYAN));
+        colors.put(TFIELD_ACTIVE_MODAL, attr(BRIGHT_WHITE, BLUE));
+        colors.put(TFIELD_SELECTED, attr(BRIGHT_WHITE, GREEN));
+        colors.put(TFIELD_SELECTED_MODAL, attr(BRIGHT_WHITE, GREEN));
         // Just a small bit of amber.
         colors.put(TFIELD_PULSE, CellAttributes.builder()
             .foreColorPalette(Palette256.fromRgb(0x8A610D))
@@ -1729,38 +1582,14 @@ public class ColorTheme {
             .build());
 
         // TCheckBox
-        colors.put(TCHECKBOX_INACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TCHECKBOX_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TCHECKBOX_ACTIVE, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TCHECKBOX_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TCHECKBOX_MNEMONIC, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
-        colors.put(TCHECKBOX_MNEMONIC_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
-        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
-        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
+        colors.put(TCHECKBOX_INACTIVE, attr(BLACK, CYAN));
+        colors.put(TCHECKBOX_INACTIVE_MODAL, attr(BLACK, CYAN));
+        colors.put(TCHECKBOX_ACTIVE, attr(BRIGHT_WHITE, CYAN));
+        colors.put(TCHECKBOX_ACTIVE_MODAL, attr(BRIGHT_WHITE, CYAN));
+        colors.put(TCHECKBOX_MNEMONIC, attr(BRIGHT_YELLOW, CYAN));
+        colors.put(TCHECKBOX_MNEMONIC_MODAL, attr(BRIGHT_YELLOW, CYAN));
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_YELLOW, CYAN));
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED_MODAL, attr(BRIGHT_YELLOW, CYAN));
         // Just a small bit of amber.
         colors.put(TCHECKBOX_PULSE, CellAttributes.builder()
             .foreColorPalette(Palette256.fromRgb(0x8A610D))
@@ -1773,126 +1602,42 @@ public class ColorTheme {
             .build());
 
         // TComboBox
-        colors.put(TCOMBOBOX_INACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TCOMBOBOX_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(GREEN)
-            .build());
-        colors.put(TCOMBOBOX_ACTIVE, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TCOMBOBOX_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(GREEN)
-            .build());
+        colors.put(TCOMBOBOX_INACTIVE, attr(BLACK, WHITE));
+        colors.put(TCOMBOBOX_INACTIVE_MODAL, attr(BLACK, GREEN));
+        colors.put(TCOMBOBOX_ACTIVE, attr(BLUE, CYAN));
+        colors.put(TCOMBOBOX_ACTIVE_MODAL, attr(BRIGHT_WHITE, GREEN));
 
         // TSpinner
-        colors.put(TSPINNER_INACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TSPINNER_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(GREEN)
-            .build());
-        colors.put(TSPINNER_ACTIVE, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TSPINNER_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(GREEN)
-            .build());
+        colors.put(TSPINNER_INACTIVE, attr(BLACK, WHITE));
+        colors.put(TSPINNER_INACTIVE_MODAL, attr(BLACK, GREEN));
+        colors.put(TSPINNER_ACTIVE, attr(BLUE, CYAN));
+        colors.put(TSPINNER_ACTIVE_MODAL, attr(BRIGHT_WHITE, GREEN));
 
         // TCalendar
-        colors.put(TCALENDAR_BACKGROUND, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TCALENDAR_BACKGROUND_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TCALENDAR_DAY, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TCALENDAR_DAY_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TCALENDAR_DAY_SELECTED, CellAttributes.builder()
-            .foreColor(RED)
-            .backColor(WHITE)
-            .build());
-        colors.put(TCALENDAR_DAY_SELECTED_MODAL, CellAttributes.builder()
-            .foreColor(RED)
-            .backColor(WHITE)
-            .build());
-        colors.put(TCALENDAR_ARROW, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TCALENDAR_ARROW_MODAL, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TCALENDAR_TITLE, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TCALENDAR_TITLE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(BLUE)
-            .build());
+        colors.put(TCALENDAR_BACKGROUND, attr(WHITE, BLUE));
+        colors.put(TCALENDAR_BACKGROUND_MODAL, attr(WHITE, BLUE));
+        colors.put(TCALENDAR_DAY, attr(WHITE, BLUE));
+        colors.put(TCALENDAR_DAY_MODAL, attr(WHITE, BLUE));
+        colors.put(TCALENDAR_DAY_SELECTED, attr(RED, WHITE));
+        colors.put(TCALENDAR_DAY_SELECTED_MODAL, attr(RED, WHITE));
+        colors.put(TCALENDAR_ARROW, attr(BLUE, CYAN));
+        colors.put(TCALENDAR_ARROW_MODAL, attr(BLUE, CYAN));
+        colors.put(TCALENDAR_TITLE, attr(BRIGHT_WHITE, BLUE));
+        colors.put(TCALENDAR_TITLE_MODAL, attr(BRIGHT_WHITE, BLUE));
 
         // TPanel border
-        colors.put(TPANEL_BORDER, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TPANEL_BORDER_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
+        colors.put(TPANEL_BORDER, attr(WHITE, BLUE));
+        colors.put(TPANEL_BORDER_MODAL, attr(WHITE, BLUE));
 
         // TRadioButton
-        colors.put(TRADIOBUTTON_INACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TRADIOBUTTON_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TRADIOBUTTON_ACTIVE, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TRADIOBUTTON_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TRADIOBUTTON_MNEMONIC, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
-        colors.put(TRADIOBUTTON_MNEMONIC_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
-        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
-        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
+        colors.put(TRADIOBUTTON_INACTIVE, attr(BLACK, CYAN));
+        colors.put(TRADIOBUTTON_INACTIVE_MODAL, attr(BLACK, CYAN));
+        colors.put(TRADIOBUTTON_ACTIVE, attr(BRIGHT_WHITE, CYAN));
+        colors.put(TRADIOBUTTON_ACTIVE_MODAL, attr(BRIGHT_WHITE, CYAN));
+        colors.put(TRADIOBUTTON_MNEMONIC, attr(BRIGHT_YELLOW, CYAN));
+        colors.put(TRADIOBUTTON_MNEMONIC_MODAL, attr(BRIGHT_YELLOW, CYAN));
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_YELLOW, CYAN));
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(BRIGHT_YELLOW, CYAN));
         // Just a small bit of amber.
         colors.put(TRADIOBUTTON_PULSE, CellAttributes.builder()
             .foreColorPalette(Palette256.fromRgb(0x8A610D))
@@ -1905,332 +1650,110 @@ public class ColorTheme {
             .build());
 
         // TRadioGroup
-        colors.put(TRADIOGROUP_INACTIVE, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TRADIOGROUP_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TRADIOGROUP_ACTIVE, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TRADIOGROUP_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(WHITE)
-            .build());
-        colors.put(TRADIOGROUP_MNEMONIC, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(BLUE)
-            .build());
-        colors.put(TRADIOGROUP_MNEMONIC_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(WHITE)
-            .build());
-        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(BLUE)
-            .build());
-        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(WHITE)
-            .build());
+        colors.put(TRADIOGROUP_INACTIVE, attr(WHITE, BLUE));
+        colors.put(TRADIOGROUP_INACTIVE_MODAL, attr(BLACK, WHITE));
+        colors.put(TRADIOGROUP_ACTIVE, attr(BRIGHT_WHITE, BLUE));
+        colors.put(TRADIOGROUP_ACTIVE_MODAL, attr(BRIGHT_WHITE, WHITE));
+        colors.put(TRADIOGROUP_MNEMONIC, attr(BRIGHT_YELLOW, BLUE));
+        colors.put(TRADIOGROUP_MNEMONIC_MODAL, attr(BRIGHT_YELLOW, WHITE));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_YELLOW, BLUE));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, attr(BRIGHT_YELLOW, WHITE));
 
         // TMenu
-        colors.put(TMENU, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TMENU_HIGHLIGHTED, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(GREEN)
-            .build());
-        colors.put(TMENU_MNEMONIC, CellAttributes.builder()
-            .foreColor(RED)
-            .backColor(WHITE)
-            .build());
-        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, CellAttributes.builder()
-            .foreColor(RED)
-            .backColor(GREEN)
-            .build());
-        colors.put(TMENU_DISABLED, CellAttributes.builder()
-            .foreColor(BRIGHT_BLACK)
-            .backColor(WHITE)
-            .build());
+        colors.put(TMENU, attr(BLACK, WHITE));
+        colors.put(TMENU_HIGHLIGHTED, attr(BLACK, GREEN));
+        colors.put(TMENU_MNEMONIC, attr(RED, WHITE));
+        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, attr(RED, GREEN));
+        colors.put(TMENU_DISABLED, attr(BRIGHT_BLACK, WHITE));
 
         // TProgressBar
-        colors.put(TPROGRESSBAR_COMPLETE, CellAttributes.builder()
-            .foreColor(BRIGHT_BLUE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TPROGRESSBAR_COMPLETE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_BLUE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TPROGRESSBAR_INCOMPLETE, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TPROGRESSBAR_INCOMPLETE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(WHITE)
-            .build());
-        colors.put(TPROGRESSBAR_BORDER, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TPROGRESSBAR_BORDER_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(WHITE)
-            .build());
+        colors.put(TPROGRESSBAR_COMPLETE, attr(BRIGHT_BLUE, BLUE));
+        colors.put(TPROGRESSBAR_COMPLETE_MODAL, attr(BRIGHT_BLUE, BLUE));
+        colors.put(TPROGRESSBAR_INCOMPLETE, attr(BRIGHT_WHITE, BLUE));
+        colors.put(TPROGRESSBAR_INCOMPLETE_MODAL, attr(BRIGHT_WHITE, WHITE));
+        colors.put(TPROGRESSBAR_BORDER, attr(BRIGHT_WHITE, BLUE));
+        colors.put(TPROGRESSBAR_BORDER_MODAL, attr(BRIGHT_WHITE, WHITE));
 
         // THScroller / TVScroller
-        colors.put(TSCROLLER_BAR, CellAttributes.builder()
-            .foreColor(CYAN)
-            .backColor(BLUE)
-            .build());
-        colors.put(TSCROLLER_BAR_MODAL, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TSCROLLER_ARROWS, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TSCROLLER_ARROWS_MODAL, CellAttributes.builder()
-            .foreColor(CYAN)
-            .backColor(BLUE)
-            .build());
+        colors.put(TSCROLLER_BAR, attr(CYAN, BLUE));
+        colors.put(TSCROLLER_BAR_MODAL, attr(BLUE, CYAN));
+        colors.put(TSCROLLER_ARROWS, attr(BLUE, CYAN));
+        colors.put(TSCROLLER_ARROWS_MODAL, attr(CYAN, BLUE));
 
         // TTreeView
-        colors.put(TTREEVIEW, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTREEVIEW_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTREEVIEW_EXPANDBUTTON, CellAttributes.builder()
-            .foreColor(BRIGHT_GREEN)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTREEVIEW_EXPANDBUTTON_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_GREEN)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTREEVIEW_SELECTED, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TTREEVIEW_SELECTED_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TTREEVIEW_UNREADABLE, CellAttributes.builder()
-            .foreColor(RED)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTREEVIEW_UNREADABLE_MODAL, CellAttributes.builder()
-            .foreColor(RED)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTREEVIEW_INACTIVE, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTREEVIEW_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTREEVIEW_SELECTED_INACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TTREEVIEW_SELECTED_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
+        colors.put(TTREEVIEW, attr(WHITE, BLUE));
+        colors.put(TTREEVIEW_MODAL, attr(WHITE, BLUE));
+        colors.put(TTREEVIEW_EXPANDBUTTON, attr(BRIGHT_GREEN, BLUE));
+        colors.put(TTREEVIEW_EXPANDBUTTON_MODAL, attr(BRIGHT_GREEN, BLUE));
+        colors.put(TTREEVIEW_SELECTED, attr(BLACK, CYAN));
+        colors.put(TTREEVIEW_SELECTED_MODAL, attr(BLACK, CYAN));
+        colors.put(TTREEVIEW_UNREADABLE, attr(RED, BLUE));
+        colors.put(TTREEVIEW_UNREADABLE_MODAL, attr(RED, BLUE));
+        colors.put(TTREEVIEW_INACTIVE, attr(WHITE, BLUE));
+        colors.put(TTREEVIEW_INACTIVE_MODAL, attr(WHITE, BLUE));
+        colors.put(TTREEVIEW_SELECTED_INACTIVE, attr(BLACK, WHITE));
+        colors.put(TTREEVIEW_SELECTED_INACTIVE_MODAL, attr(BLACK, WHITE));
 
         // TList
-        colors.put(TLIST, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TLIST_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TLIST_SELECTED, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(GREEN)
-            .build());
-        colors.put(TLIST_SELECTED_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(GREEN)
-            .build());
-        colors.put(TLIST_UNREADABLE, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(GREEN)
-            .build());
-        colors.put(TLIST_UNREADABLE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(GREEN)
-            .build());
-        colors.put(TLIST_INACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TLIST_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TLIST_SELECTED_INACTIVE, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
-        colors.put(TLIST_SELECTED_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
+        colors.put(TLIST, attr(BLACK, CYAN));
+        colors.put(TLIST_MODAL, attr(BLACK, CYAN));
+        colors.put(TLIST_SELECTED, attr(BRIGHT_WHITE, GREEN));
+        colors.put(TLIST_SELECTED_MODAL, attr(BRIGHT_WHITE, GREEN));
+        colors.put(TLIST_UNREADABLE, attr(BRIGHT_WHITE, GREEN));
+        colors.put(TLIST_UNREADABLE_MODAL, attr(BRIGHT_WHITE, GREEN));
+        colors.put(TLIST_INACTIVE, attr(BLACK, CYAN));
+        colors.put(TLIST_INACTIVE_MODAL, attr(BLACK, CYAN));
+        colors.put(TLIST_SELECTED_INACTIVE, attr(BRIGHT_YELLOW, CYAN));
+        colors.put(TLIST_SELECTED_INACTIVE_MODAL, attr(BRIGHT_YELLOW, CYAN));
 
         // TStatusBar
-        colors.put(TSTATUSBAR_TEXT, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TSTATUSBAR_BUTTON, CellAttributes.builder()
-            .foreColor(RED)
-            .backColor(WHITE)
-            .build());
-        colors.put(TSTATUSBAR_SELECTED, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
+        colors.put(TSTATUSBAR_TEXT, attr(BLACK, WHITE));
+        colors.put(TSTATUSBAR_BUTTON, attr(RED, WHITE));
+        colors.put(TSTATUSBAR_SELECTED, attr(WHITE, BLUE));
 
         // TEditor
-        colors.put(TEDITOR, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TEDITOR_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TEDITOR_SELECTED, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TEDITOR_SELECTED_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TEDITOR_MARGIN, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TEDITOR_MARGIN_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(CYAN)
-            .build());
+        colors.put(TEDITOR, attr(WHITE, BLUE));
+        colors.put(TEDITOR_MODAL, attr(WHITE, BLUE));
+        colors.put(TEDITOR_SELECTED, attr(BLACK, CYAN));
+        colors.put(TEDITOR_SELECTED_MODAL, attr(BLACK, CYAN));
+        colors.put(TEDITOR_MARGIN, attr(BRIGHT_WHITE, CYAN));
+        colors.put(TEDITOR_MARGIN_MODAL, attr(BRIGHT_WHITE, CYAN));
 
         // TTable
-        colors.put(TTABLE_INACTIVE, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTABLE_INACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTABLE_ACTIVE, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TTABLE_ACTIVE_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(CYAN)
-            .build());
-        colors.put(TTABLE_SELECTED, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
-        colors.put(TTABLE_SELECTED_MODAL, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
-        colors.put(TTABLE_LABEL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TTABLE_LABEL_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TTABLE_LABEL_SELECTED, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(WHITE)
-            .build());
-        colors.put(TTABLE_LABEL_SELECTED_MODAL, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(WHITE)
-            .build());
-        colors.put(TTABLE_BORDER, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TTABLE_BORDER_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
+        colors.put(TTABLE_INACTIVE, attr(WHITE, BLUE));
+        colors.put(TTABLE_INACTIVE_MODAL, attr(WHITE, BLUE));
+        colors.put(TTABLE_ACTIVE, attr(BLACK, CYAN));
+        colors.put(TTABLE_ACTIVE_MODAL, attr(BLACK, CYAN));
+        colors.put(TTABLE_SELECTED, attr(BRIGHT_YELLOW, CYAN));
+        colors.put(TTABLE_SELECTED_MODAL, attr(BRIGHT_YELLOW, CYAN));
+        colors.put(TTABLE_LABEL, attr(BLACK, WHITE));
+        colors.put(TTABLE_LABEL_MODAL, attr(BLACK, WHITE));
+        colors.put(TTABLE_LABEL_SELECTED, attr(BLUE, WHITE));
+        colors.put(TTABLE_LABEL_SELECTED_MODAL, attr(BLUE, WHITE));
+        colors.put(TTABLE_BORDER, attr(WHITE, BLUE));
+        colors.put(TTABLE_BORDER_MODAL, attr(WHITE, BLUE));
 
         // TSplitPane
-        colors.put(TSPLITPANE, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
-        colors.put(TSPLITPANE_MODAL, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
+        colors.put(TSPLITPANE, attr(WHITE, BLUE));
+        colors.put(TSPLITPANE_MODAL, attr(WHITE, BLUE));
 
         // THelpWindow border - during window movement
-        colors.put(THELPWINDOW_WINDOWMOVE, CellAttributes.builder()
-            .foreColor(BRIGHT_GREEN)
-            .backColor(CYAN)
-            .build());
+        colors.put(THELPWINDOW_WINDOWMOVE, attr(BRIGHT_GREEN, CYAN));
 
         // THelpWindow border
-        colors.put(THELPWINDOW_BORDER, CellAttributes.builder()
-            .foreColor(BRIGHT_GREEN)
-            .backColor(CYAN)
-            .build());
+        colors.put(THELPWINDOW_BORDER, attr(BRIGHT_GREEN, CYAN));
 
         // THelpWindow background
-        colors.put(THELPWINDOW_BACKGROUND, CellAttributes.builder()
-            .foreColor(BRIGHT_WHITE)
-            .backColor(CYAN)
-            .build());
+        colors.put(THELPWINDOW_BACKGROUND, attr(BRIGHT_WHITE, CYAN));
 
         // THelpWindow text
-        colors.put(THELPWINDOW_TEXT, CellAttributes.builder()
-            .foreColor(WHITE)
-            .backColor(BLUE)
-            .build());
+        colors.put(THELPWINDOW_TEXT, attr(WHITE, BLUE));
 
         // THelpWindow link
-        colors.put(THELPWINDOW_LINK, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(BLUE)
-            .build());
+        colors.put(THELPWINDOW_LINK, attr(BRIGHT_YELLOW, BLUE));
 
         // THelpWindow link - active
-        colors.put(THELPWINDOW_LINK_ACTIVE, CellAttributes.builder()
-            .foreColor(BRIGHT_YELLOW)
-            .backColor(CYAN)
-            .build());
+        colors.put(THELPWINDOW_LINK_ACTIVE, attr(BRIGHT_YELLOW, CYAN));
     }
 
     /**
@@ -3497,15 +3020,36 @@ public class ColorTheme {
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_CYAN, BLUE));
         colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, attr(BRIGHT_BLUE, WHITE));
 
+        // THyperLink
+        colors.put(THYPERLINK, CellAttributes.builder()
+            .foreColor(BRIGHT_CYAN)
+            .backColor(BLUE)
+            .underline(true)
+            .build());
+        colors.put(THYPERLINK_HOVER, CellAttributes.builder()
+            .foreColor(BRIGHT_WHITE)
+            .backColor(BLUE)
+            .underline(true)
+            .build());
+        colors.put(THYPERLINK_MODAL, CellAttributes.builder()
+            .foreColor(BRIGHT_BLUE)
+            .backColor(WHITE)
+            .underline(true)
+            .build());
+        colors.put(THYPERLINK_HOVER_MODAL, CellAttributes.builder()
+            .foreColor(BLACK)
+            .backColor(WHITE)
+            .underline(true)
+            .build());
+
         // Fields / inputs: inactive fields are black on white, active input is
         // black on cyan.
         colors.put(TFIELD_INACTIVE, attr(BLACK, WHITE));
         colors.put(TFIELD_INACTIVE_MODAL, attr(BRIGHT_BLACK, CYAN));
         colors.put(TFIELD_ACTIVE, attr(BLACK, CYAN));
         colors.put(TFIELD_ACTIVE_MODAL, attr(BLACK, CYAN));
-        // The field sits on blue, so the selection goes green.
-        colors.put(TFIELD_SELECTED, attr(BLACK, GREEN));
-        colors.put(TFIELD_SELECTED_MODAL, attr(BLACK, GREEN));
+        colors.put(TFIELD_SELECTED, attr(CYAN, BLACK));
+        colors.put(TFIELD_SELECTED_MODAL, attr(CYAN, BLACK));
 
         // Check / radio / combo.
         colors.put(TCHECKBOX_INACTIVE, attr(WHITE, BLUE));
@@ -3540,13 +3084,13 @@ public class ColorTheme {
         // Lists / tree / editor / table: selected = MC "marked" = yellow on
         // blue; focus selected = black on cyan (MC "selected").
         colors.put(TLIST, attr(WHITE, BLUE));
-        colors.put(TLIST_MODAL, attr(WHITE, BLUE));
+        colors.put(TLIST_MODAL, attr(BLACK, WHITE));
         colors.put(TLIST_SELECTED, attr(BLACK, CYAN));
-        colors.put(TLIST_SELECTED_MODAL, attr(BLACK, CYAN));
+        colors.put(TLIST_SELECTED_MODAL, attr(BLUE, CYAN));
         colors.put(TLIST_INACTIVE, attr(WHITE, BLUE));
-        colors.put(TLIST_INACTIVE_MODAL, attr(WHITE, BLUE));
+        colors.put(TLIST_INACTIVE_MODAL, attr(BLACK, WHITE));
         colors.put(TLIST_SELECTED_INACTIVE, attr(BRIGHT_YELLOW, BLUE));
-        colors.put(TLIST_SELECTED_INACTIVE_MODAL, attr(BRIGHT_YELLOW, BLUE));
+        colors.put(TLIST_SELECTED_INACTIVE_MODAL, attr(BLACK, CYAN));
         colors.put(TTREEVIEW, attr(WHITE, BLUE));
         colors.put(TTREEVIEW_MODAL, attr(WHITE, BLUE));
         colors.put(TTREEVIEW_SELECTED, attr(BLACK, CYAN));
@@ -3566,6 +3110,12 @@ public class ColorTheme {
         colors.put(TTABLE_SELECTED, attr(BRIGHT_YELLOW, BLUE));
         colors.put(TTABLE_SELECTED_MODAL, attr(BRIGHT_YELLOW, BLUE));
 
+        // THScroller / TVScroller
+        colors.put(TSCROLLER_BAR, attr(CYAN, BLUE));
+        colors.put(TSCROLLER_BAR_MODAL, attr(BLACK, WHITE));
+        colors.put(TSCROLLER_ARROWS, attr(BLUE, CYAN));
+        colors.put(TSCROLLER_ARROWS_MODAL, attr(BLACK, WHITE));
+
         // Panel border
         colors.put(TPANEL_BORDER, attr(BRIGHT_CYAN, BLUE));
         colors.put(TPANEL_BORDER_MODAL, attr(BRIGHT_CYAN, BLUE));
@@ -3579,7 +3129,7 @@ public class ColorTheme {
         colors.put(TMENU_HIGHLIGHTED, attr(BRIGHT_WHITE, BLACK));
         colors.put(TMENU_MNEMONIC, attr(BRIGHT_YELLOW, CYAN));
         colors.put(TMENU_MNEMONIC_HIGHLIGHTED, attr(BRIGHT_YELLOW, BLACK));
-        colors.put(TMENU_DISABLED, attr(BLUE, CYAN));
+        colors.put(TMENU_DISABLED, attr(BRIGHT_BLACK, CYAN));
 
         // Status bar: black on cyan like MC's "header".
         colors.put(TSTATUSBAR_TEXT, attr(BLACK, CYAN));
