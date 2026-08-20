@@ -1910,22 +1910,10 @@ public class ColorTheme {
             .build());
 
         // THScroller / TVScroller
-        colors.put(TSCROLLER_BAR, CellAttributes.builder()
-            .foreColor(CYAN)
-            .backColor(BLUE)
-            .build());
-        colors.put(TSCROLLER_BAR_MODAL, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TSCROLLER_ARROWS, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TSCROLLER_ARROWS_MODAL, CellAttributes.builder()
-            .foreColor(CYAN)
-            .backColor(BLUE)
-            .build());
+        colors.put(TSCROLLER_BAR, attr(CYAN, BLUE));
+        colors.put(TSCROLLER_BAR_MODAL, attr(BLUE, CYAN));
+        colors.put(TSCROLLER_ARROWS, attr(BLUE, CYAN));
+        colors.put(TSCROLLER_ARROWS_MODAL, attr(CYAN, BLUE));
 
         // TTreeView
         colors.put(TTREEVIEW, CellAttributes.builder()
