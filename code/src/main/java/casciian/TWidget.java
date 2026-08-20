@@ -279,6 +279,9 @@ public abstract class TWidget implements Comparable<TWidget> {
      * called by TWindow.onClose().
      */
     public void close() {
+        if ((window != null) && containsWidget(window.getDefaultButton())) {
+            window.setDefaultButton(null);
+        }
         // Default: call close() on children.
         children.forEach(TWidget::close);
         children.clear();
@@ -396,6 +399,30 @@ public abstract class TWidget implements Comparable<TWidget> {
 
         }
 
+        // If I have any radio groups on me AND this is an Alt-key that
+        // matches the group's mnemonic, activate the group.
+        for (TWidget widget: children) {
+            if (widget instanceof TRadioGroup) {
+                TRadioGroup group = (TRadioGroup) widget;
+                if (group.isEnabled()
+                    && !keypress.getKey().isFnKey()
+                    && keypress.getKey().isAlt()
+                    && !keypress.getKey().isCtrl()
+                    && (Character.toLowerCase(group.getMnemonic().getShortcut())
+                        == Character.toLowerCase(keypress.getKey().getChar()))
+                ) {
+                    activate(group);
+                    TRadioButton selectedButton = group.getSelectedButton();
+                    if ((selectedButton != null) && selectedButton.isEnabled()) {
+                        group.activate(selectedButton);
+                    } else if (group.getChildren().size() > 0) {
+                        group.activate(0);
+                    }
+                    return;
+                }
+            }
+        }
+
         // If I have any radiobuttons on me AND this is an Alt-key that
         // matches its mnemonic, select it and send a Space to it.
         for (TWidget widget: children) {
@@ -437,7 +464,7 @@ public abstract class TWidget implements Comparable<TWidget> {
         }
 
         // If I have any checkboxes on me AND this is an Alt-key that matches
-        // its mnemonic, select it and set it to checked.
+        // its mnemonic, select it and toggle it.
         for (TWidget widget: children) {
             if (widget instanceof TCheckBox) {
                 TCheckBox checkBox = (TCheckBox) widget;
@@ -449,11 +476,15 @@ public abstract class TWidget implements Comparable<TWidget> {
                         == Character.toLowerCase(keypress.getKey().getChar()))
                 ) {
                     activate(checkBox);
-                    checkBox.setChecked(true);
-                    checkBox.dispatch();
+                    checkBox.onKeypress(new TKeypressEvent(keypress.getBackend(),
+                            kbSpace));
                     return;
                 }
             }
+        }
+
+        if (handleKeypressBeforeActiveChild(keypress)) {
+            return;
         }
 
         if (echoKeystrokes) {
@@ -472,6 +503,32 @@ public abstract class TWidget implements Comparable<TWidget> {
                 }
             }
         }
+    }
+
+    /**
+     * Hook for subclasses to handle a keypress after mnemonic processing but
+     * before the normal child dispatch path.
+     *
+     * @param keypress keystroke event
+     * @return true if the keypress was consumed
+     */
+    protected boolean handleKeypressBeforeActiveChild(
+        final TKeypressEvent keypress) {
+
+        return false;
+    }
+
+    /**
+     * Hook for subclasses to keep handling a keypress themselves before the
+     * window-level default button can consume it.
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should receive the keypress first
+     */
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return false;
     }
 
     /**
@@ -495,8 +552,11 @@ public abstract class TWidget implements Comparable<TWidget> {
         for (int i = children.size() - 1 ; i >= 0 ; i--) {
             TWidget widget = children.get(i);
             if (widget.mouseWouldHit(mouse)) {
-                // Dispatch to this child, also activate it
-                activate(widget);
+                // Dispatch to this child, and activate it only if it is
+                // enabled.
+                if (widget.enabled) {
+                    activate(widget);
+                }
 
                 // Set x and y relative to the child's coordinates
                 mouse.setX(mouse.getAbsoluteX() - widget.getAbsoluteX());
@@ -528,8 +588,11 @@ public abstract class TWidget implements Comparable<TWidget> {
         for (int i = children.size() - 1 ; i >= 0 ; i--) {
             TWidget widget = children.get(i);
             if (widget.mouseWouldHit(mouse)) {
-                // Dispatch to this child, also activate it
-                activate(widget);
+                // Dispatch to this child, and activate it only if it is
+                // enabled.
+                if (widget.enabled) {
+                    activate(widget);
+                }
 
                 // Set x and y relative to the child's coordinates
                 mouse.setX(mouse.getAbsoluteX() - widget.getAbsoluteX());
@@ -777,6 +840,9 @@ public abstract class TWidget implements Comparable<TWidget> {
             throw new IndexOutOfBoundsException("child widget is not in " +
                 "list of children of this parent");
         }
+        if ((window != null) && child.containsWidget(window.getDefaultButton())) {
+            window.setDefaultButton(null);
+        }
         if (doClose) {
             child.close();
         }
@@ -800,6 +866,27 @@ public abstract class TWidget implements Comparable<TWidget> {
      */
     public boolean hasChild(final TWidget child) {
         return children.contains(child);
+    }
+
+    /**
+     * See if a widget is this widget or one of its descendants.
+     *
+     * @param widget the widget to check
+     * @return true if widget is this widget or a descendant
+     */
+    private boolean containsWidget(final TWidget widget) {
+        if (widget == null) {
+            return false;
+        }
+        if (this == widget) {
+            return true;
+        }
+        for (TWidget child: children) {
+            if (child.containsWidget(widget)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1030,7 +1117,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param width new widget width
      * @param height new widget height
      */
-    public final void setDimensions(final int x, final int y, final int width,
+    public void setDimensions(final int x, final int y, final int width,
         final int height) {
 
         this.x = x;
@@ -2482,21 +2569,6 @@ public abstract class TWidget implements Comparable<TWidget> {
                                          final int x, final int y) {
 
         return new THyperLink(this, text, uri, x, y);
-    }
-
-    /**
-     * Convenience function to add a label to this container/window.
-     *
-     * @param <F> the type of widget this label is for
-     * @param text label
-     * @param x column relative to parent
-     * @param y row relative to parent
-     * @param labelFor the widget this label is for
-     * @return the new label
-     */
-    public final <F extends TWidget> TLabel<F> addLabel(final String text, final int x, final int y,
-        final F labelFor) {
-        return new TLabel<>(this, text, x, y, labelFor);
     }
 
     /**

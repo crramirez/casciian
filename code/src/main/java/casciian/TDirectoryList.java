@@ -242,9 +242,13 @@ public class TDirectoryList extends TList {
      */
     private String renderFile(final File file) {
         String name = file.getName();
-        int maxWidth = getWidth() - 8;
+        int maxWidth = Math.max(1, getWidth() - 8 - 2 * padding);
         if (StringUtils.width(name) > maxWidth) {
-            name = name.substring(0, maxWidth - 3) + "...";
+            if (maxWidth >= 3) {
+                name = name.substring(0, maxWidth - 3) + "...";
+            } else {
+                name = name.substring(0, maxWidth);
+            }
         }
         return String.format("%-" + maxWidth + "s %5dk", name,
             (file.length() / 1024));

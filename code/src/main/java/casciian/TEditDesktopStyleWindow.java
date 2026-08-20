@@ -97,6 +97,31 @@ public class TEditDesktopStyleWindow extends TWindow {
     private final TButton button2;
 
     /**
+     * The selected choice for checkbox style.
+     */
+    private final TComboBox checkBoxStyle;
+
+    /**
+     * Example checkbox.
+     */
+    private final TCheckBox checkBox1;
+
+    /**
+     * The selected choice for radio-button style.
+     */
+    private final TComboBox radioButtonStyle;
+
+    /**
+     * Example radio group.
+     */
+    private final TRadioGroup radioGroup1;
+
+    /**
+     * Example radio button.
+     */
+    private final TRadioButton radioButton1;
+
+    /**
      * The selected choice for the controls padding style.
      */
     private final TComboBox controlsPadding;
@@ -114,7 +139,7 @@ public class TEditDesktopStyleWindow extends TWindow {
     public TEditDesktopStyleWindow(final TApplication application) {
 
         // Register with the TApplication
-        super(application, "", 0, 0, 70, 25, MODAL);
+        super(application, "", 0, 0, 70, 31, MODAL);
         i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("windowTitle"));
@@ -203,14 +228,47 @@ public class TEditDesktopStyleWindow extends TWindow {
         button1.setStyle(buttonStyleString);
         button2.setStyle(buttonStyleString);
 
+        List<String> checkBoxStyles = TCheckBox.getStyleNames();
+        checkBoxStyle = addLabelFor(i18n.getString("checkBoxStyle"), 2, 17,
+            addComboBox(2, 18, 18, checkBoxStyles, 0,
+                checkBoxStyles.size() + 2, new TAction() {
+                    public void DO() {
+                        checkBox1.setStyle(checkBoxStyle.getText());
+                    }
+                }));
+        String checkBoxStyleString = System.getProperty(TCheckBox.PROPERTY_KEY,
+            TCheckBox.DEFAULT_STYLE_NAME);
+        checkBoxStyle.setText(checkBoxStyleString);
+
+        checkBox1 = addCheckBox(25, 18, i18n.getString("checkBox1"), true);
+        checkBox1.setStyle(checkBoxStyleString);
+
+        List<String> radioButtonStyles = TRadioButton.getStyleNames();
+        radioButtonStyle = addLabelFor(i18n.getString("radioButtonStyle"), 2,
+            20, addComboBox(2, 21, 18, radioButtonStyles, 0,
+                radioButtonStyles.size() + 2, new TAction() {
+                    public void DO() {
+                        radioButton1.setStyle(radioButtonStyle.getText());
+                    }
+                }));
+        String radioButtonStyleString = System.getProperty(
+            TRadioButton.PROPERTY_KEY, TRadioButton.DEFAULT_STYLE_NAME);
+        radioButtonStyle.setText(radioButtonStyleString);
+
+        radioGroup1 = addRadioGroup(24, 20, 28,
+            i18n.getString("radioGroupTitle"));
+        radioButton1 = radioGroup1.addRadioButton(i18n.getString("radioButton1"),
+            true);
+        radioButton1.setStyle(radioButtonStyleString);
+
         // Controls padding combobox
         List<String> paddingStyles = ControlPadding.getStyleNames();
         String controlsPaddingString = System.getProperty(
             ControlPadding.PROPERTY_KEY,
             ControlPadding.DEFAULT_STYLE_NAME);
 
-        controlsPadding = addLabelFor(i18n.getString("controlsPadding"), 2, 17,
-            addComboBox(2, 18, 18, paddingStyles, 0,
+        controlsPadding = addLabelFor(i18n.getString("controlsPadding"), 2, 24,
+            addComboBox(2, 25, 18, paddingStyles, 0,
                 paddingStyles.size() + 2, (TAction) null));
         controlsPadding.setText(controlsPaddingString);
 
@@ -223,6 +281,12 @@ public class TEditDesktopStyleWindow extends TWindow {
                     }
                     String newButtonStyle = buttonStyle.getText();
                     System.setProperty("casciian.TButton.style", newButtonStyle);
+                    String newCheckBoxStyle = checkBoxStyle.getText();
+                    System.setProperty(TCheckBox.PROPERTY_KEY,
+                        newCheckBoxStyle);
+                    String newRadioButtonStyle = radioButtonStyle.getText();
+                    System.setProperty(TRadioButton.PROPERTY_KEY,
+                        newRadioButtonStyle);
                     String newPadding = controlsPadding.getText();
                     System.setProperty(ControlPadding.PROPERTY_KEY,
                         newPadding);

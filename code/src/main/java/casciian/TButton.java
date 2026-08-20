@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
@@ -250,6 +255,20 @@ public class TButton extends TWidget {
     }
 
     /**
+     * Returns true so that a focused button keeps Enter for itself rather
+     * than ceding it to the window default button.
+     *
+     * @param keypress the keypress event (kbEnter in practice)
+     * @return true
+     */
+    @Override
+    public boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return true;
+    }
+
+    /**
      * Override TWidget's width: we can only set width at construction time.
      *
      * @param width new widget width (ignored)
@@ -271,6 +290,23 @@ public class TButton extends TWidget {
     }
 
     /**
+     * Returns true if this button is the window's default button and the
+     * window's active (focused) child is not a TButton.  In that case the
+     * button should be drawn with the "default" theme keys to signal it will
+     * fire on Enter, mimicking Turbo Vision behaviour.
+     *
+     * @return true if the default-button style should be applied
+     */
+    private boolean isWindowDefaultButton() {
+        TWindow w = getWindow();
+        if (w == null || w.getDefaultButton() != this) {
+            return false;
+        }
+        TWidget active = w.getActiveChild();
+        return !(active instanceof TButton);
+    }
+
+    /**
      * Draw a button with a shadow.
      */
     @Override
@@ -284,6 +320,9 @@ public class TButton extends TWidget {
         } else if (isAbsoluteActive()) {
             buttonColor = getWidgetColor("tbutton.active");
             mnemonicColor = getWidgetColor("tbutton.mnemonic.highlighted");
+        } else if (isWindowDefaultButton()) {
+            buttonColor = getWidgetColor("tbutton.default");
+            mnemonicColor = getWidgetColor("tbutton.default.mnemonic");
         } else {
             buttonColor = getWidgetColor("tbutton.inactive");
             mnemonicColor = getWidgetColor("tbutton.mnemonic");

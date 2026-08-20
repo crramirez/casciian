@@ -155,6 +155,11 @@ public class TWindow extends TWidget {
      */
     protected TMouseEvent mouse;
 
+    /**
+     * The button activated by Enter when this window is focused.
+     */
+    private TButton defaultButton;
+
     // For moving the window.  resizing also uses moveWindowMouseX/Y
     private int moveWindowMouseX;
     private int moveWindowMouseY;
@@ -468,6 +473,44 @@ public class TWindow extends TWidget {
      */
     protected void onHide() {
         // Default: do nothing
+    }
+
+    /**
+     * Handle a keypress after mnemonic processing but before normal child
+     * dispatch.
+     *
+     * @param keypress keystroke event
+     * @return true if the keypress was consumed
+     */
+    @Override
+    protected boolean handleKeypressBeforeActiveChild(
+        final TKeypressEvent keypress) {
+
+        if (!keypress.equals(kbEnter)) {
+            return false;
+        }
+        // If the focused widget, or any of its ancestors up to this window,
+        // wants to handle Enter itself (e.g. a text editor inserting a
+        // newline, a table editing a cell, a list/tree/calendar firing its
+        // own action), let it keep the keypress.
+        for (TWidget widget = getActiveChild();
+             (widget != null) && (widget != this);
+             widget = widget.getParent()
+        ) {
+            if (widget.receivesKeypressBeforeWindowDefaultButton(keypress)) {
+                return false;
+            }
+        }
+        TButton button = defaultButton;
+        if ((button == null)
+            || (button.getWindow() != this)
+            || !button.isEnabled()
+            || !button.isVisible()
+        ) {
+            return false;
+        }
+        button.dispatch();
+        return true;
     }
 
     /**
@@ -1445,6 +1488,32 @@ public class TWindow extends TWidget {
      */
     public boolean inMovements() {
         return inWindowResize || inWindowMove || inKeyboardResize;
+    }
+
+    /**
+     * Get the default button.
+     *
+     * @return the default button, or null if none is set
+     */
+    public final TButton getDefaultButton() {
+        return defaultButton;
+    }
+
+    /**
+     * Set the default button.
+     *
+     * @param button the button to activate on Enter, or null to clear it
+     */
+    public final void setDefaultButton(final TButton button) {
+        if (button == null) {
+            defaultButton = null;
+            return;
+        }
+        if (button.getWindow() != this) {
+            throw new IllegalArgumentException(
+                "default button must belong to this window");
+        }
+        defaultButton = button;
     }
 
     /**

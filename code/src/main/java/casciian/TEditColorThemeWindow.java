@@ -27,6 +27,7 @@ import casciian.bits.BorderStyle;
 import casciian.bits.Color;
 import casciian.bits.ColorTheme;
 import casciian.bits.CellAttributes;
+import casciian.bits.ControlPadding;
 import casciian.bits.GraphicsChars;
 import casciian.bits.Palette256;
 import casciian.bits.Rgb;
@@ -59,17 +60,17 @@ public class TEditColorThemeWindow extends TWindow {
     /**
      * Translated strings.
      */
-    private ResourceBundle i18n = null;
+    private final ResourceBundle i18n;
 
     /**
      * The current editing theme.
      */
-    private ColorTheme editTheme;
+    private final ColorTheme editTheme;
 
     /**
      * The left-side list of colors pane.
      */
-    private TList colorNames;
+    private final TList colorNames;
 
     /**
      * The foreground color.
@@ -84,8 +85,10 @@ public class TEditColorThemeWindow extends TWindow {
     /**
      * The foreground color foreground.
      */
+    @SuppressWarnings("UnnecessaryUnicodeEscape")
     class ColorPicker extends TWidget {
 
+        public static final String COLOR_BLOCK = "\u2588\u2588\u2588";
         /**
          * The label associated with this ColorPicker instance.
          * This string is used to describe or identify the color picker,
@@ -123,8 +126,12 @@ public class TEditColorThemeWindow extends TWindow {
             super(parent, x, y, width, height);
             this.label = label;
 
-            rgb = addLabelFor(i18n.getString("rgbHex"), 5, 6,
-                addField(7, 6, 6, true, ""));
+            if (ControlPadding.current().getCells() == 0) {
+                rgb = addLabelFor(i18n.getString("rgbHex"), 5, 6,
+                    addField(7, 6, 6, true, ""));
+            } else {
+                rgb = addField(5, 6, 8, true, "");
+            }
         }
 
         /**
@@ -239,38 +246,38 @@ public class TEditColorThemeWindow extends TWindow {
             // SGR, not CGA.
             attr.reset();
             attr.setForeColor(Color.BLACK);
-            putStringXY(1, 1, "\u2588\u2588\u2588", attr);
+            putStringXY(1, 1, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BLUE);
-            putStringXY(4, 1, "\u2588\u2588\u2588", attr);
+            putStringXY(4, 1, COLOR_BLOCK, attr);
             attr.setForeColor(Color.GREEN);
-            putStringXY(7, 1, "\u2588\u2588\u2588", attr);
+            putStringXY(7, 1, COLOR_BLOCK, attr);
             attr.setForeColor(Color.CYAN);
-            putStringXY(10, 1, "\u2588\u2588\u2588", attr);
+            putStringXY(10, 1, COLOR_BLOCK, attr);
             attr.setForeColor(Color.RED);
-            putStringXY(1, 2, "\u2588\u2588\u2588", attr);
+            putStringXY(1, 2, COLOR_BLOCK, attr);
             attr.setForeColor(Color.MAGENTA);
-            putStringXY(4, 2, "\u2588\u2588\u2588", attr);
+            putStringXY(4, 2, COLOR_BLOCK, attr);
             attr.setForeColor(Color.YELLOW);
-            putStringXY(7, 2, "\u2588\u2588\u2588", attr);
+            putStringXY(7, 2, COLOR_BLOCK, attr);
             attr.setForeColor(Color.WHITE);
-            putStringXY(10, 2, "\u2588\u2588\u2588", attr);
+            putStringXY(10, 2, COLOR_BLOCK, attr);
 
             attr.setForeColor(Color.BRIGHT_BLACK);
-            putStringXY(1, 3, "\u2588\u2588\u2588", attr);
+            putStringXY(1, 3, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_BLUE);
-            putStringXY(4, 3, "\u2588\u2588\u2588", attr);
+            putStringXY(4, 3, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_GREEN);
-            putStringXY(7, 3, "\u2588\u2588\u2588", attr);
+            putStringXY(7, 3, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_CYAN);
-            putStringXY(10, 3, "\u2588\u2588\u2588", attr);
+            putStringXY(10, 3, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_RED);
-            putStringXY(1, 4, "\u2588\u2588\u2588", attr);
+            putStringXY(1, 4, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_MAGENTA);
-            putStringXY(4, 4, "\u2588\u2588\u2588", attr);
+            putStringXY(4, 4, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_YELLOW);
-            putStringXY(7, 4, "\u2588\u2588\u2588", attr);
+            putStringXY(7, 4, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_WHITE);
-            putStringXY(10, 4, "\u2588\u2588\u2588", attr);
+            putStringXY(10, 4, COLOR_BLOCK, attr);
 
             // Draw the dot
             int rgbColor = parseColorHex(rgb.text);
@@ -282,7 +289,7 @@ public class TEditColorThemeWindow extends TWindow {
                 var rgb = Rgb.fromPackedRgb(rgbColor);
                 int luminance = (rgb.r() * 299 + rgb.g() * 587 + rgb.b() * 114) / 1000;
                 if (luminance < 48) {
-                    putStringXY(1, 6, "\u2588\u2588\u2588", attr);
+                    putStringXY(1, 6, COLOR_BLOCK, attr);
                     attr.reset();
                     attr.setBackColorRGB(rgbColor);
                     putCharXY(2, 6, GraphicsChars.CP437[0x07], attr);
@@ -313,7 +320,7 @@ public class TEditColorThemeWindow extends TWindow {
         public void onKeypress(final TKeypressEvent keypress) {
             if (rgb.isActive()) {
                 rgb.onKeypress(keypress);
-            } else if (keypress.equals(kbRight)) {
+            } else if (keypress.matchesKey(kbRight)) {
                 int dotX = getXColorPosition(color);
                 int dotY = getYColorPosition(color, bright);
                 if (dotX < 10) {
@@ -321,7 +328,7 @@ public class TEditColorThemeWindow extends TWindow {
                 }
                 color = getColorFromPosition(dotX, dotY);
                 rgb.setText("");
-            } else if (keypress.equals(kbLeft)) {
+            } else if (keypress.matchesKey(kbLeft)) {
                 int dotX = getXColorPosition(color);
                 int dotY = getYColorPosition(color, bright);
                 if (dotX > 3) {
@@ -329,7 +336,7 @@ public class TEditColorThemeWindow extends TWindow {
                 }
                 color = getColorFromPosition(dotX, dotY);
                 rgb.setText("");
-            } else if (keypress.equals(kbUp)) {
+            } else if (keypress.matchesKey(kbUp)) {
                 int dotX = getXColorPosition(color);
                 int dotY = getYColorPosition(color, bright);
                 if (dotY > 1) {
@@ -338,7 +345,7 @@ public class TEditColorThemeWindow extends TWindow {
                 color = getColorFromPosition(dotX, dotY);
                 bright = getBrightFromPosition(dotY);
                 rgb.setText("");
-            } else if (keypress.equals(kbDown)) {
+            } else if (keypress.matchesKey(kbDown)) {
                 int dotX = getXColorPosition(color);
                 int dotY = getYColorPosition(color, bright);
                 if (dotY < 4) {
@@ -440,7 +447,7 @@ public class TEditColorThemeWindow extends TWindow {
 
         // Initialize with the first color
         List<String> colors = getTheme().getColorNames();
-        assert (colors.size() > 0);
+        assert (!colors.isEmpty());
         editTheme = new ColorTheme();
         for (String key: colors) {
             CellAttributes attr = new CellAttributes();
@@ -468,7 +475,7 @@ public class TEditColorThemeWindow extends TWindow {
                 }
             }
         );
-        addLabel(i18n.getString("colorName"), 2, 1, colorNames);
+        addLabelFor(i18n.getString("colorName"), 2, 1, colorNames);
         foreground = new ColorPicker(this, 42, 1, 14, 8, i18n.getString("foregroundLabel"));
         background = new ColorPicker(this, 42, 9, 14, 8, i18n.getString("backgroundLabel"));
         refreshFromTheme(colors.getFirst());
@@ -500,7 +507,7 @@ public class TEditColorThemeWindow extends TWindow {
             new TAction() {
                 public void DO() {
                     try {
-                        String filename = null;
+                        String filename;
                         filename = fileOpenBox(".");
                         if (filename != null) {
                             editTheme.load(filename);
@@ -518,7 +525,7 @@ public class TEditColorThemeWindow extends TWindow {
             new TAction() {
                 public void DO() {
                     try {
-                        String filename = null;
+                        String filename;
                         filename = fileSaveBox(".");
                         if (filename != null) {
                             editTheme.save(filename);
@@ -558,7 +565,7 @@ public class TEditColorThemeWindow extends TWindow {
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
         // Escape - behave like cancel
-        if (keypress.equals(kbEsc)) {
+        if (keypress.matchesKey(kbEsc)) {
             getApplication().closeWindow(this);
             return;
         }
@@ -680,7 +687,7 @@ public class TEditColorThemeWindow extends TWindow {
             while (text.startsWith("#")) {
                 text = text.substring(1);
             }
-            if (text.length() > 0) {
+            if (!text.isEmpty()) {
                 int foreColorRGB = Integer.parseInt(text, 16);
                 if (foreColorRGB >= 0) {
                     int paletteIndex = Palette256.findExact(foreColorRGB);
@@ -708,7 +715,7 @@ public class TEditColorThemeWindow extends TWindow {
             while (text.startsWith("#")) {
                 text = text.substring(1);
             }
-            if (text.length() > 0) {
+            if (!text.isEmpty()) {
                 int backColorRGB = Integer.parseInt(text, 16);
                 if (backColorRGB >= 0) {
                     int paletteIndex = Palette256.findExact(backColorRGB);

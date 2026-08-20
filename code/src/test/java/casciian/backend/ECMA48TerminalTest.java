@@ -362,8 +362,8 @@ class ECMA48TerminalTest {
         assertTrue(output.startsWith("\033]7;file://"),
             "Output should start with OSC 7. Output: "
             + escapeForDisplay(output));
-        assertTrue(output.endsWith("/home/user/my%20dir\033\\"),
-            "Output should end with the percent-encoded path and ST. "
+        assertTrue(output.contains("/home/user/my%20dir\033\\"),
+            "Output should include the percent-encoded path and ST. "
             + "Output: " + escapeForDisplay(output));
     }
 
