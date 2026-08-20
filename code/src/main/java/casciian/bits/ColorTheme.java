@@ -3413,7 +3413,7 @@ public class ColorTheme {
             .underline(true)
             .build());
 
-        // Fields / inputs: MC input is lightgray on blue.
+        // Fields / inputs: MC input is black on cyan.
         colors.put(TFIELD_INACTIVE, attr(BRIGHT_BLACK, CYAN));
         colors.put(TFIELD_INACTIVE_MODAL, attr(BRIGHT_BLACK, CYAN));
         colors.put(TFIELD_ACTIVE, attr(BLACK, CYAN));
@@ -3477,22 +3477,10 @@ public class ColorTheme {
         colors.put(TTABLE_SELECTED_MODAL, attr(BRIGHT_YELLOW, BLUE));
 
         // THScroller / TVScroller
-        colors.put(TSCROLLER_BAR, CellAttributes.builder()
-            .foreColor(CYAN)
-            .backColor(BLUE)
-            .build());
-        colors.put(TSCROLLER_BAR_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
-        colors.put(TSCROLLER_ARROWS, CellAttributes.builder()
-            .foreColor(BLUE)
-            .backColor(CYAN)
-            .build());
-        colors.put(TSCROLLER_ARROWS_MODAL, CellAttributes.builder()
-            .foreColor(BLACK)
-            .backColor(WHITE)
-            .build());
+        colors.put(TSCROLLER_BAR, attr(CYAN, BLUE));
+        colors.put(TSCROLLER_BAR_MODAL, attr(BLACK, WHITE));
+        colors.put(TSCROLLER_ARROWS, attr(BLUE, CYAN));
+        colors.put(TSCROLLER_ARROWS_MODAL, attr(BLACK, WHITE));
 
         // Panel border
         colors.put(TPANEL_BORDER, attr(BRIGHT_CYAN, BLUE));
