@@ -489,7 +489,39 @@ public class TEditColorThemeWindow extends TWindow {
         List<String> widgets = new java.util.ArrayList<>(
             widgetToAttributes.keySet());
 
-        widgetNames = addList(widgets, 2, 2, 18, getHeight() - 10,
+        // Compute the widths needed to fully show the longest widget name and
+        // the longest attribute name.  A TList reserves one column for its
+        // vertical scrollbar plus ControlPadding cells on each side, so the
+        // list width must account for those.
+        int padding = ControlPadding.current().getCells();
+        int maxWidgetLen = 0;
+        for (String w: widgets) {
+            maxWidgetLen = Math.max(maxWidgetLen, w.length());
+        }
+        int maxAttributeLen = 0;
+        for (java.util.List<String> attrs: widgetToAttributes.values()) {
+            for (String a: attrs) {
+                maxAttributeLen = Math.max(maxAttributeLen, a.length());
+            }
+        }
+        int widgetListWidth = maxWidgetLen + 1 + 2 * padding;
+        int attributeListWidth = maxAttributeLen + 1 + 2 * padding;
+
+        // Layout: [2] widget list [2] attribute list [2] color pickers [2]
+        int widgetListX = 2;
+        int attributeListX = widgetListX + widgetListWidth + 2;
+        int pickerX = attributeListX + attributeListWidth + 2;
+        int pickerWidth = 14;
+
+        // Adjust the dialog width to fit the two lists; everything to the
+        // right of the lists keeps its fixed size.
+        setWidth(pickerX + pickerWidth + 2);
+        center();
+
+        int listHeight = getHeight() - 10;
+
+        widgetNames = addList(widgets, widgetListX, 2, widgetListWidth,
+            listHeight,
             new TAction() {
                 // When the user presses Enter
                 public void DO() {
@@ -509,11 +541,12 @@ public class TEditColorThemeWindow extends TWindow {
                 }
             }
         );
-        addLabelFor(i18n.getString("widgetName"), 2, 1, widgetNames);
+        widgetNames.getHorizontalScroller().setVisible(false);
+        addLabelFor(i18n.getString("widgetName"), widgetListX, 1, widgetNames);
 
         attributeNames = addList(
             new java.util.ArrayList<>(widgetToAttributes.get(widgets.getFirst())),
-            21, 2, 19, getHeight() - 10,
+            attributeListX, 2, attributeListWidth, listHeight,
             new TAction() {
                 // When the user presses Enter
                 public void DO() {
@@ -533,10 +566,14 @@ public class TEditColorThemeWindow extends TWindow {
                 }
             }
         );
-        addLabelFor(i18n.getString("attributeName"), 21, 1, attributeNames);
+        attributeNames.getHorizontalScroller().setVisible(false);
+        addLabelFor(i18n.getString("attributeName"), attributeListX, 1,
+            attributeNames);
 
-        foreground = new ColorPicker(this, 42, 1, 14, 8, i18n.getString("foregroundLabel"));
-        background = new ColorPicker(this, 42, 9, 14, 8, i18n.getString("backgroundLabel"));
+        foreground = new ColorPicker(this, pickerX, 1, pickerWidth, 8,
+            i18n.getString("foregroundLabel"));
+        background = new ColorPicker(this, pickerX, 9, pickerWidth, 8,
+            i18n.getString("backgroundLabel"));
         widgetNames.setSelectedIndex(0);
         attributeNames.setSelectedIndex(0);
         refreshFromTheme(getSelectedColorName());
@@ -547,7 +584,8 @@ public class TEditColorThemeWindow extends TWindow {
         tText.getVerticalScroller().setVisible(false);
         tText.setEnabled(false);
 
-        addButton(i18n.getString("okButton"), getWidth() - 53, getHeight() - 4,
+        TButton okButton = addButton(i18n.getString("okButton"), 0,
+            getHeight() - 4,
             new TAction() {
                 public void DO() {
                     ColorTheme global = getTheme();
@@ -562,7 +600,7 @@ public class TEditColorThemeWindow extends TWindow {
             }
         );
 
-        addButton(i18n.getString("loadButton"), getWidth() - 41,
+        TButton loadButton = addButton(i18n.getString("loadButton"), 0,
             getHeight() - 4,
             new TAction() {
                 public void DO() {
@@ -580,7 +618,7 @@ public class TEditColorThemeWindow extends TWindow {
             }
         );
 
-        addButton(i18n.getString("saveButton"), getWidth() - 29,
+        TButton saveButton = addButton(i18n.getString("saveButton"), 0,
             getHeight() - 4,
             new TAction() {
                 public void DO() {
@@ -597,7 +635,7 @@ public class TEditColorThemeWindow extends TWindow {
             }
         );
 
-        addButton(i18n.getString("cancelButton"), getWidth() - 17,
+        TButton cancelButton = addButton(i18n.getString("cancelButton"), 0,
             getHeight() - 4,
             new TAction() {
                 public void DO() {
@@ -605,6 +643,19 @@ public class TEditColorThemeWindow extends TWindow {
                 }
             }
         );
+
+        // Center the row of buttons horizontally within the dialog.
+        TButton[] buttons = {okButton, loadButton, saveButton, cancelButton};
+        final int buttonGap = 3;
+        int buttonsWidth = -buttonGap;
+        for (TButton button: buttons) {
+            buttonsWidth += button.getWidth() + buttonGap;
+        }
+        int buttonX = (getWidth() - buttonsWidth) / 2;
+        for (TButton button: buttons) {
+            button.setX(buttonX);
+            buttonX += button.getWidth() + buttonGap;
+        }
 
         // Default to the widget list
         activate(widgetNames);
@@ -669,9 +720,9 @@ public class TEditColorThemeWindow extends TWindow {
         } catch (NumberFormatException e) {
             // SQUASH
         }
-        putStringXY(getWidth() - 17, getHeight() - 9,
+        putStringXY(foreground.getX() + 1, getHeight() - 9,
             i18n.getString("textTextText"), attr);
-        putStringXY(getWidth() - 17, getHeight() - 8,
+        putStringXY(foreground.getX() + 1, getHeight() - 8,
             i18n.getString("textTextText"), attr);
     }
 
