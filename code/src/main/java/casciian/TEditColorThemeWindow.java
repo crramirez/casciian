@@ -514,8 +514,9 @@ public class TEditColorThemeWindow extends TWindow {
         int pickerWidth = 14;
 
         // Adjust the dialog width to fit the two lists; everything to the
-        // right of the lists keeps its fixed size.
-        setWidth(pickerX + pickerWidth + 2);
+        // right of the lists keeps its fixed size.  Leave two blank columns
+        // between the color pickers and the right border, matching the left.
+        setWidth(pickerX + pickerWidth + 3);
         center();
 
         int listHeight = getHeight() - 10;
