@@ -476,6 +476,27 @@ public class TWindow extends TWidget {
     }
 
     /**
+     * Returns true if any widget in the active-child chain (from the focused
+     * leaf up to, but not including, this window) matches the given predicate.
+     *
+     * @param predicate called with each widget; return true to signal a match
+     * @return true if any widget matched
+     */
+    private boolean activeChildChainMatches(
+        final java.util.function.Predicate<TWidget> predicate) {
+
+        for (TWidget widget = getActiveChild();
+             (widget != null) && (widget != this);
+             widget = widget.getParent()
+        ) {
+            if (predicate.test(widget)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Handle a keypress after mnemonic processing but before normal child
      * dispatch.
      *
@@ -490,13 +511,10 @@ public class TWindow extends TWidget {
             // If the focused widget, or any of its ancestors up to this
             // window, needs to process Escape itself (e.g. a combo-box
             // hiding its drop-down), let it keep the keypress.
-            for (TWidget widget = getActiveChild();
-                 (widget != null) && (widget != this);
-                 widget = widget.getParent()
+            if (activeChildChainMatches(
+                w -> w.receivesKeypressBeforeWindowCancel(keypress))
             ) {
-                if (widget.receivesKeypressBeforeWindowCancel(keypress)) {
-                    return false;
-                }
+                return false;
             }
             return onCancel();
         }
@@ -508,13 +526,10 @@ public class TWindow extends TWidget {
         // wants to handle Enter itself (e.g. a text editor inserting a
         // newline, a table editing a cell, a list/tree/calendar firing its
         // own action), let it keep the keypress.
-        for (TWidget widget = getActiveChild();
-             (widget != null) && (widget != this);
-             widget = widget.getParent()
+        if (activeChildChainMatches(
+            w -> w.receivesKeypressBeforeWindowDefaultButton(keypress))
         ) {
-            if (widget.receivesKeypressBeforeWindowDefaultButton(keypress)) {
-                return false;
-            }
+            return false;
         }
         TButton button = defaultButton;
         if ((button == null)
