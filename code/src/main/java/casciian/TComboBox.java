@@ -236,6 +236,19 @@ public class TComboBox extends TWidget {
         return keypress.matchesKey(kbEnter) && list.isActive();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Returns true when the drop-down list is visible, so that Escape
+     * hides the list rather than triggering the window's cancel hook.
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowCancel(
+        final TKeypressEvent keypress) {
+
+        return keypress.matchesKey(kbEsc) && list.isActive();
+    }
+
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------

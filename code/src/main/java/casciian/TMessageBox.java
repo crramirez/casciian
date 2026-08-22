@@ -101,7 +101,13 @@ public class TMessageBox extends TWindow {
         /**
          * User clicked "No".
          */
-        NO
+        NO,
+
+        /**
+         * The message box was dismissed without an explicit button selection
+         * (e.g. via Escape or the window close box).
+         */
+        CLOSED
     };
 
     // ------------------------------------------------------------------------
@@ -124,9 +130,10 @@ public class TMessageBox extends TWindow {
     private List<TButton> buttons;
 
     /**
-     * Which button was clicked: OK, CANCEL, YES, or NO.
+     * Which button was clicked: OK, CANCEL, YES, NO, or CLOSED if dismissed
+     * without an explicit selection.
      */
-    protected Result result = Result.OK;
+    protected Result result = Result.CLOSED;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -219,7 +226,6 @@ public class TMessageBox extends TWindow {
         switch (type) {
 
         case OK:
-            result = Result.OK;
             if (getWidth() < 15) {
                 setWidth(15);
             }
@@ -236,7 +242,6 @@ public class TMessageBox extends TWindow {
             break;
 
         case OKCANCEL:
-            result = Result.CANCEL;
             if (getWidth() < 26) {
                 setWidth(26);
             }
@@ -263,7 +268,6 @@ public class TMessageBox extends TWindow {
             break;
 
         case YESNO:
-            result = Result.NO;
             if (getWidth() < 20) {
                 setWidth(20);
             }
@@ -290,7 +294,6 @@ public class TMessageBox extends TWindow {
             break;
 
         case YESNOCANCEL:
-            result = Result.CANCEL;
             if (getWidth() < 31) {
                 setWidth(31);
             }
@@ -349,6 +352,19 @@ public class TMessageBox extends TWindow {
     // ------------------------------------------------------------------------
     // TWindow ----------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Called when the message box is cancelled (via Escape or the window
+     * close box).  Closes the window without altering the result, so
+     * {@code getResult()} returns {@link Result#CLOSED}.
+     *
+     * @return true
+     */
+    @Override
+    protected boolean onCancel() {
+        getApplication().closeWindow(this);
+        return true;
+    }
 
     /**
      * Handle keystrokes.
@@ -480,6 +496,16 @@ public class TMessageBox extends TWindow {
      */
     public final boolean isCancel() {
         return (result == Result.CANCEL);
+    }
+
+    /**
+     * See if the message box was dismissed without an explicit button
+     * selection (e.g. via Escape or the window close box).
+     *
+     * @return true if the result is CLOSED
+     */
+    public final boolean isClosed() {
+        return (result == Result.CLOSED);
     }
 
 }

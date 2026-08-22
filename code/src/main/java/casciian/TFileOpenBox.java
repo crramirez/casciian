@@ -326,14 +326,6 @@ public class TFileOpenBox extends TWindow {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        // Escape - behave like cancel
-        if (keypress.equals(kbEsc)) {
-            // Close window
-            filename = null;
-            getApplication().closeWindow(this);
-            return;
-        }
-
         if (directoryList.isActive()) {
             if ((keypress.equals(kbUp))
                 || (keypress.equals(kbDown))
@@ -418,6 +410,18 @@ public class TFileOpenBox extends TWindow {
     @Override
     public boolean disableCloseEffect() {
         // Let's let this particular dialog vanish immediately.
+        return true;
+    }
+
+    /**
+     * Cancel this dialog: clear the filename and close the window.
+     *
+     * @return true
+     */
+    @Override
+    protected boolean onCancel() {
+        filename = null;
+        getApplication().closeWindow(this);
         return true;
     }
 

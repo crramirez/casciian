@@ -676,12 +676,6 @@ public class TEditColorThemeWindow extends TWindow {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        // Escape - behave like cancel
-        if (keypress.matchesKey(kbEsc)) {
-            getApplication().closeWindow(this);
-            return;
-        }
-
         // Pass to my parent
         super.onKeypress(keypress);
     }
@@ -689,6 +683,17 @@ public class TEditColorThemeWindow extends TWindow {
     // ------------------------------------------------------------------------
     // TWindow ----------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Cancel this dialog by closing the window.
+     *
+     * @return true
+     */
+    @Override
+    protected boolean onCancel() {
+        getApplication().closeWindow(this);
+        return true;
+    }
 
     /**
      * Draw me on screen.

@@ -486,6 +486,21 @@ public class TWindow extends TWidget {
     protected boolean handleKeypressBeforeActiveChild(
         final TKeypressEvent keypress) {
 
+        if (keypress.equals(kbEsc) && isModal()) {
+            // If the focused widget, or any of its ancestors up to this
+            // window, needs to process Escape itself (e.g. a combo-box
+            // hiding its drop-down), let it keep the keypress.
+            for (TWidget widget = getActiveChild();
+                 (widget != null) && (widget != this);
+                 widget = widget.getParent()
+            ) {
+                if (widget.receivesKeypressBeforeWindowCancel(keypress)) {
+                    return false;
+                }
+            }
+            return onCancel();
+        }
+
         if (!keypress.equals(kbEnter)) {
             return false;
         }
@@ -511,6 +526,17 @@ public class TWindow extends TWidget {
         }
         button.dispatch();
         return true;
+    }
+
+    /**
+     * Called when the window is cancelled (e.g. via Escape while modal).
+     * Subclasses override this to define what cancellation means for their
+     * dialog.  The default implementation does nothing.
+     *
+     * @return true if the cancellation was handled/consumed
+     */
+    protected boolean onCancel() {
+        return false;
     }
 
     /**
