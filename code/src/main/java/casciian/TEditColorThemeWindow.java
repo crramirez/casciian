@@ -42,7 +42,7 @@ import static casciian.bits.ColorTheme.TLABEL_ACTIVE;
  * color theme.
  *
  */
-public class TEditColorThemeWindow extends TWindow {
+public class TEditColorThemeWindow extends TDialog {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
@@ -676,12 +676,6 @@ public class TEditColorThemeWindow extends TWindow {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        // Escape - behave like cancel
-        if (keypress.matchesKey(kbEsc)) {
-            getApplication().closeWindow(this);
-            return;
-        }
-
         // Pass to my parent
         super.onKeypress(keypress);
     }

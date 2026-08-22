@@ -476,6 +476,27 @@ public class TWindow extends TWidget {
     }
 
     /**
+     * Returns true if any widget in the active-child chain (from the focused
+     * leaf up to, but not including, this window) matches the given predicate.
+     *
+     * @param predicate called with each widget; return true to signal a match
+     * @return true if any widget matched
+     */
+    private boolean activeChildChainMatches(
+        final java.util.function.Predicate<TWidget> predicate) {
+
+        for (TWidget widget = getActiveChild();
+             (widget != null) && (widget != this);
+             widget = widget.getParent()
+        ) {
+            if (predicate.test(widget)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Handle a keypress after mnemonic processing but before normal child
      * dispatch.
      *
@@ -486,6 +507,18 @@ public class TWindow extends TWidget {
     protected boolean handleKeypressBeforeActiveChild(
         final TKeypressEvent keypress) {
 
+        if (keypress.equals(kbEsc) && isModal()) {
+            // If the focused widget, or any of its ancestors up to this
+            // window, needs to process Escape itself (e.g. a combo-box
+            // hiding its drop-down), let it keep the keypress.
+            if (activeChildChainMatches(
+                w -> w.receivesKeypressBeforeWindowCancel(keypress))
+            ) {
+                return false;
+            }
+            return onCancel();
+        }
+
         if (!keypress.equals(kbEnter)) {
             return false;
         }
@@ -493,13 +526,10 @@ public class TWindow extends TWidget {
         // wants to handle Enter itself (e.g. a text editor inserting a
         // newline, a table editing a cell, a list/tree/calendar firing its
         // own action), let it keep the keypress.
-        for (TWidget widget = getActiveChild();
-             (widget != null) && (widget != this);
-             widget = widget.getParent()
+        if (activeChildChainMatches(
+            w -> w.receivesKeypressBeforeWindowDefaultButton(keypress))
         ) {
-            if (widget.receivesKeypressBeforeWindowDefaultButton(keypress)) {
-                return false;
-            }
+            return false;
         }
         TButton button = defaultButton;
         if ((button == null)
@@ -511,6 +541,17 @@ public class TWindow extends TWidget {
         }
         button.dispatch();
         return true;
+    }
+
+    /**
+     * Called when the window is cancelled (e.g. via Escape while modal).
+     * Subclasses override this to define what cancellation means for their
+     * dialog.  The default implementation does nothing.
+     *
+     * @return true if the cancellation was handled/consumed
+     */
+    protected boolean onCancel() {
+        return false;
     }
 
     /**
@@ -1540,7 +1581,7 @@ public class TWindow extends TWidget {
      * @return true if this window has a close box
      */
     public final boolean hasCloseBox() {
-        return (flags & NOCLOSEBOX) != 0;
+        return (flags & NOCLOSEBOX) == 0;
     }
 
     /**

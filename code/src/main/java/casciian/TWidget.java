@@ -532,6 +532,21 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
+     * Hook for subclasses to keep handling a keypress themselves before the
+     * window-level cancel hook can consume it.  Override to return true when
+     * this widget needs to process Escape itself (e.g. a combo-box hiding its
+     * drop-down, a table cancelling a cell edit).
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should receive the keypress first
+     */
+    protected boolean receivesKeypressBeforeWindowCancel(
+        final TKeypressEvent keypress) {
+
+        return false;
+    }
+
+    /**
      * Method that subclasses can override to handle mouse button presses.
      *
      * @param mouse mouse button event

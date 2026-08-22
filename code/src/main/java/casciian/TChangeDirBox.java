@@ -38,7 +38,7 @@ import static casciian.TKeypress.*;
  * at the top, a directory tree view below, and OK / Revert buttons
  * on the right.
  */
-public class TChangeDirBox extends TWindow {
+public class TChangeDirBox extends TDialog {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
@@ -228,13 +228,6 @@ public class TChangeDirBox extends TWindow {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        // Escape - behave like cancel
-        if (keypress.equals(kbEsc)) {
-            result = null;
-            getApplication().closeWindow(this);
-            return;
-        }
-
         if (treeView.isActive()) {
             if ((keypress.equals(kbEnter))
                 || (keypress.equals(kbUp))
@@ -278,6 +271,18 @@ public class TChangeDirBox extends TWindow {
      */
     @Override
     public boolean disableCloseEffect() {
+        return true;
+    }
+
+    /**
+     * Cancel this dialog: clear the result and close the window.
+     *
+     * @return true
+     */
+    @Override
+    protected boolean onCancel() {
+        result = null;
+        getApplication().closeWindow(this);
         return true;
     }
 
