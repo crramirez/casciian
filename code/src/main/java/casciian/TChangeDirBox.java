@@ -38,7 +38,7 @@ import static casciian.TKeypress.*;
  * at the top, a directory tree view below, and OK / Revert buttons
  * on the right.
  */
-public class TChangeDirBox extends TWindow {
+public class TChangeDirBox extends TDialog {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------

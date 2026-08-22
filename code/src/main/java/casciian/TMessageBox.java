@@ -43,7 +43,7 @@ import static casciian.TKeypress.*;
  * </pre>
  *
  */
-public class TMessageBox extends TWindow {
+public class TMessageBox extends TDialog {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
@@ -352,19 +352,6 @@ public class TMessageBox extends TWindow {
     // ------------------------------------------------------------------------
     // TWindow ----------------------------------------------------------------
     // ------------------------------------------------------------------------
-
-    /**
-     * Called when the message box is cancelled (via Escape or the window
-     * close box).  Closes the window without altering the result, so
-     * {@code getResult()} returns {@link Result#CLOSED}.
-     *
-     * @return true
-     */
-    @Override
-    protected boolean onCancel() {
-        getApplication().closeWindow(this);
-        return true;
-    }
 
     /**
      * Handle keystrokes.

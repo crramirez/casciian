@@ -41,7 +41,7 @@ import static casciian.TKeypress.*;
  * border styles and button style.
  *
  */
-public class TEditDesktopStyleWindow extends TWindow {
+public class TEditDesktopStyleWindow extends TDialog {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
@@ -329,17 +329,6 @@ public class TEditDesktopStyleWindow extends TWindow {
     // ------------------------------------------------------------------------
     // TWindow ----------------------------------------------------------------
     // ------------------------------------------------------------------------
-
-    /**
-     * Cancel this dialog by closing the window.
-     *
-     * @return true
-     */
-    @Override
-    protected boolean onCancel() {
-        getApplication().closeWindow(this);
-        return true;
-    }
 
     /**
      * Draw me on screen.

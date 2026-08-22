@@ -42,7 +42,7 @@ import static casciian.bits.ColorTheme.TLABEL_ACTIVE;
  * color theme.
  *
  */
-public class TEditColorThemeWindow extends TWindow {
+public class TEditColorThemeWindow extends TDialog {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
@@ -683,17 +683,6 @@ public class TEditColorThemeWindow extends TWindow {
     // ------------------------------------------------------------------------
     // TWindow ----------------------------------------------------------------
     // ------------------------------------------------------------------------
-
-    /**
-     * Cancel this dialog by closing the window.
-     *
-     * @return true
-     */
-    @Override
-    protected boolean onCancel() {
-        getApplication().closeWindow(this);
-        return true;
-    }
 
     /**
      * Draw me on screen.
