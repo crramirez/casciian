@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for generic Escape/cancel semantics on modal windows and
- * TMessageBox.CLOSED result.
+ * TMessageBox.Result.CLOSED result.
  */
 class TWindowCancelTest {
 

@@ -1581,7 +1581,7 @@ public class TWindow extends TWidget {
      * @return true if this window has a close box
      */
     public final boolean hasCloseBox() {
-        return (flags & NOCLOSEBOX) != 0;
+        return (flags & NOCLOSEBOX) == 0;
     }
 
     /**

@@ -84,8 +84,8 @@ class TDialogTest {
         TDialog dialog = new TDialog(app(), "test", 0, 0, 40, 10,
             MODAL | NOCLOSEBOX);
         assertTrue(dialog.isModal());
-        // hasCloseBox() reflects the NOCLOSEBOX flag (set means no close box).
-        assertTrue(dialog.hasCloseBox());
+        // NOCLOSEBOX flag means no close box, so hasCloseBox() must return false.
+        assertFalse(dialog.hasCloseBox());
     }
 
     // -----------------------------------------------------------------------
