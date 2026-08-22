@@ -187,12 +187,8 @@ public class TChangeDirBox extends TDialog {
         // Default: activate the tree view
         activate(treeView);
 
-        // Set the secondaryFiber to run me
-        getApplication().enableSecondaryEventReceiver(this);
-
-        // Yield to the secondary thread.  When I come back from the
-        // constructor response will already be set.
-        getApplication().yield();
+        // Block the caller until this dialog is closed.
+        getApplication().executeModal(this);
     }
 
     /**
