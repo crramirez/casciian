@@ -1997,14 +1997,13 @@ public class TApplication implements Runnable {
                     "executeModal: window is not open (already closed or " +
                     "never added)");
             }
+            if (secondaryEventHandler != null || secondaryEventReceiver != null) {
+                throw new IllegalStateException(
+                    "executeModal: a modal window is already executing; " +
+                    "nested modal dialogs are not supported");
+            }
+            enableSecondaryEventReceiver(window);
         }
-        if (secondaryEventHandler != null || secondaryEventReceiver != null) {
-            throw new IllegalStateException(
-                "executeModal: a modal window is already executing; " +
-                "nested modal dialogs are not supported");
-        }
-
-        enableSecondaryEventReceiver(window);
         this.yield();
     }
 
@@ -3374,7 +3373,7 @@ public class TApplication implements Runnable {
         window.onClose();
 
         // Check if we are closing a TMessageBox or similar
-        if (secondaryEventReceiver != null) {
+        if (secondaryEventReceiver == window) {
             assert (secondaryEventHandler != null);
 
             // Do not send events to the secondaryEventReceiver anymore, the
@@ -3384,7 +3383,7 @@ public class TApplication implements Runnable {
             // Wake the secondary thread, it will wake the primary as it
             // exits.
             synchronized (secondaryEventHandler) {
-                secondaryEventHandler.notify();
+                secondaryEventHandler.notifyAll();
             }
 
         } // synchronized (windows)

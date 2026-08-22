@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import casciian.backend.HeadlessBackend;
 import casciian.event.TKeypressEvent;
@@ -42,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * for the dialog to be closed from a background thread after a short delay so
  * that the blocking call can return.  A timeout guards against deadlocks.</p>
  */
+@Timeout(10)
 class TExecuteModalTest {
 
     /** Apps started via {@link #startedApp()} are stopped in {@link #cleanup}. */
@@ -401,10 +403,9 @@ class TExecuteModalTest {
      * delay.  The action is expected to close {@code dialog} and thereby
      * unblock the {@code executeModal} call on the main thread.
      *
-     * <p>The background thread waits until the dialog is present in the
-     * application's window list (i.e. executeModal has entered its wait
-     * loop) before firing, to avoid a race where the close arrives before
-     * the secondary handler is installed.</p>
+     * <p>The background thread waits for modal-thread startup before firing,
+     * to avoid a race where the close arrives before the secondary handler
+     * is installed.</p>
      */
     private void closeAfterDelay(final TApplication app,
             final TWindow dialog, final Runnable action) {
@@ -413,14 +414,11 @@ class TExecuteModalTest {
             // Wait until the secondary event receiver is installed.
             long deadline = System.currentTimeMillis() + 5_000;
             while (System.currentTimeMillis() < deadline) {
-                if (app.getAllWindows().contains(dialog)) {
+                if (app.isModalThreadRunning()) {
                     break;
                 }
                 try { Thread.sleep(5); } catch (InterruptedException e) { return; }
             }
-            // Small additional pause to allow enableSecondaryEventReceiver
-            // to start its thread before we close the window.
-            try { Thread.sleep(50); } catch (InterruptedException e) { return; }
             action.run();
         });
         t.setDaemon(true);
