@@ -55,19 +55,14 @@ public class TChangeDirBox extends TDialog {
     // ------------------------------------------------------------------------
 
     /**
-     * Translated strings.
-     */
-    private ResourceBundle i18n = null;
-
-    /**
      * The combobox showing the selected directory path and history.
      */
-    private TComboBox dirComboBox;
+    private final TComboBox dirComboBox;
 
     /**
      * The directory tree view.
      */
-    private TTreeViewScrollable treeView;
+    private final TTreeViewScrollable treeView;
 
     /**
      * The data behind treeView.
@@ -77,12 +72,12 @@ public class TChangeDirBox extends TDialog {
     /**
      * The directory path when the dialog was opened (for Revert).
      */
-    private String originalDir;
+    private final String originalDir;
 
     /**
      * Session history of directory changes.
      */
-    private static List<String> dirHistory = new CopyOnWriteArrayList<>();
+    private static final List<String> dirHistory = new CopyOnWriteArrayList<>();
 
     /**
      * The resulting directory path, or null if the user cancelled.
@@ -106,7 +101,8 @@ public class TChangeDirBox extends TDialog {
 
         // Register with the TApplication
         super(application, "", 0, 0, 64, 18, MODAL | RESIZABLE);
-        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
+
+        ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("title"));
 
@@ -162,6 +158,7 @@ public class TChangeDirBox extends TDialog {
 
         // OK button: accept the current combobox value as the result
         TButton okButton = addButton(okLabel, buttonX, 3, this::doOk);
+        setDefaultButton(okButton);
         layout.setAnchor(okButton, null,
             AnchoredLayoutManager.Anchor.TOP_RIGHT);
 
@@ -225,13 +222,13 @@ public class TChangeDirBox extends TDialog {
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
         if (treeView.isActive()) {
-            if ((keypress.equals(kbEnter))
-                || (keypress.equals(kbUp))
-                || (keypress.equals(kbDown))
-                || (keypress.equals(kbPgUp))
-                || (keypress.equals(kbPgDn))
-                || (keypress.equals(kbHome))
-                || (keypress.equals(kbEnd))
+            if ((keypress.matchesKey(kbEnter))
+                || (keypress.matchesKey(kbUp))
+                || (keypress.matchesKey(kbDown))
+                || (keypress.matchesKey(kbPgUp))
+                || (keypress.matchesKey(kbPgDn))
+                || (keypress.matchesKey(kbHome))
+                || (keypress.matchesKey(kbEnd))
             ) {
                 // Tree view will be changing, update the combobox.
                 super.onKeypress(keypress);
