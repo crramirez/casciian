@@ -146,6 +146,14 @@ public class TWindow extends TWidget {
     protected boolean inKeyboardResize = false;
 
     /**
+     * Window geometry before keyboard size/move began.
+     */
+    private int keyboardResizeX;
+    private int keyboardResizeY;
+    private int keyboardResizeWidth;
+    private int keyboardResizeHeight;
+
+    /**
      * If true, this window is maximized.
      */
     private boolean maximized = false;
@@ -764,9 +772,26 @@ public class TWindow extends TWidget {
 
         if (inKeyboardResize) {
 
-            // ESC or ENTER - Exit size/move
-            if (keypress.equals(kbEsc) || keypress.equals(kbEnter)) {
+            // ESC - Cancel size/move
+            if (keypress.equals(kbEsc)) {
+                boolean sizeChanged = (getWidth() != keyboardResizeWidth)
+                    || (getHeight() != keyboardResizeHeight);
+                setX(keyboardResizeX);
+                setY(keyboardResizeY);
+                setWidth(keyboardResizeWidth);
+                setHeight(keyboardResizeHeight);
                 inKeyboardResize = false;
+                if (sizeChanged) {
+                    onResize(new TResizeEvent(keypress.getBackend(),
+                            TResizeEvent.Type.WIDGET, getWidth(), getHeight()));
+                }
+                return;
+            }
+
+            // ENTER - Accept size/move
+            if (keypress.equals(kbEnter)) {
+                inKeyboardResize = false;
+                return;
             }
 
             if (keypress.equals(kbLeft) && (getX() > 0)) {
@@ -876,7 +901,7 @@ public class TWindow extends TWidget {
 
             // Ctrl-F5 - size/move
             if (keypress.equals(kbCtrlF5)) {
-                inKeyboardResize = !inKeyboardResize;
+                beginKeyboardResize();
             }
 
         } // if (!(this instanceof TDesktop))
@@ -923,7 +948,7 @@ public class TWindow extends TWidget {
             }
 
             if (command.equals(cmWindowMove)) {
-                inKeyboardResize = true;
+                beginKeyboardResize();
                 return;
             }
 
@@ -975,7 +1000,7 @@ public class TWindow extends TWidget {
             }
 
             if (menu.getId() == TMenu.MID_WINDOW_MOVE) {
-                inKeyboardResize = true;
+                beginKeyboardResize();
                 return;
             }
 
@@ -994,6 +1019,17 @@ public class TWindow extends TWidget {
 
         // I didn't take it, pass it on to my children
         super.onMenu(menu);
+    }
+
+    /**
+     * Begin moving or resizing this window with the keyboard.
+     */
+    private void beginKeyboardResize() {
+        keyboardResizeX = getX();
+        keyboardResizeY = getY();
+        keyboardResizeWidth = getWidth();
+        keyboardResizeHeight = getHeight();
+        inKeyboardResize = true;
     }
 
     /**
@@ -1700,7 +1736,9 @@ public class TWindow extends TWidget {
             }
 
             return getTheme().getColor("twindow.border.windowmove");
-        } else if (isModal() && (inWindowMove || inWindowResize)) {
+        } else if (isModal()
+            && (inWindowMove || inWindowResize || inKeyboardResize)
+        ) {
             assert (isActive());
             return getTheme().getColor("twindow.border.modal.windowmove");
         } else if (isModal()) {
@@ -1741,10 +1779,10 @@ public class TWindow extends TWidget {
         ) {
             assert (isActive());
             return borderStyleMoving;
-        } else if (isModal() && (inWindowMove || inWindowResize)) {
+        } else if (isModal()
+            && (inWindowMove || inWindowResize || inKeyboardResize)
+        ) {
             assert (isActive());
-            // Modals cannot be resized via keyboard, hence the separate
-            // check.
             return borderStyleMoving;
         } else if (isModal()) {
             if (isActive()) {
