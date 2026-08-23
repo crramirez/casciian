@@ -1,6 +1,10 @@
 /*
  * Casciian - Java Text User Interface
  *
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
+ *
+ * Modifications and maintenance:
  * Copyright 2025 Carlos Rafael Ramirez
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +34,40 @@ import static casciian.bits.Color.WHITE;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ColorThemeTest {
+
+    @Test
+    void testControlPaddingDefaultsAndThemeOverrides() {
+        String previous = System.getProperty(ControlPadding.PROPERTY_KEY);
+        try {
+            System.clearProperty(ControlPadding.PROPERTY_KEY);
+            assertEquals(ControlPadding.SINGLE, ControlPadding.current());
+
+            ColorTheme theme = new ColorTheme();
+            assertEquals(ControlPadding.SINGLE, ControlPadding.current());
+
+            theme.setDarkDefault();
+            assertEquals(ControlPadding.SINGLE, ControlPadding.current());
+
+            theme.setFemme();
+            assertEquals(ControlPadding.NONE, ControlPadding.current());
+            theme.setQmodem5();
+            assertEquals(ControlPadding.NONE, ControlPadding.current());
+            theme.setMidnightCommander();
+            assertEquals(ControlPadding.NONE, ControlPadding.current());
+            theme.setFlatDark();
+            assertEquals(ControlPadding.NONE, ControlPadding.current());
+            theme.setVSCodeDark();
+            assertEquals(ControlPadding.NONE, ControlPadding.current());
+            theme.setVSCodeLight();
+            assertEquals(ControlPadding.NONE, ControlPadding.current());
+        } finally {
+            if (previous == null) {
+                System.clearProperty(ControlPadding.PROPERTY_KEY);
+            } else {
+                System.setProperty(ControlPadding.PROPERTY_KEY, previous);
+            }
+        }
+    }
 
     @Test
     void testBoldSetsBoldAttributeOnly() {

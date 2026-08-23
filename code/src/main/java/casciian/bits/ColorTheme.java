@@ -1451,6 +1451,8 @@ public class ColorTheme {
      */
     public void setDefaultTheme() {
         invalidateIsDarkThemeCache();
+        System.setProperty(ControlPadding.PROPERTY_KEY,
+            ControlPadding.SINGLE.getStyleName());
 
         // TWindow border
         colors.put(TWINDOW_BORDER, attr(BRIGHT_WHITE, BLUE));
@@ -1762,6 +1764,8 @@ public class ColorTheme {
     @SuppressWarnings("DuplicatedCode")
     public void setFemme() {
         setDefaultTheme();
+        System.setProperty(ControlPadding.PROPERTY_KEY,
+            ControlPadding.NONE.getStyleName());
         final int pink = 0xf7a8b8;
         final int blue = 0x55cdfc;
         final int pink2 = 0xd77888;
@@ -1927,6 +1931,8 @@ public class ColorTheme {
      */
     public void setQmodem5() {
         invalidateIsDarkThemeCache();
+        System.setProperty(ControlPadding.PROPERTY_KEY,
+            ControlPadding.NONE.getStyleName());
         CellAttributes color;
 
         // TWindow border
@@ -2963,6 +2969,8 @@ public class ColorTheme {
      */
     public void setMidnightCommander() {
         setDefaultTheme();
+        System.setProperty(ControlPadding.PROPERTY_KEY,
+            ControlPadding.NONE.getStyleName());
 
         // Desktop: Midnight Commander shows the shell behind it; use a dark
         // blue desktop similar to its typical root colour.
@@ -3154,6 +3162,8 @@ public class ColorTheme {
      */
     public void setFlatDark() {
         setDefaultTheme();
+        System.setProperty(ControlPadding.PROPERTY_KEY,
+            ControlPadding.NONE.getStyleName());
 
         // Flat dark palette: everything on pure black with vibrant accents.
         final int bgBlack = 0x000000; // main surface
@@ -3374,6 +3384,8 @@ public class ColorTheme {
      */
     public void setVSCodeDark() {
         setDefaultTheme();
+        System.setProperty(ControlPadding.PROPERTY_KEY,
+            ControlPadding.NONE.getStyleName());
 
         // VS Code Dark Modern palette.
         final int bgEditor = 0x1e1e1e; // editor.background
@@ -3598,6 +3610,8 @@ public class ColorTheme {
      */
     public void setVSCodeLight() {
         setDefaultTheme();
+        System.setProperty(ControlPadding.PROPERTY_KEY,
+            ControlPadding.NONE.getStyleName());
 
         // VS Code Light Modern palette.
         final int bgEditor = 0xffffff; // editor.background
