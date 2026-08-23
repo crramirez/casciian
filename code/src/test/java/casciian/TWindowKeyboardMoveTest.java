@@ -21,6 +21,7 @@ import casciian.backend.HeadlessBackend;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMenuEvent;
+import casciian.layout.LayoutManager;
 import casciian.menu.TMenu;
 
 import static casciian.TCommand.cmWindowMove;
@@ -33,6 +34,9 @@ import static casciian.TKeypress.kbShiftDown;
 import static casciian.TKeypress.kbShiftRight;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * Tests keyboard-driven window movement and sizing.
@@ -106,6 +110,34 @@ class TWindowKeyboardMoveTest {
         press(window, kbEsc);
 
         assertEquals(originalX, window.getX());
+    }
+
+    @Test
+    void repeatedWindowMoveCommandPreservesOriginalGeometry() {
+        TestWindow window = window();
+        int originalX = window.getX();
+
+        window.onCommand(new TCommandEvent(null, cmWindowMove));
+        press(window, kbRight);
+        window.onCommand(new TCommandEvent(null, cmWindowMove));
+        press(window, kbRight);
+        press(window, kbEsc);
+
+        assertEquals(originalX, window.getX());
+    }
+
+    @Test
+    void moveOnlyCancellationDoesNotResizeLayout() {
+        TestWindow window = window();
+        LayoutManager layout = mock(LayoutManager.class);
+        window.setLayoutManager(layout);
+
+        press(window, kbCtrlF5);
+        press(window, kbRight);
+        clearInvocations(layout);
+        press(window, kbEsc);
+
+        verifyNoInteractions(layout);
     }
 
     @Test

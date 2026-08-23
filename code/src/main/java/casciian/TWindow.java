@@ -778,10 +778,10 @@ public class TWindow extends TWidget {
                     || (getHeight() != keyboardResizeHeight);
                 setX(keyboardResizeX);
                 setY(keyboardResizeY);
-                setWidth(keyboardResizeWidth);
-                setHeight(keyboardResizeHeight);
                 inKeyboardResize = false;
                 if (sizeChanged) {
+                    setWidth(keyboardResizeWidth);
+                    setHeight(keyboardResizeHeight);
                     onResize(new TResizeEvent(keypress.getBackend(),
                             TResizeEvent.Type.WIDGET, getWidth(), getHeight()));
                 }
@@ -1025,6 +1025,9 @@ public class TWindow extends TWidget {
      * Begin moving or resizing this window with the keyboard.
      */
     private void beginKeyboardResize() {
+        if (inKeyboardResize) {
+            return;
+        }
         keyboardResizeX = getX();
         keyboardResizeY = getY();
         keyboardResizeWidth = getWidth();
