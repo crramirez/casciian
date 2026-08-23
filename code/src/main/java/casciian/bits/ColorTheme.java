@@ -938,6 +938,12 @@ public class ColorTheme {
      */
     private Boolean isDarkThemeModalCache;
 
+    /**
+     * Control padding selected by this theme when no explicit system property
+     * is configured.
+     */
+    private ControlPadding controlPadding = ControlPadding.SINGLE;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -982,6 +988,20 @@ public class ColorTheme {
     // ------------------------------------------------------------------------
     // ColorTheme -------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Get the control padding for this theme.  An explicit system property
+     * takes precedence over the theme default.
+     *
+     * @return the active control padding
+     */
+    public ControlPadding getControlPadding() {
+        String configured = System.getProperty(ControlPadding.PROPERTY_KEY);
+        if (configured != null) {
+            return ControlPadding.fromStyleName(configured);
+        }
+        return controlPadding;
+    }
 
     /**
      * Retrieve a defensive copy of the CellAttributes for a named theme color.
@@ -1451,8 +1471,7 @@ public class ColorTheme {
      */
     public void setDefaultTheme() {
         invalidateIsDarkThemeCache();
-        System.setProperty(ControlPadding.PROPERTY_KEY,
-            ControlPadding.SINGLE.getStyleName());
+        controlPadding = ControlPadding.SINGLE;
 
         // TWindow border
         colors.put(TWINDOW_BORDER, attr(BRIGHT_WHITE, BLUE));
@@ -1764,8 +1783,7 @@ public class ColorTheme {
     @SuppressWarnings("DuplicatedCode")
     public void setFemme() {
         setDefaultTheme();
-        System.setProperty(ControlPadding.PROPERTY_KEY,
-            ControlPadding.NONE.getStyleName());
+        controlPadding = ControlPadding.NONE;
         final int pink = 0xf7a8b8;
         final int blue = 0x55cdfc;
         final int pink2 = 0xd77888;
@@ -1931,8 +1949,7 @@ public class ColorTheme {
      */
     public void setQmodem5() {
         invalidateIsDarkThemeCache();
-        System.setProperty(ControlPadding.PROPERTY_KEY,
-            ControlPadding.NONE.getStyleName());
+        controlPadding = ControlPadding.NONE;
         CellAttributes color;
 
         // TWindow border
@@ -2969,8 +2986,7 @@ public class ColorTheme {
      */
     public void setMidnightCommander() {
         setDefaultTheme();
-        System.setProperty(ControlPadding.PROPERTY_KEY,
-            ControlPadding.NONE.getStyleName());
+        controlPadding = ControlPadding.NONE;
 
         // Desktop: Midnight Commander shows the shell behind it; use a dark
         // blue desktop similar to its typical root colour.
@@ -3162,8 +3178,7 @@ public class ColorTheme {
      */
     public void setFlatDark() {
         setDefaultTheme();
-        System.setProperty(ControlPadding.PROPERTY_KEY,
-            ControlPadding.NONE.getStyleName());
+        controlPadding = ControlPadding.NONE;
 
         // Flat dark palette: everything on pure black with vibrant accents.
         final int bgBlack = 0x000000; // main surface
@@ -3384,8 +3399,7 @@ public class ColorTheme {
      */
     public void setVSCodeDark() {
         setDefaultTheme();
-        System.setProperty(ControlPadding.PROPERTY_KEY,
-            ControlPadding.NONE.getStyleName());
+        controlPadding = ControlPadding.NONE;
 
         // VS Code Dark Modern palette.
         final int bgEditor = 0x1e1e1e; // editor.background
@@ -3610,8 +3624,7 @@ public class ColorTheme {
      */
     public void setVSCodeLight() {
         setDefaultTheme();
-        System.setProperty(ControlPadding.PROPERTY_KEY,
-            ControlPadding.NONE.getStyleName());
+        controlPadding = ControlPadding.NONE;
 
         // VS Code Light Modern palette.
         final int bgEditor = 0xffffff; // editor.background

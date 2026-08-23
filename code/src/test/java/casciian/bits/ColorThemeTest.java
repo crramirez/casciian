@@ -43,23 +43,30 @@ class ColorThemeTest {
             assertEquals(ControlPadding.SINGLE, ControlPadding.current());
 
             ColorTheme theme = new ColorTheme();
-            assertEquals(ControlPadding.SINGLE, ControlPadding.current());
+            assertEquals(ControlPadding.SINGLE, theme.getControlPadding());
 
             theme.setDarkDefault();
-            assertEquals(ControlPadding.SINGLE, ControlPadding.current());
+            assertEquals(ControlPadding.SINGLE, theme.getControlPadding());
 
             theme.setFemme();
-            assertEquals(ControlPadding.NONE, ControlPadding.current());
+            assertEquals(ControlPadding.NONE, theme.getControlPadding());
             theme.setQmodem5();
-            assertEquals(ControlPadding.NONE, ControlPadding.current());
+            assertEquals(ControlPadding.NONE, theme.getControlPadding());
             theme.setMidnightCommander();
-            assertEquals(ControlPadding.NONE, ControlPadding.current());
+            assertEquals(ControlPadding.NONE, theme.getControlPadding());
             theme.setFlatDark();
-            assertEquals(ControlPadding.NONE, ControlPadding.current());
+            assertEquals(ControlPadding.NONE, theme.getControlPadding());
             theme.setVSCodeDark();
-            assertEquals(ControlPadding.NONE, ControlPadding.current());
+            assertEquals(ControlPadding.NONE, theme.getControlPadding());
             theme.setVSCodeLight();
-            assertEquals(ControlPadding.NONE, ControlPadding.current());
+            assertEquals(ControlPadding.NONE, theme.getControlPadding());
+
+            System.setProperty(ControlPadding.PROPERTY_KEY, "single");
+            theme.setFemme();
+            assertEquals(ControlPadding.SINGLE, theme.getControlPadding());
+            new ColorTheme();
+            assertEquals("single",
+                System.getProperty(ControlPadding.PROPERTY_KEY));
         } finally {
             if (previous == null) {
                 System.clearProperty(ControlPadding.PROPERTY_KEY);
@@ -67,6 +74,16 @@ class ColorThemeTest {
                 System.setProperty(ControlPadding.PROPERTY_KEY, previous);
             }
         }
+    }
+
+    @Test
+    void testControlPaddingFallbacks() {
+        assertEquals(ControlPadding.SINGLE,
+            ControlPadding.fromStyleName(null));
+        assertEquals(ControlPadding.SINGLE,
+            ControlPadding.fromStyleName("default"));
+        assertEquals(ControlPadding.SINGLE,
+            ControlPadding.fromStyleName("invalid"));
     }
 
     @Test
