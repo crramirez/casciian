@@ -82,11 +82,6 @@ public class TFileOpenBox extends TDialog {
     // ------------------------------------------------------------------------
 
     /**
-     * Translated strings.
-     */
-    private ResourceBundle i18n = null;
-
-    /**
      * String to return, or null if the user canceled.
      */
     private String filename = null;
@@ -94,7 +89,7 @@ public class TFileOpenBox extends TDialog {
     /**
      * The left-side tree view pane.
      */
-    private TTreeViewScrollable treeView;
+    private final TTreeViewScrollable treeView;
 
     /**
      * The data behind treeView.
@@ -104,22 +99,22 @@ public class TFileOpenBox extends TDialog {
     /**
      * The right-side directory list pane.
      */
-    private TDirectoryList directoryList;
+    private final TDirectoryList directoryList;
 
     /**
      * The top row text field.
      */
-    private TField entryField;
+    private final TField entryField;
 
     /**
      * The Open or Save button.
      */
-    private TButton openButton;
+    private final TButton openButton;
 
     /**
      * The type of box this is (OPEN, SAVE, or SELECT).
      */
-    private Type type = Type.OPEN;
+    private final Type type;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -154,7 +149,8 @@ public class TFileOpenBox extends TDialog {
 
         // Register with the TApplication
         super(application, "", 0, 0, 78, 22, MODAL | RESIZABLE);
-        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
+
+        ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         // Resolve relative paths against the application working directory
@@ -170,7 +166,7 @@ public class TFileOpenBox extends TDialog {
             getHeight() - 2);
         setLayoutManager(layout);
 
-        TStatusBar statusBar = newStatusBar("");
+        newStatusBar("");
 
         // Add text field
         entryField = addField(1, 1, getWidth() - 4, false,
@@ -242,7 +238,7 @@ public class TFileOpenBox extends TDialog {
         layout.setAnchor(directoryList, treeView,
             AnchoredLayoutManager.Anchor.LEFT);
 
-        String openLabel = "";
+        String openLabel;
         switch (type) {
         case OPEN:
             openLabel = i18n.getString("openButton");
@@ -277,6 +273,7 @@ public class TFileOpenBox extends TDialog {
         if (type == Type.OPEN) {
             openButton.setEnabled(false);
         }
+        setDefaultButton(openButton);
         layout.setAnchor(openButton, null,
             AnchoredLayoutManager.Anchor.TOP_RIGHT);
 
@@ -292,18 +289,13 @@ public class TFileOpenBox extends TDialog {
         layout.setAnchor(cancelButton, null,
             AnchoredLayoutManager.Anchor.TOP_RIGHT);
 
-        switch (type) {
-        case SAVE:
+        if (type == Type.SAVE) {
             // Save dialog: activate the filename field.
             entryField.setText(entryField.getText() + File.separator);
             entryField.end();
             activate(entryField);
-            break;
-
-        default:
-            // Default: activate the directory list.
+        } else {// Default: activate the directory list.
             activate(directoryList);
-            break;
         }
 
         // Set status bar text to first filename
@@ -328,12 +320,12 @@ public class TFileOpenBox extends TDialog {
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
         if (directoryList.isActive()) {
-            if ((keypress.equals(kbUp))
-                || (keypress.equals(kbDown))
-                || (keypress.equals(kbPgUp))
-                || (keypress.equals(kbPgDn))
-                || (keypress.equals(kbHome))
-                || (keypress.equals(kbEnd))
+            if ((keypress.matchesKey(kbUp))
+                || (keypress.matchesKey(kbDown))
+                || (keypress.matchesKey(kbPgUp))
+                || (keypress.matchesKey(kbPgDn))
+                || (keypress.matchesKey(kbHome))
+                || (keypress.matchesKey(kbEnd))
             ) {
                 // Directory list will be changing, update the status bar.
                 super.onKeypress(keypress);
@@ -349,13 +341,13 @@ public class TFileOpenBox extends TDialog {
         }
 
         if (treeView.isActive()) {
-            if ((keypress.equals(kbEnter))
-                || (keypress.equals(kbUp))
-                || (keypress.equals(kbDown))
-                || (keypress.equals(kbPgUp))
-                || (keypress.equals(kbPgDn))
-                || (keypress.equals(kbHome))
-                || (keypress.equals(kbEnd))
+            if ((keypress.matchesKey(kbEnter))
+                || (keypress.matchesKey(kbUp))
+                || (keypress.matchesKey(kbDown))
+                || (keypress.matchesKey(kbPgUp))
+                || (keypress.matchesKey(kbPgDn))
+                || (keypress.matchesKey(kbHome))
+                || (keypress.matchesKey(kbEnd))
             ) {
                 // Tree view will be changing, update the directory list.
                 super.onKeypress(keypress);
@@ -467,7 +459,6 @@ public class TFileOpenBox extends TDialog {
         } else if (type != Type.OPEN) {
             filename = newFilename;
             getApplication().closeWindow(this);
-            return;
         }
     }
 

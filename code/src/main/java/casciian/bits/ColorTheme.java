@@ -3157,7 +3157,7 @@ public class ColorTheme {
 
         // Flat dark palette: everything on pure black with vibrant accents.
         final int bgBlack = 0x000000; // main surface
-        final int bgSubtle = 0x0a0a0a; // extremely subtle lift for inputs
+        final int bgSubtle = 0x1c1c1c; // extremely subtle lift for inputs
         final int bgSelection = 0x00005f; // selection blue (muted, readable)
         final int bgAccentDim = 0x1a1a1a; // pressed / disabled surface
         final int fgText = 0xd0d0d0; // main foreground
@@ -3167,7 +3167,7 @@ public class ColorTheme {
         final int accentCyan = 0x00d7d7; // bright cyan (k9s header-style)
         final int accentGreen = 0x5fff87; // vibrant green
         final int accentMag = 0xff5fd7; // vibrant magenta / pink
-        final int accentYellw = 0xffd75f; // vibrant amber / yellow
+        final int accentYellow = 0xffd75f; // vibrant amber / yellow
         final int accentBlue = 0x5fafff; // vibrant blue
         final int accentRed = 0xff5f5f; // vibrant red
 
@@ -3198,12 +3198,12 @@ public class ColorTheme {
         colors.put(TLABEL_MODAL, rgbToPalette(fgText, bgBlack));
         colors.put(TLABEL_ACTIVE_MODAL, rgbToPalette(fgWhite, bgBlack));
         colors.put(TLABEL_DISABLED_MODAL, rgbToPalette(fgMuted, bgBlack));
-        colors.put(TLABEL_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TLABEL_ACTIVE_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TLABEL_DISABLED_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TLABEL_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
+        colors.put(TLABEL_MNEMONIC, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TLABEL_ACTIVE_MNEMONIC, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TLABEL_DISABLED_MNEMONIC, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TLABEL_MNEMONIC_MODAL, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, rgbToPalette(accentYellow, bgBlack));
         colors.put(TTEXT, rgbToPalette(fgText, bgBlack));
         colors.put(TTEXT_MODAL, rgbToPalette(fgText, bgBlack));
         // Same as TLABEL_ACTIVE / TLABEL_ACTIVE_MODAL for now.
@@ -3223,12 +3223,12 @@ public class ColorTheme {
         colors.put(TBUTTON_DEFAULT_MODAL, rgbToPalette(fgWhite, bgSelection));
         colors.put(TBUTTON_DISABLED, rgbToPalette(fgBorder, bgAccentDim));
         colors.put(TBUTTON_DISABLED_MODAL, rgbToPalette(fgBorder, bgAccentDim));
-        colors.put(TBUTTON_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TBUTTON_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TBUTTON_DEFAULT_MNEMONIC, rgbToPalette(accentYellw, bgSelection));
-        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgSelection));
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellw, bgSelection));
-        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(accentYellw, bgSelection));
+        colors.put(TBUTTON_MNEMONIC, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TBUTTON_MNEMONIC_MODAL, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC, rgbToPalette(accentYellow, bgSelection));
+        colors.put(TBUTTON_DEFAULT_MNEMONIC_MODAL, rgbToPalette(accentYellow, bgSelection));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellow, bgSelection));
+        colors.put(TBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(accentYellow, bgSelection));
 
         // Inputs: barely-lifted surface so the cursor has something to sit on.
         colors.put(TFIELD_INACTIVE, rgbToPalette(fgText, bgSubtle));
@@ -3244,26 +3244,26 @@ public class ColorTheme {
         colors.put(TCHECKBOX_INACTIVE_MODAL, rgbToPalette(fgText, bgBlack));
         colors.put(TCHECKBOX_ACTIVE, rgbToPalette(accentGreen, bgSelection));
         colors.put(TCHECKBOX_ACTIVE_MODAL, rgbToPalette(accentGreen, bgSelection));
-        colors.put(TCHECKBOX_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TCHECKBOX_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellw, bgSelection));
-        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(accentYellw, bgSelection));
+        colors.put(TCHECKBOX_MNEMONIC, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TCHECKBOX_MNEMONIC_MODAL, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellow, bgSelection));
+        colors.put(TCHECKBOX_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(accentYellow, bgSelection));
         colors.put(TRADIOBUTTON_INACTIVE, rgbToPalette(fgText, bgBlack));
         colors.put(TRADIOBUTTON_INACTIVE_MODAL, rgbToPalette(fgText, bgBlack));
         colors.put(TRADIOBUTTON_ACTIVE, rgbToPalette(accentGreen, bgSelection));
         colors.put(TRADIOBUTTON_ACTIVE_MODAL, rgbToPalette(accentGreen, bgSelection));
-        colors.put(TRADIOBUTTON_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TRADIOBUTTON_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellw, bgSelection));
-        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(accentYellw, bgSelection));
+        colors.put(TRADIOBUTTON_MNEMONIC, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TRADIOBUTTON_MNEMONIC_MODAL, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellow, bgSelection));
+        colors.put(TRADIOBUTTON_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(accentYellow, bgSelection));
         colors.put(TRADIOGROUP_INACTIVE, rgbToPalette(fgText, bgBlack));
         colors.put(TRADIOGROUP_INACTIVE_MODAL, rgbToPalette(fgText, bgBlack));
         colors.put(TRADIOGROUP_ACTIVE, rgbToPalette(accentCyan, bgBlack));
         colors.put(TRADIOGROUP_ACTIVE_MODAL, rgbToPalette(accentCyan, bgBlack));
-        colors.put(TRADIOGROUP_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TRADIOGROUP_MNEMONIC_MODAL, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellw, bgSelection));
-        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(accentYellw, bgSelection));
+        colors.put(TRADIOGROUP_MNEMONIC, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TRADIOGROUP_MNEMONIC_MODAL, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellow, bgSelection));
+        colors.put(TRADIOGROUP_MNEMONIC_HIGHLIGHTED_MODAL, rgbToPalette(accentYellow, bgSelection));
         colors.put(TCOMBOBOX_INACTIVE, rgbToPalette(fgText, bgSubtle));
         colors.put(TCOMBOBOX_INACTIVE_MODAL, rgbToPalette(fgText, bgSubtle));
         colors.put(TCOMBOBOX_ACTIVE, rgbToPalette(fgWhite, bgSelection));
@@ -3310,8 +3310,8 @@ public class ColorTheme {
         colors.put(TTABLE_SELECTED_MODAL, rgbToPalette(fgWhite, bgSelection));
         colors.put(TTABLE_LABEL, rgbToPalette(accentCyan, bgBlack));
         colors.put(TTABLE_LABEL_MODAL, rgbToPalette(accentCyan, bgBlack));
-        colors.put(TTABLE_LABEL_SELECTED, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TTABLE_LABEL_SELECTED_MODAL, rgbToPalette(accentYellw, bgBlack));
+        colors.put(TTABLE_LABEL_SELECTED, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TTABLE_LABEL_SELECTED_MODAL, rgbToPalette(accentYellow, bgBlack));
         colors.put(TTABLE_BORDER, rgbToPalette(fgBorder, bgBlack));
         colors.put(TTABLE_BORDER_MODAL, rgbToPalette(fgBorder, bgBlack));
         colors.put(TSPLITPANE, rgbToPalette(fgText, bgBlack));
@@ -3350,8 +3350,8 @@ public class ColorTheme {
         // Menu: flat black surface, accent-coloured highlights.
         colors.put(TMENU, rgbToPalette(fgText, bgBlack));
         colors.put(TMENU_HIGHLIGHTED, rgbToPalette(fgWhite, bgSelection));
-        colors.put(TMENU_MNEMONIC, rgbToPalette(accentYellw, bgBlack));
-        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellw, bgSelection));
+        colors.put(TMENU_MNEMONIC, rgbToPalette(accentYellow, bgBlack));
+        colors.put(TMENU_MNEMONIC_HIGHLIGHTED, rgbToPalette(accentYellow, bgSelection));
         colors.put(TMENU_DISABLED, rgbToPalette(fgBorder, bgBlack));
 
         // Status bar: k9s-style cyan accent.
