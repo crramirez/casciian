@@ -1,6 +1,10 @@
 /*
  * Casciian - Java Text User Interface
  *
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
+ *
+ * Modifications and maintenance:
  * Copyright 2025 Carlos Rafael Ramirez
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -112,7 +116,7 @@ class TTextBaseRenderTest {
 
         drawWidget(field);
 
-        int x = field.getAbsoluteX() + 0;
+        int x = field.getAbsoluteX() + ControlPadding.current().getCells();
         int y = field.getAbsoluteY();
         // The selected cells use a different color than the unselected ones.
         assertNotEquals(screenAttr(x, y), screenAttr(x + 5, y));
@@ -216,7 +220,8 @@ class TTextBaseRenderTest {
     @Test
     void fixedFieldKeepsCursorInsideTheField() {
         TWindow w = makeWindow();
-        TField field = new TField(w, 1, 1, 5, true, "abcde");
+        int width = 5 + 2 * ControlPadding.current().getCells();
+        TField field = new TField(w, 1, 1, width, true, "abcde");
         for (int i = 0; i < 10; i++) {
             field.onKeypress(new TKeypressEvent(null, TKeypress.kbRight));
         }
@@ -273,7 +278,7 @@ class TTextBaseRenderTest {
 
         drawWidget(field);
 
-        int x = field.getAbsoluteX();
+        int x = field.getAbsoluteX() + ControlPadding.current().getCells();
         int y = field.getAbsoluteY();
         assertEquals("******", screenText(x, y, 6));
         assertEquals("secret", field.getText());
@@ -294,7 +299,7 @@ class TTextBaseRenderTest {
         w.activate(other);
         drawWidget(field);
 
-        int x = field.getAbsoluteX();
+        int x = field.getAbsoluteX() + ControlPadding.current().getCells();
         int y = field.getAbsoluteY();
         // Nothing is highlighted: the selected and unselected cells match.
         assertEquals(screenAttr(x, y), screenAttr(x + 5, y));
@@ -322,7 +327,8 @@ class TTextBaseRenderTest {
 
         CellAttributes expected = field.getWidgetColor("tfield.selected");
         assertEquals(expected,
-            screenAttr(field.getAbsoluteX(), field.getAbsoluteY()));
+            screenAttr(field.getAbsoluteX()
+                + ControlPadding.current().getCells(), field.getAbsoluteY()));
     }
 
     /**
@@ -336,7 +342,7 @@ class TTextBaseRenderTest {
 
         drawWidget(field);
 
-        int x = field.getAbsoluteX();
+        int x = field.getAbsoluteX() + ControlPadding.current().getCells();
         int y = field.getAbsoluteY();
         assertNotEquals(screenAttr(x, y), screenAttr(x + 5, y));
     }
