@@ -20,12 +20,19 @@
       <module name="code-terminal-component" options="" />
       <module name="code-terminal-component.casciian-terminal-component" options="-Xlint -Xdiags:verbose" />
       <module name="code-terminal-component.casciian-terminal-component.main" options="-Xlint -Xdiags:verbose" />
+      <module name="code-terminal-component.casciian-terminal-component.main~1" options="-Xlint -Xdiags:verbose" />
       <module name="code-terminal-component.casciian-terminal-component.test" options="-Xlint -Xdiags:verbose" />
+      <module name="code-terminal-component.casciian-terminal-component.test~1" options="-Xlint -Xdiags:verbose" />
       <module name="code-terminal-component.demo" options="-Xlint -Xdiags:verbose" />
       <module name="code-terminal-component.demo.main" options="-Xlint -Xdiags:verbose" />
+      <module name="code-terminal-component.demo.main~1" options="-Xlint -Xdiags:verbose" />
       <module name="code-terminal-component.demo.test" options="-Xlint -Xdiags:verbose" />
+      <module name="code-terminal-component.demo.test~1" options="-Xlint -Xdiags:verbose" />
       <module name="code.main" options="-Xlint -Xdiags:verbose" />
       <module name="code.test" options="-Xlint -Xdiags:verbose" />
+      <module name="io.github.crramirez.casciian" options="-Xlint -Xdiags:verbose" />
+      <module name="io.github.crramirez.casciian.main" options="-Xlint -Xdiags:verbose" />
+      <module name="io.github.crramirez.casciian.test" options="-Xlint -Xdiags:verbose" />
     </option>
   </component>
 </project>

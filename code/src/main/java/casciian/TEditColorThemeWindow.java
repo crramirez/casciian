@@ -516,7 +516,7 @@ public class TEditColorThemeWindow extends TDialog {
         // Adjust the dialog width to fit the two lists; everything to the
         // right of the lists keeps its fixed size.  Leave two blank columns
         // between the color pickers and the right border, matching the left.
-        setWidth(pickerX + pickerWidth + 3);
+        setWidth(pickerX + pickerWidth + 4);
         center();
 
         int listHeight = getHeight() - 10;
@@ -600,6 +600,7 @@ public class TEditColorThemeWindow extends TDialog {
                 }
             }
         );
+        setDefaultButton(okButton);
 
         TButton loadButton = addButton(i18n.getString("loadButton"), 0,
             getHeight() - 4,
