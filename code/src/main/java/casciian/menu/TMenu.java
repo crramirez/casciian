@@ -216,6 +216,11 @@ public class TMenu extends TWindow {
      */
     public static final int MID_WINDOW_CLOSE    = 47;
 
+    /**
+     * List open windows.
+     */
+    public static final int MID_WINDOW_LIST     = 48;
+
     // Help menu --------------------------------------------------------------
 
     /**
@@ -1068,6 +1073,9 @@ public class TMenu extends TWindow {
             label = i18n.getString("menuWindowClose");
             key = kbCtrlW;
             icon = 0x263C;
+            break;
+        case MID_WINDOW_LIST:
+            label = i18n.getString("menuWindowList");
             break;
 
         case MID_HELP_CONTENTS:

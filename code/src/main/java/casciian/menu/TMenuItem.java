@@ -176,6 +176,8 @@ public class TMenuItem extends TWidget {
             break;
         case TMenu.MID_WINDOW_CLOSE:
             break;
+        case TMenu.MID_WINDOW_LIST:
+            break;
         default:
             break;
         }
