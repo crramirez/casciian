@@ -1188,7 +1188,7 @@ public class TWindow extends TWidget {
     private void drawMaximizeButton(final CellAttributes border,
         final int lBracket, final int rBracket) {
 
-        if (isModal() || !canZoom()) {
+        if (!canZoom()) {
             return;
         }
         putCharXY(getWidth() - 5, 0, lBracket, border);
