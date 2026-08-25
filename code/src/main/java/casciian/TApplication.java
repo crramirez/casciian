@@ -1966,8 +1966,9 @@ public class TApplication implements Runnable {
      * <p><b>Nesting:</b>
      * The current two-handler event architecture supports at most one
      * secondary (modal) event receiver at a time.  Attempting to start a
-     * second concurrent modal session will throw
-     * {@link IllegalStateException}.</p>
+     * second concurrent modal session closes the supplied window before
+     * throwing {@link IllegalStateException}, preventing it from remaining in
+     * the application's window list.</p>
      *
      * @param window the modal window to execute; must be non-null, must carry
      *               the {@code MODAL} flag, must be owned by this application,
