@@ -150,7 +150,7 @@ public class TMessageBox extends TDialog {
     public TMessageBox(final TApplication application, final String title,
         final String caption) {
 
-        this(application, title, caption, Type.OK, true);
+        this(application, title, caption, Type.OK);
     }
 
     /**
@@ -162,31 +162,9 @@ public class TMessageBox extends TDialog {
      * multi-line box.
      * @param type one of the Type constants.  Default is Type.OK.
      */
+    @SuppressWarnings("this-escape")
     public TMessageBox(final TApplication application, final String title,
         final String caption, final Type type) {
-
-        this(application, title, caption, type, true);
-    }
-
-    /**
-     * Package-private constructor used by {@link TInputBox} and tests.
-     * The {@code yield} flag controls whether this thread is yielded to the
-     * application event loop after the dialog is constructed.  Pass
-     * {@code false} when a subclass or test needs to complete its own
-     * initialisation (e.g. adding extra widgets) before executing the modal
-     * loop.  All public constructors always pass {@code true} so external
-     * callers always get a blocking, modal dialog.
-     *
-     * @param application TApplication that manages this window
-     * @param title window title, will be centered along the top border
-     * @param caption message to display.  Use embedded newlines to get a
-     * multi-line box.
-     * @param type one of the Type constants.  Default is Type.OK.
-     * @param yield if true, yield this Thread after setup is complete.
-     */
-    @SuppressWarnings("this-escape")
-    TMessageBox(final TApplication application, final String title,
-        final String caption, final Type type, final boolean yield) {
 
         // Start as 100x100 at (1, 1).  These will be changed later.
         super(application, title, 1, 1, 100, 100, CENTERED | MODAL);
@@ -342,11 +320,6 @@ public class TMessageBox extends TDialog {
 
         if (!buttons.isEmpty()) {
             setDefaultButton(buttons.get(0));
-        }
-
-        if (yield) {
-            // Block the caller until this dialog is closed.
-            getApplication().executeModal(this);
         }
     }
 

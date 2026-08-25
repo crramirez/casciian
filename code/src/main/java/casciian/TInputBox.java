@@ -91,7 +91,7 @@ public class TInputBox extends TMessageBox {
     public TInputBox(final TApplication application, final String title,
         final String caption, final String text, final Type type) {
 
-        super(application, title, caption, type, false);
+        super(application, title, caption, type);
 
         for (TWidget widget: getChildren()) {
             if (widget instanceof TButton) {
@@ -126,9 +126,6 @@ public class TInputBox extends TMessageBox {
                     }
                 }
             }, null);
-
-        // Block the caller until this dialog is closed.
-        getApplication().executeModal(this);
     }
 
     // ------------------------------------------------------------------------

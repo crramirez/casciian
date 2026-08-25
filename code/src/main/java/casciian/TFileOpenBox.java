@@ -294,7 +294,7 @@ public class TFileOpenBox extends TDialog {
             entryField.setText(entryField.getText() + File.separator);
             entryField.end();
             activate(entryField);
-        } else {// Default: activate the directory list.
+        } else {        // Default: activate the directory list.
             activate(directoryList);
         }
 
@@ -303,9 +303,6 @@ public class TFileOpenBox extends TDialog {
             getStatusBar().setText(directoryList.getPath().
                 getCanonicalPath());
         }
-
-        // Block the caller until this dialog is closed.
-        getApplication().executeModal(this);
     }
 
     // ------------------------------------------------------------------------

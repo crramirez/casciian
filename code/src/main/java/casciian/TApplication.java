@@ -1824,8 +1824,8 @@ public class TApplication implements Runnable {
 
     /**
      * Dispatch one event to the appropriate widget or application-level
-     * event handler.  This is the secondary event handler used by certain
-     * special dialogs (currently TMessageBox and TFileOpenBox).
+     * event handler.  This is the secondary event handler used during
+     * modal dialog execution (see {@link #executeModal(TWindow)}).
      *
      * @param event the input event to consume
      * @see #primaryHandleEvent(TInputEvent event)
@@ -4616,7 +4616,10 @@ public class TApplication implements Runnable {
     public final TMessageBox messageBox(final String title,
         final String caption) {
 
-        return new TMessageBox(this, title, caption, TMessageBox.Type.OK);
+        TMessageBox box = new TMessageBox(this, title, caption,
+            TMessageBox.Type.OK);
+        executeModal(box);
+        return box;
     }
 
     /**
@@ -4632,7 +4635,9 @@ public class TApplication implements Runnable {
     public final TMessageBox messageBox(final String title,
         final String caption, final TMessageBox.Type type) {
 
-        return new TMessageBox(this, title, caption, type);
+        TMessageBox box = new TMessageBox(this, title, caption, type);
+        executeModal(box);
+        return box;
     }
 
     /**
@@ -4645,7 +4650,9 @@ public class TApplication implements Runnable {
      */
     public final TInputBox inputBox(final String title, final String caption) {
 
-        return new TInputBox(this, title, caption);
+        TInputBox box = new TInputBox(this, title, caption);
+        executeModal(box);
+        return box;
     }
 
     /**
@@ -4660,7 +4667,9 @@ public class TApplication implements Runnable {
     public final TInputBox inputBox(final String title, final String caption,
         final String text) {
 
-        return new TInputBox(this, title, caption, text);
+        TInputBox box = new TInputBox(this, title, caption, text);
+        executeModal(box);
+        return box;
     }
 
     /**
@@ -4676,7 +4685,9 @@ public class TApplication implements Runnable {
     public final TInputBox inputBox(final String title, final String caption,
         final String text, final TInputBox.Type type) {
 
-        return new TInputBox(this, title, caption, text, type);
+        TInputBox box = new TInputBox(this, title, caption, text, type);
+        executeModal(box);
+        return box;
     }
 
     /**
@@ -4689,6 +4700,7 @@ public class TApplication implements Runnable {
     public final String fileOpenBox(final String path) throws IOException {
 
         TFileOpenBox box = new TFileOpenBox(this, path, TFileOpenBox.Type.OPEN);
+        executeModal(box);
         return box.getFilename();
     }
 
@@ -4704,6 +4716,7 @@ public class TApplication implements Runnable {
         final TFileOpenBox.Type type) throws IOException {
 
         TFileOpenBox box = new TFileOpenBox(this, path, type);
+        executeModal(box);
         return box.getFilename();
     }
 
@@ -4723,6 +4736,7 @@ public class TApplication implements Runnable {
         filters.add(filter);
 
         TFileOpenBox box = new TFileOpenBox(this, path, type, filters);
+        executeModal(box);
         return box.getFilename();
     }
 
@@ -4740,6 +4754,7 @@ public class TApplication implements Runnable {
         final List<String> filters) throws IOException {
 
         TFileOpenBox box = new TFileOpenBox(this, path, type, filters);
+        executeModal(box);
         return box.getFilename();
     }
 
@@ -4763,6 +4778,7 @@ public class TApplication implements Runnable {
      */
     public final String changeDirBox(final String path) throws IOException {
         TChangeDirBox box = new TChangeDirBox(this, path);
+        executeModal(box);
         return box.getResult();
     }
 
