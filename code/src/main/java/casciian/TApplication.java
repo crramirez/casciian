@@ -1991,6 +1991,7 @@ public class TApplication implements Runnable {
             throw new IllegalArgumentException(
                 "executeModal: window is not owned by this TApplication");
         }
+        boolean nestedModal = false;
         synchronized (windows) {
             if (!windows.contains(window)) {
                 throw new IllegalArgumentException(
@@ -1998,11 +1999,16 @@ public class TApplication implements Runnable {
                     "never added)");
             }
             if (secondaryEventHandler != null || secondaryEventReceiver != null) {
-                throw new IllegalStateException(
-                    "executeModal: a modal window is already executing; " +
-                    "nested modal dialogs are not supported");
+                nestedModal = true;
+            } else {
+                enableSecondaryEventReceiver(window);
             }
-            enableSecondaryEventReceiver(window);
+        }
+        if (nestedModal) {
+            closeWindow(window);
+            throw new IllegalStateException(
+                "executeModal: a modal window is already executing; " +
+                "nested modal dialogs are not supported");
         }
         this.yield();
     }
