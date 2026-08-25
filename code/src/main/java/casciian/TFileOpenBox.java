@@ -294,7 +294,7 @@ public class TFileOpenBox extends TDialog {
             entryField.setText(entryField.getText() + File.separator);
             entryField.end();
             activate(entryField);
-        } else {        // Default: activate the directory list.
+        } else { // Default: activate the directory list.
             activate(directoryList);
         }
 
