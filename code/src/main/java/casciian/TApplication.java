@@ -3528,21 +3528,6 @@ public class TApplication implements Runnable {
                 windows.add(window);
             }
 
-            /**
-             * Check whether a modeless window number is already in use.
-             *
-             * @param windowNumber the number to check
-             * @return true if the number is already assigned
-             */
-            private boolean hasWindowNumber(final int windowNumber) {
-                for (TWindow window: windows) {
-                    if (window.getWindowNumber() == windowNumber) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
             if (((window.flags & TWindow.CENTERED) == 0)
                 && ((window.flags & TWindow.ABSOLUTEXY) == 0)
                 && (smartWindowPlacement == true)
@@ -3604,6 +3589,21 @@ public class TApplication implements Runnable {
                 }
             }
         }
+    }
+
+    /**
+     * Check whether a modeless window number is already in use.
+     *
+     * @param windowNumber the number to check
+     * @return true if the number is already assigned
+     */
+    private boolean hasWindowNumber(final int windowNumber) {
+        for (TWindow window: windows) {
+            if (window.getWindowNumber() == windowNumber) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

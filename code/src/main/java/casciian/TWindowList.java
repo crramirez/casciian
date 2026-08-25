@@ -49,6 +49,7 @@ public class TWindowList extends TDialog {
      *
      * @param application application managing the open windows
      */
+    @SuppressWarnings("this-escape")
     public TWindowList(final TApplication application) {
         super(application, "", 55, 16, MODAL | NOCLOSEBOX);
 
@@ -56,7 +57,12 @@ public class TWindowList extends TDialog {
             getLocale());
         setTitle(i18n.getString("title"));
 
-        windowList = addList(new ArrayList<>(), 2, 3, 40, 11, this::doOk);
+        windowList = addList(new ArrayList<String>(), 2, 3, 40, 11,
+            new TAction() {
+                public void DO() {
+                    doOk();
+                }
+            });
         windowList.getHorizontalScroller().setVisible(false);
         new TLabel<>(this, i18n.getString("windowsLabel"), 2, 1, windowList);
 
