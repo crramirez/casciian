@@ -415,7 +415,7 @@ public class TWindow extends TWidget {
      * @return true if the mouse is currently on the maximize/restore button
      */
     protected boolean mouseOnMaximize() {
-        if ((flags & NOZOOMBOX) != 0) {
+        if (!canZoom()) {
             return false;
         }
         return (mouse != null)
@@ -891,7 +891,7 @@ public class TWindow extends TWidget {
             }
 
             // F5 - zoom
-            if (keypress.equals(kbF5) && ((flags & NOZOOMBOX) == 0)) {
+            if (keypress.equals(kbF5) && canZoom()) {
                 if (maximized) {
                     restore();
                 } else {
@@ -952,7 +952,7 @@ public class TWindow extends TWidget {
                 return;
             }
 
-            if (command.equals(cmWindowZoom) && ((flags & NOZOOMBOX) == 0)) {
+            if (command.equals(cmWindowZoom) && canZoom()) {
                 if (maximized) {
                     restore();
                 } else {
@@ -1005,7 +1005,7 @@ public class TWindow extends TWidget {
             }
 
             if ((menu.getId() == TMenu.MID_WINDOW_ZOOM)
-                && ((flags & NOZOOMBOX) == 0)
+                && canZoom()
             ) {
                 if (maximized) {
                     restore();
@@ -1033,6 +1033,15 @@ public class TWindow extends TWidget {
         keyboardResizeWidth = getWidth();
         keyboardResizeHeight = getHeight();
         inKeyboardResize = true;
+    }
+
+    /**
+     * Returns true if this window can be zoomed by the user.
+     *
+     * @return true if this window can be zoomed
+     */
+    private boolean canZoom() {
+        return ((flags & RESIZABLE) != 0) && ((flags & NOZOOMBOX) == 0);
     }
 
     /**
@@ -1179,7 +1188,7 @@ public class TWindow extends TWidget {
     private void drawMaximizeButton(final CellAttributes border,
         final int lBracket, final int rBracket) {
 
-        if (isModal() || ((flags & NOZOOMBOX) != 0)) {
+        if (!canZoom() || isModal()) {
             return;
         }
         putCharXY(getWidth() - 5, 0, lBracket, border);
