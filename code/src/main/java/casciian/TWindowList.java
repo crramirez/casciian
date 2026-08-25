@@ -29,7 +29,14 @@ public class TWindowList extends TDialog {
      * Window list dialog result.
      */
     public enum Result {
+        /**
+         * A window was selected for activation.
+         */
         OK,
+
+        /**
+         * The dialog was cancelled.
+         */
         CANCEL
     }
 
