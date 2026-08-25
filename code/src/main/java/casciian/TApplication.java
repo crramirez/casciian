@@ -1824,8 +1824,8 @@ public class TApplication implements Runnable {
 
     /**
      * Dispatch one event to the appropriate widget or application-level
-     * event handler.  This is the secondary event handler used by certain
-     * special dialogs (currently TMessageBox and TFileOpenBox).
+     * event handler.  This is the secondary event handler used during
+     * modal dialog execution (see {@link #executeModal(TWindow)}).
      *
      * @param event the input event to consume
      * @see #primaryHandleEvent(TInputEvent event)
@@ -1966,8 +1966,9 @@ public class TApplication implements Runnable {
      * <p><b>Nesting:</b>
      * The current two-handler event architecture supports at most one
      * secondary (modal) event receiver at a time.  Attempting to start a
-     * second concurrent modal session will throw
-     * {@link IllegalStateException}.</p>
+     * second concurrent modal session closes the supplied window before
+     * throwing {@link IllegalStateException}, preventing it from remaining in
+     * the application's window list.</p>
      *
      * @param window the modal window to execute; must be non-null, must carry
      *               the {@code MODAL} flag, must be owned by this application,
@@ -1991,6 +1992,7 @@ public class TApplication implements Runnable {
             throw new IllegalArgumentException(
                 "executeModal: window is not owned by this TApplication");
         }
+        boolean nestedModal = false;
         synchronized (windows) {
             if (!windows.contains(window)) {
                 throw new IllegalArgumentException(
@@ -1998,11 +2000,16 @@ public class TApplication implements Runnable {
                     "never added)");
             }
             if (secondaryEventHandler != null || secondaryEventReceiver != null) {
-                throw new IllegalStateException(
-                    "executeModal: a modal window is already executing; " +
-                    "nested modal dialogs are not supported");
+                nestedModal = true;
+            } else {
+                enableSecondaryEventReceiver(window);
             }
-            enableSecondaryEventReceiver(window);
+        }
+        if (nestedModal) {
+            closeWindow(window);
+            throw new IllegalStateException(
+                "executeModal: a modal window is already executing; " +
+                "nested modal dialogs are not supported");
         }
         this.yield();
     }
@@ -4616,7 +4623,10 @@ public class TApplication implements Runnable {
     public final TMessageBox messageBox(final String title,
         final String caption) {
 
-        return new TMessageBox(this, title, caption, TMessageBox.Type.OK);
+        TMessageBox box = new TMessageBox(this, title, caption,
+            TMessageBox.Type.OK);
+        executeModal(box);
+        return box;
     }
 
     /**
@@ -4632,7 +4642,9 @@ public class TApplication implements Runnable {
     public final TMessageBox messageBox(final String title,
         final String caption, final TMessageBox.Type type) {
 
-        return new TMessageBox(this, title, caption, type);
+        TMessageBox box = new TMessageBox(this, title, caption, type);
+        executeModal(box);
+        return box;
     }
 
     /**
@@ -4645,7 +4657,9 @@ public class TApplication implements Runnable {
      */
     public final TInputBox inputBox(final String title, final String caption) {
 
-        return new TInputBox(this, title, caption);
+        TInputBox box = new TInputBox(this, title, caption);
+        executeModal(box);
+        return box;
     }
 
     /**
@@ -4660,7 +4674,9 @@ public class TApplication implements Runnable {
     public final TInputBox inputBox(final String title, final String caption,
         final String text) {
 
-        return new TInputBox(this, title, caption, text);
+        TInputBox box = new TInputBox(this, title, caption, text);
+        executeModal(box);
+        return box;
     }
 
     /**
@@ -4676,7 +4692,9 @@ public class TApplication implements Runnable {
     public final TInputBox inputBox(final String title, final String caption,
         final String text, final TInputBox.Type type) {
 
-        return new TInputBox(this, title, caption, text, type);
+        TInputBox box = new TInputBox(this, title, caption, text, type);
+        executeModal(box);
+        return box;
     }
 
     /**
@@ -4689,6 +4707,7 @@ public class TApplication implements Runnable {
     public final String fileOpenBox(final String path) throws IOException {
 
         TFileOpenBox box = new TFileOpenBox(this, path, TFileOpenBox.Type.OPEN);
+        executeModal(box);
         return box.getFilename();
     }
 
@@ -4704,6 +4723,7 @@ public class TApplication implements Runnable {
         final TFileOpenBox.Type type) throws IOException {
 
         TFileOpenBox box = new TFileOpenBox(this, path, type);
+        executeModal(box);
         return box.getFilename();
     }
 
@@ -4723,6 +4743,7 @@ public class TApplication implements Runnable {
         filters.add(filter);
 
         TFileOpenBox box = new TFileOpenBox(this, path, type, filters);
+        executeModal(box);
         return box.getFilename();
     }
 
@@ -4740,6 +4761,7 @@ public class TApplication implements Runnable {
         final List<String> filters) throws IOException {
 
         TFileOpenBox box = new TFileOpenBox(this, path, type, filters);
+        executeModal(box);
         return box.getFilename();
     }
 
@@ -4763,6 +4785,7 @@ public class TApplication implements Runnable {
      */
     public final String changeDirBox(final String path) throws IOException {
         TChangeDirBox box = new TChangeDirBox(this, path);
+        executeModal(box);
         return box.getResult();
     }
 

@@ -183,9 +183,6 @@ public class TChangeDirBox extends TDialog {
 
         // Default: activate the tree view
         activate(treeView);
-
-        // Block the caller until this dialog is closed.
-        getApplication().executeModal(this);
     }
 
     /**

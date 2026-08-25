@@ -238,7 +238,7 @@ class TDialogTest {
     }
 
     private TMessageBox makeBox(final TMessageBox.Type type) {
-        return new TMessageBox(app(), "title", "caption", type, false);
+        return new TMessageBox(app(), "title", "caption", type);
     }
 
     private void press(final TWidget widget, final TKeypress keypress) {

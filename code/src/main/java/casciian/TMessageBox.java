@@ -150,7 +150,7 @@ public class TMessageBox extends TDialog {
     public TMessageBox(final TApplication application, final String title,
         final String caption) {
 
-        this(application, title, caption, Type.OK, true);
+        this(application, title, caption, Type.OK);
     }
 
     /**
@@ -161,27 +161,10 @@ public class TMessageBox extends TDialog {
      * @param caption message to display.  Use embedded newlines to get a
      * multi-line box.
      * @param type one of the Type constants.  Default is Type.OK.
-     */
-    public TMessageBox(final TApplication application, final String title,
-        final String caption, final Type type) {
-
-        this(application, title, caption, type, true);
-    }
-
-    /**
-     * Public constructor.  The message box will be centered on screen.
-     *
-     * @param application TApplication that manages this window
-     * @param title window title, will be centered along the top border
-     * @param caption message to display.  Use embedded newlines to get a
-     * multi-line box.
-     * @param type one of the Type constants.  Default is Type.OK.
-     * @param yield if true, yield this Thread.  Subclasses need to set this
-     * to false and yield at their end of their constructor intead.
      */
     @SuppressWarnings("this-escape")
-    protected TMessageBox(final TApplication application, final String title,
-        final String caption, final Type type, final boolean yield) {
+    public TMessageBox(final TApplication application, final String title,
+        final String caption, final Type type) {
 
         // Start as 100x100 at (1, 1).  These will be changed later.
         super(application, title, 1, 1, 100, 100, CENTERED | MODAL);
@@ -337,11 +320,6 @@ public class TMessageBox extends TDialog {
 
         if (!buttons.isEmpty()) {
             setDefaultButton(buttons.get(0));
-        }
-
-        if (yield) {
-            // Block the caller until this dialog is closed.
-            getApplication().executeModal(this);
         }
     }
 

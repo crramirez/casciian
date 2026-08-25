@@ -439,7 +439,7 @@ class TWindowDefaultButtonTest {
 
     private TMessageBox makeMessageBox(final TMessageBox.Type type) {
         return new TMessageBox(new TApplication(new HeadlessBackend()), "test",
-            "caption", type, false);
+            "caption", type);
     }
 
     private TButton button(final TWidget parent, final String text, final int x,

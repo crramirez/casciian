@@ -377,9 +377,9 @@ class TExecuteModalTest {
         return app;
     }
 
-    /** Create a TMessageBox without blocking (yield=false). */
+    /** Create a TMessageBox without executing the modal loop. */
     private TMessageBox makeBox(final TMessageBox.Type type) {
-        return new TMessageBox(app(), "title", "caption", type, false);
+        return new TMessageBox(app(), "title", "caption", type);
     }
 
     private java.util.List<TButton> buttons(final TWidget widget) {
