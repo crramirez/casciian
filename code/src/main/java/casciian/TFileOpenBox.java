@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
@@ -41,7 +46,7 @@ import static casciian.TKeypress.*;
  * </pre>
  *
  */
-public class TFileOpenBox extends TWindow {
+public class TFileOpenBox extends TDialog {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
@@ -77,11 +82,6 @@ public class TFileOpenBox extends TWindow {
     // ------------------------------------------------------------------------
 
     /**
-     * Translated strings.
-     */
-    private ResourceBundle i18n = null;
-
-    /**
      * String to return, or null if the user canceled.
      */
     private String filename = null;
@@ -89,7 +89,7 @@ public class TFileOpenBox extends TWindow {
     /**
      * The left-side tree view pane.
      */
-    private TTreeViewScrollable treeView;
+    private final TTreeViewScrollable treeView;
 
     /**
      * The data behind treeView.
@@ -99,22 +99,22 @@ public class TFileOpenBox extends TWindow {
     /**
      * The right-side directory list pane.
      */
-    private TDirectoryList directoryList;
+    private final TDirectoryList directoryList;
 
     /**
      * The top row text field.
      */
-    private TField entryField;
+    private final TField entryField;
 
     /**
      * The Open or Save button.
      */
-    private TButton openButton;
+    private final TButton openButton;
 
     /**
      * The type of box this is (OPEN, SAVE, or SELECT).
      */
-    private Type type = Type.OPEN;
+    private final Type type;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -149,7 +149,8 @@ public class TFileOpenBox extends TWindow {
 
         // Register with the TApplication
         super(application, "", 0, 0, 78, 22, MODAL | RESIZABLE);
-        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
+
+        ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
 
         // Resolve relative paths against the application working directory
@@ -165,7 +166,7 @@ public class TFileOpenBox extends TWindow {
             getHeight() - 2);
         setLayoutManager(layout);
 
-        TStatusBar statusBar = newStatusBar("");
+        newStatusBar("");
 
         // Add text field
         entryField = addField(1, 1, getWidth() - 4, false,
@@ -237,7 +238,7 @@ public class TFileOpenBox extends TWindow {
         layout.setAnchor(directoryList, treeView,
             AnchoredLayoutManager.Anchor.LEFT);
 
-        String openLabel = "";
+        String openLabel;
         switch (type) {
         case OPEN:
             openLabel = i18n.getString("openButton");
@@ -272,6 +273,7 @@ public class TFileOpenBox extends TWindow {
         if (type == Type.OPEN) {
             openButton.setEnabled(false);
         }
+        setDefaultButton(openButton);
         layout.setAnchor(openButton, null,
             AnchoredLayoutManager.Anchor.TOP_RIGHT);
 
@@ -287,18 +289,13 @@ public class TFileOpenBox extends TWindow {
         layout.setAnchor(cancelButton, null,
             AnchoredLayoutManager.Anchor.TOP_RIGHT);
 
-        switch (type) {
-        case SAVE:
+        if (type == Type.SAVE) {
             // Save dialog: activate the filename field.
             entryField.setText(entryField.getText() + File.separator);
             entryField.end();
             activate(entryField);
-            break;
-
-        default:
-            // Default: activate the directory list.
+        } else {// Default: activate the directory list.
             activate(directoryList);
-            break;
         }
 
         // Set status bar text to first filename
@@ -307,12 +304,8 @@ public class TFileOpenBox extends TWindow {
                 getCanonicalPath());
         }
 
-        // Set the secondaryFiber to run me
-        getApplication().enableSecondaryEventReceiver(this);
-
-        // Yield to the secondary thread.  When I come back from the
-        // constructor response will already be set.
-        getApplication().yield();
+        // Block the caller until this dialog is closed.
+        getApplication().executeModal(this);
     }
 
     // ------------------------------------------------------------------------
@@ -326,21 +319,13 @@ public class TFileOpenBox extends TWindow {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        // Escape - behave like cancel
-        if (keypress.equals(kbEsc)) {
-            // Close window
-            filename = null;
-            getApplication().closeWindow(this);
-            return;
-        }
-
         if (directoryList.isActive()) {
-            if ((keypress.equals(kbUp))
-                || (keypress.equals(kbDown))
-                || (keypress.equals(kbPgUp))
-                || (keypress.equals(kbPgDn))
-                || (keypress.equals(kbHome))
-                || (keypress.equals(kbEnd))
+            if ((keypress.matchesKey(kbUp))
+                || (keypress.matchesKey(kbDown))
+                || (keypress.matchesKey(kbPgUp))
+                || (keypress.matchesKey(kbPgDn))
+                || (keypress.matchesKey(kbHome))
+                || (keypress.matchesKey(kbEnd))
             ) {
                 // Directory list will be changing, update the status bar.
                 super.onKeypress(keypress);
@@ -356,13 +341,13 @@ public class TFileOpenBox extends TWindow {
         }
 
         if (treeView.isActive()) {
-            if ((keypress.equals(kbEnter))
-                || (keypress.equals(kbUp))
-                || (keypress.equals(kbDown))
-                || (keypress.equals(kbPgUp))
-                || (keypress.equals(kbPgDn))
-                || (keypress.equals(kbHome))
-                || (keypress.equals(kbEnd))
+            if ((keypress.matchesKey(kbEnter))
+                || (keypress.matchesKey(kbUp))
+                || (keypress.matchesKey(kbDown))
+                || (keypress.matchesKey(kbPgUp))
+                || (keypress.matchesKey(kbPgDn))
+                || (keypress.matchesKey(kbHome))
+                || (keypress.matchesKey(kbEnd))
             ) {
                 // Tree view will be changing, update the directory list.
                 super.onKeypress(keypress);
@@ -421,6 +406,18 @@ public class TFileOpenBox extends TWindow {
         return true;
     }
 
+    /**
+     * Cancel this dialog: clear the filename and close the window.
+     *
+     * @return true
+     */
+    @Override
+    protected boolean onCancel() {
+        filename = null;
+        getApplication().closeWindow(this);
+        return true;
+    }
+
     // ------------------------------------------------------------------------
     // TFileOpenBox -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -462,7 +459,6 @@ public class TFileOpenBox extends TWindow {
         } else if (type != Type.OPEN) {
             filename = newFilename;
             getApplication().closeWindow(this);
-            return;
         }
     }
 

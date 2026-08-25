@@ -1,6 +1,10 @@
 /*
  * Casciian - Java Text User Interface
  *
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
+ *
+ * Modifications and maintenance:
  * Copyright 2025 Carlos Rafael Ramirez
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,8 +39,8 @@ public enum ControlPadding {
 
     /**
      * No extra padding: controls are drawn flush against their left and
-     * right edges, preserving the classic Casciian look.  This is the
-     * default; individual themes may override it.
+     * right edges, preserving the classic Casciian look.  Individual themes
+     * may select this style.
      */
     NONE(0, "none"),
 
@@ -55,7 +59,7 @@ public enum ControlPadding {
      * Default style name used when the property is unset or invalid.
      * Themes may set a different value.
      */
-    public static final String DEFAULT_STYLE_NAME = "none";
+    public static final String DEFAULT_STYLE_NAME = "single";
 
     /**
      * The number of blank cells reserved on each side of a padded
@@ -95,7 +99,7 @@ public enum ControlPadding {
 
     /**
      * Resolve a style name into a ControlPadding value.  Unknown or
-     * null values fall back to {@link #NONE}.
+     * null values fall back to {@link #SINGLE}.
      *
      * @param styleName the style name, e.g. "single", "none", or
      *                  "default"
@@ -103,18 +107,18 @@ public enum ControlPadding {
      */
     public static ControlPadding fromStyleName(final String styleName) {
         if (styleName == null) {
-            return NONE;
+            return SINGLE;
         }
         String key = styleName.toLowerCase();
         if (key.equals("default")) {
-            return NONE;
+            return SINGLE;
         }
         for (ControlPadding p : values()) {
             if (p.styleName.equals(key)) {
                 return p;
             }
         }
-        return NONE;
+        return SINGLE;
     }
 
     /**

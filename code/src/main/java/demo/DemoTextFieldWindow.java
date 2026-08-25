@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package demo;
 
@@ -25,9 +30,9 @@ import casciian.TAction;
 import casciian.TApplication;
 import casciian.TCalendar;
 import casciian.TField;
-import casciian.TLabel;
 import casciian.TMessageBox;
 import casciian.TWindow;
+import casciian.bits.StringUtils;
 import casciian.layout.StretchLayoutManager;
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
@@ -45,7 +50,7 @@ public class DemoTextFieldWindow extends TWindow {
      * The name of the resource bundle for this class.
      */
     public static final String RESOURCE_BUNDLE_NAME = DemoTextFieldWindow.class.getName() + "Bundle";
-    private static final String LABEL_FORMAT = "%-10s";
+    private static final String LABEL_FORMAT = "%-12s";
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -54,7 +59,7 @@ public class DemoTextFieldWindow extends TWindow {
     /**
      * Translated strings.
      */
-    private ResourceBundle i18n = null;
+    private final ResourceBundle i18n;
 
     /**
      * Calendar.  Has to be at class scope so that it can be accessed by the
@@ -65,7 +70,7 @@ public class DemoTextFieldWindow extends TWindow {
     /**
      * Day of week label is updated with TSpinner clicks.
      */
-    TLabel<?> dayOfWeekLabel;
+    TField dayOfWeekLabel;
 
     /**
      * Day of week to demonstrate TSpinner.  Has to be at class scope so that
@@ -105,19 +110,20 @@ public class DemoTextFieldWindow extends TWindow {
 
         int row = 1;
 
-        addLabel(i18n.getString("textField1"), 1, row,
-            addField(35, row++, 15, false, i18n.getString("fieldText")));
+        final int fieldWidth = 17;
+        TField selected = addLabelFor(i18n.getString("textField1"), 1, row,
+            addField(35, row++, fieldWidth, false, i18n.getString("fieldText")));
         row++;
-        addLabel(i18n.getString("textField2"), 1, row,
-            addField(35, row++, 15, true));
+        addLabelFor(i18n.getString("textField2"), 1, row,
+            addField(35, row++, fieldWidth, true));
         row++;
-        addLabel(i18n.getString("textField3"), 1, row,
-            addPasswordField(35, row++, 15, false));
+        addLabelFor(i18n.getString("textField3"), 1, row,
+            addPasswordField(35, row++, fieldWidth, false));
         row++;
-        addLabel(i18n.getString("textField4"), 1, row,
-            addPasswordField(35, row++, 15, true, "hunter2"));
+        addLabelFor(i18n.getString("textField4"), 1, row,
+            addPasswordField(35, row++, fieldWidth, true, "hunter2"));
         row++;
-        TField selected = addLabelFor(i18n.getString("textField5"), 1, row,
+        addLabelFor(i18n.getString("textField5"), 1, row,
             addField(35, row++, 40, false, i18n.getString("textField6")));
 
         row++;
@@ -133,28 +139,24 @@ public class DemoTextFieldWindow extends TWindow {
             }
         );
 
-        dayOfWeekLabel = addLabel("Wednesday-", 35, row, "tmenu", false);
-        dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
-                dayOfWeekCalendar.getDisplayName(Calendar.DAY_OF_WEEK,
-                    Calendar.LONG, Locale.getDefault())));
+        final int dayOfWeekWidth = getDayOfWeekWidth();
+        int fieldPadding = casciian.bits.ControlPadding.current().getCells();
+        int spinnerOffset = dayOfWeekWidth + 2 * fieldPadding;
+        dayOfWeekLabel = addField(35, row, dayOfWeekWidth + 2 * fieldPadding, true);
+        dayOfWeekLabel.setEnabled(false);
+        dayOfWeekLabel.setText(getDayOfWeekText());
 
-        addSpinner(35 + dayOfWeekLabel.getWidth(), row,
+        addSpinner(35 + spinnerOffset, row,
             new TAction() {
                 public void DO() {
                     dayOfWeekCalendar.add(Calendar.DAY_OF_WEEK, 1);
-                    dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
-                            dayOfWeekCalendar.getDisplayName(
-                            Calendar.DAY_OF_WEEK, Calendar.LONG,
-                            Locale.getDefault())));
+                    dayOfWeekLabel.setText(getDayOfWeekText());
                 }
             },
             new TAction() {
                 public void DO() {
                     dayOfWeekCalendar.add(Calendar.DAY_OF_WEEK, -1);
-                    dayOfWeekLabel.setLabel(String.format(LABEL_FORMAT,
-                            dayOfWeekCalendar.getDisplayName(
-                            Calendar.DAY_OF_WEEK, Calendar.LONG,
-                            Locale.getDefault())));
+                    dayOfWeekLabel.setText(getDayOfWeekText());
                 }
             }
         );
@@ -184,6 +186,24 @@ public class DemoTextFieldWindow extends TWindow {
             i18n.getString("statusBarOpen"));
         statusBar.addShortcutKeypress(kbF10, cmExit,
             i18n.getString("statusBarExit"));
+    }
+
+    private String getDayOfWeekText() {
+        return String.format(LABEL_FORMAT,
+            dayOfWeekCalendar.getDisplayName(Calendar.DAY_OF_WEEK,
+                Calendar.LONG, Locale.getDefault()));
+    }
+
+    private int getDayOfWeekWidth() {
+        int width = 0;
+        GregorianCalendar calendar = new GregorianCalendar();
+        for (int day = Calendar.SUNDAY; day <= Calendar.SATURDAY; day++) {
+            calendar.set(Calendar.DAY_OF_WEEK, day);
+            width = Math.max(width, StringUtils.width(String.format(LABEL_FORMAT,
+                    calendar.getDisplayName(Calendar.DAY_OF_WEEK,
+                        Calendar.LONG, Locale.getDefault()))));
+        }
+        return width;
     }
 
 }

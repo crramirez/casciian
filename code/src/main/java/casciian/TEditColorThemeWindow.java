@@ -27,6 +27,7 @@ import casciian.bits.BorderStyle;
 import casciian.bits.Color;
 import casciian.bits.ColorTheme;
 import casciian.bits.CellAttributes;
+import casciian.bits.ControlPadding;
 import casciian.bits.GraphicsChars;
 import casciian.bits.Palette256;
 import casciian.bits.Rgb;
@@ -41,7 +42,7 @@ import static casciian.bits.ColorTheme.TLABEL_ACTIVE;
  * color theme.
  *
  */
-public class TEditColorThemeWindow extends TWindow {
+public class TEditColorThemeWindow extends TDialog {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
@@ -59,17 +60,37 @@ public class TEditColorThemeWindow extends TWindow {
     /**
      * Translated strings.
      */
-    private ResourceBundle i18n = null;
+    private final ResourceBundle i18n;
 
     /**
      * The current editing theme.
      */
-    private ColorTheme editTheme;
+    private final ColorTheme editTheme;
 
     /**
-     * The left-side list of colors pane.
+     * The attribute name used for theme keys that have no attribute suffix
+     * (i.e. the key is a bare widget name with no dot).
      */
-    private TList colorNames;
+    private static final String BASE_ATTRIBUTE = "base";
+
+    /**
+     * The left-side list of widget names (the part of a theme key before the
+     * first dot, e.g. "ttable").
+     */
+    private final TList widgetNames;
+
+    /**
+     * The list of attributes for the currently selected widget (the part of a
+     * theme key after the first dot, e.g. "active" or "active.modal"), or
+     * {@link #BASE_ATTRIBUTE} for keys with no attribute suffix.
+     */
+    private final TList attributeNames;
+
+    /**
+     * Mapping from widget name to its sorted list of attributes.
+     */
+    private final java.util.Map<String, java.util.List<String>> widgetToAttributes =
+        new java.util.TreeMap<>();
 
     /**
      * The foreground color.
@@ -84,8 +105,10 @@ public class TEditColorThemeWindow extends TWindow {
     /**
      * The foreground color foreground.
      */
+    @SuppressWarnings("UnnecessaryUnicodeEscape")
     class ColorPicker extends TWidget {
 
+        public static final String COLOR_BLOCK = "\u2588\u2588\u2588";
         /**
          * The label associated with this ColorPicker instance.
          * This string is used to describe or identify the color picker,
@@ -123,8 +146,12 @@ public class TEditColorThemeWindow extends TWindow {
             super(parent, x, y, width, height);
             this.label = label;
 
-            rgb = addLabelFor(i18n.getString("rgbHex"), 5, 6,
-                addField(7, 6, 6, true, ""));
+            if (ControlPadding.current().getCells() == 0) {
+                rgb = addLabelFor(i18n.getString("rgbHex"), 5, 6,
+                    addField(7, 6, 6, true, ""));
+            } else {
+                rgb = addField(5, 6, 8, true, "");
+            }
         }
 
         /**
@@ -239,38 +266,38 @@ public class TEditColorThemeWindow extends TWindow {
             // SGR, not CGA.
             attr.reset();
             attr.setForeColor(Color.BLACK);
-            putStringXY(1, 1, "\u2588\u2588\u2588", attr);
+            putStringXY(1, 1, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BLUE);
-            putStringXY(4, 1, "\u2588\u2588\u2588", attr);
+            putStringXY(4, 1, COLOR_BLOCK, attr);
             attr.setForeColor(Color.GREEN);
-            putStringXY(7, 1, "\u2588\u2588\u2588", attr);
+            putStringXY(7, 1, COLOR_BLOCK, attr);
             attr.setForeColor(Color.CYAN);
-            putStringXY(10, 1, "\u2588\u2588\u2588", attr);
+            putStringXY(10, 1, COLOR_BLOCK, attr);
             attr.setForeColor(Color.RED);
-            putStringXY(1, 2, "\u2588\u2588\u2588", attr);
+            putStringXY(1, 2, COLOR_BLOCK, attr);
             attr.setForeColor(Color.MAGENTA);
-            putStringXY(4, 2, "\u2588\u2588\u2588", attr);
+            putStringXY(4, 2, COLOR_BLOCK, attr);
             attr.setForeColor(Color.YELLOW);
-            putStringXY(7, 2, "\u2588\u2588\u2588", attr);
+            putStringXY(7, 2, COLOR_BLOCK, attr);
             attr.setForeColor(Color.WHITE);
-            putStringXY(10, 2, "\u2588\u2588\u2588", attr);
+            putStringXY(10, 2, COLOR_BLOCK, attr);
 
             attr.setForeColor(Color.BRIGHT_BLACK);
-            putStringXY(1, 3, "\u2588\u2588\u2588", attr);
+            putStringXY(1, 3, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_BLUE);
-            putStringXY(4, 3, "\u2588\u2588\u2588", attr);
+            putStringXY(4, 3, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_GREEN);
-            putStringXY(7, 3, "\u2588\u2588\u2588", attr);
+            putStringXY(7, 3, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_CYAN);
-            putStringXY(10, 3, "\u2588\u2588\u2588", attr);
+            putStringXY(10, 3, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_RED);
-            putStringXY(1, 4, "\u2588\u2588\u2588", attr);
+            putStringXY(1, 4, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_MAGENTA);
-            putStringXY(4, 4, "\u2588\u2588\u2588", attr);
+            putStringXY(4, 4, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_YELLOW);
-            putStringXY(7, 4, "\u2588\u2588\u2588", attr);
+            putStringXY(7, 4, COLOR_BLOCK, attr);
             attr.setForeColor(Color.BRIGHT_WHITE);
-            putStringXY(10, 4, "\u2588\u2588\u2588", attr);
+            putStringXY(10, 4, COLOR_BLOCK, attr);
 
             // Draw the dot
             int rgbColor = parseColorHex(rgb.text);
@@ -282,7 +309,7 @@ public class TEditColorThemeWindow extends TWindow {
                 var rgb = Rgb.fromPackedRgb(rgbColor);
                 int luminance = (rgb.r() * 299 + rgb.g() * 587 + rgb.b() * 114) / 1000;
                 if (luminance < 48) {
-                    putStringXY(1, 6, "\u2588\u2588\u2588", attr);
+                    putStringXY(1, 6, COLOR_BLOCK, attr);
                     attr.reset();
                     attr.setBackColorRGB(rgbColor);
                     putCharXY(2, 6, GraphicsChars.CP437[0x07], attr);
@@ -313,7 +340,7 @@ public class TEditColorThemeWindow extends TWindow {
         public void onKeypress(final TKeypressEvent keypress) {
             if (rgb.isActive()) {
                 rgb.onKeypress(keypress);
-            } else if (keypress.equals(kbRight)) {
+            } else if (keypress.matchesKey(kbRight)) {
                 int dotX = getXColorPosition(color);
                 int dotY = getYColorPosition(color, bright);
                 if (dotX < 10) {
@@ -321,7 +348,7 @@ public class TEditColorThemeWindow extends TWindow {
                 }
                 color = getColorFromPosition(dotX, dotY);
                 rgb.setText("");
-            } else if (keypress.equals(kbLeft)) {
+            } else if (keypress.matchesKey(kbLeft)) {
                 int dotX = getXColorPosition(color);
                 int dotY = getYColorPosition(color, bright);
                 if (dotX > 3) {
@@ -329,7 +356,7 @@ public class TEditColorThemeWindow extends TWindow {
                 }
                 color = getColorFromPosition(dotX, dotY);
                 rgb.setText("");
-            } else if (keypress.equals(kbUp)) {
+            } else if (keypress.matchesKey(kbUp)) {
                 int dotX = getXColorPosition(color);
                 int dotY = getYColorPosition(color, bright);
                 if (dotY > 1) {
@@ -338,7 +365,7 @@ public class TEditColorThemeWindow extends TWindow {
                 color = getColorFromPosition(dotX, dotY);
                 bright = getBrightFromPosition(dotY);
                 rgb.setText("");
-            } else if (keypress.equals(kbDown)) {
+            } else if (keypress.matchesKey(kbDown)) {
                 int dotX = getXColorPosition(color);
                 int dotY = getYColorPosition(color, bright);
                 if (dotY < 4) {
@@ -440,39 +467,117 @@ public class TEditColorThemeWindow extends TWindow {
 
         // Initialize with the first color
         List<String> colors = getTheme().getColorNames();
-        assert (colors.size() > 0);
+        assert (!colors.isEmpty());
         editTheme = new ColorTheme();
         for (String key: colors) {
             CellAttributes attr = new CellAttributes();
             attr.setTo(getTheme().getColor(key));
             editTheme.setColor(key, attr);
+
+            // Split the key into widget name and attribute.
+            String widget = widgetNameOf(key);
+            String attribute = attributeOf(key);
+            widgetToAttributes
+                .computeIfAbsent(widget, w -> new java.util.ArrayList<>())
+                .add(attribute);
+        }
+        // Sort each widget's attribute list.
+        for (java.util.List<String> attrs: widgetToAttributes.values()) {
+            java.util.Collections.sort(attrs);
         }
 
-        colorNames = addList(colors, 2, 2, 38, getHeight() - 10,
+        List<String> widgets = new java.util.ArrayList<>(
+            widgetToAttributes.keySet());
+
+        // Compute the widths needed to fully show the longest widget name and
+        // the longest attribute name.  A TList reserves one column for its
+        // vertical scrollbar plus ControlPadding cells on each side, so the
+        // list width must account for those.
+        int padding = ControlPadding.current().getCells();
+        int maxWidgetLen = 0;
+        for (String w: widgets) {
+            maxWidgetLen = Math.max(maxWidgetLen, w.length());
+        }
+        int maxAttributeLen = 0;
+        for (java.util.List<String> attrs: widgetToAttributes.values()) {
+            for (String a: attrs) {
+                maxAttributeLen = Math.max(maxAttributeLen, a.length());
+            }
+        }
+        int widgetListWidth = maxWidgetLen + 1 + 2 * padding;
+        int attributeListWidth = maxAttributeLen + 1 + 2 * padding;
+
+        // Layout: [2] widget list [2] attribute list [2] color pickers [2]
+        int widgetListX = 2;
+        int attributeListX = widgetListX + widgetListWidth + 2;
+        int pickerX = attributeListX + attributeListWidth + 2;
+        int pickerWidth = 14;
+
+        // Adjust the dialog width to fit the two lists; everything to the
+        // right of the lists keeps its fixed size.  Leave two blank columns
+        // between the color pickers and the right border, matching the left.
+        setWidth(pickerX + pickerWidth + 4);
+        center();
+
+        int listHeight = getHeight() - 10;
+
+        widgetNames = addList(widgets, widgetListX, 2, widgetListWidth,
+            listHeight,
             new TAction() {
                 // When the user presses Enter
                 public void DO() {
-                    refreshFromTheme(colorNames.getSelected());
+                    refreshAttributes(widgetNames.getSelected());
                 }
             },
             new TAction() {
                 // When the user navigates with keyboard
                 public void DO() {
-                    refreshFromTheme(colorNames.getSelected());
+                    refreshAttributes(widgetNames.getSelected());
                 }
             },
             new TAction() {
-                // When the user navigates with keyboard
+                // When the user clicks with the mouse
                 public void DO() {
-                    refreshFromTheme(colorNames.getSelected());
+                    refreshAttributes(widgetNames.getSelected());
                 }
             }
         );
-        addLabel(i18n.getString("colorName"), 2, 1, colorNames);
-        foreground = new ColorPicker(this, 42, 1, 14, 8, i18n.getString("foregroundLabel"));
-        background = new ColorPicker(this, 42, 9, 14, 8, i18n.getString("backgroundLabel"));
-        refreshFromTheme(colors.getFirst());
-        colorNames.setSelectedIndex(0);
+        widgetNames.getHorizontalScroller().setVisible(false);
+        addLabelFor(i18n.getString("widgetName"), widgetListX, 1, widgetNames);
+
+        attributeNames = addList(
+            new java.util.ArrayList<>(widgetToAttributes.get(widgets.getFirst())),
+            attributeListX, 2, attributeListWidth, listHeight,
+            new TAction() {
+                // When the user presses Enter
+                public void DO() {
+                    refreshFromTheme(getSelectedColorName());
+                }
+            },
+            new TAction() {
+                // When the user navigates with keyboard
+                public void DO() {
+                    refreshFromTheme(getSelectedColorName());
+                }
+            },
+            new TAction() {
+                // When the user clicks with the mouse
+                public void DO() {
+                    refreshFromTheme(getSelectedColorName());
+                }
+            }
+        );
+        attributeNames.getHorizontalScroller().setVisible(false);
+        addLabelFor(i18n.getString("attributeName"), attributeListX, 1,
+            attributeNames);
+
+        foreground = new ColorPicker(this, pickerX, 1, pickerWidth, 8,
+            i18n.getString("foregroundLabel"));
+        background = new ColorPicker(this, pickerX, 9, pickerWidth, 8,
+            i18n.getString("backgroundLabel"));
+        widgetNames.setSelectedIndex(0);
+        attributeNames.setSelectedIndex(0);
+        refreshFromTheme(getSelectedColorName());
 
         TText tText = addText(i18n.getString("casciianrcHint"), 2, getHeight() - 7, getWidth() - 4, 3,
             "twindow.background.modal");
@@ -480,7 +585,8 @@ public class TEditColorThemeWindow extends TWindow {
         tText.getVerticalScroller().setVisible(false);
         tText.setEnabled(false);
 
-        addButton(i18n.getString("okButton"), getWidth() - 53, getHeight() - 4,
+        TButton okButton = addButton(i18n.getString("okButton"), 0,
+            getHeight() - 4,
             new TAction() {
                 public void DO() {
                     ColorTheme global = getTheme();
@@ -494,17 +600,18 @@ public class TEditColorThemeWindow extends TWindow {
                 }
             }
         );
+        setDefaultButton(okButton);
 
-        addButton(i18n.getString("loadButton"), getWidth() - 41,
+        TButton loadButton = addButton(i18n.getString("loadButton"), 0,
             getHeight() - 4,
             new TAction() {
                 public void DO() {
                     try {
-                        String filename = null;
+                        String filename;
                         filename = fileOpenBox(".");
                         if (filename != null) {
                             editTheme.load(filename);
-                            refreshFromTheme(colorNames.getSelected());
+                            refreshFromTheme(getSelectedColorName());
                         }
                     } catch (IOException e) {
                         new TExceptionDialog(getApplication(), e);
@@ -513,12 +620,12 @@ public class TEditColorThemeWindow extends TWindow {
             }
         );
 
-        addButton(i18n.getString("saveButton"), getWidth() - 29,
+        TButton saveButton = addButton(i18n.getString("saveButton"), 0,
             getHeight() - 4,
             new TAction() {
                 public void DO() {
                     try {
-                        String filename = null;
+                        String filename;
                         filename = fileSaveBox(".");
                         if (filename != null) {
                             editTheme.save(filename);
@@ -530,7 +637,7 @@ public class TEditColorThemeWindow extends TWindow {
             }
         );
 
-        addButton(i18n.getString("cancelButton"), getWidth() - 17,
+        TButton cancelButton = addButton(i18n.getString("cancelButton"), 0,
             getHeight() - 4,
             new TAction() {
                 public void DO() {
@@ -539,8 +646,21 @@ public class TEditColorThemeWindow extends TWindow {
             }
         );
 
-        // Default to the color list
-        activate(colorNames);
+        // Center the row of buttons horizontally within the dialog.
+        TButton[] buttons = {okButton, loadButton, saveButton, cancelButton};
+        final int buttonGap = 3;
+        int buttonsWidth = -buttonGap;
+        for (TButton button: buttons) {
+            buttonsWidth += button.getWidth() + buttonGap;
+        }
+        int buttonX = (getWidth() - buttonsWidth) / 2;
+        for (TButton button: buttons) {
+            button.setX(buttonX);
+            buttonX += button.getWidth() + buttonGap;
+        }
+
+        // Default to the widget list
+        activate(widgetNames);
 
         // Add shortcut text
         newStatusBar(i18n.getString("statusBar"));
@@ -557,12 +677,6 @@ public class TEditColorThemeWindow extends TWindow {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        // Escape - behave like cancel
-        if (keypress.equals(kbEsc)) {
-            getApplication().closeWindow(this);
-            return;
-        }
-
         // Pass to my parent
         super.onKeypress(keypress);
     }
@@ -602,9 +716,9 @@ public class TEditColorThemeWindow extends TWindow {
         } catch (NumberFormatException e) {
             // SQUASH
         }
-        putStringXY(getWidth() - 17, getHeight() - 9,
+        putStringXY(foreground.getX() + 1, getHeight() - 9,
             i18n.getString("textTextText"), attr);
-        putStringXY(getWidth() - 17, getHeight() - 8,
+        putStringXY(foreground.getX() + 1, getHeight() - 8,
             i18n.getString("textTextText"), attr);
     }
 
@@ -624,11 +738,82 @@ public class TEditColorThemeWindow extends TWindow {
     // ------------------------------------------------------------------------
 
     /**
+     * Get the widget name portion of a theme key (the part before the first
+     * dot).
+     *
+     * @param colorName a theme key, e.g. "ttable.active.modal"
+     * @return the widget name, e.g. "ttable"
+     */
+    private static String widgetNameOf(final String colorName) {
+        int idx = colorName.indexOf('.');
+        if (idx < 0) {
+            return colorName;
+        }
+        return colorName.substring(0, idx);
+    }
+
+    /**
+     * Get the attribute portion of a theme key (the part after the first
+     * dot), or {@link #BASE_ATTRIBUTE} if the key has no dot.
+     *
+     * @param colorName a theme key, e.g. "ttable.active.modal"
+     * @return the attribute, e.g. "active.modal", or "base"
+     */
+    private static String attributeOf(final String colorName) {
+        int idx = colorName.indexOf('.');
+        if (idx < 0) {
+            return BASE_ATTRIBUTE;
+        }
+        return colorName.substring(idx + 1);
+    }
+
+    /**
+     * Reconstruct the full theme key currently selected in the widget and
+     * attribute lists.
+     *
+     * @return the theme key, e.g. "ttable.active.modal", or null if nothing
+     * is selected
+     */
+    private String getSelectedColorName() {
+        String widget = widgetNames.getSelected();
+        String attribute = attributeNames.getSelected();
+        if ((widget == null) || (attribute == null)) {
+            return null;
+        }
+        if (attribute.equals(BASE_ATTRIBUTE)) {
+            return widget;
+        }
+        return widget + "." + attribute;
+    }
+
+    /**
+     * Populate the attribute list with the attributes of the given widget and
+     * refresh the color pickers with the first attribute's color.
+     *
+     * @param widget the widget name to show attributes for
+     */
+    private void refreshAttributes(final String widget) {
+        if (widget == null) {
+            return;
+        }
+        java.util.List<String> attrs = widgetToAttributes.get(widget);
+        if (attrs == null) {
+            return;
+        }
+        attributeNames.setList(new java.util.ArrayList<>(attrs));
+        attributeNames.setSelectedIndex(0);
+        refreshFromTheme(getSelectedColorName());
+    }
+
+    /**
      * Set various widgets/values to the editing theme color.
      *
      * @param colorName name of color from theme
      */
     private void refreshFromTheme(final String colorName) {
+        if (colorName == null) {
+            return;
+        }
         CellAttributes attr = editTheme.getColor(colorName);
 
         foreground.color = attr.getForeColor().toNormal();
@@ -665,11 +850,11 @@ public class TEditColorThemeWindow extends TWindow {
     }
 
     /**
-     * Examines foreground, background, and colorNames and sets the color in
-     * editTheme.
+     * Examines foreground, background, and the selected color name and sets
+     * the color in editTheme.
      */
     private void saveToEditTheme() {
-        String colorName = colorNames.getSelected();
+        String colorName = getSelectedColorName();
         if (colorName == null) {
             return;
         }
@@ -680,7 +865,7 @@ public class TEditColorThemeWindow extends TWindow {
             while (text.startsWith("#")) {
                 text = text.substring(1);
             }
-            if (text.length() > 0) {
+            if (!text.isEmpty()) {
                 int foreColorRGB = Integer.parseInt(text, 16);
                 if (foreColorRGB >= 0) {
                     int paletteIndex = Palette256.findExact(foreColorRGB);
@@ -708,7 +893,7 @@ public class TEditColorThemeWindow extends TWindow {
             while (text.startsWith("#")) {
                 text = text.substring(1);
             }
-            if (text.length() > 0) {
+            if (!text.isEmpty()) {
                 int backColorRGB = Integer.parseInt(text, 16);
                 if (backColorRGB >= 0) {
                     int paletteIndex = Palette256.findExact(backColorRGB);

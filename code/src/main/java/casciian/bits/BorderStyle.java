@@ -273,4 +273,29 @@ public class BorderStyle {
         return bottomRight;
     }
 
+    /**
+     * Get this style as a string.
+     *
+     * @return string representation of this style
+     */
+    @Override
+    public String toString() {
+        if (this == NONE) {
+            return "none";
+        }
+        if (this == DOUBLE) {
+            return "double";
+        }
+        if (this == SINGLE_ROUND) {
+            return "round";
+        }
+        if (this == SINGLE_V_DOUBLE_H) {
+            return "singleVdoubleH";
+        }
+        if (this == SINGLE_H_DOUBLE_V) {
+            return "singleHdoubleV";
+        }
+        return "single";
+    }
+
 }

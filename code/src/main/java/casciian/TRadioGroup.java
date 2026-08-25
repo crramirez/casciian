@@ -22,6 +22,7 @@ package casciian;
 import casciian.bits.BorderStyle;
 import casciian.bits.CellAttributes;
 import casciian.bits.ControlPadding;
+import casciian.bits.MnemonicString;
 import casciian.bits.StringUtils;
 
 /**
@@ -36,7 +37,7 @@ public class TRadioGroup extends TWidget {
     /**
      * Label for this radio button group.
      */
-    private String label;
+    private MnemonicString mnemonic;
 
     /**
      * Only one of my children can be selected.
@@ -52,7 +53,7 @@ public class TRadioGroup extends TWidget {
     /**
      * If true, use the window's background color.
      */
-    private boolean matchWindowBackground = true;
+    private boolean matchWindowBackground = false;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -73,7 +74,7 @@ public class TRadioGroup extends TWidget {
         // Set parent and window
         super(parent, x, y, width, 2);
 
-        this.label = label;
+        mnemonic = new MnemonicString(label);
     }
 
     /**
@@ -88,9 +89,10 @@ public class TRadioGroup extends TWidget {
         final String label) {
 
         // Set parent and window
-        super(parent, x, y, StringUtils.width(label) + 4, 2);
+        super(parent, x, y,
+            StringUtils.width(new MnemonicString(label).getRawLabel()) + 4, 2);
 
-        this.label = label;
+        mnemonic = new MnemonicString(label);
     }
 
     // ------------------------------------------------------------------------
@@ -124,16 +126,19 @@ public class TRadioGroup extends TWidget {
     @Override
     public void draw() {
         CellAttributes radioGroupColor;
+        CellAttributes mnemonicColor;
 
         if (isAbsoluteActive()) {
             radioGroupColor = getWidgetColor("tradiogroup.active");
+            mnemonicColor = getWidgetColor("tradiogroup.mnemonic.highlighted");
         } else {
             radioGroupColor = getWidgetColor("tradiogroup.inactive");
+            mnemonicColor = getWidgetColor("tradiogroup.mnemonic");
         }
 
         BorderStyle borderStyle;
         borderStyle = BorderStyle.getStyle(System.getProperty(
-            "casciian.TRadioGroup.borderStyle", "singleVdoubleH"));
+            "casciian.TRadioGroup.borderStyle", BorderStyle.NONE.toString()));
 
         if (matchWindowBackground) {
             drawForegroundBox(0, 0, getWidth(), getHeight(), radioGroupColor,
@@ -143,6 +148,7 @@ public class TRadioGroup extends TWidget {
                 radioGroupColor, borderStyle);
         }
 
+        String label = mnemonic.getRawLabel();
         if (matchWindowBackground) {
             hForegroundLineXY(1, 0, StringUtils.width(label) + 2, ' ',
                 radioGroupColor);
@@ -160,6 +166,17 @@ public class TRadioGroup extends TWidget {
                 putForegroundStringXY(2, 0, label, radioGroupColor);
             } else {
                 putStringXY(2, 0, label, radioGroupColor);
+            }
+        }
+        int mnemonicOffset = borderStyle.equals(BorderStyle.NONE) ? 1 : 2;
+        if (mnemonic.getScreenShortcutIdx() >= 0) {
+            if (matchWindowBackground) {
+                putForegroundCharXY(mnemonicOffset
+                    + mnemonic.getScreenShortcutIdx(), 0,
+                    mnemonic.getShortcut(), mnemonicColor);
+            } else {
+                putCharXY(mnemonicOffset + mnemonic.getScreenShortcutIdx(), 0,
+                    mnemonic.getShortcut(), mnemonicColor);
             }
         }
     }
@@ -213,6 +230,15 @@ public class TRadioGroup extends TWidget {
     }
 
     /**
+     * Get the mnemonic string for this radio group label.
+     *
+     * @return mnemonic string
+     */
+    public MnemonicString getMnemonic() {
+        return mnemonic;
+    }
+
+    /**
      * Convenience function to add a radio button to this group.
      *
      * @param label label to display next to (right of) the radiobutton
@@ -259,8 +285,20 @@ public class TRadioGroup extends TWidget {
             getParent().getLayoutManager().resetSize(this);
         }
 
+        syncRadioButtonWidths();
+
         // Default to the first item on the list.
         activate(getChildren().get(0));
+    }
+
+    /**
+     * Resize all radio-button rows to match the group's content width.
+     */
+    private void syncRadioButtonWidths() {
+        int buttonWidth = Math.max(0, getWidth() - 2);
+        for (TWidget widget: getChildren()) {
+            ((TRadioButton) widget).setDisplayWidth(buttonWidth);
+        }
     }
 
     /**

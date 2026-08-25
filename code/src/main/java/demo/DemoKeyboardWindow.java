@@ -59,7 +59,6 @@ public class DemoKeyboardWindow extends TWindow {
     public static final String RESOURCE_BUNDLE_NAME = DemoKeyboardWindow.class.getName() + "Bundle";
 
     private static final int INFO_ROWS = 8;
-    private static final int MIN_INFO_ROWS = 3;
     private static final int MIN_HISTORY_ROWS = 2;
 
     // ------------------------------------------------------------------------
@@ -104,8 +103,18 @@ public class DemoKeyboardWindow extends TWindow {
         infoText = addText("", 1, 1, getWidth() - 2, INFO_ROWS);
         hideScrollbars(infoText);
 
-        historyList = addList(history, 1, 1 + INFO_ROWS, getWidth() - 2,
-            getHeight() - 2 - INFO_ROWS);
+        historyList = new TList(this, history, 0, 1 + INFO_ROWS, getWidth() - 1,
+            getHeight() - 2 - INFO_ROWS, null) {
+
+            @Override
+            public void draw() {
+                if (padding != 1) {
+                    padding = 1;
+                }
+
+                super.draw();
+            }
+        };
 
         refreshStatusText();
         layoutWidgets();
@@ -258,9 +267,7 @@ public class DemoKeyboardWindow extends TWindow {
         infoText.setHeight(infoRows);
 
         int historyRows = Math.max(MIN_HISTORY_ROWS, clientHeight - infoRows);
-        historyList.setY(1 + infoRows);
-        historyList.setWidth(clientWidth);
-        historyList.setHeight(historyRows);
+        historyList.setDimensions(historyList.getX(), 1 + infoRows, clientWidth + 1, historyRows);
     }
 
     private void hideScrollbars(final TWidget widget) {

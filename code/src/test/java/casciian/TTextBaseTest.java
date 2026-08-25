@@ -18,6 +18,7 @@ package casciian;
 import org.junit.jupiter.api.Test;
 
 import casciian.backend.HeadlessBackend;
+import casciian.bits.StringUtils;
 import casciian.bits.Clipboard;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
@@ -293,6 +294,7 @@ class TTextBaseTest {
         text.selectAll();
         assertTrue(text.hasSelection());
         assertTrue(text.getSelection().startsWith("hello"));
+        assertEquals(StringUtils.width("hello"), text.getSelectionEndColumn());
     }
 
     @Test
@@ -393,6 +395,97 @@ class TTextBaseTest {
     }
 
     /**
+     * Send a mouse event to a widget.
+     *
+     * @param widget the widget
+     * @param type the type of event
+     * @param x the column, relative to the widget
+     * @param y the row, relative to the widget
+     */
+    private void mouse(final TWidget widget, final TMouseEvent.Type type,
+        final int x, final int y) {
+
+        boolean mouse1 = type != TMouseEvent.Type.MOUSE_UP;
+        TMouseEvent event = new TMouseEvent(null, type, x, y,
+            widget.getAbsoluteX() + x, widget.getAbsoluteY() + y, 0, 0,
+            mouse1, false, false, false, false, false, false, false);
+        switch (type) {
+        case MOUSE_DOWN:
+            widget.onMouseDown(event);
+            break;
+        case MOUSE_UP:
+            widget.onMouseUp(event);
+            break;
+        case MOUSE_DOUBLE_CLICK:
+            widget.onMouseDoubleClick(event);
+            break;
+        default:
+            widget.onMouseMotion(event);
+            break;
+        }
+    }
+
+    /**
+     * Dragging the mouse past the left border of a field scrolls the view
+     * back towards the beginning of the text, the same way dragging past the
+     * right border scrolls towards its end.
+     */
+    @Test
+    void fieldDraggingPastTheLeftBorderScrollsLeft() {
+        TWindow window = makeWindow();
+        TField field = new TField(window, 1, 1, 10, false,
+            "the quick brown fox jumps over the lazy dog");
+        window.activate(field);
+
+        field.end();
+        assertTrue(field.getLeftColumn() > 0);
+
+        // Press inside the field, then drag to the left past its border.
+        mouse(field, TMouseEvent.Type.MOUSE_DOWN, field.getTextAreaX(), 0);
+        int previous = field.getLeftColumn();
+        for (int i = 1; i <= 3; i++) {
+            mouse(field, TMouseEvent.Type.MOUSE_MOTION,
+                field.getTextAreaX() - i, 0);
+            assertTrue(field.getLeftColumn() < previous,
+                "dragging left did not scroll the field: "
+                + field.getLeftColumn());
+            previous = field.getLeftColumn();
+        }
+
+        // Dragging far past the left border stops at the beginning.
+        mouse(field, TMouseEvent.Type.MOUSE_MOTION,
+            field.getTextAreaX() - 100, 0);
+        assertEquals(0, field.getLeftColumn());
+        assertEquals(1, field.getEditingColumnNumber());
+        assertTrue(field.hasSelection());
+    }
+
+    /**
+     * Dragging the mouse past the top border of an editor scrolls the view up.
+     */
+    @Test
+    void editorDraggingPastTheTopBorderScrollsUp() {
+        TWindow window = makeWindow();
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < 30; i++) {
+            text.append("line ").append(i).append("\n");
+        }
+        TEditor editor = new TEditor(window, text.toString(), 1, 1, 20, 5);
+        window.activate(editor);
+
+        editor.setTopLine(10);
+
+        mouse(editor, TMouseEvent.Type.MOUSE_DOWN, editor.getTextAreaX(),
+            editor.getTextAreaY() + 2);
+        int startLine = editor.getTopLine();
+        mouse(editor, TMouseEvent.Type.MOUSE_MOTION, editor.getTextAreaX(),
+            editor.getTextAreaY() - 2);
+        assertTrue(editor.getTopLine() < startLine,
+            "dragging above the editor did not scroll up: "
+            + editor.getTopLine());
+    }
+
+    /**
      * Clicking on a field to focus it puts the cursor where the mouse is
      * instead of leaving the whole text selected.
      */
@@ -415,6 +508,44 @@ class TTextBaseTest {
 
         assertFalse(field.hasVisibleSelection());
         assertEquals(3, field.getEditingColumnNumber());
+    }
+
+    /**
+     * Double-clicking inside a field selects all of its text.
+     */
+    @Test
+    void fieldDoubleClickSelectsAllText() {
+        TWindow window = makeWindow();
+        TField field = new TField(window, 1, 1, 20, false, "hello world");
+        window.activate(field);
+
+        mouse(field, TMouseEvent.Type.MOUSE_DOWN, field.getTextAreaX() + 2, 0);
+        assertFalse(field.hasVisibleSelection());
+
+        mouse(field, TMouseEvent.Type.MOUSE_DOUBLE_CLICK,
+            field.getTextAreaX() + 2, 0);
+        assertEquals("hello world", field.getSelection());
+    }
+
+    /**
+     * Clicking a field's label while the field is already active does not
+     * re-trigger select-all on the field.
+     */
+    @Test
+    void clickingLabelForAnActiveFieldKeepsItsCollapsedSelection() {
+        TWindow window = makeWindow();
+        TField field = new TField(window, 1, 1, 20, false, "hello world");
+        TLabel<TField> label = new TLabel<>(window, "Name", 1, 2, field);
+
+        window.activate(field);
+        mouse(window, TMouseEvent.Type.MOUSE_DOWN, field.getX() + 2, field.getY());
+        assertFalse(field.hasVisibleSelection());
+
+        mouse(window, TMouseEvent.Type.MOUSE_DOWN, label.getX(), label.getY());
+        mouse(window, TMouseEvent.Type.MOUSE_UP, label.getX(), label.getY());
+
+        assertTrue(field.isAbsoluteActive());
+        assertFalse(field.hasVisibleSelection());
     }
 
     /**

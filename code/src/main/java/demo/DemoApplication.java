@@ -31,8 +31,10 @@ import java.util.ResourceBundle;
 
 import casciian.TApplication;
 import casciian.TButton;
+import casciian.TCheckBox;
 import casciian.TDesktop;
 import casciian.TEditorWindow;
+import casciian.TRadioButton;
 import casciian.TWidget;
 import casciian.TWindow;
 import casciian.backend.ECMA48Terminal;
@@ -583,6 +585,10 @@ public class DemoApplication extends TApplication {
             for (TWidget widget: window.getChildren()) {
                 if (widget instanceof TButton button) {
                     button.setStyle(TButton.Style.SQUARE);
+                } else if (widget instanceof TCheckBox checkbox) {
+                    checkbox.setStyle(TCheckBox.DEFAULT_STYLE_NAME);
+                } else if (widget instanceof TRadioButton radio) {
+                    radio.setStyle(TRadioButton.DEFAULT_STYLE_NAME);
                 }
             }
         }
@@ -661,6 +667,8 @@ public class DemoApplication extends TApplication {
     private boolean applyCursesThemeLook(final Runnable themeSetter) {
         applySingleBorders();
         System.setProperty("casciian.TButton.style", "brackets");
+        System.setProperty("casciian.TCheckBox.style", TCheckBox.Style.LOWER_X.getStyleName());
+        System.setProperty("casciian.TRadioButton.style", TRadioButton.Style.ASTERISK.getStyleName());
         restoreDefaultShadowIfZero();
 
         themeSetter.run();
@@ -673,6 +681,10 @@ public class DemoApplication extends TApplication {
             for (TWidget widget: window.getChildren()) {
                 if (widget instanceof TButton button) {
                     button.setStyle(TButton.Style.BRACKETS);
+                } else if (widget instanceof TCheckBox checkBox) {
+                    checkBox.setStyle(TCheckBox.Style.LOWER_X);
+                } else if (widget instanceof TRadioButton radioButton) {
+                    radioButton.setStyle(TRadioButton.Style.ASTERISK);
                 }
             }
         }

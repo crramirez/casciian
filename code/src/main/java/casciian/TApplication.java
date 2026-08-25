@@ -515,15 +515,17 @@ public class TApplication implements Runnable {
                         if ((!primary)
                             && (application.secondaryEventReceiver == null)
                         ) {
-                            // Secondary thread, emergency exit.  If we got
-                            // here then something went wrong with the
-                            // handoff between yield() and closeWindow().
-                            synchronized (application.primaryEventHandler) {
-                                application.primaryEventHandler.notify();
-                            }
+                            // Secondary thread woke up and found the modal
+                            // window already closed (e.g. closeWindow() was
+                            // called from a thread other than the secondary
+                            // handler, which is valid for executeModal).
+                            // Exit cleanly: wake all threads waiting on the
+                            // primary handler so that yield() returns.
                             application.secondaryEventHandler = null;
-                            throw new RuntimeException("secondary exited " +
-                                "at wrong time");
+                            synchronized (application.primaryEventHandler) {
+                                application.primaryEventHandler.notifyAll();
+                            }
+                            return;
                         }
                         break;
                     } catch (InterruptedException e) {
@@ -565,11 +567,11 @@ public class TApplication implements Runnable {
                         // resumes working on the primary.
                         application.secondaryEventHandler = null;
 
-                        // We are ready to exit, wake up the primary thread.
-                        // Remember that it is currently sleeping inside its
-                        // primaryHandleEvent().
+                        // Wake all threads that may be waiting on the primary
+                        // handler (including yield() callers and the primary
+                        // event-handler loop itself).
                         synchronized (application.primaryEventHandler) {
-                            application.primaryEventHandler.notify();
+                            application.primaryEventHandler.notifyAll();
                         }
 
                         // All done!
@@ -577,6 +579,22 @@ public class TApplication implements Runnable {
                     }
 
                 } // for (;;)
+
+                // Check whether closeWindow was called while we were
+                // processing (or while the event queue was empty).  This
+                // catches the case where the secondary handler is busy-
+                // looping (getSleepTime returns 0 due to pending timers)
+                // and the notify() from closeWindow was never received
+                // because the handler was not in wait().
+                if ((!primary)
+                    && (application.secondaryEventReceiver == null)
+                ) {
+                    application.secondaryEventHandler = null;
+                    synchronized (application.primaryEventHandler) {
+                        application.primaryEventHandler.notifyAll();
+                    }
+                    return;
+                }
 
                 // Fire timers, update screen.
                 if (!quit) {
@@ -1876,6 +1894,10 @@ public class TApplication implements Runnable {
     /**
      * Enable a widget to override the primary event thread.
      *
+     * <p>Most callers should use {@link #executeModal(TWindow)} instead of
+     * calling this method and {@link #yield()} directly.  This lower-level
+     * entry point is retained for subclasses and special cases.</p>
+     *
      * @param widget widget that will receive events
      */
     public final void enableSecondaryEventReceiver(final TWidget widget) {
@@ -1886,8 +1908,6 @@ public class TApplication implements Runnable {
 
         assert (secondaryEventReceiver == null);
         assert (secondaryEventHandler == null);
-        assert ((widget instanceof TMessageBox)
-            || (widget instanceof TFileOpenBox));
         secondaryEventReceiver = widget;
         secondaryEventHandler = new WidgetEventHandler(this, false);
 
@@ -1896,6 +1916,10 @@ public class TApplication implements Runnable {
 
     /**
      * Yield to the secondary thread.
+     *
+     * <p>Most callers should use {@link #executeModal(TWindow)} instead of
+     * calling this method and {@link #enableSecondaryEventReceiver(TWidget)}
+     * directly.</p>
      */
     public final void yield() {
         if (debugThreads) {
@@ -1914,6 +1938,73 @@ public class TApplication implements Runnable {
                 }
             }
         }
+    }
+
+    /**
+     * Execute a modal window synchronously and return when it closes.
+     *
+     * <p>This is the generic entry point for modal interaction.  Any
+     * {@link TWindow} that carries the {@link TWindow#MODAL} flag can be
+     * executed this way, regardless of its concrete type.  The concrete
+     * dialog is responsible for owning its own result state; this method
+     * provides only the modal execution machinery.</p>
+     *
+     * <p><b>Typical usage:</b></p>
+     * <pre>
+     * MyDialog dialog = new MyDialog(application);
+     * application.executeModal(dialog);
+     * if (dialog.getResult() == MyDialog.Result.SAVE) { ... }
+     * </pre>
+     *
+     * <p>For a dialog with no result at all, the same pattern is valid.</p>
+     *
+     * <p><b>Design note:</b>
+     * {@link TDialog} intentionally does not define a generic result type.
+     * A generic dialog does not necessarily have OK/Cancel/Yes/No semantics.
+     * Result state belongs to the concrete dialog when needed.</p>
+     *
+     * <p><b>Nesting:</b>
+     * The current two-handler event architecture supports at most one
+     * secondary (modal) event receiver at a time.  Attempting to start a
+     * second concurrent modal session will throw
+     * {@link IllegalStateException}.</p>
+     *
+     * @param window the modal window to execute; must be non-null, must carry
+     *               the {@code MODAL} flag, must be owned by this application,
+     *               and must not already be closed
+     * @throws IllegalArgumentException if {@code window} is {@code null}, not
+     *                                  modal, not owned by this application,
+     *                                  or already removed from the window list
+     * @throws IllegalStateException    if another modal window is already
+     *                                  being executed
+     */
+    public final void executeModal(final TWindow window) {
+        if (window == null) {
+            throw new IllegalArgumentException(
+                "executeModal: window must not be null");
+        }
+        if (!window.isModal()) {
+            throw new IllegalArgumentException(
+                "executeModal: window must have the MODAL flag set");
+        }
+        if (window.getApplication() != this) {
+            throw new IllegalArgumentException(
+                "executeModal: window is not owned by this TApplication");
+        }
+        synchronized (windows) {
+            if (!windows.contains(window)) {
+                throw new IllegalArgumentException(
+                    "executeModal: window is not open (already closed or " +
+                    "never added)");
+            }
+            if (secondaryEventHandler != null || secondaryEventReceiver != null) {
+                throw new IllegalStateException(
+                    "executeModal: a modal window is already executing; " +
+                    "nested modal dialogs are not supported");
+            }
+            enableSecondaryEventReceiver(window);
+        }
+        this.yield();
     }
 
     /**
@@ -2956,6 +3047,17 @@ public class TApplication implements Runnable {
         if (screenHandler != null) {
             screenHandler.setDirty();
         }
+        // Wake the active event-handler thread so it sees quit=true and stops.
+        if (primaryEventHandler != null) {
+            synchronized (primaryEventHandler) {
+                primaryEventHandler.notifyAll();
+            }
+        }
+        if (secondaryEventHandler != null) {
+            synchronized (secondaryEventHandler) {
+                secondaryEventHandler.notifyAll();
+            }
+        }
     }
 
     /**
@@ -3271,7 +3373,7 @@ public class TApplication implements Runnable {
         window.onClose();
 
         // Check if we are closing a TMessageBox or similar
-        if (secondaryEventReceiver != null) {
+        if (secondaryEventReceiver == window) {
             assert (secondaryEventHandler != null);
 
             // Do not send events to the secondaryEventReceiver anymore, the
@@ -3281,7 +3383,7 @@ public class TApplication implements Runnable {
             // Wake the secondary thread, it will wake the primary as it
             // exits.
             synchronized (secondaryEventHandler) {
-                secondaryEventHandler.notify();
+                secondaryEventHandler.notifyAll();
             }
 
         } // synchronized (windows)

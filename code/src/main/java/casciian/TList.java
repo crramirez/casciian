@@ -42,7 +42,7 @@ public class TList extends TScrollable {
     /**
      * The list of strings to display.
      */
-    private List<String> strings;
+    private final List<String> strings;
 
     /**
      * Selected string.
@@ -53,17 +53,17 @@ public class TList extends TScrollable {
      * The action to perform when the user selects an item (double-clicks or
      * enter).
      */
-    protected TAction enterAction = null;
+    protected TAction enterAction;
 
     /**
      * The action to perform when the user selects an item (single-click).
      */
-    protected TAction singleClickAction = null;
+    protected TAction singleClickAction;
 
     /**
      * The action to perform when the user navigates with keyboard.
      */
-    protected TAction moveAction = null;
+    protected TAction moveAction;
 
     /**
      * Extra left/right padding applied to each list row.  The value is
@@ -73,7 +73,7 @@ public class TList extends TScrollable {
      * by this amount from the left edge of the widget, and 1 blank cell
      * is reserved on the right (before the vertical scrollbar) as well.
      */
-    protected final int padding;
+    protected int padding;
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -163,12 +163,12 @@ public class TList extends TScrollable {
         this.enterAction = enterAction;
         this.moveAction = moveAction;
         this.singleClickAction = singleClickAction;
-        this.strings = new ArrayList<String>();
+        this.strings = new ArrayList<>();
         if (strings != null) {
             this.strings.addAll(strings);
         }
 
-        hScroller = new THScroller(this, 0, getHeight() - 1, getWidth() - 1);
+        hScroller = new THScroller(this, 0, getHeight() - 1, calculateHScrollerWidth());
         vScroller = new TVScroller(this, getWidth() - 1, 0, getHeight() - 1);
         reflowData();
     }
@@ -243,12 +243,12 @@ public class TList extends TScrollable {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        if (keypress.equals(kbLeft)) {
+        if (keypress.matchesKey(kbLeft)) {
             horizontalDecrement();
-        } else if (keypress.equals(kbRight)) {
+        } else if (keypress.matchesKey(kbRight)) {
             horizontalIncrement();
-        } else if (keypress.equals(kbUp)) {
-            if (strings.size() > 0) {
+        } else if (keypress.matchesKey(kbUp)) {
+            if (!strings.isEmpty()) {
                 if (selectedString >= 0) {
                     if (selectedString > 0) {
                         if (selectedString - getVerticalValue() == 0) {
@@ -263,8 +263,8 @@ public class TList extends TScrollable {
             if (selectedString >= 0) {
                 dispatchMove();
             }
-        } else if (keypress.equals(kbDown)) {
-            if (strings.size() > 0) {
+        } else if (keypress.matchesKey(kbDown)) {
+            if (!strings.isEmpty()) {
                 if (selectedString >= 0) {
                     if (selectedString < strings.size() - 1) {
                         selectedString++;
@@ -279,7 +279,7 @@ public class TList extends TScrollable {
             if (selectedString >= 0) {
                 dispatchMove();
             }
-        } else if (keypress.equals(kbPgUp)) {
+        } else if (keypress.matchesKey(kbPgUp)) {
             bigVerticalDecrement();
             if (selectedString >= 0) {
                 selectedString -= getHeight() - 1;
@@ -290,7 +290,7 @@ public class TList extends TScrollable {
             if (selectedString >= 0) {
                 dispatchMove();
             }
-        } else if (keypress.equals(kbPgDn)) {
+        } else if (keypress.matchesKey(kbPgDn)) {
             bigVerticalIncrement();
             if (selectedString >= 0) {
                 selectedString += getHeight() - 1;
@@ -301,27 +301,27 @@ public class TList extends TScrollable {
             if (selectedString >= 0) {
                 dispatchMove();
             }
-        } else if (keypress.equals(kbHome)) {
+        } else if (keypress.matchesKey(kbHome)) {
             toTop();
-            if (strings.size() > 0) {
+            if (!strings.isEmpty()) {
                 selectedString = 0;
             }
             if (selectedString >= 0) {
                 dispatchMove();
             }
-        } else if (keypress.equals(kbEnd)) {
+        } else if (keypress.matchesKey(kbEnd)) {
             toBottom();
-            if (strings.size() > 0) {
+            if (!strings.isEmpty()) {
                 selectedString = strings.size() - 1;
             }
             if (selectedString >= 0) {
                 dispatchMove();
             }
-        } else if (keypress.equals(kbTab)) {
+        } else if (keypress.matchesKey(kbTab)) {
             getParent().switchWidget(true);
-        } else if (keypress.equals(kbShiftTab) || keypress.equals(kbBackTab)) {
+        } else if (keypress.matchesKey(kbShiftTab) || keypress.matchesKey(kbBackTab)) {
             getParent().switchWidget(false);
-        } else if (keypress.equals(kbEnter)) {
+        } else if (keypress.matchesKey(kbEnter)) {
             if (selectedString >= 0) {
                 dispatchEnter();
             }
@@ -329,6 +329,20 @@ public class TList extends TScrollable {
             // Pass other keys (tab etc.) on
             super.onKeypress(keypress);
         }
+    }
+
+    /**
+     * The list uses Enter to trigger its selection action, so it must keep the
+     * keypress instead of activating the window default button.
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should handle the keypress first
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return keypress.matchesKey(kbEnter);
     }
 
     /**
@@ -357,7 +371,7 @@ public class TList extends TScrollable {
     public void setWidth(final int width) {
         super.setWidth(width);
         if (hScroller != null) {
-            hScroller.setWidth(getWidth() - 1);
+            hScroller.setWidth(calculateHScrollerWidth());
         }
         if (vScroller != null) {
             vScroller.setX(getWidth() - 1);
@@ -406,8 +420,7 @@ public class TList extends TScrollable {
         }
 
         int maxLineWidth = 0;
-        for (int i = 0; i < strings.size(); i++) {
-            String line = strings.get(i);
+        for (String line : strings) {
             int lineLength = StringUtils.width(line);
             if (lineLength > maxLineWidth) {
                 maxLineWidth = lineLength;
@@ -440,7 +453,7 @@ public class TList extends TScrollable {
      */
     @Override
     public void draw() {
-        CellAttributes color = null;
+        CellAttributes color;
         int begin = getVerticalValue();
         int topY = 0;
         // Visible row width excludes the vertical scrollbar (1 cell) and
@@ -474,7 +487,7 @@ public class TList extends TScrollable {
                     putCharXY(getWidth() - 2 - p, topY, ' ', color);
                 }
             }
-            String formatString = "%-" + Integer.toString(rowWidth) + "s";
+            String formatString = "%-" + rowWidth + "s";
             putStringXY(padding, topY, String.format(formatString, line),
                 color);
             topY++;
@@ -514,7 +527,7 @@ public class TList extends TScrollable {
      * @param index -1 to unselect, otherwise the index into the list
      */
     public final void setSelectedIndex(final int index) {
-        if ((strings == null) || (strings.size() == 0) || (index < 0)) {
+        if ((strings == null) || (strings.isEmpty()) || (index < 0)) {
             toTop();
             selectedString = -1;
             return;
@@ -588,7 +601,7 @@ public class TList extends TScrollable {
      * @return the list of strings
      */
     public final List<String> getList() {
-        return new ArrayList<String>(strings);
+        return new ArrayList<>(strings);
     }
 
     /**
@@ -600,6 +613,21 @@ public class TList extends TScrollable {
         strings.clear();
         strings.addAll(list);
         reflowData();
+    }
+
+    /**
+     * Sets the dimensions of the widget and adjusts its layout.
+     *
+     * @param x the absolute X position of the top-left corner
+     * @param y the absolute Y position of the top-left corner
+     * @param width the new width of the widget
+     * @param height the new height of the widget
+     */
+    @Override
+    public void setDimensions(int x, int y, int width, int height) {
+        super.setDimensions(x, y, width, height);
+
+        placeScrollbars();
     }
 
     /**

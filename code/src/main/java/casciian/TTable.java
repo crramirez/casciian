@@ -774,6 +774,33 @@ public class TTable extends TWidget {
     }
 
     /**
+     * The table uses Enter to start and stop editing the selected cell, so it
+     * must keep the keypress instead of activating the window default button.
+     *
+     * @param keypress keystroke event
+     * @return true if this widget should handle the keypress first
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowDefaultButton(
+        final TKeypressEvent keypress) {
+
+        return keypress.equals(kbEnter);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Returns true when a cell is being edited, so that Escape cancels
+     * the cell edit rather than triggering the window's cancel hook.
+     */
+    @Override
+    protected boolean receivesKeypressBeforeWindowCancel(
+        final TKeypressEvent keypress) {
+
+        return keypress.equals(kbEsc) && getSelectedCell().isEditing;
+    }
+
+    /**
      * Handle widget resize events.
      *
      * @param event resize event

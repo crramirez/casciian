@@ -146,6 +146,14 @@ public class TWindow extends TWidget {
     protected boolean inKeyboardResize = false;
 
     /**
+     * Window geometry before keyboard size/move began.
+     */
+    private int keyboardResizeX;
+    private int keyboardResizeY;
+    private int keyboardResizeWidth;
+    private int keyboardResizeHeight;
+
+    /**
      * If true, this window is maximized.
      */
     private boolean maximized = false;
@@ -154,6 +162,11 @@ public class TWindow extends TWidget {
      * Remember mouse state.
      */
     protected TMouseEvent mouse;
+
+    /**
+     * The button activated by Enter when this window is focused.
+     */
+    private TButton defaultButton;
 
     // For moving the window.  resizing also uses moveWindowMouseX/Y
     private int moveWindowMouseX;
@@ -471,6 +484,85 @@ public class TWindow extends TWidget {
     }
 
     /**
+     * Returns true if any widget in the active-child chain (from the focused
+     * leaf up to, but not including, this window) matches the given predicate.
+     *
+     * @param predicate called with each widget; return true to signal a match
+     * @return true if any widget matched
+     */
+    private boolean activeChildChainMatches(
+        final java.util.function.Predicate<TWidget> predicate) {
+
+        for (TWidget widget = getActiveChild();
+             (widget != null) && (widget != this);
+             widget = widget.getParent()
+        ) {
+            if (predicate.test(widget)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Handle a keypress after mnemonic processing but before normal child
+     * dispatch.
+     *
+     * @param keypress keystroke event
+     * @return true if the keypress was consumed
+     */
+    @Override
+    protected boolean handleKeypressBeforeActiveChild(
+        final TKeypressEvent keypress) {
+
+        if (keypress.equals(kbEsc) && isModal()) {
+            // If the focused widget, or any of its ancestors up to this
+            // window, needs to process Escape itself (e.g. a combo-box
+            // hiding its drop-down), let it keep the keypress.
+            if (activeChildChainMatches(
+                w -> w.receivesKeypressBeforeWindowCancel(keypress))
+            ) {
+                return false;
+            }
+            return onCancel();
+        }
+
+        if (!keypress.equals(kbEnter)) {
+            return false;
+        }
+        // If the focused widget, or any of its ancestors up to this window,
+        // wants to handle Enter itself (e.g. a text editor inserting a
+        // newline, a table editing a cell, a list/tree/calendar firing its
+        // own action), let it keep the keypress.
+        if (activeChildChainMatches(
+            w -> w.receivesKeypressBeforeWindowDefaultButton(keypress))
+        ) {
+            return false;
+        }
+        TButton button = defaultButton;
+        if ((button == null)
+            || (button.getWindow() != this)
+            || !button.isEnabled()
+            || !button.isVisible()
+        ) {
+            return false;
+        }
+        button.dispatch();
+        return true;
+    }
+
+    /**
+     * Called when the window is cancelled (e.g. via Escape while modal).
+     * Subclasses override this to define what cancellation means for their
+     * dialog.  The default implementation does nothing.
+     *
+     * @return true if the cancellation was handled/consumed
+     */
+    protected boolean onCancel() {
+        return false;
+    }
+
+    /**
      * Called by application.showWindow().
      */
     protected void onShow() {
@@ -680,9 +772,26 @@ public class TWindow extends TWidget {
 
         if (inKeyboardResize) {
 
-            // ESC or ENTER - Exit size/move
-            if (keypress.equals(kbEsc) || keypress.equals(kbEnter)) {
+            // ESC - Cancel size/move
+            if (keypress.equals(kbEsc)) {
+                boolean sizeChanged = (getWidth() != keyboardResizeWidth)
+                    || (getHeight() != keyboardResizeHeight);
+                setX(keyboardResizeX);
+                setY(keyboardResizeY);
                 inKeyboardResize = false;
+                if (sizeChanged) {
+                    setWidth(keyboardResizeWidth);
+                    setHeight(keyboardResizeHeight);
+                    onResize(new TResizeEvent(keypress.getBackend(),
+                            TResizeEvent.Type.WIDGET, getWidth(), getHeight()));
+                }
+                return;
+            }
+
+            // ENTER - Accept size/move
+            if (keypress.equals(kbEnter)) {
+                inKeyboardResize = false;
+                return;
             }
 
             if (keypress.equals(kbLeft) && (getX() > 0)) {
@@ -792,7 +901,7 @@ public class TWindow extends TWidget {
 
             // Ctrl-F5 - size/move
             if (keypress.equals(kbCtrlF5)) {
-                inKeyboardResize = !inKeyboardResize;
+                beginKeyboardResize();
             }
 
         } // if (!(this instanceof TDesktop))
@@ -839,7 +948,7 @@ public class TWindow extends TWidget {
             }
 
             if (command.equals(cmWindowMove)) {
-                inKeyboardResize = true;
+                beginKeyboardResize();
                 return;
             }
 
@@ -891,7 +1000,7 @@ public class TWindow extends TWidget {
             }
 
             if (menu.getId() == TMenu.MID_WINDOW_MOVE) {
-                inKeyboardResize = true;
+                beginKeyboardResize();
                 return;
             }
 
@@ -910,6 +1019,20 @@ public class TWindow extends TWidget {
 
         // I didn't take it, pass it on to my children
         super.onMenu(menu);
+    }
+
+    /**
+     * Begin moving or resizing this window with the keyboard.
+     */
+    private void beginKeyboardResize() {
+        if (inKeyboardResize) {
+            return;
+        }
+        keyboardResizeX = getX();
+        keyboardResizeY = getY();
+        keyboardResizeWidth = getWidth();
+        keyboardResizeHeight = getHeight();
+        inKeyboardResize = true;
     }
 
     /**
@@ -1448,6 +1571,32 @@ public class TWindow extends TWidget {
     }
 
     /**
+     * Get the default button.
+     *
+     * @return the default button, or null if none is set
+     */
+    public final TButton getDefaultButton() {
+        return defaultButton;
+    }
+
+    /**
+     * Set the default button.
+     *
+     * @param button the button to activate on Enter, or null to clear it
+     */
+    public final void setDefaultButton(final TButton button) {
+        if (button == null) {
+            defaultButton = null;
+            return;
+        }
+        if (button.getWindow() != this) {
+            throw new IllegalArgumentException(
+                "default button must belong to this window");
+        }
+        defaultButton = button;
+    }
+
+    /**
      * Stop any pending movement/resize/etc.
      */
     public void stopMovements() {
@@ -1471,7 +1620,7 @@ public class TWindow extends TWidget {
      * @return true if this window has a close box
      */
     public final boolean hasCloseBox() {
-        return (flags & NOCLOSEBOX) != 0;
+        return (flags & NOCLOSEBOX) == 0;
     }
 
     /**
@@ -1590,7 +1739,9 @@ public class TWindow extends TWidget {
             }
 
             return getTheme().getColor("twindow.border.windowmove");
-        } else if (isModal() && (inWindowMove || inWindowResize)) {
+        } else if (isModal()
+            && (inWindowMove || inWindowResize || inKeyboardResize)
+        ) {
             assert (isActive());
             return getTheme().getColor("twindow.border.modal.windowmove");
         } else if (isModal()) {
@@ -1631,10 +1782,10 @@ public class TWindow extends TWidget {
         ) {
             assert (isActive());
             return borderStyleMoving;
-        } else if (isModal() && (inWindowMove || inWindowResize)) {
+        } else if (isModal()
+            && (inWindowMove || inWindowResize || inKeyboardResize)
+        ) {
             assert (isActive());
-            // Modals cannot be resized via keyboard, hence the separate
-            // check.
             return borderStyleMoving;
         } else if (isModal()) {
             if (isActive()) {

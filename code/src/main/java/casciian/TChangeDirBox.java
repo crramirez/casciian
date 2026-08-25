@@ -38,7 +38,7 @@ import static casciian.TKeypress.*;
  * at the top, a directory tree view below, and OK / Revert buttons
  * on the right.
  */
-public class TChangeDirBox extends TWindow {
+public class TChangeDirBox extends TDialog {
 
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
@@ -55,19 +55,14 @@ public class TChangeDirBox extends TWindow {
     // ------------------------------------------------------------------------
 
     /**
-     * Translated strings.
-     */
-    private ResourceBundle i18n = null;
-
-    /**
      * The combobox showing the selected directory path and history.
      */
-    private TComboBox dirComboBox;
+    private final TComboBox dirComboBox;
 
     /**
      * The directory tree view.
      */
-    private TTreeViewScrollable treeView;
+    private final TTreeViewScrollable treeView;
 
     /**
      * The data behind treeView.
@@ -77,12 +72,12 @@ public class TChangeDirBox extends TWindow {
     /**
      * The directory path when the dialog was opened (for Revert).
      */
-    private String originalDir;
+    private final String originalDir;
 
     /**
      * Session history of directory changes.
      */
-    private static List<String> dirHistory = new CopyOnWriteArrayList<>();
+    private static final List<String> dirHistory = new CopyOnWriteArrayList<>();
 
     /**
      * The resulting directory path, or null if the user cancelled.
@@ -106,7 +101,8 @@ public class TChangeDirBox extends TWindow {
 
         // Register with the TApplication
         super(application, "", 0, 0, 64, 18, MODAL | RESIZABLE);
-        i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
+
+        ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("title"));
 
@@ -162,6 +158,7 @@ public class TChangeDirBox extends TWindow {
 
         // OK button: accept the current combobox value as the result
         TButton okButton = addButton(okLabel, buttonX, 3, this::doOk);
+        setDefaultButton(okButton);
         layout.setAnchor(okButton, null,
             AnchoredLayoutManager.Anchor.TOP_RIGHT);
 
@@ -187,12 +184,8 @@ public class TChangeDirBox extends TWindow {
         // Default: activate the tree view
         activate(treeView);
 
-        // Set the secondaryFiber to run me
-        getApplication().enableSecondaryEventReceiver(this);
-
-        // Yield to the secondary thread.  When I come back from the
-        // constructor response will already be set.
-        getApplication().yield();
+        // Block the caller until this dialog is closed.
+        getApplication().executeModal(this);
     }
 
     /**
@@ -228,21 +221,14 @@ public class TChangeDirBox extends TWindow {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        // Escape - behave like cancel
-        if (keypress.equals(kbEsc)) {
-            result = null;
-            getApplication().closeWindow(this);
-            return;
-        }
-
         if (treeView.isActive()) {
-            if ((keypress.equals(kbEnter))
-                || (keypress.equals(kbUp))
-                || (keypress.equals(kbDown))
-                || (keypress.equals(kbPgUp))
-                || (keypress.equals(kbPgDn))
-                || (keypress.equals(kbHome))
-                || (keypress.equals(kbEnd))
+            if ((keypress.matchesKey(kbEnter))
+                || (keypress.matchesKey(kbUp))
+                || (keypress.matchesKey(kbDown))
+                || (keypress.matchesKey(kbPgUp))
+                || (keypress.matchesKey(kbPgDn))
+                || (keypress.matchesKey(kbHome))
+                || (keypress.matchesKey(kbEnd))
             ) {
                 // Tree view will be changing, update the combobox.
                 super.onKeypress(keypress);
@@ -278,6 +264,18 @@ public class TChangeDirBox extends TWindow {
      */
     @Override
     public boolean disableCloseEffect() {
+        return true;
+    }
+
+    /**
+     * Cancel this dialog: clear the result and close the window.
+     *
+     * @return true
+     */
+    @Override
+    protected boolean onCancel() {
+        result = null;
+        getApplication().closeWindow(this);
         return true;
     }
 
