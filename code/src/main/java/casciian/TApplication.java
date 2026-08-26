@@ -2008,12 +2008,14 @@ public class TApplication implements Runnable {
      * throwing {@link IllegalStateException}, preventing it from remaining in
      * the application's window list.</p>
      *
-     * <p>Once the application has started, calls from other threads are
-     * synchronously marshaled to the active Casciian event-dispatch thread.
-     * Calls already on a primary or secondary event-dispatch thread execute
-     * directly.  Casciian widgets are not otherwise generally thread-safe;
-     * use {@link #invokeLater(Runnable)} for asynchronous UI work or
-     * {@link #invokeAndWait(Runnable)} for synchronous UI work.</p>
+     * <p>Once the application has started and before shutdown begins, calls
+     * from other threads are synchronously marshaled to the active Casciian
+     * event-dispatch thread.  Calls already on a primary or secondary
+     * event-dispatch thread, and calls made after shutdown has been initiated
+     * ({@link #exit()} called), execute directly on the calling thread on a
+     * best-effort basis.  Casciian widgets are not otherwise generally
+     * thread-safe; use {@link #invokeLater(Runnable)} for asynchronous UI
+     * work or {@link #invokeAndWait(Runnable)} for synchronous UI work.</p>
      *
      * @param window the modal window to execute; must be non-null, must carry
      *               the {@code MODAL} flag, must be owned by this application,
@@ -3440,11 +3442,13 @@ public class TApplication implements Runnable {
     /**
      * Close a window synchronously.
      *
-     * <p>Once the application has started, calls from other threads are
-     * synchronously marshaled to the active Casciian event-dispatch thread.
-     * Calls from a primary or secondary event-dispatch thread, and calls made
-     * before startup, execute directly.  When this method returns, the close
-     * operation and its callbacks have completed.</p>
+     * <p>Once the application has started and before shutdown begins, calls
+     * from other threads are synchronously marshaled to the active Casciian
+     * event-dispatch thread.  Calls from a primary or secondary
+     * event-dispatch thread, calls made before startup, and calls made after
+     * shutdown has been initiated ({@link #exit()} called) execute directly
+     * on the calling thread on a best-effort basis.  When this method
+     * returns, the close operation and its callbacks have completed.</p>
      *
      * <p>Casciian widgets are not generally thread-safe.  Other UI work from
      * non-event threads should use {@link #invokeLater(Runnable)} or
