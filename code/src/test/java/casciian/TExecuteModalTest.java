@@ -532,6 +532,8 @@ class TExecuteModalTest {
     /** Create a TApplication without starting its event loop. */
     private TApplication app() {
         HeadlessBackend backend = new HeadlessBackend();
+        // HeadlessBackend is also a LogicalScreen; wire its own backend
+        // reference so getScreen().getBackend() call paths resolve correctly.
         backend.setBackend(backend);
         return new TApplication(backend);
     }

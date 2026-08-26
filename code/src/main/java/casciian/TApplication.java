@@ -1959,9 +1959,14 @@ public class TApplication implements Runnable {
         // notifyAll() in the window between this thread observing a non-null
         // receiver and actually entering wait(), which would leave this thread
         // blocked forever.
+        //
+        // Also break out when quit is set: if exit() is requested while a
+        // modal is active, the secondary thread may stop without clearing
+        // secondaryEventReceiver, so modal teardown must not prevent the
+        // application from exiting.
         while (true) {
             synchronized (primaryEventHandler) {
-                if (secondaryEventReceiver == null) {
+                if ((secondaryEventReceiver == null) || quit) {
                     break;
                 }
                 try {
