@@ -30,8 +30,6 @@ import static casciian.TWindow.NOCLOSEBOX;
 import static casciian.TWindow.RESIZABLE;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -142,7 +140,7 @@ class TDialogTest {
     void defaultButtonWorksInTDialog() {
         TDialog dialog = new TDialog(app(), "test", 40, 10);
         int[] activations = new int[1];
-        TButton ok = new TButton(dialog, "&OK", 1, 3, new TAction() {
+        TButton ok = new TButton(dialog, "O&K", 1, 3, new TAction() {
             public void DO() {
                 activations[0]++;
             }

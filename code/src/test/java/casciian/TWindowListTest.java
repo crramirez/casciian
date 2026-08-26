@@ -60,7 +60,7 @@ class TWindowListTest {
 
         window.draw();
 
-        int numberX = window.getWidth() - 8;
+        int numberX = window.getWidth() - 7;
         assertEquals('1', window.getScreen().getCharXY(numberX,
                 0).getChar());
     }

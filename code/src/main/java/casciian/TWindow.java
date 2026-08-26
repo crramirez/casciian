@@ -1148,9 +1148,12 @@ public class TWindow extends TWidget {
         }
         int titleLength = StringUtils.width(title);
         int titleLeft = (getWidth() - titleLength - 2) / 2;
-        putCharXY(titleLeft, 0, ' ', border);
-        putStringXY(titleLeft + 1, 0, title, border);
-        putCharXY(titleLeft + titleLength + 1, 0, ' ', border);
+
+        if (titleLeft > 5) {
+            putCharXY(titleLeft, 0, ' ', border);
+            putStringXY(titleLeft + 1, 0, title, border);
+            putCharXY(titleLeft + titleLength + 1, 0, ' ', border);
+        }
     }
 
     /**
@@ -1163,8 +1166,8 @@ public class TWindow extends TWidget {
             return;
         }
         String number = Integer.toString(windowNumber);
-        int numberX = getWidth() - 7 - StringUtils.width(number);
-        if (numberX > 0) {
+        int numberX = getWidth() - 6 - StringUtils.width(number);
+        if (numberX > 5) {
             putStringXY(numberX, 0, number, border);
         }
     }

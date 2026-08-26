@@ -519,7 +519,7 @@ public class TEditColorThemeWindow extends TDialog {
         setWidth(pickerX + pickerWidth + 4);
         center();
 
-        int listHeight = getHeight() - 10;
+        int listHeight = getHeight() - 9;
 
         widgetNames = addList(widgets, widgetListX, 2, widgetListWidth,
             listHeight,

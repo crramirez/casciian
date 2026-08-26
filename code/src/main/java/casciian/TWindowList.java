@@ -58,27 +58,32 @@ public class TWindowList extends TDialog {
      */
     @SuppressWarnings("this-escape")
     public TWindowList(final TApplication application) {
-        super(application, "", 55, 16, MODAL | NOCLOSEBOX);
+        super(application, "", 57, 15, MODAL);
 
         ResourceBundle i18n = ResourceBundle.getBundle(RESOURCE_BUNDLE_NAME,
             getLocale());
         setTitle(i18n.getString("title"));
 
-        windowList = addList(new ArrayList<String>(), 2, 3, 40, 11,
-            new TAction() {
-                public void DO() {
-                    doOk();
-                }
-            });
+        int row = 1;
+        windowList = addLabelFor(i18n.getString("windowsLabel"), 2, row,
+            addList(new ArrayList<>(), 2, row + 1, 40, 11,
+                new TAction() {
+                    public void DO() {
+                        doOk();
+                    }
+                })
+        );
         windowList.getHorizontalScroller().setVisible(false);
-        new TLabel<>(this, i18n.getString("windowsLabel"), 2, 1, windowList);
 
-        TButton okButton = addButton(i18n.getString("okButton"), 43, 3,
+        row++;
+        TButton okButton = addButton(i18n.getString("okButton"), 43, row,
             this::doOk);
-        closeButton = addButton(i18n.getString("closeButton"), 43, 7,
-            this::closeSelected);
-        addButton(i18n.getString("cancelButton"), 43, 11, this::doCancel);
         setDefaultButton(okButton);
+        row += 3;
+        closeButton = addButton(i18n.getString("closeButton"), 43, row,
+            this::closeSelected);
+        row += 6;
+        addButton(i18n.getString("cancelButton"), 43, row, this::doCancel);
 
         refreshWindows(findPreviouslyActiveWindow());
         activate(windowList);
