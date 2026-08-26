@@ -3415,7 +3415,7 @@ public class TApplication implements Runnable {
                 }
             }
 
-        } // synchronized (windows)
+        } // if (secondaryEventReceiver == window)
 
         // Permit desktop to be active if it is the only thing left.
         if (desktop != null) {
