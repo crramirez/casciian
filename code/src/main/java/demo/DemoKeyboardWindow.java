@@ -107,12 +107,8 @@ public class DemoKeyboardWindow extends TWindow {
             getHeight() - 2 - INFO_ROWS, null) {
 
             @Override
-            public void draw() {
-                if (padding != 1) {
-                    padding = 1;
-                }
-
-                super.draw();
+            protected int getControlPadding() {
+                return 1;
             }
         };
 

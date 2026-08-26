@@ -130,7 +130,7 @@ public class TTreeItem extends TWidget {
      */
     @Override
     public void onMouseUp(final TMouseEvent mouse) {
-        if ((mouse.getX() == (getExpanderX() + view.padding
+        if ((mouse.getX() == (getExpanderX() + view.getControlPadding()
                 - view.getLeftColumn()))
             && (mouse.getY() == 0)
         ) {
@@ -218,7 +218,7 @@ public class TTreeItem extends TWidget {
             return;
         }
 
-        int padding = view.padding;
+        int padding = view.getControlPadding();
         int offset = padding - view.getLeftColumn();
 
         CellAttributes color = getWidgetColor("ttreeview");

@@ -54,6 +54,15 @@ public class TTreeView extends TWidget {
      */
     private int leftColumn = 0;
 
+    /**
+     * Get the active theme's extra left/right control padding.
+     *
+     * @return the number of padding cells
+     */
+    final int getControlPadding() {
+        return getTheme().getControlPadding().getCells();
+    }
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------

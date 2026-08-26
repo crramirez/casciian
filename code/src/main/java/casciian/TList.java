@@ -69,7 +69,7 @@ public class TList extends TScrollable {
      *
      * @return the number of padding cells
      */
-    protected final int getControlPadding() {
+    protected int getControlPadding() {
         return getTheme().getControlPadding().getCells();
     }
 
