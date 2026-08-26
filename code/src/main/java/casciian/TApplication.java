@@ -1932,10 +1932,23 @@ public class TApplication implements Runnable {
                 Thread.currentThread() + " yield()\n");
         }
 
-        assert (secondaryEventReceiver != null);
+        // Note: secondaryEventReceiver may already be null here if the modal
+        // window was closed (e.g. via executeModal() closed from another
+        // thread) before this thread reached yield(); the loop below handles
+        // that by returning immediately.
 
-        while (secondaryEventReceiver != null) {
+        // The condition (secondaryEventReceiver) must be checked while holding
+        // the primaryEventHandler monitor that the secondary thread notifies
+        // on.  Otherwise a lost-wakeup race is possible: closeWindow() (called
+        // from another thread) clears secondaryEventReceiver and the secondary
+        // thread issues its notifyAll() in the window between this thread
+        // observing a non-null receiver and actually entering wait(), which
+        // would leave this thread blocked forever.
+        while (true) {
             synchronized (primaryEventHandler) {
+                if (secondaryEventReceiver == null) {
+                    break;
+                }
                 try {
                     primaryEventHandler.wait();
                 } catch (InterruptedException e) {
@@ -3386,16 +3399,20 @@ public class TApplication implements Runnable {
 
         // Check if we are closing a TMessageBox or similar
         if (secondaryEventReceiver == window) {
-            assert (secondaryEventHandler != null);
-
             // Do not send events to the secondaryEventReceiver anymore, the
             // window is closed.
             secondaryEventReceiver = null;
 
             // Wake the secondary thread, it will wake the primary as it
-            // exits.
-            synchronized (secondaryEventHandler) {
-                secondaryEventHandler.notifyAll();
+            // exits.  Capture the handler in a local: when closeWindow() is
+            // called from a thread other than the secondary handler (valid
+            // for executeModal()), that handler may null the field out from
+            // under us as it exits.
+            WidgetEventHandler handler = secondaryEventHandler;
+            if (handler != null) {
+                synchronized (handler) {
+                    handler.notifyAll();
+                }
             }
 
         } // synchronized (windows)
