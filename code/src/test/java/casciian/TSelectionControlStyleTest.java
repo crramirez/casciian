@@ -164,6 +164,8 @@ class TSelectionControlStyleTest {
     void newControlsFollowActiveThemeControlPadding() {
         withProperty(ControlPadding.PROPERTY_KEY, null, () -> {
             TApplication application = new TApplication(new HeadlessBackend());
+            // Ensure a known baseline: default theme uses one cell of padding.
+            application.getTheme().setDefaultTheme();
             TWindow window = new TWindow(application, "test", 0, 0, 40, 10);
 
             // The default theme uses one cell of padding on each side.
@@ -184,6 +186,8 @@ class TSelectionControlStyleTest {
     void controlPaddingSystemPropertyOverridesTheme() {
         withProperty(ControlPadding.PROPERTY_KEY, "none", () -> {
             TApplication application = new TApplication(new HeadlessBackend());
+            // Ensure a known baseline: default theme wants single padding.
+            application.getTheme().setDefaultTheme();
             TWindow window = new TWindow(application, "test", 0, 0, 40, 10);
 
             // Default theme wants single padding, but the explicit property
