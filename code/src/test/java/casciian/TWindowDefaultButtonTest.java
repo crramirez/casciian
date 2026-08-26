@@ -53,8 +53,8 @@ class TWindowDefaultButtonTest {
         TWindow window = makeWindow();
         new TField(window, 1, 1, 12, false, "");
         int[] activations = new int[2];
-        TButton cancel = button(window, "&Cancel", 1, 3, activations, 0);
-        TButton ok = button(window, "&OK", 12, 3, activations, 1);
+        TButton cancel = button(window, "Cancel", 1, 3, activations, 0);
+        TButton ok = button(window, "O&K", 12, 3, activations, 1);
         window.setDefaultButton(ok);
 
         // Non-default button has focus → it fires itself.
@@ -76,7 +76,7 @@ class TWindowDefaultButtonTest {
         TWindow window = makeWindow();
         TField field = new TField(window, 1, 1, 12, false, "");
         int[] activations = new int[1];
-        TButton ok = button(window, "&OK", 12, 3, activations, 0);
+        TButton ok = button(window, "O&K", 12, 3, activations, 0);
         window.setDefaultButton(ok);
         window.activate(field);
         press(window, kbEnter);
@@ -94,7 +94,7 @@ class TWindowDefaultButtonTest {
                 }
             }, null);
         int[] activations = new int[1];
-        button(window, "&OK", 1, 3, activations, 0);
+        button(window, "O&K", 1, 3, activations, 0);
         window.activate(field);
 
         press(window, kbEnter);
@@ -115,7 +115,7 @@ class TWindowDefaultButtonTest {
                 }
             }, null);
         int[] activations = new int[1];
-        TButton ok = button(window, "&OK", 1, 3, activations, 0);
+        TButton ok = button(window, "O&K", 1, 3, activations, 0);
         window.setDefaultButton(ok);
         window.activate(field);
 
@@ -142,7 +142,7 @@ class TWindowDefaultButtonTest {
                 }
             }, null);
         int[] activations = new int[1];
-        TButton ok = button(window, "&OK", 1, 3, activations, 0);
+        TButton ok = button(window, "O&K", 1, 3, activations, 0);
         window.setDefaultButton(ok);
         window.activate(field);
 
@@ -201,7 +201,7 @@ class TWindowDefaultButtonTest {
     void removingDefaultButtonClearsWindowReference() {
         TWindow window = makeWindow();
         TWidget panel = new TPanel(window, 1, 1, 20, 5);
-        TButton ok = button(panel, "&OK", 1, 1, new int[1], 0);
+        TButton ok = button(panel, "O&K", 1, 1, new int[1], 0);
         window.setDefaultButton(ok);
 
         panel.remove(ok, false);
@@ -292,7 +292,7 @@ class TWindowDefaultButtonTest {
         TWindow window = makeWindow();
         TEditor editor = new TEditor(window, "line", 1, 1, 20, 5);
         int[] activations = new int[1];
-        TButton ok = button(window, "&OK", 1, 7, activations, 0);
+        TButton ok = button(window, "O&K", 1, 7, activations, 0);
         window.setDefaultButton(ok);
         window.activate(editor);
 
@@ -308,7 +308,7 @@ class TWindowDefaultButtonTest {
         TWindow window = makeWindow();
         TTable table = new TTable(window, 1, 1, 30, 6, 2, 2);
         int[] activations = new int[1];
-        TButton ok = button(window, "&OK", 1, 8, activations, 0);
+        TButton ok = button(window, "O&K", 1, 8, activations, 0);
         window.setDefaultButton(ok);
         window.activate(table);
 
@@ -332,7 +332,7 @@ class TWindowDefaultButtonTest {
             });
         list.setSelectedIndex(0);
         int[] activations = new int[1];
-        TButton ok = button(window, "&OK", 1, 6, activations, 0);
+        TButton ok = button(window, "O&K", 1, 6, activations, 0);
         window.setDefaultButton(ok);
         window.activate(list);
 
@@ -353,7 +353,7 @@ class TWindowDefaultButtonTest {
                 }
             });
         int[] activations = new int[1];
-        TButton ok = button(window, "&OK", 1, 9, activations, 0);
+        TButton ok = button(window, "O&K", 1, 9, activations, 0);
         window.setDefaultButton(ok);
         window.activate(calendar);
 
@@ -368,7 +368,7 @@ class TWindowDefaultButtonTest {
         TWindow window = makeWindow();
         TCheckBox checkBox = new TCheckBox(window, 1, 1, "Check", false);
         int[] activations = new int[1];
-        TButton ok = button(window, "&OK", 1, 3, activations, 0);
+        TButton ok = button(window, "O&K", 1, 3, activations, 0);
         window.setDefaultButton(ok);
         window.activate(checkBox);
 
@@ -409,7 +409,7 @@ class TWindowDefaultButtonTest {
         TTreeItem root = new TTreeItem(tree, "root", true);
         tree.setSelected(root, false);
         int[] activations = new int[1];
-        TButton ok = button(window, "&OK", 1, 7, activations, 0);
+        TButton ok = button(window, "O&K", 1, 7, activations, 0);
         window.setDefaultButton(ok);
         window.activate(tree);
 

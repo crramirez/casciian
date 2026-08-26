@@ -121,6 +121,11 @@ public class TWindow extends TWidget {
     private int z = 0;
 
     /**
+     * Stable application-assigned number for modeless windows.
+     */
+    private int windowNumber = 0;
+
+    /**
      * Window's keyboard shortcuts.  Any key in this set will be passed to
      * the window directly rather than processed through the menu
      * accelerators.
@@ -1119,6 +1124,7 @@ public class TWindow extends TWidget {
         }
 
         drawTitleBar(border);
+        drawWindowNumber(border);
 
         if (isActive()) {
             int lBracket = '[';
@@ -1151,9 +1157,28 @@ public class TWindow extends TWidget {
         }
         int titleLength = StringUtils.width(title);
         int titleLeft = (getWidth() - titleLength - 2) / 2;
-        putCharXY(titleLeft, 0, ' ', border);
-        putStringXY(titleLeft + 1, 0, title, border);
-        putCharXY(titleLeft + titleLength + 1, 0, ' ', border);
+
+        if (titleLeft > 5) {
+            putCharXY(titleLeft, 0, ' ', border);
+            putStringXY(titleLeft + 1, 0, title, border);
+            putCharXY(titleLeft + titleLength + 1, 0, ' ', border);
+        }
+    }
+
+    /**
+     * Draw the modeless window number to the left of the zoom box.
+     *
+     * @param border the border color attributes
+     */
+    private void drawWindowNumber(final CellAttributes border) {
+        if (windowNumber <= 0) {
+            return;
+        }
+        String number = Integer.toString(windowNumber);
+        int numberX = getWidth() - 6 - StringUtils.width(number);
+        if (numberX > 5) {
+            putStringXY(numberX, 0, number, border);
+        }
     }
 
     /**
@@ -1289,6 +1314,25 @@ public class TWindow extends TWidget {
      */
     public final void setZ(final int z) {
         this.z = z;
+    }
+
+    /**
+     * Get the stable number assigned to this modeless window.
+     *
+     * @return the window number, or 0 for a modal window
+     */
+    public final int getWindowNumber() {
+        return windowNumber;
+    }
+
+    /**
+     * Set the stable modeless window number.  Package private for
+     * TApplication.
+     *
+     * @param windowNumber the new window number
+     */
+    final void setWindowNumber(final int windowNumber) {
+        this.windowNumber = windowNumber;
     }
 
     /**

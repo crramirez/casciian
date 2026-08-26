@@ -1284,6 +1284,11 @@ public class TApplication implements Runnable {
             closeAllWindows();
             return true;
         }
+        if (menu.getId() == TMenu.MID_WINDOW_LIST) {
+            TWindowList windowList = new TWindowList(this);
+            executeModal(windowList);
+            return true;
+        }
         if (menu.getId() == TMenu.MID_TERMINAL_INFORMATION) {
             new TTerminalInformationWindow(this);
             return true;
@@ -3499,6 +3504,13 @@ public class TApplication implements Runnable {
                 window.flags |= TWindow.CENTERED;
                 window.hidden = false;
             }
+            if (!window.isModal()) {
+                int windowNumber = 1;
+                while (hasWindowNumber(windowNumber)) {
+                    windowNumber++;
+                }
+                window.setWindowNumber(windowNumber);
+            }
             if (window.isShown()) {
                 for (TWindow w: windows) {
                     if (w.isActive()) {
@@ -3577,6 +3589,21 @@ public class TApplication implements Runnable {
                 }
             }
         }
+    }
+
+    /**
+     * Check whether a modeless window number is already in use.
+     *
+     * @param windowNumber the number to check
+     * @return true if the number is already assigned
+     */
+    private boolean hasWindowNumber(final int windowNumber) {
+        for (TWindow window: windows) {
+            if (window.getWindowNumber() == windowNumber) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -4458,6 +4485,8 @@ public class TApplication implements Runnable {
         windowMenu.addDefaultItem(TMenu.MID_WINDOW_NEXT);
         windowMenu.addDefaultItem(TMenu.MID_WINDOW_PREVIOUS);
         windowMenu.addDefaultItem(TMenu.MID_WINDOW_CLOSE);
+        windowMenu.addSeparator();
+        windowMenu.addDefaultItem(TMenu.MID_WINDOW_LIST);
         TStatusBar statusBar = windowMenu.newStatusBar(i18n.
             getString("windowMenuStatus"));
         statusBar.addShortcutKeypress(kbF1, cmHelp, i18n.getString("Help"));
