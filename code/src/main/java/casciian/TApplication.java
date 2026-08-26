@@ -38,8 +38,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.ResourceBundle;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -150,9 +155,19 @@ public class TApplication implements Runnable {
     private volatile WidgetEventHandler primaryEventHandler;
 
     /**
+     * The Java thread running the primary event handler.
+     */
+    private volatile Thread primaryEventThread;
+
+    /**
      * The secondary event handler thread.
      */
     private volatile WidgetEventHandler secondaryEventHandler;
+
+    /**
+     * The Java thread running the secondary event handler.
+     */
+    private volatile Thread secondaryEventThread;
 
     /**
      * The screen handler thread.
@@ -461,6 +476,27 @@ public class TApplication implements Runnable {
                 this.application.restoreConsole();
                 t.printStackTrace();
                 this.application.exit();
+            } finally {
+                Thread currentThread = Thread.currentThread();
+                if (primary) {
+                    if (application.primaryEventThread == currentThread) {
+                        application.primaryEventThread = null;
+                    }
+                } else {
+                    if (application.secondaryEventHandler == this) {
+                        application.secondaryEventHandler = null;
+                    }
+                    if (application.secondaryEventThread == currentThread) {
+                        application.secondaryEventThread = null;
+                    }
+                    WidgetEventHandler handler =
+                        application.primaryEventHandler;
+                    if (handler != null) {
+                        synchronized (handler) {
+                            handler.notifyAll();
+                        }
+                    }
+                }
             }
         }
 
@@ -516,15 +552,9 @@ public class TApplication implements Runnable {
                             && (application.secondaryEventReceiver == null)
                         ) {
                             // Secondary thread woke up and found the modal
-                            // window already closed (e.g. closeWindow() was
-                            // called from a thread other than the secondary
-                            // handler, which is valid for executeModal).
-                            // Exit cleanly: wake all threads waiting on the
-                            // primary handler so that yield() returns.
-                            application.secondaryEventHandler = null;
-                            synchronized (application.primaryEventHandler) {
-                                application.primaryEventHandler.notifyAll();
-                            }
+                            // window already closed.  Exit cleanly; run() will
+                            // clear the secondary state and wake the primary
+                            // handler so that yield() returns.
                             return;
                         }
                         break;
@@ -563,18 +593,8 @@ public class TApplication implements Runnable {
                     ) {
                         // Secondary thread, time to exit.
 
-                        // Eliminate my reference so that wakeEventHandler()
-                        // resumes working on the primary.
-                        application.secondaryEventHandler = null;
-
-                        // Wake all threads that may be waiting on the primary
-                        // handler (including yield() callers and the primary
-                        // event-handler loop itself).
-                        synchronized (application.primaryEventHandler) {
-                            application.primaryEventHandler.notifyAll();
-                        }
-
-                        // All done!
+                        // run() clears the secondary state and wakes the
+                        // primary handler.
                         return;
                     }
 
@@ -589,10 +609,6 @@ public class TApplication implements Runnable {
                 if ((!primary)
                     && (application.secondaryEventReceiver == null)
                 ) {
-                    application.secondaryEventHandler = null;
-                    synchronized (application.primaryEventHandler) {
-                        application.primaryEventHandler.notifyAll();
-                    }
                     return;
                 }
 
@@ -985,9 +1001,9 @@ public class TApplication implements Runnable {
 
         // Start the main consumer thread
         primaryEventHandler = new WidgetEventHandler(this, true);
-        (new Thread(primaryEventHandler)).start();
-
+        primaryEventThread = new Thread(primaryEventHandler);
         started = true;
+        primaryEventThread.start();
 
         while (!quit) {
             synchronized (this) {
@@ -1915,8 +1931,8 @@ public class TApplication implements Runnable {
         assert (secondaryEventHandler == null);
         secondaryEventReceiver = widget;
         secondaryEventHandler = new WidgetEventHandler(this, false);
-
-        (new Thread(secondaryEventHandler)).start();
+        secondaryEventThread = new Thread(secondaryEventHandler);
+        secondaryEventThread.start();
     }
 
     /**
@@ -1933,17 +1949,16 @@ public class TApplication implements Runnable {
         }
 
         // Note: secondaryEventReceiver may already be null here if the modal
-        // window was closed (e.g. via executeModal() closed from another
-        // thread) before this thread reached yield(); the loop below handles
-        // that by returning immediately.
+        // window was closed before this thread reached yield(); the loop below
+        // handles that by returning immediately.
 
         // The condition (secondaryEventReceiver) must be checked while holding
         // the primaryEventHandler monitor that the secondary thread notifies
-        // on.  Otherwise a lost-wakeup race is possible: closeWindow() (called
-        // from another thread) clears secondaryEventReceiver and the secondary
-        // thread issues its notifyAll() in the window between this thread
-        // observing a non-null receiver and actually entering wait(), which
-        // would leave this thread blocked forever.
+        // on.  Otherwise a lost-wakeup race is possible: closeWindow() clears
+        // secondaryEventReceiver and the secondary thread issues its
+        // notifyAll() in the window between this thread observing a non-null
+        // receiver and actually entering wait(), which would leave this thread
+        // blocked forever.
         while (true) {
             synchronized (primaryEventHandler) {
                 if (secondaryEventReceiver == null) {
@@ -1988,6 +2003,13 @@ public class TApplication implements Runnable {
      * throwing {@link IllegalStateException}, preventing it from remaining in
      * the application's window list.</p>
      *
+     * <p>Once the application has started, calls from other threads are
+     * synchronously marshaled to the active Casciian event-dispatch thread.
+     * Calls already on a primary or secondary event-dispatch thread execute
+     * directly.  Casciian widgets are not otherwise generally thread-safe;
+     * use {@link #invokeLater(Runnable)} for asynchronous UI work or
+     * {@link #invokeAndWait(Runnable)} for synchronous UI work.</p>
+     *
      * @param window the modal window to execute; must be non-null, must carry
      *               the {@code MODAL} flag, must be owned by this application,
      *               and must not already be closed
@@ -1998,6 +2020,19 @@ public class TApplication implements Runnable {
      *                                  being executed
      */
     public final void executeModal(final TWindow window) {
+        if (started && !quit && !isEventDispatchThread()) {
+            invokeAndWait(() -> executeModalImpl(window));
+            return;
+        }
+        executeModalImpl(window);
+    }
+
+    /**
+     * Execute a modal window on an event-dispatch thread.
+     *
+     * @param window the modal window to execute
+     */
+    private void executeModalImpl(final TWindow window) {
         if (window == null) {
             throw new IllegalArgumentException(
                 "executeModal: window must not be null");
@@ -2142,14 +2177,23 @@ public class TApplication implements Runnable {
             desktop.onIdle();
         }
 
-        // Run any invokeLaters.  We make a copy, and run that, because one
-        // of these Runnables might add call TApplication.invokeLater().
-        List<Runnable> invokes = new ArrayList<>();
+        // Run the commands that are currently queued.  Remove each command
+        // only when it is ready to run so that, if one starts a modal loop,
+        // the secondary handler can run the commands still in the queue.
+        // Limit this pass to the current size because a command might call
+        // TApplication.invokeLater() itself.
+        int invokesToRun;
         synchronized (invokeLaters) {
-            invokes.addAll(invokeLaters);
-            invokeLaters.clear();
+            invokesToRun = invokeLaters.size();
         }
-        for (Runnable invoke: invokes) {
+        for (int i = 0; i < invokesToRun; i++) {
+            Runnable invoke;
+            synchronized (invokeLaters) {
+                if (invokeLaters.isEmpty()) {
+                    break;
+                }
+                invoke = invokeLaters.remove(0);
+            }
             invoke.run();
         }
         doRepaint();
@@ -2199,16 +2243,86 @@ public class TApplication implements Runnable {
     // ------------------------------------------------------------------------
 
     /**
-     * Place a command on the run queue, and run it before the next round of
-     * checking I/O.
+     * Place a command on the run queue, and run it asynchronously on the
+     * active Casciian event-dispatch thread before the next round of checking
+     * I/O.
+     *
+     * <p>Once {@code TApplication} has started, widget hierarchy and UI state
+     * mutations are expected to occur on a Casciian event-dispatch thread.
+     * Casciian widgets are not generally thread-safe.  Use this method for
+     * asynchronous UI work or {@link #invokeAndWait(Runnable)} for synchronous
+     * UI work.</p>
      *
      * @param command the command to run later
      */
     public void invokeLater(final Runnable command) {
+        Objects.requireNonNull(command, "command");
         synchronized (invokeLaters) {
             invokeLaters.add(command);
         }
         doRepaint();
+    }
+
+    /**
+     * Run a command synchronously on the active Casciian event-dispatch
+     * thread.
+     *
+     * <p>If the application has not started, is shutting down, or the caller
+     * is already on a primary or secondary event-dispatch thread, the command
+     * runs directly.  Otherwise this method blocks without busy-waiting until
+     * the queued command completes.  Completion safely publishes changes made
+     * by the command to the calling thread.  If the caller is interrupted
+     * while waiting, waiting continues and its interrupted status is restored
+     * before this method returns or throws.</p>
+     *
+     * <p>Casciian widgets are not generally thread-safe.  Use
+     * {@link #invokeLater(Runnable)} instead when synchronous completion is not
+     * required.</p>
+     *
+     * @param command the command to run
+     * @throws NullPointerException if {@code command} is {@code null}
+     */
+    public void invokeAndWait(final Runnable command) {
+        Objects.requireNonNull(command, "command");
+        if (!started || quit || isEventDispatchThread()) {
+            command.run();
+            return;
+        }
+
+        FutureTask<Void> task = new FutureTask<>(command, null);
+        invokeLater(task);
+        if (quit) {
+            task.cancel(false);
+        }
+
+        boolean interrupted = false;
+        try {
+            for (;;) {
+                try {
+                    task.get();
+                    return;
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                } catch (ExecutionException e) {
+                    Throwable cause = e.getCause();
+                    if (cause instanceof RuntimeException runtimeException) {
+                        throw runtimeException;
+                    }
+                    if (cause instanceof Error error) {
+                        throw error;
+                    }
+                    throw new IllegalStateException(
+                        "Exception while running command", cause);
+                } catch (CancellationException e) {
+                    throw new IllegalStateException(
+                        "Application exited before command could run", e);
+                }
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     /**
@@ -2625,6 +2739,23 @@ public class TApplication implements Runnable {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Check whether the caller is on a Casciian event-dispatch thread.
+     *
+     * <p>Casciian normally uses the primary event-handler thread, but
+     * temporarily uses a secondary event-handler thread during modal
+     * execution.  Both are event-dispatch threads; there is not necessarily
+     * one permanent Swing-style EDT.</p>
+     *
+     * @return true if the caller is the primary or active secondary
+     *         event-handler thread
+     */
+    public boolean isEventDispatchThread() {
+        Thread currentThread = Thread.currentThread();
+        return currentThread == primaryEventThread
+            || currentThread == secondaryEventThread;
     }
 
     /**
@@ -3066,6 +3197,13 @@ public class TApplication implements Runnable {
      */
     public void exit() {
         quit = true;
+        synchronized (invokeLaters) {
+            for (Runnable invoke: invokeLaters) {
+                if (invoke instanceof Future<?> future) {
+                    future.cancel(false);
+                }
+            }
+        }
         synchronized (this) {
             this.notify();
         }
@@ -3295,11 +3433,34 @@ public class TApplication implements Runnable {
     }
 
     /**
-     * Close window.
+     * Close a window synchronously.
+     *
+     * <p>Once the application has started, calls from other threads are
+     * synchronously marshaled to the active Casciian event-dispatch thread.
+     * Calls from a primary or secondary event-dispatch thread, and calls made
+     * before startup, execute directly.  When this method returns, the close
+     * operation and its callbacks have completed.</p>
+     *
+     * <p>Casciian widgets are not generally thread-safe.  Other UI work from
+     * non-event threads should use {@link #invokeLater(Runnable)} or
+     * {@link #invokeAndWait(Runnable)} as appropriate.</p>
      *
      * @param window the window to remove
      */
     public final void closeWindow(final TWindow window) {
+        if (started && !quit && !isEventDispatchThread()) {
+            invokeAndWait(() -> closeWindowImpl(window));
+            return;
+        }
+        closeWindowImpl(window);
+    }
+
+    /**
+     * Close a window on an event-dispatch thread.
+     *
+     * @param window the window to remove
+     */
+    private void closeWindowImpl(final TWindow window) {
         if (hasWindow(window) == false) {
             /*
              * Someone has a handle to a window I don't have.  Ignore this
@@ -3404,10 +3565,8 @@ public class TApplication implements Runnable {
             secondaryEventReceiver = null;
 
             // Wake the secondary thread, it will wake the primary as it
-            // exits.  Capture the handler in a local: when closeWindow() is
-            // called from a thread other than the secondary handler (valid
-            // for executeModal()), that handler may null the field out from
-            // under us as it exits.
+            // exits.  Capture the handler in a local because it may null the
+            // field as it exits.
             WidgetEventHandler handler = secondaryEventHandler;
             if (handler != null) {
                 synchronized (handler) {
