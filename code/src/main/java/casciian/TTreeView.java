@@ -57,9 +57,9 @@ public class TTreeView extends TWidget {
 
     /**
      * Extra left/right padding applied to each tree row.  The value is
-     * resolved once at construction from the active
-     * {@link ControlPadding} style (system property
-     * {@code casciian.controls.padding}).  Row contents are drawn offset
+     * resolved once at construction from the active color theme's
+     * {@link ControlPadding} (overridable via the
+     * {@code casciian.controls.padding} system property).  Row contents are drawn offset
      * by this amount from the left edge of the widget.
      */
     final int padding;
@@ -93,11 +93,12 @@ public class TTreeView extends TWidget {
      * @param height height of tree view
      * @param action action to perform when an item is selected
      */
+    @SuppressWarnings("this-escape")
     public TTreeView(final TWidget parent, final int x, final int y,
         final int width, final int height, final TAction action) {
 
         super(parent, x, y, width, height);
-        this.padding = ControlPadding.current().getCells();
+        this.padding = getControlPaddingCells();
         this.action = action;
     }
 

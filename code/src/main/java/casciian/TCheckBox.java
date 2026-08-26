@@ -177,9 +177,9 @@ public class TCheckBox extends TWidget {
 
     /**
      * Extra left/right padding applied to the control.  The value is
-     * resolved once at construction from the active
-     * {@link ControlPadding} style (system property
-     * {@code casciian.controls.padding}).  The checkbox content is drawn
+     * resolved once at construction from the active color theme's
+     * {@link ControlPadding} (overridable via the
+     * {@code casciian.controls.padding} system property).  The checkbox content is drawn
      * offset by this amount from the left edge of the widget, and the
      * widget reserves {@code padding} blank cells on both sides.
      */
@@ -218,12 +218,13 @@ public class TCheckBox extends TWidget {
     public TCheckBox(final TWidget parent, final int x, final int y,
         final String label, final boolean checked, final TAction action) {
 
-        // Resolve padding once: ControlPadding.current() can be toggled
-        // at runtime, but the widget size is fixed at construction, so
-        // we only read the style a single time here to avoid any
-        // width/padding mismatch.
+        // Resolve padding once from the active theme: the widget size is
+        // fixed at construction, so we only read the padding a single time
+        // here to avoid any width/padding mismatch.  Resolve it from the
+        // parent, which is already attached to its window and thus knows the
+        // active color theme.
         this(parent, x, y, label, checked, action,
-            ControlPadding.current().getCells());
+            parent.getControlPaddingCells());
     }
 
     /**

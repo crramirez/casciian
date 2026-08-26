@@ -146,7 +146,7 @@ public class TEditColorThemeWindow extends TDialog {
             super(parent, x, y, width, height);
             this.label = label;
 
-            if (ControlPadding.current().getCells() == 0) {
+            if (getControlPaddingCells() == 0) {
                 rgb = addLabelFor(i18n.getString("rgbHex"), 5, 6,
                     addField(7, 6, 6, true, ""));
             } else {
@@ -493,7 +493,7 @@ public class TEditColorThemeWindow extends TDialog {
         // the longest attribute name.  A TList reserves one column for its
         // vertical scrollbar plus ControlPadding cells on each side, so the
         // list width must account for those.
-        int padding = ControlPadding.current().getCells();
+        int padding = getControlPaddingCells();
         int maxWidgetLen = 0;
         for (String w: widgets) {
             maxWidgetLen = Math.max(maxWidgetLen, w.length());
