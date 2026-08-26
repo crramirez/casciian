@@ -160,6 +160,40 @@ class TSelectionControlStyleTest {
             window.getTheme().getColor("tradiogroup.mnemonic.highlighted.modal"));
     }
 
+    @Test
+    void newControlsFollowActiveThemeControlPadding() {
+        withProperty(ControlPadding.PROPERTY_KEY, null, () -> {
+            TApplication application = new TApplication(new HeadlessBackend());
+            TWindow window = new TWindow(application, "test", 0, 0, 40, 10);
+
+            // The default theme uses one cell of padding on each side.
+            TCheckBox padded = new TCheckBox(window, 1, 1, "Yes", false);
+            int paddedWidth = padded.getWidth();
+
+            // Switching to a zero-padding theme (femme) must make newly
+            // created controls flush, without touching existing ones.
+            application.getTheme().setFemme();
+            TCheckBox flush = new TCheckBox(window, 1, 2, "Yes", false);
+
+            assertEquals(paddedWidth, padded.getWidth());
+            assertEquals(paddedWidth - 2, flush.getWidth());
+        });
+    }
+
+    @Test
+    void controlPaddingSystemPropertyOverridesTheme() {
+        withProperty(ControlPadding.PROPERTY_KEY, "none", () -> {
+            TApplication application = new TApplication(new HeadlessBackend());
+            TWindow window = new TWindow(application, "test", 0, 0, 40, 10);
+
+            // Default theme wants single padding, but the explicit property
+            // forces zero padding on newly created controls.
+            TCheckBox flush = new TCheckBox(window, 1, 1, "Yes", false);
+
+            assertEquals("Yes".length() + 4, flush.getWidth());
+        });
+    }
+
     private TWindow makeWindow() {
         return new TWindow(new TApplication(new HeadlessBackend()), "test",
             0, 0, 40, 10);
