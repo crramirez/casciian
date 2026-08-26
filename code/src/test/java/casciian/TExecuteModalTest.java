@@ -17,7 +17,10 @@ package casciian;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +35,7 @@ import static casciian.TWindow.NOCLOSEBOX;
 import static casciian.TWindow.RESIZABLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,9 +43,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for {@link TApplication#executeModal(TWindow)} – the generic modal
  * execution API.
  *
- * <p>Each test that calls {@code executeModal} from the main thread arranges
- * for the dialog to be closed from a background thread after a short delay so
- * that the blocking call can return.  A timeout guards against deadlocks.</p>
+ * <p>Each test that calls {@code executeModal} from the main thread schedules
+ * its simulated UI action on the modal event-dispatch thread so that the
+ * blocking call can return.  A timeout guards against deadlocks.</p>
  */
 @Timeout(10)
 class TExecuteModalTest {
@@ -78,13 +82,13 @@ class TExecuteModalTest {
             setDefaultButton(save);
         }
 
-        /** Set result to SAVE and close.  Can be called from any thread. */
+        /** Set result to SAVE and close. */
         void triggerSave() {
             result = Result.SAVE;
             getApplication().closeWindow(this);
         }
 
-        /** Set result to DISCARD and close.  Can be called from any thread. */
+        /** Set result to DISCARD and close. */
         void triggerDiscard() {
             result = Result.DISCARD;
             getApplication().closeWindow(this);
@@ -95,11 +99,11 @@ class TExecuteModalTest {
 
     @Test
     void genericDialogSaveButtonSetsResultAndReturns() throws Exception {
-        TApplication app = startedApp();
+        TApplication app = app();
         SaveDialog dialog = new SaveDialog(app);
+        startApp(app);
 
-        // executeModal blocks – close the dialog from a background thread.
-        closeAfterDelay(app, dialog, dialog::triggerSave);
+        runWhenModal(app, dialog::triggerSave);
 
         app.executeModal(dialog);
 
@@ -108,10 +112,11 @@ class TExecuteModalTest {
 
     @Test
     void genericDialogDiscardButtonSetsResultAndReturns() throws Exception {
-        TApplication app = startedApp();
+        TApplication app = app();
         SaveDialog dialog = new SaveDialog(app);
+        startApp(app);
 
-        closeAfterDelay(app, dialog, dialog::triggerDiscard);
+        runWhenModal(app, dialog::triggerDiscard);
 
         app.executeModal(dialog);
 
@@ -124,13 +129,14 @@ class TExecuteModalTest {
 
     @Test
     void noResultDialogCanBeExecutedAndClosed() throws Exception {
-        TApplication app = startedApp();
+        TApplication app = app();
         TDialog dialog = new TDialog(app, "Info", 30, 8);
         addCloseButton(dialog);
+        startApp(app);
 
         AtomicBoolean returned = new AtomicBoolean(false);
 
-        closeAfterDelay(app, dialog, () ->
+        runWhenModal(app, () ->
             app.closeWindow(dialog));
 
         app.executeModal(dialog);
@@ -146,11 +152,11 @@ class TExecuteModalTest {
 
     @Test
     void escapeTriggersOnCancelAndModalReturns() throws Exception {
-        TApplication app = startedApp();
+        TApplication app = app();
         TDialog dialog = new TDialog(app, "Esc Test", 30, 8);
+        startApp(app);
 
-        // Deliver Esc from a background thread after executeModal is entered.
-        closeAfterDelay(app, dialog, () ->
+        runWhenModal(app, () ->
             dialog.onKeypress(new TKeypressEvent(null, kbEsc)));
 
         app.executeModal(dialog);
@@ -165,7 +171,7 @@ class TExecuteModalTest {
 
     @Test
     void childConsumingEscKeepsDialogOpen() throws Exception {
-        TApplication app = startedApp();
+        TApplication app = app();
         TDialog dialog = new TDialog(app, "Esc Child", 30, 8);
 
         int[] childEscs = {0};
@@ -183,10 +189,11 @@ class TExecuteModalTest {
             }
         };
         dialog.activate(claimingChild);
+        startApp(app);
 
         // First Esc -> child consumes it (dialog stays open).
         // Second Esc -> child no longer claims it -> dialog closes.
-        closeAfterDelay(app, dialog, () -> {
+        runWhenModal(app, () -> {
             dialog.onKeypress(new TKeypressEvent(null, kbEsc)); // child claims
             dialog.onKeypress(new TKeypressEvent(null, kbEsc)); // dialog closes
         });
@@ -204,11 +211,12 @@ class TExecuteModalTest {
 
     @Test
     void closeBoxEndsModalExecution() throws Exception {
-        TApplication app = startedApp();
+        TApplication app = app();
         // Default TDialog flags include MODAL (close box present by default).
         TDialog dialog = new TDialog(app, "Close Box", 30, 8);
+        startApp(app);
 
-        closeAfterDelay(app, dialog, () -> app.closeWindow(dialog));
+        runWhenModal(app, () -> app.closeWindow(dialog));
 
         app.executeModal(dialog);
 
@@ -221,10 +229,11 @@ class TExecuteModalTest {
 
     @Test
     void explicitCloseWindowEndsModalExecution() throws Exception {
-        TApplication app = startedApp();
+        TApplication app = app();
         TDialog dialog = new TDialog(app, "Close Explicit", 30, 8);
+        startApp(app);
 
-        closeAfterDelay(app, dialog, () -> app.closeWindow(dialog));
+        runWhenModal(app, () -> app.closeWindow(dialog));
 
         app.executeModal(dialog);
 
@@ -297,22 +306,188 @@ class TExecuteModalTest {
 
     @Test
     void secondaryEventReceiverClearedAfterModalReturns() throws Exception {
-        TApplication app = startedApp();
+        TApplication app = app();
         TDialog dialog = new TDialog(app, "Cleanup", 30, 8);
+        TDialog second = new TDialog(app, "Second", 30, 8);
+        startApp(app);
 
-        closeAfterDelay(app, dialog, () -> app.closeWindow(dialog));
+        AtomicReference<Thread> primaryThread = new AtomicReference<>();
+        app.invokeAndWait(() -> primaryThread.set(Thread.currentThread()));
+        runWhenModal(app, () -> app.closeWindow(dialog));
 
         app.executeModal(dialog);
 
         // If secondaryEventReceiver is not cleared the next executeModal
         // would throw IllegalStateException – verify it can be called again.
-        TDialog second = new TDialog(app, "Second", 30, 8);
-        closeAfterDelay(app, second, () -> app.closeWindow(second));
+        runWhenModal(app, () -> app.closeWindow(second));
         app.executeModal(second);   // must not throw
+
+        AtomicReference<Thread> resumedThread = new AtomicReference<>();
+        app.invokeAndWait(() -> resumedThread.set(Thread.currentThread()));
+        assertSame(primaryThread.get(), resumedThread.get(),
+            "Primary event-dispatch thread must resume after modal cleanup");
     }
 
     // -----------------------------------------------------------------------
-    // 9. Invalid-usage guards
+    // 9. Event-dispatch threading
+    // -----------------------------------------------------------------------
+
+    @Test
+    void invokeLaterRunsOnEventDispatchThread() throws Exception {
+        TApplication app = startedApp();
+        CountDownLatch completed = new CountDownLatch(1);
+        AtomicBoolean eventDispatchThread = new AtomicBoolean(false);
+
+        app.invokeLater(() -> {
+            eventDispatchThread.set(app.isEventDispatchThread());
+            completed.countDown();
+        });
+
+        assertTrue(completed.await(2, TimeUnit.SECONDS));
+        assertTrue(eventDispatchThread.get());
+    }
+
+    @Test
+    void invokeAndWaitFromForeignThreadBlocksUntilCommandCompletes()
+            throws Exception {
+
+        TApplication app = startedApp();
+        CountDownLatch commandStarted = new CountDownLatch(1);
+        CountDownLatch releaseCommand = new CountDownLatch(1);
+        CountDownLatch callerReturned = new CountDownLatch(1);
+        AtomicBoolean eventDispatchThread = new AtomicBoolean(false);
+
+        Thread caller = new Thread(() -> {
+            app.invokeAndWait(() -> {
+                eventDispatchThread.set(app.isEventDispatchThread());
+                commandStarted.countDown();
+                try {
+                    releaseCommand.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+            callerReturned.countDown();
+        });
+        caller.setDaemon(true);
+        caller.start();
+
+        assertTrue(commandStarted.await(2, TimeUnit.SECONDS));
+        assertFalse(callerReturned.await(100, TimeUnit.MILLISECONDS));
+        releaseCommand.countDown();
+        assertTrue(callerReturned.await(2, TimeUnit.SECONDS));
+        assertTrue(eventDispatchThread.get());
+    }
+
+    @Test
+    void invokeAndWaitFromEventDispatchThreadExecutesDirectly()
+            throws Exception {
+
+        TApplication app = startedApp();
+        AtomicBoolean nestedCommandRan = new AtomicBoolean(false);
+
+        app.invokeAndWait(() -> {
+            assertTrue(app.isEventDispatchThread());
+            app.invokeAndWait(() -> nestedCommandRan.set(true));
+        });
+
+        assertTrue(nestedCommandRan.get());
+    }
+
+    @Test
+    void closeWindowFromForeignThreadIsSynchronous() throws Exception {
+        TApplication app = app();
+        AtomicBoolean closeOnEventDispatchThread = new AtomicBoolean(false);
+        TWindow window = new TWindow(app, "Close", 0, 0, 20, 5) {
+            @Override
+            public void onClose() {
+                closeOnEventDispatchThread.set(
+                    app.isEventDispatchThread());
+            }
+        };
+        startApp(app);
+
+        app.closeWindow(window);
+
+        assertFalse(app.getAllWindows().contains(window));
+        assertTrue(closeOnEventDispatchThread.get(),
+            "onClose must complete on an event-dispatch thread");
+    }
+
+    @Test
+    void executeModalFromForeignThreadUsesModalEventThread()
+            throws Exception {
+
+        TApplication app = app();
+        TDialog dialog = new TDialog(app, "Foreign", 30, 8);
+        startApp(app);
+        AtomicBoolean actionOnEventDispatchThread = new AtomicBoolean(false);
+
+        runWhenModal(app, () -> {
+            actionOnEventDispatchThread.set(app.isEventDispatchThread());
+            app.closeWindow(dialog);
+        });
+        app.executeModal(dialog);
+
+        assertTrue(actionOnEventDispatchThread.get());
+        assertFalse(app.isModalThreadRunning());
+        assertFalse(app.getAllWindows().contains(dialog));
+    }
+
+    @Test
+    void queuedCloseRemainsAvailableToModalEventThread() throws Exception {
+        TApplication app = app();
+        TDialog dialog = new TDialog(app, "Queued Close", 30, 8);
+        startApp(app);
+        CountDownLatch dispatchBlocked = new CountDownLatch(1);
+        CountDownLatch releaseDispatch = new CountDownLatch(1);
+        CountDownLatch modalReturned = new CountDownLatch(1);
+
+        app.invokeLater(() -> {
+            dispatchBlocked.countDown();
+            try {
+                releaseDispatch.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        assertTrue(dispatchBlocked.await(2, TimeUnit.SECONDS));
+
+        app.invokeLater(() -> {
+            app.executeModal(dialog);
+            modalReturned.countDown();
+        });
+        app.invokeLater(() -> app.closeWindow(dialog));
+        releaseDispatch.countDown();
+
+        assertTrue(modalReturned.await(2, TimeUnit.SECONDS));
+        assertFalse(app.getAllWindows().contains(dialog));
+    }
+
+    @Test
+    @Timeout(40)
+    void repeatedForeignThreadModalExecutionRemainsStable() throws Exception {
+        TApplication app = startedApp();
+
+        for (int i = 0; i < 25; i++) {
+            AtomicReference<TDialog> dialogReference = new AtomicReference<>();
+            app.invokeAndWait(() -> dialogReference.set(
+                new TDialog(app, "Stress", 30, 8)));
+            TDialog dialog = dialogReference.get();
+
+            runWhenModal(app, () -> app.closeWindow(dialog));
+            app.executeModal(dialog);
+
+            assertFalse(app.isModalThreadRunning());
+            assertFalse(app.getAllWindows().contains(dialog));
+            assertTrue(app.isRunning(),
+                "Event-handler exception stopped the application at iteration "
+                    + i);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // 10. Invalid-usage guards
     // -----------------------------------------------------------------------
 
     @Test
@@ -356,24 +531,35 @@ class TExecuteModalTest {
 
     /** Create a TApplication without starting its event loop. */
     private TApplication app() {
-        return new TApplication(new HeadlessBackend());
+        HeadlessBackend backend = new HeadlessBackend();
+        // HeadlessBackend is also a LogicalScreen; wire its own backend
+        // reference so getScreen().getBackend() call paths resolve correctly.
+        backend.setBackend(backend);
+        return new TApplication(backend);
     }
 
     /**
-     * Create and start a TApplication on a background daemon thread so that
-     * {@link TApplication#executeModal(TWindow)} can block correctly.
-     * The app is stopped in {@link #cleanup} via {@link TApplication#exit()}.
+     * Create and start a TApplication.
      */
-    private TApplication startedApp() {
-        TApplication app = new TApplication(new HeadlessBackend());
+    private TApplication startedApp() throws InterruptedException {
+        return startApp(app());
+    }
+
+    /**
+     * Start a TApplication on a background daemon thread and wait until its
+     * event-dispatch thread has processed a command.
+     */
+    private TApplication startApp(final TApplication app)
+            throws InterruptedException {
+
         startedApps.add(app);
         Thread t = new Thread(app::run);
         t.setDaemon(true);
         t.start();
-        // Give the app time to initialise the primaryEventHandler.
-        try { Thread.sleep(100); } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        CountDownLatch started = new CountDownLatch(1);
+        app.invokeLater(started::countDown);
+        assertTrue(started.await(2, TimeUnit.SECONDS),
+            "Application event-dispatch thread did not start");
         return app;
     }
 
@@ -399,29 +585,20 @@ class TExecuteModalTest {
     }
 
     /**
-     * Schedule {@code action} to run on a background thread after a short
-     * delay.  The action is expected to close {@code dialog} and thereby
-     * unblock the {@code executeModal} call on the main thread.
-     *
-     * <p>The background thread waits for modal-thread startup before firing,
-     * to avoid a race where the close arrives before the secondary handler
-     * is installed.</p>
+     * Schedule {@code action} to run after the secondary modal handler starts.
+     * If the primary handler sees the command first, it requeues the command;
+     * the primary then yields and the secondary handler runs it.
      */
-    private void closeAfterDelay(final TApplication app,
-            final TWindow dialog, final Runnable action) {
-
-        Thread t = new Thread(() -> {
-            // Wait until the secondary event receiver is installed.
-            long deadline = System.currentTimeMillis() + 5_000;
-            while (System.currentTimeMillis() < deadline) {
+    private void runWhenModal(final TApplication app, final Runnable action) {
+        app.invokeLater(new Runnable() {
+            @Override
+            public void run() {
                 if (app.isModalThreadRunning()) {
-                    break;
+                    action.run();
+                } else {
+                    app.invokeLater(this);
                 }
-                try { Thread.sleep(5); } catch (InterruptedException e) { return; }
             }
-            action.run();
         });
-        t.setDaemon(true);
-        t.start();
     }
 }
