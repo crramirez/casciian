@@ -67,9 +67,9 @@ public class TList extends TScrollable {
 
     /**
      * Extra left/right padding applied to each list row.  The value is
-     * resolved once at construction from the active
-     * {@link ControlPadding} style (system property
-     * {@code casciian.controls.padding}).  The row text is drawn offset
+     * resolved once at construction from the active color theme's
+     * {@link ControlPadding} (overridable via the
+     * {@code casciian.controls.padding} system property).  The row text is drawn offset
      * by this amount from the left edge of the widget, and 1 blank cell
      * is reserved on the right (before the vertical scrollbar) as well.
      */
@@ -159,7 +159,7 @@ public class TList extends TScrollable {
         final TAction singleClickAction) {
 
         super(parent, x, y, width, height);
-        this.padding = ControlPadding.current().getCells();
+        this.padding = getControlPaddingCells();
         this.enterAction = enterAction;
         this.moveAction = moveAction;
         this.singleClickAction = singleClickAction;

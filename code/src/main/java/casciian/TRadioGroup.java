@@ -276,7 +276,7 @@ public class TRadioGroup extends TWidget {
         button.id = getChildren().size();
         String label = button.getMnemonic().getRawLabel();
 
-        int extraPadding = 2 * ControlPadding.current().getCells();
+        int extraPadding = 2 * getControlPaddingCells();
         if (StringUtils.width(label) + 4 + extraPadding > getWidth()) {
             super.setWidth(StringUtils.width(label) + 7 + extraPadding);
         }

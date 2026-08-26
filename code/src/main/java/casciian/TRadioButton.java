@@ -176,9 +176,9 @@ public class TRadioButton extends TWidget {
 
     /**
      * Extra left/right padding applied to the control.  The value is
-     * resolved once at construction from the active
-     * {@link ControlPadding} style (system property
-     * {@code casciian.controls.padding}).  The radio button content is
+     * resolved once at construction from the active color theme's
+     * {@link ControlPadding} (overridable via the
+     * {@code casciian.controls.padding} system property).  The radio button content is
      * drawn offset by this amount from the left edge of the widget.
      */
     private final int padding;
@@ -199,11 +199,12 @@ public class TRadioButton extends TWidget {
     TRadioButton(final TRadioGroup parent, final int x, final int y,
         final String label, final int id) {
 
-        // Resolve padding once: ControlPadding.current() can be toggled
-        // at runtime, but the widget size is fixed at construction, so
-        // we only read the style a single time here to avoid any
-        // width/padding mismatch.
-        this(parent, x, y, label, id, ControlPadding.current().getCells());
+        // Resolve padding once from the active theme: the widget size is
+        // fixed at construction, so we only read the padding a single time
+        // here to avoid any width/padding mismatch.  Resolve it from the
+        // parent group, which is already attached to its window and thus
+        // knows the active color theme.
+        this(parent, x, y, label, id, parent.getControlPaddingCells());
     }
 
     /**

@@ -1567,6 +1567,26 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
+     * Get the number of blank cells the active color theme reserves on each
+     * side of text and selection controls (TField, TCheckBox, TRadioButton,
+     * TList, TTreeView, ...).
+     * <p>
+     * The value is resolved from the active {@link ColorTheme} via
+     * {@link ColorTheme#getControlPadding()}, so themes that select a
+     * different {@link casciian.bits.ControlPadding} (for example qodem5 or
+     * femme, which use no padding) are honored.  An explicit
+     * {@code casciian.controls.padding} system property still overrides the
+     * theme default.  Widgets read this once at construction so existing
+     * controls keep their size while newly created controls follow the
+     * currently selected theme.
+     *
+     * @return the active control padding in cells (0 or 1)
+     */
+    protected final int getControlPaddingCells() {
+        return getTheme().getControlPadding().getCells();
+    }
+
+    /**
      * Retrieve a theme color, automatically preferring the {@code .modal}
      * variant when this widget is painted inside a modal window.
      * <p>

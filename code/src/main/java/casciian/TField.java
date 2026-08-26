@@ -122,9 +122,9 @@ public class TField extends TTextBase {
 
     /**
      * Extra left/right padding applied to the control.  The value is
-     * resolved once at construction from the active
-     * {@link ControlPadding} style (system property
-     * {@code casciian.controls.padding}).  The editable text area is
+     * resolved once at construction from the active color theme's
+     * {@link ControlPadding} (overridable via the
+     * {@code casciian.controls.padding} system property).  The editable text area is
      * drawn offset by this amount from the left edge of the widget, and
      * {@code padding} blank cells are reserved on both the left and
      * right edges.
@@ -233,7 +233,7 @@ public class TField extends TTextBase {
         // Set parent and window
         super(parent, singleLine(text), x, y, width, 1, "tfield.active");
 
-        this.padding = ControlPadding.current().getCells();
+        this.padding = getControlPaddingCells();
 
         setCursorVisible(true);
         setMouseStyle("text");
