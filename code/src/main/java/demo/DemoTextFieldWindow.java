@@ -140,7 +140,7 @@ public class DemoTextFieldWindow extends TWindow {
         );
 
         final int dayOfWeekWidth = getDayOfWeekWidth();
-        int fieldPadding = casciian.bits.ControlPadding.current().getCells();
+        int fieldPadding = getTheme().getControlPadding().getCells();
         int spinnerOffset = dayOfWeekWidth + 2 * fieldPadding;
         dayOfWeekLabel = addField(35, row, dayOfWeekWidth + 2 * fieldPadding, true);
         dayOfWeekLabel.setEnabled(false);

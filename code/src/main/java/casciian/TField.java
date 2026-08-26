@@ -21,7 +21,6 @@ package casciian;
 
 import casciian.backend.Backend;
 import casciian.bits.CellAttributes;
-import casciian.bits.ControlPadding;
 import casciian.bits.StringUtils;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
@@ -121,15 +120,13 @@ public class TField extends TTextBase {
     private CellAttributes fieldColor = null;
 
     /**
-     * Extra left/right padding applied to the control.  The value is
-     * resolved once at construction from the active
-     * {@link ControlPadding} style (system property
-     * {@code casciian.controls.padding}).  The editable text area is
-     * drawn offset by this amount from the left edge of the widget, and
-     * {@code padding} blank cells are reserved on both the left and
-     * right edges.
+     * Get the active theme's extra left/right control padding.
+     *
+     * @return the number of padding cells
      */
-    protected final int padding;
+    protected final int getControlPadding() {
+        return getTheme().getControlPadding().getCells();
+    }
 
     /**
      * Get the width of the editable text area (excluding the left and
@@ -140,7 +137,7 @@ public class TField extends TTextBase {
      * @return the visible text area width, never negative
      */
     protected final int textAreaWidth() {
-        return Math.max(0, getWidth() - 2 * padding);
+        return Math.max(0, getWidth() - 2 * getControlPadding());
     }
 
     /**
@@ -154,7 +151,7 @@ public class TField extends TTextBase {
      * @return the maximum cursor index, never negative
      */
     private int fixedCursorMax() {
-        if (padding > 0) {
+        if (getControlPadding() > 0) {
             return textAreaWidth();
         }
         return Math.max(0, textAreaWidth() - 1);
@@ -233,8 +230,6 @@ public class TField extends TTextBase {
         // Set parent and window
         super(parent, singleLine(text), x, y, width, 1, "tfield.active");
 
-        this.padding = ControlPadding.current().getCells();
-
         setCursorVisible(true);
         setMouseStyle("text");
         setSelectedColorKey(SELECTED_COLOR_KEY);
@@ -300,7 +295,7 @@ public class TField extends TTextBase {
      */
     @Override
     protected int getTextAreaX() {
-        return padding;
+        return getControlPadding();
     }
 
     /**
@@ -366,7 +361,8 @@ public class TField extends TTextBase {
             // The cursor is allowed to invade the right padding space (up to
             // getWidth() - 1) when it is at the right edge; scrolling is
             // triggered one column before that edge to position it correctly.
-            int maxOffset = Math.max(0, getWidth() - padding - 1);
+            int maxOffset = Math.max(0,
+                getWidth() - getControlPadding() - 1);
             int desiredX = document.getCursor() - getLeftColumn();
             if (desiredX < 0) {
                 setLeftColumn(document.getCursor());
@@ -602,6 +598,7 @@ public class TField extends TTextBase {
         }
         setDefaultColor(fieldColor);
 
+        int padding = getControlPadding();
         if (padding > 0) {
             // Paint the left and right padding cells in the field color.
             for (int i = 0; i < padding; i++) {
@@ -818,12 +815,14 @@ public class TField extends TTextBase {
         int start = getLeftColumn();
 
         if ((cursor >= textAreaWidth()) && fixed) {
-            setCursorX(Math.min(getWidth() - 1, padding + fixedCursorMax()));
-        } else if ((cursor - start >= getWidth() - padding) && !fixed) {
+            setCursorX(Math.min(getWidth() - 1,
+                getControlPadding() + fixedCursorMax()));
+        } else if ((cursor - start >= getWidth() - getControlPadding())
+            && !fixed) {
             // Cursor can invade the right padding space; clamp to the right edge.
             setCursorX(getWidth() - 1);
         } else {
-            setCursorX(padding + cursor - start);
+            setCursorX(getControlPadding() + cursor - start);
         }
     }
 
@@ -838,7 +837,8 @@ public class TField extends TTextBase {
             updateCursor();
             return;
         }
-        setLeftColumn(document.getCursor() - Math.max(0, getWidth() - padding - 1));
+        setLeftColumn(document.getCursor()
+            - Math.max(0, getWidth() - getControlPadding() - 1));
         windowStart = getLeftColumn();
 
         updateCursor();
@@ -893,7 +893,8 @@ public class TField extends TTextBase {
                 document.setCursor(fixedCursorMax());
             }
         } else {
-            setLeftColumn(StringUtils.width(getText()) - Math.max(0, getWidth() - padding - 1));
+            setLeftColumn(StringUtils.width(getText())
+                - Math.max(0, getWidth() - getControlPadding() - 1));
         }
         syncFields();
         updateCursor();

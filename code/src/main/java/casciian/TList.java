@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import casciian.bits.CellAttributes;
-import casciian.bits.ControlPadding;
 import casciian.bits.StringUtils;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
@@ -66,14 +65,13 @@ public class TList extends TScrollable {
     protected TAction moveAction;
 
     /**
-     * Extra left/right padding applied to each list row.  The value is
-     * resolved once at construction from the active
-     * {@link ControlPadding} style (system property
-     * {@code casciian.controls.padding}).  The row text is drawn offset
-     * by this amount from the left edge of the widget, and 1 blank cell
-     * is reserved on the right (before the vertical scrollbar) as well.
+     * Get the active theme's extra left/right control padding.
+     *
+     * @return the number of padding cells
      */
-    protected int padding;
+    protected final int getControlPadding() {
+        return getTheme().getControlPadding().getCells();
+    }
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -159,7 +157,6 @@ public class TList extends TScrollable {
         final TAction singleClickAction) {
 
         super(parent, x, y, width, height);
-        this.padding = ControlPadding.current().getCells();
         this.enterAction = enterAction;
         this.moveAction = moveAction;
         this.singleClickAction = singleClickAction;
@@ -432,7 +429,8 @@ public class TList extends TScrollable {
             setVerticalValue(getBottomValue());
         }
 
-        setRightValue(Math.max(0, maxLineWidth - getWidth() + 1 + 2 * padding));
+        setRightValue(Math.max(0, maxLineWidth - getWidth() + 1
+            + 2 * getControlPadding()));
         if (getHorizontalValue() > getRightValue()) {
             setHorizontalValue(getRightValue());
         }
@@ -456,6 +454,7 @@ public class TList extends TScrollable {
         CellAttributes color;
         int begin = getVerticalValue();
         int topY = 0;
+        int padding = getControlPadding();
         // Visible row width excludes the vertical scrollbar (1 cell) and
         // the optional left and right padding cells.
         int rowWidth = Math.max(0, getWidth() - 1 - 2 * padding);

@@ -67,6 +67,31 @@ class TSelectionControlStyleTest {
     }
 
     @Test
+    void checkboxPaddingTracksThemeChanges() {
+        withProperty(ControlPadding.PROPERTY_KEY, null, () -> {
+            TWindow window = makeWindow();
+            TCheckBox checkBox = new TCheckBox(window, 1, 1, "Choice", true);
+            int x = checkBox.getAbsoluteX();
+            int y = checkBox.getAbsoluteY();
+
+            window.drawChildren();
+            assertEquals('[', window.getScreen().getCharXY(x + 1, y).getChar());
+
+            window.getTheme().setFemme();
+            window.drawChildren();
+            assertEquals('[', window.getScreen().getCharXY(x, y).getChar());
+
+            window.getTheme().setDarkDefault();
+            window.drawChildren();
+            assertEquals('[', window.getScreen().getCharXY(x + 1, y).getChar());
+
+            window.getTheme().setQmodem5();
+            window.drawChildren();
+            assertEquals('[', window.getScreen().getCharXY(x, y).getChar());
+        });
+    }
+
+    @Test
     void radioButtonUsesConfiguredSelectedSymbol() {
         withProperty(TRadioButton.PROPERTY_KEY, "asterisk", () -> {
             TWindow window = makeWindow();

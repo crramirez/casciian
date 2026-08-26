@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Locale;
 
 import casciian.bits.CellAttributes;
-import casciian.bits.ControlPadding;
 import casciian.bits.GraphicsChars;
 import casciian.bits.MnemonicString;
 import casciian.bits.StringUtils;
@@ -174,15 +173,6 @@ public class TRadioButton extends TWidget {
      */
     private Style style = Style.BULLET;
 
-    /**
-     * Extra left/right padding applied to the control.  The value is
-     * resolved once at construction from the active
-     * {@link ControlPadding} style (system property
-     * {@code casciian.controls.padding}).  The radio button content is
-     * drawn offset by this amount from the left edge of the widget.
-     */
-    private final int padding;
-
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -199,11 +189,8 @@ public class TRadioButton extends TWidget {
     TRadioButton(final TRadioGroup parent, final int x, final int y,
         final String label, final int id) {
 
-        // Resolve padding once: ControlPadding.current() can be toggled
-        // at runtime, but the widget size is fixed at construction, so
-        // we only read the style a single time here to avoid any
-        // width/padding mismatch.
-        this(parent, x, y, label, id, ControlPadding.current().getCells());
+        this(parent, x, y, label, id,
+            parent.getTheme().getControlPadding().getCells());
     }
 
     /**
@@ -218,7 +205,6 @@ public class TRadioButton extends TWidget {
         // Set parent and window
         super(parent, x, y, StringUtils.width(label) + 4 + 2 * padding, 1);
 
-        this.padding = padding;
         mnemonic = new MnemonicString(label);
         this.id = id;
         setStyle((String) null);
@@ -318,6 +304,8 @@ public class TRadioButton extends TWidget {
      */
     @Override
     public void draw() {
+        int padding = getTheme().getControlPadding().getCells();
+        setCursorX(padding + 1);
         CellAttributes radioButtonColor = new CellAttributes();
         CellAttributes mnemonicColor;
 

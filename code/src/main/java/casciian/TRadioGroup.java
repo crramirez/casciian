@@ -21,7 +21,6 @@ package casciian;
 
 import casciian.bits.BorderStyle;
 import casciian.bits.CellAttributes;
-import casciian.bits.ControlPadding;
 import casciian.bits.MnemonicString;
 import casciian.bits.StringUtils;
 
@@ -276,7 +275,7 @@ public class TRadioGroup extends TWidget {
         button.id = getChildren().size();
         String label = button.getMnemonic().getRawLabel();
 
-        int extraPadding = 2 * ControlPadding.current().getCells();
+        int extraPadding = 2 * getTheme().getControlPadding().getCells();
         if (StringUtils.width(label) + 4 + extraPadding > getWidth()) {
             super.setWidth(StringUtils.width(label) + 7 + extraPadding);
         }
