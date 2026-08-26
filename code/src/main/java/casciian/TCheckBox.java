@@ -326,6 +326,11 @@ public class TCheckBox extends TWidget {
         CellAttributes checkboxColor = new CellAttributes();
         CellAttributes mnemonicColor;
         int padding = getTheme().getControlPadding().getCells();
+        int minimumWidth = StringUtils.width(mnemonic.getRawLabel()) + 4
+            + 2 * padding;
+        if (getWidth() < minimumWidth) {
+            setWidth(minimumWidth);
+        }
         setCursorX(padding + 1);
 
         if (isAbsoluteActive()) {

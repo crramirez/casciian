@@ -92,6 +92,25 @@ class TSelectionControlStyleTest {
     }
 
     @Test
+    void checkboxExpandsWhenThemePaddingIncreases() {
+        withProperty(ControlPadding.PROPERTY_KEY, null, () -> {
+            TWindow window = makeWindow();
+            window.getTheme().setFemme();
+            TCheckBox checkBox = new TCheckBox(window, 1, 1, "Choice", true);
+            int x = checkBox.getAbsoluteX();
+            int y = checkBox.getAbsoluteY();
+
+            window.drawChildren();
+            assertEquals('[', window.getScreen().getCharXY(x, y).getChar());
+
+            window.getTheme().setDarkDefault();
+            window.drawChildren();
+            assertEquals('[', window.getScreen().getCharXY(x + 1, y).getChar());
+            assertEquals('e', window.getScreen().getCharXY(x + 10, y).getChar());
+        });
+    }
+
+    @Test
     void radioButtonUsesConfiguredSelectedSymbol() {
         withProperty(TRadioButton.PROPERTY_KEY, "asterisk", () -> {
             TWindow window = makeWindow();
