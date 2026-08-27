@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.texteditor;
 
@@ -79,6 +84,11 @@ public class Document {
      */
     private boolean saveWithTabs = false;
 
+    /**
+     * If true, line scanning is deferred until a batch edit ends.
+     */
+    private boolean batchUpdate = false;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -121,6 +131,26 @@ public class Document {
         String [] rawLines = text.split("\n");
         for (int i = 0; i < rawLines.length; i++) {
             lines.add(new Line(rawLines[i], defaultColor, highlighter));
+        }
+    }
+
+    /**
+     * Begin a batch of document mutations.
+     */
+    public void beginUpdate() {
+        if (!batchUpdate) {
+            batchUpdate = true;
+            getCurrentLine().setScanDeferred(true);
+        }
+    }
+
+    /**
+     * Finish a batch of document mutations and refresh the current line.
+     */
+    public void endUpdate() {
+        if (batchUpdate) {
+            getCurrentLine().setScanDeferred(false);
+            batchUpdate = false;
         }
     }
 
@@ -641,6 +671,9 @@ public class Document {
         lines.set(lineNumber, new Line(firstLine, defaultColor, highlighter));
         lineNumber++;
         lines.get(lineNumber).home();
+        if (batchUpdate) {
+            getCurrentLine().setScanDeferred(true);
+        }
     }
 
     /**

@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.texteditor;
 
@@ -26,6 +31,11 @@ import casciian.bits.StringUtils;
  * words.
  */
 public class Line {
+
+    /**
+     * If true, postpone rebuilding word boundaries until a batch edit ends.
+     */
+    private boolean scanDeferred = false;
 
     // ------------------------------------------------------------------------
     // Variables --------------------------------------------------------------
@@ -264,6 +274,18 @@ public class Line {
     }
 
     /**
+     * Defer or resume rebuilding word boundaries after mutations.
+     *
+     * @param scanDeferred if true, postpone scans
+     */
+    void setScanDeferred(final boolean scanDeferred) {
+        this.scanDeferred = scanDeferred;
+        if (!scanDeferred) {
+            scanLine();
+        }
+    }
+
+    /**
      * Decrement the cursor by one.  If at the first column, do nothing.
      *
      * @return true if the cursor position changed
@@ -339,7 +361,9 @@ public class Line {
         }
 
         // Re-scan the line to determine the new word boundaries.
-        scanLine();
+        if (!scanDeferred) {
+            scanLine();
+        }
     }
 
     /**
@@ -381,14 +405,18 @@ public class Line {
      * @param ch the character to insert
      */
     public void addChar(final int ch) {
-        if (screenPosition < getDisplayLength() - 1) {
+        if (position < rawText.length()) {
             rawText.insert(position, Character.toChars(ch));
         } else {
             rawText.append(Character.toChars(ch));
         }
         position += Character.charCount(ch);
         screenPosition += StringUtils.width(ch);
-        scanLine();
+        if (!scanDeferred) {
+            if (!scanDeferred) {
+                scanLine();
+            }
+        }
     }
 
     /**
@@ -397,12 +425,13 @@ public class Line {
      * @param ch the character to replace
      */
     public void replaceChar(final int ch) {
-        if (screenPosition < getDisplayLength() - 1) {
+        if (position < rawText.length()) {
             // Replace character
             String oldText = rawText.toString();
+            int oldCharLength = Character.charCount(oldText.codePointAt(position));
             rawText = new StringBuilder(oldText.substring(0, position));
             rawText.append(Character.toChars(ch));
-            rawText.append(oldText.substring(position + 1));
+            rawText.append(oldText.substring(position + oldCharLength));
             screenPosition += StringUtils.width(rawText.codePointAt(position));
             position += Character.charCount(ch);
         } else {

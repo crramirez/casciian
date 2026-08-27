@@ -640,13 +640,12 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             if (!isEditable()) {
                 return;
             }
-            // Delete selected text, then paste text from clipboard.
-            deleteSelection();
-
             String text = (getClipboard() == null ? null
                 : getClipboard().pasteText());
             if (text != null) {
                 pasteText(text, command.getBackend());
+            } else {
+                deleteSelection();
             }
             return;
         }
@@ -1324,33 +1323,57 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      * Insert text at the cursor position, honoring newlines and tabs.
      *
      * @param text the text to insert
-     * @param backend the backend to attribute the synthetic keystrokes to,
-     * may be null
+     * @param backend retained for source compatibility; may be null
      */
     protected void pasteText(final String text, final Backend backend) {
 
         if (!isEditable() || (text == null)) {
             return;
         }
-        for (int i = 0; i < text.length(); ) {
-            int ch = text.codePointAt(i);
-            switch (ch) {
-            case '\n':
-                onKeypress(new TKeypressEvent(backend, kbEnter));
-                break;
-            case '\t':
-                onKeypress(new TKeypressEvent(backend, kbTab));
-                break;
-            default:
-                if ((ch >= 0x20) && (ch != 0x7F)) {
-                    onKeypress(new TKeypressEvent(backend, false, 0, ch,
-                            false, false, false));
-                }
-                break;
-            }
 
-            i += Character.charCount(ch);
+        saveUndo();
+        deleteSelection(false);
+
+        document.beginUpdate();
+        try {
+            for (int i = 0; i < text.length(); ) {
+                int ch = text.codePointAt(i);
+                switch (ch) {
+                case '\n':
+                    if (supportsNewline()) {
+                        document.enter();
+                    }
+                    break;
+                case '\t':
+                    if (supportsTab()) {
+                        document.tab();
+                    }
+                    break;
+                default:
+                    if ((ch >= 0x20) && (ch != 0x7F)
+                        && canInsertPastedCodePoint(ch)
+                    ) {
+                        document.addChar(ch);
+                    }
+                    break;
+                }
+
+                i += Character.charCount(ch);
+            }
+        } finally {
+            document.endUpdate();
         }
+        alignTopLine(true);
+    }
+
+    /**
+     * Check if a printable pasted code point can be inserted.
+     *
+     * @param ch the pasted code point
+     * @return true if the code point can be inserted
+     */
+    protected boolean canInsertPastedCodePoint(final int ch) {
+        return true;
     }
 
     // ------------------------------------------------------------------------
@@ -1361,11 +1384,22 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      * Delete text within the selection bounds.
      */
     protected void deleteSelection() {
+        deleteSelection(true);
+    }
+
+    /**
+     * Delete text within the selection bounds.
+     *
+     * @param saveUndo if true, save the document state before deleting
+     */
+    private void deleteSelection(final boolean saveUndo) {
         if (!inSelection || !isEditable()) {
             return;
         }
 
-        saveUndo();
+        if (saveUndo) {
+            saveUndo();
+        }
 
         inSelection = false;
 
@@ -1632,8 +1666,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             return;
         }
 
-        // Delete selected text, then insert the new text.
-        deleteSelection();
+        // Delete selected text and insert the new text as one edit.
         pasteText(text, null);
     }
 

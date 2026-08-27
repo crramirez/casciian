@@ -383,8 +383,7 @@ public class TField extends TTextBase {
      * to spaces, since a field holds a single line.
      *
      * @param text the text to insert
-     * @param backend the backend to attribute the synthetic keystrokes to,
-     * may be null
+     * @param backend retained for source compatibility; may be null
      */
     @Override
     protected void pasteText(final String text, final Backend backend) {
@@ -393,6 +392,26 @@ public class TField extends TTextBase {
         }
         super.pasteText(singleLine(text), backend);
         syncFields();
+    }
+
+    /**
+     * Check if a pasted code point fits in this field.
+     *
+     * @param ch the pasted code point
+     * @return true if the code point can be inserted
+     */
+    @Override
+    protected boolean canInsertPastedCodePoint(final int ch) {
+        if (!fixed) {
+            return true;
+        }
+
+        int width = StringUtils.width(getText());
+        int addedWidth = StringUtils.width(ch);
+        if (document.isOverwrite() && (document.getChar() != -1)) {
+            addedWidth -= StringUtils.width(document.getChar());
+        }
+        return width + addedWidth <= textAreaWidth();
     }
 
     // ------------------------------------------------------------------------
