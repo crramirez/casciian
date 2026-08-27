@@ -1334,6 +1334,9 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             && ((selectionColumn0 != selectionColumn1)
                 || (selectionLine0 != selectionLine1));
         if (!hasNonEmptySelection && !willPasteChangeDocument(text)) {
+            // Clear any collapsed selection so a no-op paste does not leave
+            // the widget stuck in selection mode.
+            unsetSelection();
             return;
         }
 
