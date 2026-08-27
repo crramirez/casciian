@@ -626,6 +626,9 @@ public class Document {
                     defaultColor, highlighter));
             lines.get(lineNumber).setCursor(cursor);
             lines.remove(lineNumber + 1);
+            if (batchUpdate) {
+                getCurrentLine().setScanDeferred(true);
+            }
         }
     }
 
@@ -649,6 +652,9 @@ public class Document {
                         defaultColor, highlighter));
                 lines.get(lineNumber).setCursor(firstLine.length());
                 lines.remove(lineNumber + 1);
+                if (batchUpdate) {
+                    getCurrentLine().setScanDeferred(true);
+                }
             } else {
                 // Backspacing an empty line
                 lines.remove(lineNumber);
