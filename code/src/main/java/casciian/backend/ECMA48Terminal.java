@@ -1411,14 +1411,16 @@ public class ECMA48Terminal extends LogicalScreen
      * shutdown.
      */
     private void enableBracketedPaste() {
-        if (output == null) {
-            return;
-        }
-        if (!bracketedPasteEnabled.compareAndSet(false, true)) {
-            return;
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if ((writer == null)
+                || !bracketedPasteEnabled.compareAndSet(false, true)
+            ) {
+                return;
+            }
+            writer.print(ENABLE_BRACKETED_PASTE);
         }
 
-        output.print(ENABLE_BRACKETED_PASTE);
         bracketedPasteShutdownHook = new Thread(this::disableBracketedPaste,
             "casciian-bracketed-paste-restore");
         try {
