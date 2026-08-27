@@ -4196,7 +4196,8 @@ public class ECMA48Terminal extends LogicalScreen
 
             case PASTE:
                 pasteText.append(ch);
-                if ((pasteText.length() >= BRACKETED_PASTE_END.length())
+                if ((ch == '~')
+                    && (pasteText.length() >= BRACKETED_PASTE_END.length())
                     && pasteText.substring(pasteText.length()
                         - BRACKETED_PASTE_END.length())
                         .equals(BRACKETED_PASTE_END)
