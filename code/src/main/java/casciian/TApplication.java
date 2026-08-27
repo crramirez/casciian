@@ -1538,8 +1538,7 @@ public class TApplication implements Runnable {
         }
 
         // Abort everything
-        if (dispatchEvent instanceof TCommandEvent) {
-            TCommandEvent command = (TCommandEvent) dispatchEvent;
+        if (dispatchEvent instanceof TCommandEvent command) {
             if (command.equals(cmAbort)) {
                 exit();
                 return;
@@ -1547,8 +1546,7 @@ public class TApplication implements Runnable {
         }
 
         // Screen resize
-        if (dispatchEvent instanceof TResizeEvent) {
-            TResizeEvent resize = (TResizeEvent) dispatchEvent;
+        if (dispatchEvent instanceof TResizeEvent resize) {
             assert (resize.getType() == TResizeEvent.Type.SCREEN);
 
             synchronized (getScreen()) {
