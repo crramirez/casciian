@@ -413,9 +413,7 @@ public class Line {
         position += Character.charCount(ch);
         screenPosition += StringUtils.width(ch);
         if (!scanDeferred) {
-            if (!scanDeferred) {
-                scanLine();
-            }
+            scanLine();
         }
     }
 
@@ -439,7 +437,9 @@ public class Line {
             position += Character.charCount(ch);
             screenPosition += StringUtils.width(ch);
         }
-        scanLine();
+        if (!scanDeferred) {
+            scanLine();
+        }
     }
 
     /**

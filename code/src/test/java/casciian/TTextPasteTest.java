@@ -75,6 +75,20 @@ class TTextPasteTest {
     }
 
     @Test
+    void ignoredPasteDoesNotConsumeAnUndoState() {
+        TWindow window = makeWindow();
+        TEditor editor = new TEditor(window, "a", 0, 0, 40, 5);
+        editor.setEditingColumnNumber(2);
+        editor.onKeypress(new TKeypressEvent(null, false, 0, 'b',
+                false, false, false));
+
+        paste(editor, "\u0001\u007F");
+        editor.undo();
+
+        assertEquals("a\n", editor.getText());
+    }
+
+    @Test
     void editorPastePreservesLinesTabsUnicodeAndFiltersControls() {
         TWindow window = makeWindow();
         TEditor editor = new TEditor(window, "", 0, 0, 40, 5);

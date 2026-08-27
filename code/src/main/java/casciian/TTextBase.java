@@ -1330,6 +1330,9 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         if (!isEditable() || (text == null)) {
             return;
         }
+        if (!hasSelection() && !willPasteChangeDocument(text)) {
+            return;
+        }
 
         saveUndo();
         deleteSelection(false);
@@ -1374,6 +1377,27 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     protected boolean canInsertPastedCodePoint(final int ch) {
         return true;
+    }
+
+    /**
+     * Check if pasted text will mutate the current document.
+     *
+     * @param text the text to check
+     * @return true if at least one code point can be inserted
+     */
+    private boolean willPasteChangeDocument(final String text) {
+        for (int i = 0; i < text.length(); ) {
+            int ch = text.codePointAt(i);
+            if (((ch == '\n') && supportsNewline())
+                || ((ch == '\t') && supportsTab())
+                || ((ch >= 0x20) && (ch != 0x7F)
+                    && canInsertPastedCodePoint(ch))
+            ) {
+                return true;
+            }
+            i += Character.charCount(ch);
+        }
+        return false;
     }
 
     // ------------------------------------------------------------------------
