@@ -1388,56 +1388,6 @@ public class ECMA48Terminal extends LogicalScreen
             return;
         }
 
-        /**
-         * Enable xterm bracketed paste mode and arrange to restore it on JVM
-         * shutdown.
-         */
-        private void enableBracketedPaste() {
-            if (output == null) {
-                return;
-            }
-            if (!bracketedPasteEnabled.compareAndSet(false, true)) {
-                return;
-            }
-
-            output.print(ENABLE_BRACKETED_PASTE);
-            bracketedPasteShutdownHook = new Thread(this::disableBracketedPaste,
-                "casciian-bracketed-paste-restore");
-            try {
-                Runtime.getRuntime().addShutdownHook(bracketedPasteShutdownHook);
-            } catch (IllegalStateException e) {
-                bracketedPasteShutdownHook = null;
-            }
-        }
-
-        /**
-         * Disable xterm bracketed paste mode.  Safe to call more than once and
-         * safe to call from the shutdown hook.
-         */
-        private void disableBracketedPaste() {
-            if (!bracketedPasteEnabled.compareAndSet(true, false)) {
-                return;
-            }
-
-            synchronized (outputLock) {
-                PrintWriter writer = output;
-                if (writer != null) {
-                    writer.print(DISABLE_BRACKETED_PASTE);
-                    writer.flush();
-                }
-            }
-
-            Thread hook = bracketedPasteShutdownHook;
-            bracketedPasteShutdownHook = null;
-            if ((hook != null) && (hook != Thread.currentThread())) {
-                try {
-                    Runtime.getRuntime().removeShutdownHook(hook);
-                } catch (IllegalStateException e) {
-                    // The JVM is already shutting down.
-                }
-            }
-        }
-
         PrintWriter out = output;
         if (out != null) {
             out.printf("%s", KittyKeyboard.DISABLE);
@@ -1452,6 +1402,56 @@ public class ECMA48Terminal extends LogicalScreen
             } catch (IllegalStateException e) {
                 // The JVM is already shutting down, the hook will simply be
                 // a no-op when it runs.
+            }
+        }
+    }
+
+    /**
+     * Enable xterm bracketed paste mode and arrange to restore it on JVM
+     * shutdown.
+     */
+    private void enableBracketedPaste() {
+        if (output == null) {
+            return;
+        }
+        if (!bracketedPasteEnabled.compareAndSet(false, true)) {
+            return;
+        }
+
+        output.print(ENABLE_BRACKETED_PASTE);
+        bracketedPasteShutdownHook = new Thread(this::disableBracketedPaste,
+            "casciian-bracketed-paste-restore");
+        try {
+            Runtime.getRuntime().addShutdownHook(bracketedPasteShutdownHook);
+        } catch (IllegalStateException e) {
+            bracketedPasteShutdownHook = null;
+        }
+    }
+
+    /**
+     * Disable xterm bracketed paste mode.  Safe to call more than once and
+     * safe to call from the shutdown hook.
+     */
+    private void disableBracketedPaste() {
+        if (!bracketedPasteEnabled.compareAndSet(true, false)) {
+            return;
+        }
+
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.print(DISABLE_BRACKETED_PASTE);
+                writer.flush();
+            }
+        }
+
+        Thread hook = bracketedPasteShutdownHook;
+        bracketedPasteShutdownHook = null;
+        if ((hook != null) && (hook != Thread.currentThread())) {
+            try {
+                Runtime.getRuntime().removeShutdownHook(hook);
+            } catch (IllegalStateException e) {
+                // The JVM is already shutting down.
             }
         }
     }
