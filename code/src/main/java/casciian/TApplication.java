@@ -72,6 +72,7 @@ import casciian.event.TInputEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMenuEvent;
 import casciian.event.TMouseEvent;
+import casciian.event.TPasteEvent;
 import casciian.event.TResizeEvent;
 import casciian.help.HelpFile;
 import casciian.help.Topic;
@@ -1530,9 +1531,15 @@ public class TApplication implements Runnable {
 
         // Special application-wide events -------------------------------
 
+        TInputEvent dispatchEvent = event;
+        if (event instanceof TPasteEvent paste) {
+            clipboard.copyText(paste.getText());
+            dispatchEvent = new TCommandEvent(paste.getBackend(), cmPaste);
+        }
+
         // Abort everything
-        if (event instanceof TCommandEvent) {
-            TCommandEvent command = (TCommandEvent) event;
+        if (dispatchEvent instanceof TCommandEvent) {
+            TCommandEvent command = (TCommandEvent) dispatchEvent;
             if (command.equals(cmAbort)) {
                 exit();
                 return;
@@ -1540,8 +1547,8 @@ public class TApplication implements Runnable {
         }
 
         // Screen resize
-        if (event instanceof TResizeEvent) {
-            TResizeEvent resize = (TResizeEvent) event;
+        if (dispatchEvent instanceof TResizeEvent) {
+            TResizeEvent resize = (TResizeEvent) dispatchEvent;
             assert (resize.getType() == TResizeEvent.Type.SCREEN);
 
             synchronized (getScreen()) {
@@ -1586,7 +1593,7 @@ public class TApplication implements Runnable {
 
         synchronized (drainEventQueue) {
             // Put into the main queue
-            drainEventQueue.add(event);
+            drainEventQueue.add(dispatchEvent);
         }
     }
 

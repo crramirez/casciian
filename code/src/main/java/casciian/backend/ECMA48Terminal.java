@@ -54,6 +54,7 @@ import casciian.event.TCommandEvent;
 import casciian.event.TInputEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
+import casciian.event.TPasteEvent;
 import casciian.event.TResizeEvent;
 
 import static casciian.TCommand.*;
@@ -132,6 +133,21 @@ public class ECMA48Terminal extends LogicalScreen
     private static final String END_SYNCHRONIZED_UPDATE = "\033[?2026l";
 
     /**
+     * Enable xterm bracketed paste mode.
+     */
+    private static final String ENABLE_BRACKETED_PASTE = "\033[?2004h";
+
+    /**
+     * Disable xterm bracketed paste mode.
+     */
+    private static final String DISABLE_BRACKETED_PASTE = "\033[?2004l";
+
+    /**
+     * Sequence that terminates bracketed paste input.
+     */
+    private static final String BRACKETED_PASTE_END = "\033[201~";
+
+    /**
      * Maximum number of characters that the reusable frame buffer will
      * retain between redraws.
      */
@@ -155,6 +171,7 @@ public class ECMA48Terminal extends LogicalScreen
         OSC,
         MOUSE,
         MOUSE_SGR,
+        PASTE,
     }
 
     /**
@@ -432,6 +449,18 @@ public class ECMA48Terminal extends LogicalScreen
     private Thread kittyKeyboardShutdownHook;
 
     /**
+     * If true, bracketed paste mode was enabled and must be disabled.
+     */
+    private final AtomicBoolean bracketedPasteEnabled =
+        new AtomicBoolean(false);
+
+    /**
+     * Shutdown hook that disables bracketed paste mode if the application
+     * exits without calling closeTerminal().
+     */
+    private Thread bracketedPasteShutdownHook;
+
+    /**
      * If true, '?' was seen in terminal response.
      */
     private boolean decPrivateModeFlag = false;
@@ -461,6 +490,11 @@ public class ECMA48Terminal extends LogicalScreen
      * The string being built by OSC.
      */
     private StringBuilder oscResponse = new StringBuilder();
+
+    /**
+     * Pasted text being collected.
+     */
+    private StringBuilder pasteText = new StringBuilder();
 
     /**
      * If true, this terminal has the mouse/keyboard focus.  We default to
@@ -790,6 +824,8 @@ public class ECMA48Terminal extends LogicalScreen
             // would silently have no effect.
             this.terminal.enableMouseReporting(true);
 
+            enableBracketedPaste();
+
             // Ask for the Kitty keyboard protocol ("disambiguated keys").
             // Terminals that do not support it, or have it turned off, ignore
             // this and keep sending legacy VT sequences.  This must be sent
@@ -940,6 +976,8 @@ public class ECMA48Terminal extends LogicalScreen
         // the flags on the stack Casciian never actually runs on, and they
         // would silently have no effect.
             this.terminal.enableMouseReporting(true);
+
+        enableBracketedPaste();
 
         // Ask for the Kitty keyboard protocol ("disambiguated keys").
         // Terminals that do not support it, or have it turned off, ignore
@@ -1255,6 +1293,7 @@ public class ECMA48Terminal extends LogicalScreen
         // the output stream, so the host terminal is back in standard input
         // mode.
         disableKittyKeyboard();
+        disableBracketedPaste();
 
         // Restore original xterm mouse pointer shape if it was changed
         restoreXtermMousePointer();
@@ -1347,6 +1386,56 @@ public class ECMA48Terminal extends LogicalScreen
     private void disableKittyKeyboard() {
         if (!kittyKeyboardPushed.compareAndSet(true, false)) {
             return;
+        }
+
+        /**
+         * Enable xterm bracketed paste mode and arrange to restore it on JVM
+         * shutdown.
+         */
+        private void enableBracketedPaste() {
+            if (output == null) {
+                return;
+            }
+            if (!bracketedPasteEnabled.compareAndSet(false, true)) {
+                return;
+            }
+
+            output.print(ENABLE_BRACKETED_PASTE);
+            bracketedPasteShutdownHook = new Thread(this::disableBracketedPaste,
+                "casciian-bracketed-paste-restore");
+            try {
+                Runtime.getRuntime().addShutdownHook(bracketedPasteShutdownHook);
+            } catch (IllegalStateException e) {
+                bracketedPasteShutdownHook = null;
+            }
+        }
+
+        /**
+         * Disable xterm bracketed paste mode.  Safe to call more than once and
+         * safe to call from the shutdown hook.
+         */
+        private void disableBracketedPaste() {
+            if (!bracketedPasteEnabled.compareAndSet(true, false)) {
+                return;
+            }
+
+            synchronized (outputLock) {
+                PrintWriter writer = output;
+                if (writer != null) {
+                    writer.print(DISABLE_BRACKETED_PASTE);
+                    writer.flush();
+                }
+            }
+
+            Thread hook = bracketedPasteShutdownHook;
+            bracketedPasteShutdownHook = null;
+            if ((hook != null) && (hook != Thread.currentThread())) {
+                try {
+                    Runtime.getRuntime().removeShutdownHook(hook);
+                } catch (IllegalStateException e) {
+                    // The JVM is already shutting down.
+                }
+            }
         }
 
         PrintWriter out = output;
@@ -2599,6 +2688,7 @@ public class ECMA48Terminal extends LogicalScreen
         decDollarModeFlag = false;
         xtversionResponse.setLength(0);
         oscResponse.setLength(0);
+        pasteText.setLength(0);
     }
 
     /**
@@ -3655,6 +3745,13 @@ public class ECMA48Terminal extends LogicalScreen
                 }
 
                 if (ch == '~') {
+                    if ((params.size() == 1)
+                        && params.getFirst().equals("200")
+                    ) {
+                        pasteText.setLength(0);
+                        state = ParseState.PASTE;
+                        return;
+                    }
                     events.add(csiFnKey());
                     resetParser();
                     return;
@@ -4095,6 +4192,20 @@ public class ECMA48Terminal extends LogicalScreen
 
                 // Continue collecting until we see ST.
                 oscResponse.append(ch);
+                return;
+
+            case PASTE:
+                pasteText.append(ch);
+                if ((pasteText.length() >= BRACKETED_PASTE_END.length())
+                    && pasteText.substring(pasteText.length()
+                        - BRACKETED_PASTE_END.length())
+                        .equals(BRACKETED_PASTE_END)
+                ) {
+                    pasteText.setLength(pasteText.length()
+                        - BRACKETED_PASTE_END.length());
+                    events.add(new TPasteEvent(backend, pasteText.toString()));
+                    resetParser();
+                }
                 return;
 
             default:
