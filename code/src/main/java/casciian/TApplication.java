@@ -1533,6 +1533,7 @@ public class TApplication implements Runnable {
 
         TInputEvent dispatchEvent = event;
         if (event instanceof TPasteEvent paste) {
+            lastUserInputTime = paste.getTime().getTime();
             clipboard.copyText(paste.getText());
             dispatchEvent = new TCommandEvent(paste.getBackend(), cmPaste);
         }

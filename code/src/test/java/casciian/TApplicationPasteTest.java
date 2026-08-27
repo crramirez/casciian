@@ -38,14 +38,18 @@ class TApplicationPasteTest {
         TWindow window = new TWindow(application, "paste", 0, 0, 40, 10);
         TField field = window.addField(1, 1, 30, false);
         application.getClipboard().copyText("old");
+        application.lastUserInputTime = 0;
 
         Thread applicationThread = new Thread(application::run);
         applicationThread.start();
         try {
-            application.postEvent(new TPasteEvent(backend, "hello"));
+            TPasteEvent paste = new TPasteEvent(backend, "hello");
+            application.postEvent(paste);
             waitForText(field, "hello");
 
             assertEquals("hello", application.getClipboard().pasteText());
+            assertEquals(paste.getTime().getTime(),
+                application.lastUserInputTime);
 
             application.postEvent(new TCommandEvent(backend, cmPaste));
             waitForText(field, "hellohello");
