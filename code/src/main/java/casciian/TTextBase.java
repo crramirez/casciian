@@ -1330,7 +1330,10 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         if (!isEditable() || (text == null)) {
             return;
         }
-        if (!hasSelection() && !willPasteChangeDocument(text)) {
+        boolean hasNonEmptySelection = inSelection
+            && ((selectionColumn0 != selectionColumn1)
+                || (selectionLine0 != selectionLine1));
+        if (!hasNonEmptySelection && !willPasteChangeDocument(text)) {
             return;
         }
 

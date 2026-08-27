@@ -89,6 +89,24 @@ class TTextPasteTest {
     }
 
     @Test
+    void ignoredPasteWithCollapsedSelectionDoesNotConsumeAnUndoState() {
+        TWindow window = makeWindow();
+        TEditor editor = new TEditor(window, "a", 0, 0, 40, 5);
+        editor.setEditingColumnNumber(2);
+        editor.onKeypress(new TKeypressEvent(null, false, 0, 'b',
+                false, false, false));
+        editor.setSelection(0, editor.getEditingColumnNumber(), 0,
+            editor.getEditingColumnNumber());
+
+        paste(editor, "\u0001\u007F");
+        editor.undo();
+
+        assertEquals("a\n", editor.getText());
+        editor.undo();
+        assertEquals("a\n", editor.getText());
+    }
+
+    @Test
     void editorPastePreservesLinesTabsUnicodeAndFiltersControls() {
         TWindow window = makeWindow();
         TEditor editor = new TEditor(window, "", 0, 0, 40, 5);
@@ -98,7 +116,15 @@ class TTextPasteTest {
         assertEquals("one\ntwo     three\n你好 🌍 café 👨‍👩‍👧‍👦\n",
             editor.getText());
         assertEquals(3, editor.getEditingRowNumber());
-        assertEquals(22, editor.getEditingColumnNumber());
+        String currentLine = editor.document.getLine(
+            editor.getEditingRowNumber() - 1).getRawString();
+        int expectedColumn = 1;
+        for (int i = 0; i < currentLine.length(); ) {
+            int ch = currentLine.codePointAt(i);
+            expectedColumn += StringUtils.width(ch);
+            i += Character.charCount(ch);
+        }
+        assertEquals(expectedColumn, editor.getEditingColumnNumber());
     }
 
     @Test
