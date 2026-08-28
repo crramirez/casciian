@@ -1348,9 +1348,16 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             for (int i = 0; i < text.length(); ) {
                 int ch = text.codePointAt(i);
                 switch (ch) {
+                case '\r':
                 case '\n':
                     if (supportsNewline()) {
                         document.enter();
+                    }
+                    // Coalesce a CRLF pair into a single newline.
+                    if ((ch == '\r') && (i + 1 < text.length())
+                        && (text.charAt(i + 1) == '\n')
+                    ) {
+                        i++;
                     }
                     break;
                 case '\t':
@@ -1394,7 +1401,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     private boolean willPasteChangeDocument(final String text) {
         for (int i = 0; i < text.length(); ) {
             int ch = text.codePointAt(i);
-            if (((ch == '\n') && supportsNewline())
+            if ((((ch == '\n') || (ch == '\r')) && supportsNewline())
                 || ((ch == '\t') && supportsTab())
                 || ((ch >= 0x20) && (ch != 0x7F)
                     && canInsertPastedCodePoint(ch))

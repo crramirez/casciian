@@ -111,7 +111,7 @@ class TTextPasteTest {
         TWindow window = makeWindow();
         TEditor editor = new TEditor(window, "", 0, 0, 40, 5);
 
-        paste(editor, "one\ntwo\tthree\n你好 🌍 café 👨‍👩‍👧‍👦\r\u0001\u007F");
+        paste(editor, "one\ntwo\tthree\n你好 🌍 café 👨‍👩‍👧‍👦\u0001\u007F");
 
         assertEquals("one\ntwo     three\n你好 🌍 café 👨‍👩‍👧‍👦\n",
             editor.getText());
@@ -125,6 +125,21 @@ class TTextPasteTest {
             i += Character.charCount(ch);
         }
         assertEquals(expectedColumn, editor.getEditingColumnNumber());
+    }
+
+    @Test
+    void editorPasteTreatsCarriageReturnsAsNewlines() {
+        TWindow window = makeWindow();
+
+        TEditor crlf = new TEditor(window, "", 0, 0, 40, 5);
+        paste(crlf, "one\r\ntwo\r\nthree");
+        assertEquals("one\ntwo\nthree\n", crlf.getText());
+        assertEquals(3, crlf.getEditingRowNumber());
+
+        TEditor cr = new TEditor(window, "", 0, 0, 40, 5);
+        paste(cr, "one\rtwo\rthree");
+        assertEquals("one\ntwo\nthree\n", cr.getText());
+        assertEquals(3, cr.getEditingRowNumber());
     }
 
     @Test
