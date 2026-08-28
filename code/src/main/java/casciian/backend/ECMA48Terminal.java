@@ -27,6 +27,7 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -96,6 +97,11 @@ public class ECMA48Terminal extends LogicalScreen
      * cursor to an arrow pointer for better visual consistency.
      */
     public static final String OSC_POINTER_SHAPE = "22";
+
+    /**
+     * OSC sequence identifier for the terminal clipboard.
+     */
+    public static final String OSC_CLIPBOARD = "52";
 
     /**
      * Arrow pointer shape name for xterm OSC 22 sequence.
@@ -3326,17 +3332,43 @@ public class ECMA48Terminal extends LogicalScreen
      * @param text the OSC response string
      */
     void oscResponse(final String text) {
+        oscResponse(text, null);
+    }
+
+    /**
+     * Process an OSC response received by the input parser.
+     *
+     * @param text the OSC response string
+     * @param events the event list receiving clipboard paste events
+     */
+    private void oscResponse(final String text,
+        final List<TInputEvent> events) {
+
         if (DEBUG_TO_STDERR) {
             System.err.println("oscResponse(): '" + text + "'");
         }
 
-        String[] ps = text.split(";");
+        String[] ps = text.split(";", -1);
         if (ps.length == 0) {
             return;
         }
         final int oscIndex = 0;
         final int colorIndex = 1;
         int rgbIndex = 2;
+
+        if (ps[oscIndex].equals(OSC_CLIPBOARD)) {
+            if ((events == null) || (ps.length != 3) || !ps[1].equals("c")) {
+                return;
+            }
+            try {
+                byte[] clipboardBytes = Base64.getDecoder().decode(ps[2]);
+                events.add(new TPasteEvent(backend,
+                    new String(clipboardBytes, StandardCharsets.UTF_8)));
+            } catch (IllegalArgumentException e) {
+                // Ignore malformed Base64 clipboard responses.
+            }
+            return;
+        }
 
         boolean isColorPalette = ps[oscIndex].equals(OSC_PALETTE);
         boolean isDefaultForegroundColor = ps[oscIndex].equals(OSC_DEFAULT_FORECOLOR);
@@ -4181,13 +4213,14 @@ public class ECMA48Terminal extends LogicalScreen
                         == 0x1B)
                 ) {
                     // This is ST, end of the line.
-                    oscResponse(oscResponse.substring(0, oscResponse.length() - 1));
+                    oscResponse(oscResponse.substring(0,
+                        oscResponse.length() - 1), events);
                     resetParser();
                     return;
                 }
                 if (ch == 0x07) {
                     // This is BEL, end of the line.
-                    oscResponse(oscResponse.toString());
+                    oscResponse(oscResponse.toString(), events);
                     resetParser();
                     return;
                 }
@@ -5692,6 +5725,19 @@ public class ECMA48Terminal extends LogicalScreen
             PrintWriter writer = output;
             if (writer != null) {
                 writer.printf("\033]52;c;%s\033\\", textToCopy);
+                writer.flush();
+            }
+        }
+    }
+
+    /**
+     * Ask (u)xterm for the system CLIPBOARD selection via OSC 52.
+     */
+    public void xtermRequestClipboardText() {
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                writer.print("\033]52;c;?\033\\");
                 writer.flush();
             }
         }

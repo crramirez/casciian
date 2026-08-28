@@ -1370,6 +1370,10 @@ public class TApplication implements Runnable {
             postMenuEvent(new TCommandEvent(menu.getBackend(), cmPaste));
             return true;
         }
+        if (menu.getId() == TMenu.MID_SYSTEM_PASTE) {
+            postMenuEvent(new TCommandEvent(menu.getBackend(), cmSystemPaste));
+            return true;
+        }
         if (menu.getId() == TMenu.MID_CLEAR) {
             postMenuEvent(new TCommandEvent(menu.getBackend(), cmClear));
             return true;
@@ -1500,11 +1504,14 @@ public class TApplication implements Runnable {
                 disableMenuItem(TMenu.MID_CUT);
                 disableMenuItem(TMenu.MID_COPY);
                 disableMenuItem(TMenu.MID_PASTE);
+                disableMenuItem(TMenu.MID_SYSTEM_PASTE);
                 disableMenuItem(TMenu.MID_CLEAR);
             } else {
                 enableOrDisableMenuItem(TMenu.MID_CUT, widget.isEditMenuCut());
                 enableOrDisableMenuItem(TMenu.MID_COPY, widget.isEditMenuCopy());
                 enableOrDisableMenuItem(TMenu.MID_PASTE, widget.isEditMenuPaste());
+                enableOrDisableMenuItem(TMenu.MID_SYSTEM_PASTE,
+                    widget.isEditMenuPaste());
                 enableOrDisableMenuItem(TMenu.MID_CLEAR, widget.isEditMenuClear());
             }
         }
@@ -1532,7 +1539,23 @@ public class TApplication implements Runnable {
         // Special application-wide events -------------------------------
 
         TInputEvent dispatchEvent = event;
-        if (event instanceof TPasteEvent paste) {
+        if ((event instanceof TKeypressEvent keypress)
+            && keypress.getKey().equals(kbCtrlShiftV)
+        ) {
+            dispatchEvent = new TCommandEvent(keypress.getBackend(),
+                cmSystemPaste);
+        }
+        if ((dispatchEvent instanceof TCommandEvent command)
+            && command.equals(cmSystemPaste)
+        ) {
+            Backend eventBackend = command.getBackend();
+            if (eventBackend == null) {
+                eventBackend = backend;
+            }
+            eventBackend.requestClipboardText();
+            return;
+        }
+        if (dispatchEvent instanceof TPasteEvent paste) {
             lastUserInputTime = paste.getTime().getTime();
             clipboard.copyText(paste.getText());
             dispatchEvent = new TCommandEvent(paste.getBackend(), cmPaste);
@@ -3829,6 +3852,7 @@ public class TApplication implements Runnable {
         return id == TMenu.MID_CUT
             || id == TMenu.MID_COPY
             || id == TMenu.MID_PASTE
+            || id == TMenu.MID_SYSTEM_PASTE
             || id == TMenu.MID_CLEAR;
     }
 
@@ -4652,6 +4676,7 @@ public class TApplication implements Runnable {
         editMenu.addDefaultItem(TMenu.MID_CUT, false);
         editMenu.addDefaultItem(TMenu.MID_COPY, false);
         editMenu.addDefaultItem(TMenu.MID_PASTE, false);
+        editMenu.addDefaultItem(TMenu.MID_SYSTEM_PASTE, false);
         editMenu.addDefaultItem(TMenu.MID_CLEAR, false);
         TStatusBar statusBar = editMenu.newStatusBar(i18n.
             getString("editMenuStatus"));

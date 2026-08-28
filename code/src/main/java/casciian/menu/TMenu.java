@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.menu;
 
@@ -151,6 +156,11 @@ public class TMenu extends TWindow {
      * Clear selected text without copying it to the clipboard.
      */
     public static final int MID_CLEAR           = 25;
+
+    /**
+     * Request text from the terminal system clipboard and paste it.
+     */
+    public static final int MID_SYSTEM_PASTE    = 26;
 
     // Search menu ------------------------------------------------------------
 
@@ -1017,6 +1027,11 @@ public class TMenu extends TWindow {
         case MID_PASTE:
             label = i18n.getString("menuPaste");
             key = kbCtrlV;
+            icon = 0x1F4CB;
+            break;
+        case MID_SYSTEM_PASTE:
+            label = i18n.getString("menuSystemPaste");
+            key = kbCtrlShiftV;
             icon = 0x1F4CB;
             break;
         case MID_CLEAR:
