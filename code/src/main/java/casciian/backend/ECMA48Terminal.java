@@ -5737,7 +5737,7 @@ public class ECMA48Terminal extends LogicalScreen
         synchronized (outputLock) {
             PrintWriter writer = output;
             if (writer != null) {
-                writer.print("\033]52;c;?\033\\");
+                writer.printf("\033]%s;c;?\033\\", OSC_CLIPBOARD);
                 writer.flush();
             }
         }

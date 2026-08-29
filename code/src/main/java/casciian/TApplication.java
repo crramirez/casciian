@@ -1540,7 +1540,7 @@ public class TApplication implements Runnable {
 
         TInputEvent dispatchEvent = event;
         if ((event instanceof TKeypressEvent keypress)
-            && keypress.getKey().equals(kbCtrlShiftV)
+            && kbCtrlShiftV.equals(keypress.getKey())
         ) {
             dispatchEvent = new TCommandEvent(keypress.getBackend(),
                 cmSystemPaste);
