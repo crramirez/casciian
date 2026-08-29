@@ -159,6 +159,9 @@ public class TMenuItem extends TWidget {
         case TMenu.MID_CLEAR:
             setEnabled(false);
             break;
+        case TMenu.MID_SELECT_ALL:
+            setEnabled(false);
+            break;
 
         case TMenu.MID_TILE:
             break;
