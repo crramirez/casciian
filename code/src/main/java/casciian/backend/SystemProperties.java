@@ -1,6 +1,10 @@
 /*
  * Casciian - Java Text User Interface
  *
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
+ *
+ * Modifications and maintenance:
  * Copyright 2025 Carlos Rafael Ramirez
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +34,18 @@ import java.util.function.Consumer;
  * System properties used by Casciian.
  */
 public class SystemProperties {
+
+    /**
+     * Configuration for the xterm modifyOtherKeys fallback.
+     */
+    public enum ModifyOtherKeysMode {
+        /** Try level 2 after Kitty is found unavailable. */
+        AUTO,
+        /** Explicitly request level 2 after Kitty is found unavailable. */
+        ENABLED,
+        /** Never request modifyOtherKeys. */
+        DISABLED,
+    }
 
     /**
      * System property key for animations.
@@ -132,6 +148,14 @@ public class SystemProperties {
      * Default: true (progressive enhancement is requested)
      */
     public static final String CASCIIAN_ECMA48_KITTY_KEYBOARD = "casciian.ECMA48.kittyKeyboard";
+
+    /**
+     * System property key for xterm modifyOtherKeys level 2.  The default
+     * value, {@code auto}, uses it only when Kitty is unavailable.
+     * Valid values: "auto", "true", or "false".
+     */
+    public static final String CASCIIAN_ECMA48_MODIFY_OTHER_KEYS =
+        "casciian.ECMA48.modifyOtherKeys";
 
     /**
      * System property key for disabling pre-transform cell effects (like gradients).
@@ -354,6 +378,12 @@ public class SystemProperties {
      * A null value signals the property has not been read yet.
      */
     private static final AtomicReference<Boolean> ecma48KittyKeyboard = new AtomicReference<>(null);
+
+    /**
+     * Cached xterm modifyOtherKeys fallback setting.
+     */
+    private static final AtomicReference<ModifyOtherKeysMode>
+        ecma48ModifyOtherKeys = new AtomicReference<>(null);
 
     /**
      * Atomic reference representing the disable pre-transform setting.
@@ -836,6 +866,40 @@ public class SystemProperties {
     }
 
     /**
+     * Get the xterm modifyOtherKeys fallback setting.  Unknown values use
+     * {@link ModifyOtherKeysMode#AUTO}.
+     *
+     * @return the configured fallback mode
+     */
+    public static ModifyOtherKeysMode getEcma48ModifyOtherKeys() {
+        ModifyOtherKeysMode value = ecma48ModifyOtherKeys.get();
+        if (value == null) {
+            String property = System.getProperty(
+                CASCIIAN_ECMA48_MODIFY_OTHER_KEYS, "auto");
+            value = switch (property.toLowerCase(java.util.Locale.ROOT)) {
+                case "true" -> ModifyOtherKeysMode.ENABLED;
+                case "false" -> ModifyOtherKeysMode.DISABLED;
+                default -> ModifyOtherKeysMode.AUTO;
+            };
+            ecma48ModifyOtherKeys.compareAndSet(null, value);
+            value = ecma48ModifyOtherKeys.get();
+        }
+        return value;
+    }
+
+    /**
+     * Set whether the xterm modifyOtherKeys fallback is enabled.
+     *
+     * @param value true to explicitly enable fallback, false to disable it
+     */
+    public static void setEcma48ModifyOtherKeys(final boolean value) {
+        System.setProperty(CASCIIAN_ECMA48_MODIFY_OTHER_KEYS,
+            Boolean.toString(value));
+        ecma48ModifyOtherKeys.set(value
+            ? ModifyOtherKeysMode.ENABLED : ModifyOtherKeysMode.DISABLED);
+    }
+
+    /**
      * Get the disable pre-transform value from system properties.
      *
      * @return true if pre-transform cell effects (like gradients) are disabled,
@@ -1067,6 +1131,7 @@ public class SystemProperties {
         menuIconsOffset.set(null);
         useTerminalPalette.set(null);
         ecma48KittyKeyboard.set(null);
+        ecma48ModifyOtherKeys.set(null);
         disablePreTransform.set(null);
         disablePostTransform.set(null);
         useJline.set(null);

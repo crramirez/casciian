@@ -149,6 +149,13 @@ public class ECMA48Terminal extends LogicalScreen
     private static final String DISABLE_BRACKETED_PASTE = "\033[?2004l";
 
     /**
+     * Query and select xterm modifyOtherKeys level 2.
+     */
+    private static final String QUERY_MODIFY_OTHER_KEYS = "\033[?4m";
+    private static final String ENABLE_MODIFY_OTHER_KEYS = "\033[>4;2m";
+    private static final String RESET_MODIFY_OTHER_KEYS = "\033[>4m";
+
+    /**
      * Sequence that terminates bracketed paste input.
      */
     private static final String BRACKETED_PASTE_END = "\033[201~";
@@ -186,6 +193,28 @@ public class ECMA48Terminal extends LogicalScreen
     private enum JexerImageOption {
         DISABLED,
         RGB,
+    }
+
+    /**
+     * Keyboard input protocol currently confirmed for this terminal.
+     */
+    public enum KeyboardProtocol {
+        /** Historical VT input, including its control-key ambiguities. */
+        LEGACY,
+        /** xterm modifyOtherKeys level 2. */
+        MODIFY_OTHER_KEYS,
+        /** Kitty's CSI u disambiguated keyboard protocol. */
+        KITTY,
+    }
+
+    /**
+     * Whether XTQMODKEYS has confirmed modifyOtherKeys support.
+     */
+    public enum ModifyOtherKeysSupport {
+        /** No XTQMODKEYS response has arrived. */
+        UNKNOWN,
+        /** XTQMODKEYS reported a valid level. */
+        SUPPORTED,
     }
 
     /**
@@ -426,9 +455,17 @@ public class ECMA48Terminal extends LogicalScreen
     private boolean daResponseSeen = false;
 
     /**
-     * If true, then we will set modifyOtherKeys.
+     * Runtime state for the xterm modifyOtherKeys fallback.  Silence after
+     * XTQMODKEYS leaves support UNKNOWN because setting level 2 may still work.
      */
-    private boolean modifyOtherKeys = false;
+    private volatile ModifyOtherKeysSupport modifyOtherKeysSupport =
+        ModifyOtherKeysSupport.UNKNOWN;
+    private final AtomicBoolean modifyOtherKeysRequested =
+        new AtomicBoolean(false);
+    private final AtomicBoolean modifyOtherKeysChangedByUs =
+        new AtomicBoolean(false);
+    private volatile int modifyOtherKeysOriginalLevel = -1;
+    private Thread modifyOtherKeysShutdownHook;
 
     /**
      * If true, we pushed the Kitty keyboard protocol ("disambiguated keys",
@@ -470,6 +507,11 @@ public class ECMA48Terminal extends LogicalScreen
      * If true, '?' was seen in terminal response.
      */
     private boolean decPrivateModeFlag = false;
+
+    /**
+     * If true, '>' was seen in a terminal response.
+     */
+    private boolean xtermPrivateModeFlag = false;
 
     /**
      * If true, '$' was seen in terminal response.
@@ -879,13 +921,6 @@ public class ECMA48Terminal extends LogicalScreen
 
         reloadOptions();
 
-        synchronized (outputLock) {
-            if (modifyOtherKeys) {
-                // Request modifyOtherKeys
-                this.output.printf("\033[>4;2m");
-            }
-        }
-
         // Spin up the input reader
         eventQueue = new ArrayList<TInputEvent>();
         readerThread = new Thread(this);
@@ -1028,13 +1063,6 @@ public class ECMA48Terminal extends LogicalScreen
             sessionInfo.getWindowWidth(), sessionInfo.getWindowHeight());
 
         reloadOptions();
-
-        synchronized (outputLock) {
-            if (modifyOtherKeys) {
-                // Request modifyOtherKeys
-                this.output.printf("\033[>4;2m");
-            }
-        }
 
         // Spin up the input reader
         eventQueue = new ArrayList<TInputEvent>();
@@ -1298,6 +1326,7 @@ public class ECMA48Terminal extends LogicalScreen
         // Pop the Kitty keyboard protocol flags before anything can close
         // the output stream, so the host terminal is back in standard input
         // mode.
+        restoreModifyOtherKeys();
         disableKittyKeyboard();
         disableBracketedPaste();
 
@@ -1314,7 +1343,6 @@ public class ECMA48Terminal extends LogicalScreen
                 this.terminal.enableMouseReporting(false);
                 writer.printf("%s%s", cursor(true), defaultColor());
                 writer.write(END_SYNCHRONIZED_UPDATE);
-                writer.printf("\033[>4m");
                 writer.flush();
             }
         }
@@ -1394,10 +1422,12 @@ public class ECMA48Terminal extends LogicalScreen
             return;
         }
 
-        PrintWriter out = output;
-        if (out != null) {
-            out.printf("%s", KittyKeyboard.DISABLE);
-            out.flush();
+        synchronized (outputLock) {
+            PrintWriter out = output;
+            if (out != null) {
+                out.printf("%s", KittyKeyboard.DISABLE);
+                out.flush();
+            }
         }
 
         Thread hook = kittyKeyboardShutdownHook;
@@ -1408,6 +1438,108 @@ public class ECMA48Terminal extends LogicalScreen
             } catch (IllegalStateException e) {
                 // The JVM is already shutting down, the hook will simply be
                 // a no-op when it runs.
+            }
+        }
+
+        /**
+         * Query the current xterm modifyOtherKeys level and request level 2.
+         * Kitty must already have been found unavailable.  The query does not
+         * block activation: unsupported terminals safely ignore both commands.
+         */
+        private void beginModifyOtherKeysNegotiation() {
+            if ((kittyKeyboardSupport != KittyKeyboard.SupportState.UNSUPPORTED)
+                || (SystemProperties.getEcma48ModifyOtherKeys()
+                    == SystemProperties.ModifyOtherKeysMode.DISABLED)
+                || !modifyOtherKeysRequested.compareAndSet(false, true)
+            ) {
+                return;
+            }
+
+            synchronized (outputLock) {
+                PrintWriter writer = output;
+                if (writer == null) {
+                    return;
+                }
+                modifyOtherKeysChangedByUs.set(true);
+                writer.printf("%s%s", QUERY_MODIFY_OTHER_KEYS,
+                    ENABLE_MODIFY_OTHER_KEYS);
+                writer.flush();
+            }
+
+            modifyOtherKeysShutdownHook = new Thread(
+                this::restoreModifyOtherKeys,
+                "casciian-modify-other-keys-restore");
+            try {
+                Runtime.getRuntime().addShutdownHook(
+                    modifyOtherKeysShutdownHook);
+            } catch (IllegalStateException e) {
+                modifyOtherKeysShutdownHook = null;
+            }
+        }
+
+        /**
+         * Record an XTQMODKEYS response.  Command ordering means the reported
+         * value is the level from before Casciian's level-2 request.
+         */
+        private void recordModifyOtherKeysLevel() {
+            if (!modifyOtherKeysRequested.get() || (params.size() != 2)
+                || !"4".equals(params.getFirst())
+            ) {
+                return;
+            }
+            try {
+                int level = Integer.parseInt(params.get(1));
+                if ((level < 0) || (level > 2)) {
+                    return;
+                }
+                modifyOtherKeysOriginalLevel = level;
+                modifyOtherKeysSupport = ModifyOtherKeysSupport.SUPPORTED;
+                if (level == 2) {
+                    modifyOtherKeysChangedByUs.set(false);
+                    removeModifyOtherKeysShutdownHook();
+                }
+            } catch (NumberFormatException e) {
+                // Ignore malformed terminal responses.
+            }
+        }
+
+        /**
+         * Restore exactly the modifyOtherKeys state Casciian changed.  When the
+         * original level is unknown, use xterm's reset-to-initial form rather than
+         * guessing level 0.
+         */
+        private void restoreModifyOtherKeys() {
+            if (!modifyOtherKeysChangedByUs.compareAndSet(true, false)) {
+                removeModifyOtherKeysShutdownHook();
+                return;
+            }
+            synchronized (outputLock) {
+                PrintWriter writer = output;
+                if (writer != null) {
+                    if (modifyOtherKeysOriginalLevel >= 0) {
+                        writer.printf("\033[>4;%dm",
+                            modifyOtherKeysOriginalLevel);
+                    } else {
+                        writer.print(RESET_MODIFY_OTHER_KEYS);
+                    }
+                    writer.flush();
+                }
+            }
+            removeModifyOtherKeysShutdownHook();
+        }
+
+        /**
+         * Remove the modifyOtherKeys shutdown hook after restoration.
+         */
+        private void removeModifyOtherKeysShutdownHook() {
+            Thread hook = modifyOtherKeysShutdownHook;
+            modifyOtherKeysShutdownHook = null;
+            if ((hook != null) && (hook != Thread.currentThread())) {
+                try {
+                    Runtime.getRuntime().removeShutdownHook(hook);
+                } catch (IllegalStateException e) {
+                    // The JVM is already shutting down.
+                }
             }
         }
     }
@@ -1497,15 +1629,6 @@ public class ECMA48Terminal extends LogicalScreen
     public void reloadOptions() {
         if (DEBUG_TO_STDERR) {
             System.err.println("reloadOptions()");
-        }
-
-        // Permit RGB colors only if externally requested.
-        if (System.getProperty("casciian.ECMA48.modifyOtherKeys",
-            "false").equals("true")) {
-
-            modifyOtherKeys = true;
-        } else {
-            modifyOtherKeys = false;
         }
 
         // Default to sixel enabled.
@@ -2672,6 +2795,61 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Report whether XTQMODKEYS has confirmed modifyOtherKeys support.
+     *
+     * @return current support determination
+     */
+    public ModifyOtherKeysSupport getModifyOtherKeysSupport() {
+        return modifyOtherKeysSupport;
+    }
+
+    /**
+     * Report whether level 2 has been requested.
+     *
+     * @return true after the fallback commands have been sent
+     */
+    public boolean isModifyOtherKeysRequested() {
+        return modifyOtherKeysRequested.get();
+    }
+
+    /**
+     * Report whether Casciian currently owes the terminal restoration.
+     *
+     * @return true if Casciian changed modifyOtherKeys state
+     */
+    public boolean isModifyOtherKeysChangedByUs() {
+        return modifyOtherKeysChangedByUs.get();
+    }
+
+    /**
+     * Get the level reported by XTQMODKEYS before Casciian requested level 2.
+     *
+     * @return 0, 1, or 2; -1 if no valid response arrived
+     */
+    public int getModifyOtherKeysOriginalLevel() {
+        return modifyOtherKeysOriginalLevel;
+    }
+
+    /**
+     * Return the best confirmed keyboard protocol.  A silent level-2 request
+     * remains LEGACY here until XTQMODKEYS confirms support; callers can use
+     * {@link #isModifyOtherKeysRequested()} to display that pending state.
+     *
+     * @return the authoritative effective protocol
+     */
+    public KeyboardProtocol getActiveKeyboardProtocol() {
+        if (kittyKeyboardSupport == KittyKeyboard.SupportState.SUPPORTED) {
+            return KeyboardProtocol.KITTY;
+        }
+        if (modifyOtherKeysRequested.get()
+            && (modifyOtherKeysSupport == ModifyOtherKeysSupport.SUPPORTED)
+        ) {
+            return KeyboardProtocol.MODIFY_OTHER_KEYS;
+        }
+        return KeyboardProtocol.LEGACY;
+    }
+
+    /**
      * Set the mouse pointer (cursor) style.
      *
      * @param mouseStyle the pointer style string, one of: "default", "none",
@@ -2693,6 +2871,7 @@ public class ECMA48Terminal extends LogicalScreen
         params.clear();
         params.add("");
         decPrivateModeFlag = false;
+        xtermPrivateModeFlag = false;
         decDollarModeFlag = false;
         xtversionResponse.setLength(0);
         oscResponse.setLength(0);
@@ -3699,6 +3878,10 @@ public class ECMA48Terminal extends LogicalScreen
                             // DEC private mode flag
                             decPrivateModeFlag = true;
                             return;
+                        case '>':
+                            // xterm private mode response.
+                            xtermPrivateModeFlag = true;
+                            return;
                         case 'I':
                             // Focus in
                             hasFocus = true;
@@ -3869,6 +4052,10 @@ public class ECMA48Terminal extends LogicalScreen
                                 // keystroke.  Its mere arrival proves the
                                 // protocol is active right now, regardless
                                 // of the specific flags value reported.
+                                // Kitty has priority.  If fallback activation
+                                // raced with an unexpectedly late response,
+                                // restore it before selecting Kitty.
+                                restoreModifyOtherKeys();
                                 kittyKeyboardSupport =
                                     KittyKeyboard.SupportState.SUPPORTED;
                                 resetParser();
@@ -3882,6 +4069,14 @@ public class ECMA48Terminal extends LogicalScreen
                             }
                             resetParser();
                             return;
+                        case 'm':
+                            if (xtermPrivateModeFlag) {
+                                // CSI > 4 ; level m: XTQMODKEYS response.
+                                recordModifyOtherKeysLevel();
+                                resetParser();
+                                return;
+                            }
+                            break;
                         case 'S':
                             // Report graphics property.
                             if (!decPrivateModeFlag) {
@@ -3957,6 +4152,11 @@ public class ECMA48Terminal extends LogicalScreen
                                 // not implement it or has it turned off.
                                 kittyKeyboardSupport =
                                     KittyKeyboard.SupportState.UNSUPPORTED;
+                            }
+                            if (kittyKeyboardSupport
+                                == KittyKeyboard.SupportState.UNSUPPORTED
+                            ) {
+                                beginModifyOtherKeysNegotiation();
                             }
 
                             boolean reportsJexerImages = false;
