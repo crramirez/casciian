@@ -143,6 +143,16 @@ class TTextPasteTest {
     }
 
     @Test
+    void editorPastePreservesTrailingLineFeeds() {
+        TEditor editor = new TEditor(makeWindow(), "", 0, 0, 40, 5);
+
+        paste(editor, "one\n\n");
+
+        assertEquals("one\n\n\n", editor.getText());
+        assertEquals(3, editor.getEditingRowNumber());
+    }
+
+    @Test
     void fieldPasteNormalizesMultilineTextWithoutEnterAction() {
         TWindow window = makeWindow();
         int[] enters = new int[1];

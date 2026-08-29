@@ -73,7 +73,7 @@ class ECMA48TerminalBracketedPasteTest {
     @Test
     @DisplayName("Multiline Unicode and escape sequences are preserved literally")
     void pastePayloadIsPreserved() {
-        String text = "hello\n世界 \033[31mred\033[0m";
+        String text = "hello\n世界 \033[31mred\033[0m\n\n";
         terminal = createTerminal("\033[200~" + text + "\033[201~");
 
         TPasteEvent paste = assertInstanceOf(TPasteEvent.class,
