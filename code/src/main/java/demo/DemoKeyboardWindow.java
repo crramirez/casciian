@@ -42,10 +42,8 @@ import casciian.event.TResizeEvent;
  * Ctrl+I arrive as something other than Tab.
  *
  * <p>The support line is read live from
- * {@link ECMA48Terminal#getKittyKeyboardSupport()} rather than inferred from
- * what the user happens to type: an application deciding whether to
- * advertise a Ctrl+I-style shortcut needs the answer before the user has
- * pressed anything, not after.</p>
+ * {@link ECMA48Terminal#getActiveKeyboardProtocol()} and related runtime
+ * state rather than inferred from what the user happens to type.</p>
  *
  * <p>Unlike other windows, this one deliberately swallows Tab and the arrow
  * keys instead of letting them move focus, so that they can be observed.</p>
@@ -255,6 +253,12 @@ public class DemoKeyboardWindow extends TWindow {
                 ? String.format(i18n.getString("modifyOtherKeysActivePrevious"),
                     previous)
                 : i18n.getString("modifyOtherKeysActive");
+        } else if ((terminal.getActiveKeyboardProtocol()
+            == ECMA48Terminal.KeyboardProtocol.KITTY)
+            && terminal.isModifyOtherKeysRequested()
+        ) {
+            modifyOtherKeys =
+                i18n.getString("modifyOtherKeysRestored");
         } else if (terminal.isModifyOtherKeysRequested()) {
             modifyOtherKeys =
                 i18n.getString("modifyOtherKeysRequested");

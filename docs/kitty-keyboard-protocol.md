@@ -1,6 +1,6 @@
-# Kitty keyboard protocol (CSI u) in Casciian
+# Keyboard protocol negotiation in Casciian
 
-Status: implemented, enabled by default, as of 1.6.1-SNAPSHOT.
+Status: Kitty CSI u with automatic xterm modifyOtherKeys level 2 fallback.
 
 This document exists so that a future agent picking up keyboard work does not
 have to re-derive the design decisions, and does not "fix" things that are
@@ -19,6 +19,52 @@ terminal report such keys as `CSI keycode ; modifiers u` instead. It is a
 progressive enhancement: the application asks for it, and terminals that do
 not implement it silently ignore the request and keep sending legacy
 sequences. **Both parsers must therefore stay alive, permanently.**
+
+## Protocol selection
+
+Casciian selects keyboard input in this order:
+
+1. Kitty CSI u.
+2. xterm modifyOtherKeys level 2.
+3. Legacy VT input.
+
+The startup order remains Kitty query followed by Device Attributes (DA).
+When Kitty replies before DA, Kitty is selected and modifyOtherKeys is not
+requested. When DA arrives while Kitty support is still unknown, Kitty is
+marked unsupported and Casciian sends XTQMODKEYS (`CSI ? 4 m`) followed
+immediately by the level-2 request (`CSI > 4 ; 2 m`). The request is not
+blocked on the XTQMODKEYS reply: terminals may support setting the mode without
+answering the query, and unsupported terminals safely ignore both sequences.
+
+Level 2 is required because level 1 does not provide the complete,
+unambiguous modified-key input Casciian needs. The legacy parser remains
+active so ignored requests naturally fall back without timeouts or terminal
+name detection.
+
+`casciian.ECMA48.modifyOtherKeys` accepts:
+
+- absent or `auto` (default): attempt level 2 only after Kitty is unavailable;
+- `true`: explicitly enable the same fallback, while retaining Kitty priority;
+- `false`: never request modifyOtherKeys; use legacy VT if Kitty is unavailable.
+
+Kitty always has priority. If a valid Kitty response arrives unexpectedly
+late, Casciian immediately restores modifyOtherKeys before selecting Kitty.
+
+## modifyOtherKeys state and restoration
+
+`ECMA48Terminal` separately records whether level 2 was requested, whether
+XTQMODKEYS confirmed support, the original level (`-1` when unknown), and
+whether Casciian changed terminal state. The authoritative effective protocol
+is exposed by `getActiveKeyboardProtocol()`; a silent modifyOtherKeys request
+is reported separately and does not falsely become confirmed support.
+
+An XTQMODKEYS reply (`CSI > 4 ; level m`) records the previous level. On exit,
+Casciian restores exactly level 0 or 1 when reported. A reported level 2 is
+recognized as pre-existing state and is not reset. If Casciian requested
+level 2 but the original state is unknown, cleanup uses xterm's reset-to-initial
+form (`CSI > 4 m`) rather than assuming level 0. Atomic guards make normal
+close, JVM shutdown-hook cleanup, and repeated shutdown paths restore state at
+most once, before the output stream closes.
 
 ## Wire format
 
@@ -253,15 +299,10 @@ the protocol at all, which you want to know before debugging anything else.
    would be unkillable from that terminal.
 
 3. **What does Casciian decode it into?** Demo → *Keyboard probe…* (Ctrl+K),
-   implemented in `demo/DemoKeyboardWindow.java`. Its status line reads
-   `ECMA48Terminal.getKittyKeyboardSupport()` live — SUPPORTED / NOT ACTIVE /
-   detecting / N/A — so you see the answer immediately on opening the window,
-   before pressing anything. (An earlier version of this window inferred
-   support from whether a disambiguating keystroke had been *seen*, which
-   only worked after the fact and couldn't answer the question a real
-   application needs answered up front — it was replaced once the real
-   detection mechanism existed.) The keystroke log below the status line
-   still shows the decoded `TKeypress` fields for whatever you press.
+   implemented in `demo/DemoKeyboardWindow.java`. It reads the effective
+   protocol, Kitty support, and modifyOtherKeys request/support state live from
+   `ECMA48Terminal`. The keystroke log below the status still shows the decoded
+   `TKeypress` fields for whatever you press.
 
    Caveat: `TApplication` consumes menu accelerators before any window sees
    them (`TApplication.java:1687`), so the probe can never show Ctrl+X, C, V,

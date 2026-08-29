@@ -465,7 +465,7 @@ public class ECMA48Terminal extends LogicalScreen
     private final AtomicBoolean modifyOtherKeysChangedByUs =
         new AtomicBoolean(false);
     private volatile int modifyOtherKeysOriginalLevel = -1;
-    private Thread modifyOtherKeysShutdownHook;
+    private volatile Thread modifyOtherKeysShutdownHook;
 
     /**
      * If true, we pushed the Kitty keyboard protocol ("disambiguated keys",
@@ -1440,106 +1440,107 @@ public class ECMA48Terminal extends LogicalScreen
                 // a no-op when it runs.
             }
         }
+    }
 
-        /**
-         * Query the current xterm modifyOtherKeys level and request level 2.
-         * Kitty must already have been found unavailable.  The query does not
-         * block activation: unsupported terminals safely ignore both commands.
-         */
-        private void beginModifyOtherKeysNegotiation() {
-            if ((kittyKeyboardSupport != KittyKeyboard.SupportState.UNSUPPORTED)
-                || (SystemProperties.getEcma48ModifyOtherKeys()
-                    == SystemProperties.ModifyOtherKeysMode.DISABLED)
-                || !modifyOtherKeysRequested.compareAndSet(false, true)
-            ) {
+    /**
+     * Query the current xterm modifyOtherKeys level and request level 2.
+     * Kitty must already have been found unavailable.  The query does not
+     * block activation: unsupported terminals safely ignore both commands.
+     */
+    private void beginModifyOtherKeysNegotiation() {
+        if ((kittyKeyboardSupport != KittyKeyboard.SupportState.UNSUPPORTED)
+            || (SystemProperties.getEcma48ModifyOtherKeys()
+                == SystemProperties.ModifyOtherKeysMode.DISABLED)
+            || !modifyOtherKeysRequested.compareAndSet(false, true)
+        ) {
+            return;
+        }
+
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer == null) {
+                modifyOtherKeysRequested.set(false);
                 return;
             }
+            modifyOtherKeysChangedByUs.set(true);
+            writer.printf("%s%s", QUERY_MODIFY_OTHER_KEYS,
+                ENABLE_MODIFY_OTHER_KEYS);
+            writer.flush();
+        }
 
-            synchronized (outputLock) {
-                PrintWriter writer = output;
-                if (writer == null) {
-                    return;
+        modifyOtherKeysShutdownHook = new Thread(
+            this::restoreModifyOtherKeys,
+            "casciian-modify-other-keys-restore");
+        try {
+            Runtime.getRuntime().addShutdownHook(
+                modifyOtherKeysShutdownHook);
+        } catch (IllegalStateException e) {
+            modifyOtherKeysShutdownHook = null;
+        }
+    }
+
+    /**
+     * Record an XTQMODKEYS response.  Command ordering means the reported
+     * value is the level from before Casciian's level-2 request.
+     */
+    private void recordModifyOtherKeysLevel() {
+        if (!modifyOtherKeysRequested.get() || (params.size() != 2)
+            || !"4".equals(params.getFirst())
+        ) {
+            return;
+        }
+        try {
+            int level = Integer.parseInt(params.get(1));
+            if ((level < 0) || (level > 2)) {
+                return;
+            }
+            modifyOtherKeysOriginalLevel = level;
+            modifyOtherKeysSupport = ModifyOtherKeysSupport.SUPPORTED;
+            if (level == 2) {
+                modifyOtherKeysChangedByUs.set(false);
+                removeModifyOtherKeysShutdownHook();
+            }
+        } catch (NumberFormatException e) {
+            // Ignore malformed terminal responses.
+        }
+    }
+
+    /**
+     * Restore exactly the modifyOtherKeys state Casciian changed.  When the
+     * original level is unknown, use xterm's reset-to-initial form rather than
+     * guessing level 0.
+     */
+    private void restoreModifyOtherKeys() {
+        if (!modifyOtherKeysChangedByUs.compareAndSet(true, false)) {
+            removeModifyOtherKeysShutdownHook();
+            return;
+        }
+        synchronized (outputLock) {
+            PrintWriter writer = output;
+            if (writer != null) {
+                if (modifyOtherKeysOriginalLevel >= 0) {
+                    writer.printf("\033[>4;%dm",
+                        modifyOtherKeysOriginalLevel);
+                } else {
+                    writer.print(RESET_MODIFY_OTHER_KEYS);
                 }
-                modifyOtherKeysChangedByUs.set(true);
-                writer.printf("%s%s", QUERY_MODIFY_OTHER_KEYS,
-                    ENABLE_MODIFY_OTHER_KEYS);
                 writer.flush();
             }
+        }
+        removeModifyOtherKeysShutdownHook();
+    }
 
-            modifyOtherKeysShutdownHook = new Thread(
-                this::restoreModifyOtherKeys,
-                "casciian-modify-other-keys-restore");
+    /**
+     * Remove the modifyOtherKeys shutdown hook after restoration.
+     */
+    private void removeModifyOtherKeysShutdownHook() {
+        Thread hook = modifyOtherKeysShutdownHook;
+        modifyOtherKeysShutdownHook = null;
+        if ((hook != null) && (hook != Thread.currentThread())) {
             try {
-                Runtime.getRuntime().addShutdownHook(
-                    modifyOtherKeysShutdownHook);
+                Runtime.getRuntime().removeShutdownHook(hook);
             } catch (IllegalStateException e) {
-                modifyOtherKeysShutdownHook = null;
-            }
-        }
-
-        /**
-         * Record an XTQMODKEYS response.  Command ordering means the reported
-         * value is the level from before Casciian's level-2 request.
-         */
-        private void recordModifyOtherKeysLevel() {
-            if (!modifyOtherKeysRequested.get() || (params.size() != 2)
-                || !"4".equals(params.getFirst())
-            ) {
-                return;
-            }
-            try {
-                int level = Integer.parseInt(params.get(1));
-                if ((level < 0) || (level > 2)) {
-                    return;
-                }
-                modifyOtherKeysOriginalLevel = level;
-                modifyOtherKeysSupport = ModifyOtherKeysSupport.SUPPORTED;
-                if (level == 2) {
-                    modifyOtherKeysChangedByUs.set(false);
-                    removeModifyOtherKeysShutdownHook();
-                }
-            } catch (NumberFormatException e) {
-                // Ignore malformed terminal responses.
-            }
-        }
-
-        /**
-         * Restore exactly the modifyOtherKeys state Casciian changed.  When the
-         * original level is unknown, use xterm's reset-to-initial form rather than
-         * guessing level 0.
-         */
-        private void restoreModifyOtherKeys() {
-            if (!modifyOtherKeysChangedByUs.compareAndSet(true, false)) {
-                removeModifyOtherKeysShutdownHook();
-                return;
-            }
-            synchronized (outputLock) {
-                PrintWriter writer = output;
-                if (writer != null) {
-                    if (modifyOtherKeysOriginalLevel >= 0) {
-                        writer.printf("\033[>4;%dm",
-                            modifyOtherKeysOriginalLevel);
-                    } else {
-                        writer.print(RESET_MODIFY_OTHER_KEYS);
-                    }
-                    writer.flush();
-                }
-            }
-            removeModifyOtherKeysShutdownHook();
-        }
-
-        /**
-         * Remove the modifyOtherKeys shutdown hook after restoration.
-         */
-        private void removeModifyOtherKeysShutdownHook() {
-            Thread hook = modifyOtherKeysShutdownHook;
-            modifyOtherKeysShutdownHook = null;
-            if ((hook != null) && (hook != Thread.currentThread())) {
-                try {
-                    Runtime.getRuntime().removeShutdownHook(hook);
-                } catch (IllegalStateException e) {
-                    // The JVM is already shutting down.
-                }
+                // The JVM is already shutting down.
             }
         }
     }
