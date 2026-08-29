@@ -4676,8 +4676,9 @@ public class TApplication implements Runnable {
         editMenu.addDefaultItem(TMenu.MID_CUT, false);
         editMenu.addDefaultItem(TMenu.MID_COPY, false);
         editMenu.addDefaultItem(TMenu.MID_PASTE, false);
-        editMenu.addDefaultItem(TMenu.MID_SYSTEM_PASTE, false);
         editMenu.addDefaultItem(TMenu.MID_CLEAR, false);
+        editMenu.addSeparator();
+        editMenu.addDefaultItem(TMenu.MID_SYSTEM_PASTE, false);
         TStatusBar statusBar = editMenu.newStatusBar(i18n.
             getString("editMenuStatus"));
         statusBar.addShortcutKeypress(kbF1, cmHelp, i18n.getString("Help"));
