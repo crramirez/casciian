@@ -31,6 +31,7 @@ import org.mockito.Mockito;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests OSC 52 clipboard queries and responses.
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ECMA48TerminalClipboardTest {
 
     private static final long EVENT_TIMEOUT_MILLIS = 5000;
+    private static final long NO_EVENT_TIMEOUT_MILLIS = 500;
 
     private final Backend backend = Mockito.mock(Backend.class);
     private final ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -86,23 +88,13 @@ class ECMA48TerminalClipboardTest {
     @Test
     void ignoresMalformedBase64ClipboardResponse() throws Exception {
         terminal = createTerminal("\033]52;c;not base64!\033\\");
-        Thread.sleep(100);
-        List<TInputEvent> events = new ArrayList<>();
-
-        terminal.getEvents(events);
-
-        assertTrue(events.isEmpty());
+        assertNoEvents();
     }
 
     @Test
     void ignoresNonClipboardSelection() throws Exception {
         terminal = createTerminal("\033]52;p;SGVsbG8=\033\\");
-        Thread.sleep(100);
-        List<TInputEvent> events = new ArrayList<>();
-
-        terminal.getEvents(events);
-
-        assertTrue(events.isEmpty());
+        assertNoEvents();
     }
 
     private ECMA48Terminal createTerminal(final String input)
@@ -133,6 +125,18 @@ class ECMA48TerminalClipboardTest {
         TPasteEvent paste = assertInstanceOf(TPasteEvent.class,
             events.getFirst());
         assertEquals(expected, paste.getText());
+    }
+
+    private void assertNoEvents() {
+        long deadline = System.currentTimeMillis() + NO_EVENT_TIMEOUT_MILLIS;
+        while (System.currentTimeMillis() < deadline) {
+            List<TInputEvent> events = new ArrayList<>();
+            terminal.getEvents(events);
+            if (!events.isEmpty()) {
+                fail("Unexpected event emitted: " + events);
+            }
+            Thread.yield();
+        }
     }
 
     private String written() {
