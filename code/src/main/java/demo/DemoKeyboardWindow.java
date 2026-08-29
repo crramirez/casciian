@@ -32,6 +32,7 @@ import casciian.TVScroller;
 import casciian.TWidget;
 import casciian.TWindow;
 import casciian.backend.ECMA48Terminal;
+import casciian.backend.KittyKeyboard;
 import casciian.event.TKeypressEvent;
 import casciian.event.TResizeEvent;
 
@@ -280,6 +281,8 @@ public class DemoKeyboardWindow extends TWindow {
             && (terminal.getActiveKeyboardProtocol()
                 == ECMA48Terminal.KeyboardProtocol.LEGACY)
             && !terminal.isModifyOtherKeysRequested()
+            && (terminal.getKittyKeyboardSupport()
+                == KittyKeyboard.SupportState.UNSUPPORTED)
         ) {
             text.append('\n')
                 .append('\n')
