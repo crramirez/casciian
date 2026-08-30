@@ -59,6 +59,8 @@ public interface EditMenuUser {
      *
      * @return true if the select all menu item should be enabled
      */
-    public boolean isEditMenuSelectAll();
+    public default boolean isEditMenuSelectAll() {
+        return false;
+    }
 
 }

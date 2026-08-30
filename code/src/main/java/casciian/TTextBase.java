@@ -1838,7 +1838,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     /**
      * Check if the select all menu item should be enabled.
      *
-     * @return true
+     * @return true if the select all menu item should be enabled
      */
     public boolean isEditMenuSelectAll() {
         return true;
