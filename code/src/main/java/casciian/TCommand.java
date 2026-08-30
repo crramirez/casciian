@@ -72,6 +72,11 @@ public class TCommand {
     public static final int SYSTEM_PASTE        = 17;
 
     /**
+     * Select all text.
+     */
+    public static final int SELECT_ALL          = 18;
+
+    /**
      * Clear selected text without copying it to the clipboard.
      */
     public static final int CLEAR               = 8;
@@ -191,6 +196,11 @@ public class TCommand {
      * Request text from the terminal system clipboard and paste it.
      */
     public static final TCommand cmSystemPaste  = new TCommand(SYSTEM_PASTE);
+
+    /**
+     * Select all text.
+     */
+    public static final TCommand cmSelectAll    = new TCommand(SELECT_ALL);
 
     /**
      * Clear selected text without copying it to the clipboard.

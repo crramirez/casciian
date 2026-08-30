@@ -1378,6 +1378,10 @@ public class TApplication implements Runnable {
             postMenuEvent(new TCommandEvent(menu.getBackend(), cmClear));
             return true;
         }
+        if (menu.getId() == TMenu.MID_SELECT_ALL) {
+            postMenuEvent(new TCommandEvent(menu.getBackend(), cmSelectAll));
+            return true;
+        }
 
         return false;
     }
@@ -1475,7 +1479,7 @@ public class TApplication implements Runnable {
      * child element of a window or desktop is of type {@code EditMenuUser} and
      * enables or disables menu items accordingly. If the active child is not an
      * {@code EditMenuUser} or no active context exists, specific edit menu items
-     * (Cut, Copy, Paste, Clear) are disabled.
+     * (Cut, Copy, Paste, Clear, Select All) are disabled.
      * <br>
      * The following steps are performed:
      * 1. Checks if there is an active menu; if not, continues with further checks.
@@ -1483,8 +1487,8 @@ public class TApplication implements Runnable {
      * 3. If no active window exists or its child isn't an {@code EditMenuUser}, checks
      *    the current desktop's active child.
      * 4. If an {@code EditMenuUser} is found:
-     *    - Enables or disables specific menu items (Cut, Copy, Paste, Clear) based
-     *      on the state provided by the widget's methods.
+     *    - Enables or disables specific menu items (Cut, Copy, Paste, Clear,
+     *      Select All) based on the state provided by the widget's methods.
      * 5. If no {@code EditMenuUser} is found, disables all the edit menu items.
      */
     private void processEditMenuUser() {
@@ -1506,6 +1510,7 @@ public class TApplication implements Runnable {
                 disableMenuItem(TMenu.MID_PASTE);
                 disableMenuItem(TMenu.MID_SYSTEM_PASTE);
                 disableMenuItem(TMenu.MID_CLEAR);
+                disableMenuItem(TMenu.MID_SELECT_ALL);
             } else {
                 enableOrDisableMenuItem(TMenu.MID_CUT, widget.isEditMenuCut());
                 enableOrDisableMenuItem(TMenu.MID_COPY, widget.isEditMenuCopy());
@@ -1513,6 +1518,8 @@ public class TApplication implements Runnable {
                 enableOrDisableMenuItem(TMenu.MID_SYSTEM_PASTE,
                     widget.isEditMenuPaste());
                 enableOrDisableMenuItem(TMenu.MID_CLEAR, widget.isEditMenuClear());
+                enableOrDisableMenuItem(TMenu.MID_SELECT_ALL,
+                    widget.isEditMenuSelectAll());
             }
         }
     }
@@ -3842,7 +3849,8 @@ public class TApplication implements Runnable {
     }
 
     /**
-     * Check if a menu item is an edit menu item (Cut, Copy, Paste, Clear).
+     * Check if a menu item is an edit menu item (Cut, Copy, Paste, Clear,
+     * Select All).
      *
      * @param item the menu item to check
      * @return true if the item is an edit menu item
@@ -3853,7 +3861,8 @@ public class TApplication implements Runnable {
             || id == TMenu.MID_COPY
             || id == TMenu.MID_PASTE
             || id == TMenu.MID_SYSTEM_PASTE
-            || id == TMenu.MID_CLEAR;
+            || id == TMenu.MID_CLEAR
+            || id == TMenu.MID_SELECT_ALL;
     }
 
     /**
@@ -4679,6 +4688,7 @@ public class TApplication implements Runnable {
         editMenu.addDefaultItem(TMenu.MID_CLEAR, false);
         editMenu.addSeparator();
         editMenu.addDefaultItem(TMenu.MID_SYSTEM_PASTE, false);
+        editMenu.addDefaultItem(TMenu.MID_SELECT_ALL, false);
         TStatusBar statusBar = editMenu.newStatusBar(i18n.
             getString("editMenuStatus"));
         statusBar.addShortcutKeypress(kbF1, cmHelp, i18n.getString("Help"));

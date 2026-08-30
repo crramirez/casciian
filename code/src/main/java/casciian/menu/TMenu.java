@@ -162,6 +162,11 @@ public class TMenu extends TWindow {
      */
     public static final int MID_SYSTEM_PASTE    = 26;
 
+    /**
+     * Select all text.
+     */
+    public static final int MID_SELECT_ALL      = 27;
+
     // Search menu ------------------------------------------------------------
 
     /**
@@ -1033,6 +1038,10 @@ public class TMenu extends TWindow {
             label = i18n.getString("menuSystemPaste");
             key = kbCtrlShiftV;
             icon = 0x1F4CB;
+            break;
+        case MID_SELECT_ALL:
+            label = i18n.getString("menuSelectAll");
+            key = kbCtrlA;
             break;
         case MID_CLEAR:
             label = i18n.getString("menuClear");

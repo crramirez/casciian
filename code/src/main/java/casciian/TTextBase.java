@@ -398,7 +398,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        if (handleClipboardKeypress(keypress)) {
+        if (handleEditKeypress(keypress)) {
             return;
         }
 
@@ -582,8 +582,9 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     }
 
     /**
-     * Handle the clipboard keystrokes: Ctrl-C/Ctrl-Ins (copy),
-     * Ctrl-X/Shift-Del (cut) and Ctrl-V/Shift-Ins (paste).
+     * Handle the standard edit keystrokes: Ctrl-C/Ctrl-Ins (copy),
+     * Ctrl-X/Shift-Del (cut), Ctrl-V/Shift-Ins (paste), and Ctrl-A
+     * (select all).
      *
      * <p>
      * TApplication turns these keys into command events when they are bound
@@ -595,9 +596,9 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      * </p>
      *
      * @param keypress keystroke event
-     * @return true if the keystroke was a clipboard operation
+     * @return true if the keystroke was an edit operation
      */
-    private boolean handleClipboardKeypress(final TKeypressEvent keypress) {
+    private boolean handleEditKeypress(final TKeypressEvent keypress) {
         TCommand command = null;
 
         if (keypress.equals(kbCtrlC) || keypress.equals(kbCtrlIns)) {
@@ -606,6 +607,8 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             command = cmCut;
         } else if (keypress.equals(kbCtrlV) || keypress.equals(kbShiftIns)) {
             command = cmPaste;
+        } else if (keypress.equals(kbCtrlA)) {
+            command = cmSelectAll;
         }
         if (command == null) {
             return false;
@@ -655,6 +658,11 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             if (isEditable()) {
                 deleteSelection();
             }
+            return;
+        }
+
+        if (command.equals(cmSelectAll)) {
+            selectAll();
             return;
         }
 
@@ -1825,6 +1833,15 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     public boolean isEditMenuClear() {
         return isEditable();
+    }
+
+    /**
+     * Check if the select all menu item should be enabled.
+     *
+     * @return true if the select all menu item should be enabled
+     */
+    public boolean isEditMenuSelectAll() {
+        return true;
     }
 
 }
