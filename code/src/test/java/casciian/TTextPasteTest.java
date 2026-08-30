@@ -153,6 +153,23 @@ class TTextPasteTest {
     }
 
     @Test
+    void editorWindowPasteImmediatelyUpdatesScrollbars() {
+        TApplication application = new TApplication(new HeadlessBackend());
+        TEditorWindow window = new TEditorWindow(application, "test", "");
+        TEditor editor = (TEditor) window.getActiveChild();
+        String pastedText = "short\n".repeat(20) + "x".repeat(100);
+        application.getClipboard().copyText(pastedText);
+
+        window.onCommand(new TCommandEvent(null, cmPaste));
+
+        assertEquals(editor.getMaximumRowNumber(), window.getBottomValue());
+        assertEquals(editor.getVisibleRowNumber(), window.getVerticalValue());
+        assertEquals(editor.getMaximumColumnNumber(), window.getRightValue());
+        assertEquals(editor.getEditingColumnNumber(),
+            window.getHorizontalValue());
+    }
+
+    @Test
     void fieldPasteNormalizesMultilineTextWithoutEnterAction() {
         TWindow window = makeWindow();
         int[] enters = new int[1];
