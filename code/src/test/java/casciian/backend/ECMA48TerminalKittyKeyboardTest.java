@@ -62,6 +62,8 @@ class ECMA48TerminalKittyKeyboardTest {
     @BeforeEach
     void setUp() {
         System.clearProperty(SystemProperties.CASCIIAN_ECMA48_KITTY_KEYBOARD);
+        System.clearProperty(
+            SystemProperties.CASCIIAN_ECMA48_MODIFY_OTHER_KEYS);
         SystemProperties.reset();
         mockBackend = Mockito.mock(Backend.class);
         outputStream = new ByteArrayOutputStream();
@@ -74,6 +76,8 @@ class ECMA48TerminalKittyKeyboardTest {
             terminal = null;
         }
         System.clearProperty(SystemProperties.CASCIIAN_ECMA48_KITTY_KEYBOARD);
+        System.clearProperty(
+            SystemProperties.CASCIIAN_ECMA48_MODIFY_OTHER_KEYS);
         SystemProperties.reset();
     }
 
@@ -188,6 +192,9 @@ class ECMA48TerminalKittyKeyboardTest {
 
         assertEquals(KittyKeyboard.SupportState.SUPPORTED,
             waitForSupport());
+        assertEquals(ECMA48Terminal.KeyboardProtocol.KITTY,
+            terminal.getActiveKeyboardProtocol());
+        assertFalse(terminal.isModifyOtherKeysRequested());
     }
 
     @Test
@@ -199,6 +206,146 @@ class ECMA48TerminalKittyKeyboardTest {
 
         assertEquals(KittyKeyboard.SupportState.UNSUPPORTED,
             terminal.getKittyKeyboardSupport());
+    }
+
+    // ------------------------------------------------------------------------
+    // modifyOtherKeys fallback ------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("DA starts XTQMODKEYS and level-2 fallback exactly once")
+    void daStartsModifyOtherKeysFallback() {
+        terminal = createTerminal("\033[?1c\033[?1c");
+
+        waitForModifyOtherKeysRequest();
+        assertEquals(1, countOccurrences(written(), "\033[?4m"));
+        assertEquals(1, countOccurrences(written(), "\033[>4;2m"));
+        assertEquals(ECMA48Terminal.ModifyOtherKeysSupport.UNKNOWN,
+            terminal.getModifyOtherKeysSupport());
+        assertEquals(ECMA48Terminal.KeyboardProtocol.LEGACY,
+            terminal.getActiveKeyboardProtocol());
+    }
+
+    @Test
+    @DisplayName("XTQMODKEYS level 0 confirms level 2 and records ownership")
+    void originalLevelZero() {
+        terminal = createTerminal("\033[?1c\033[>4;0m");
+
+        waitForModifyOtherKeysSupport();
+        assertEquals(0, terminal.getModifyOtherKeysOriginalLevel());
+        assertTrue(terminal.isModifyOtherKeysChangedByUs());
+        assertEquals(ECMA48Terminal.KeyboardProtocol.MODIFY_OTHER_KEYS,
+            terminal.getActiveKeyboardProtocol());
+    }
+
+    @Test
+    @DisplayName("Shutdown restores an original modifyOtherKeys level 1")
+    void originalLevelOneIsRestored() {
+        terminal = createTerminal("\033[?1c\033[>4;1m");
+        waitForModifyOtherKeysSupport();
+        int beforeClose = written().length();
+
+        terminal.closeTerminal();
+        terminal = null;
+
+        assertTrue(written().substring(beforeClose).contains("\033[>4;1m"));
+    }
+
+    @Test
+    @DisplayName("A pre-existing level 2 is not owned or reset")
+    void originalLevelTwoIsNotChanged() {
+        terminal = createTerminal("\033[?1c\033[>4;2m");
+        waitForModifyOtherKeysSupport();
+        assertFalse(terminal.isModifyOtherKeysChangedByUs());
+        int beforeClose = written().length();
+
+        terminal.closeTerminal();
+        terminal = null;
+
+        String teardown = written().substring(beforeClose);
+        assertFalse(teardown.contains("\033[>4m"));
+        assertFalse(teardown.contains("\033[>4;0m"));
+    }
+
+    @Test
+    @DisplayName("An unanswered XTQMODKEYS query remains a safe request")
+    void unansweredQueryRemainsUnknown() {
+        terminal = createTerminal("\033[?1c");
+
+        waitForModifyOtherKeysRequest();
+        assertEquals(ECMA48Terminal.ModifyOtherKeysSupport.UNKNOWN,
+            terminal.getModifyOtherKeysSupport());
+        assertEquals(-1, terminal.getModifyOtherKeysOriginalLevel());
+        assertEquals(ECMA48Terminal.KeyboardProtocol.LEGACY,
+            terminal.getActiveKeyboardProtocol());
+    }
+
+    @Test
+    @DisplayName("Explicit false disables automatic modifyOtherKeys fallback")
+    void explicitFalseDisablesFallback() {
+        SystemProperties.setEcma48ModifyOtherKeys(false);
+
+        terminal = createTerminal("\033[?1c");
+        assertEquals(KittyKeyboard.SupportState.UNSUPPORTED, waitForSupport());
+
+        assertFalse(terminal.isModifyOtherKeysRequested());
+        assertFalse(written().contains("\033[?4m"));
+        assertFalse(written().contains("\033[>4;2m"));
+    }
+
+    @Test
+    @DisplayName("Explicit true keeps Kitty priority and enables fallback")
+    void explicitTrueKeepsKittyPriority() {
+        SystemProperties.setEcma48ModifyOtherKeys(true);
+        terminal = createTerminal("\033[?1u\033[?1c");
+
+        assertEquals(KittyKeyboard.SupportState.SUPPORTED, waitForSupport());
+        assertFalse(terminal.isModifyOtherKeysRequested());
+        assertEquals(ECMA48Terminal.KeyboardProtocol.KITTY,
+            terminal.getActiveKeyboardProtocol());
+    }
+
+    @Test
+    @DisplayName("Explicit true falls back when Kitty is disabled")
+    void explicitTrueFallsBackWhenKittyDisabled() {
+        SystemProperties.setEcma48KittyKeyboard(false);
+        SystemProperties.setEcma48ModifyOtherKeys(true);
+
+        terminal = createTerminal("\033[?1c");
+        waitForModifyOtherKeysRequest();
+
+        assertEquals(KittyKeyboard.SupportState.UNSUPPORTED,
+            terminal.getKittyKeyboardSupport());
+        assertEquals(1, countOccurrences(written(), "\033[>4;2m"));
+    }
+
+    @Test
+    @DisplayName("A late Kitty reply restores modifyOtherKeys and wins")
+    void lateKittyReplyWins() {
+        terminal = createTerminal(
+            "\033[?1c\033[>4;1m\033[?1u");
+
+        waitForProtocol(ECMA48Terminal.KeyboardProtocol.KITTY);
+        assertEquals(KittyKeyboard.SupportState.SUPPORTED,
+            terminal.getKittyKeyboardSupport());
+        assertFalse(terminal.isModifyOtherKeysChangedByUs());
+        assertTrue(written().contains("\033[>4;1m"),
+            "late Kitty should restore the previous level immediately");
+    }
+
+    @Test
+    @DisplayName("Unknown original state uses reset-to-initial exactly once")
+    void unknownOriginalStateRestoresOnce() {
+        terminal = createTerminal("\033[?1c");
+        waitForModifyOtherKeysRequest();
+
+        terminal.closeTerminal();
+        String afterFirstClose = written();
+        terminal.closeTerminal();
+        terminal = null;
+
+        assertEquals(1, countOccurrences(afterFirstClose, "\033[>4m"));
+        assertEquals(afterFirstClose, written());
     }
 
     // ------------------------------------------------------------------------
@@ -276,6 +423,25 @@ class ECMA48TerminalKittyKeyboardTest {
         assertEquals(kbCtrlLeft, nextKey());
     }
 
+    @Test
+    @DisplayName("modifyOtherKeys level 2 preserves ambiguous control keys")
+    void modifyOtherKeysPreservesAmbiguousControlKeys() {
+        terminal = createTerminal(
+            "\033[27;5;105~\033[27;5;109~\033[27;5;91~"
+            + "\033[27;6;118~\033[27;5;118~");
+
+        List<TKeypress> keys = keys(5);
+        assertEquals(TKeypress.kbCtrlI, keys.get(0));
+        assertEquals(TKeypress.kbCtrlM, keys.get(1));
+        assertEquals(new TKeypress(false, 0, '[', false, true, false),
+            keys.get(2));
+        assertEquals(new TKeypress(false, 0, 'V', false, true, true),
+            keys.get(3));
+        assertEquals(new TKeypress(false, 0, 'V', false, true, false),
+            keys.get(4));
+        assertFalse(keys.get(3).equals(keys.get(4)));
+    }
+
     // ------------------------------------------------------------------------
     // Helpers ----------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -327,6 +493,45 @@ class ECMA48TerminalKittyKeyboardTest {
 
         fail("Kitty keyboard support determination did not settle");
         return null;
+    }
+
+    private void waitForModifyOtherKeysRequest() {
+        long deadline = System.currentTimeMillis() + EVENT_TIMEOUT_MILLIS;
+        while (System.currentTimeMillis() < deadline) {
+            if (terminal.isModifyOtherKeysRequested()
+                && written().contains("\033[>4;2m")
+            ) {
+                return;
+            }
+            Thread.yield();
+        }
+        fail("modifyOtherKeys was not requested");
+    }
+
+    private void waitForModifyOtherKeysSupport() {
+        long deadline = System.currentTimeMillis() + EVENT_TIMEOUT_MILLIS;
+        while (System.currentTimeMillis() < deadline) {
+            if (terminal.getModifyOtherKeysSupport()
+                == ECMA48Terminal.ModifyOtherKeysSupport.SUPPORTED
+            ) {
+                return;
+            }
+            Thread.yield();
+        }
+        fail("modifyOtherKeys support was not confirmed");
+    }
+
+    private void waitForProtocol(
+        final ECMA48Terminal.KeyboardProtocol protocol) {
+
+        long deadline = System.currentTimeMillis() + EVENT_TIMEOUT_MILLIS;
+        while (System.currentTimeMillis() < deadline) {
+            if (terminal.getActiveKeyboardProtocol() == protocol) {
+                return;
+            }
+            Thread.yield();
+        }
+        fail("Keyboard protocol did not become " + protocol);
     }
 
     /**

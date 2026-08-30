@@ -1,6 +1,10 @@
 /*
  * Casciian - Java Text User Interface
  *
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
+ *
+ * Modifications and maintenance:
  * Copyright 2025 Carlos Rafael Ramirez
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,14 +39,12 @@ import casciian.event.TResizeEvent;
 /**
  * This window echoes every keystroke it receives, showing the decoded
  * TKeypress fields.  It exists to make keyboard handling visible: in
- * particular whether the terminal is speaking the Kitty keyboard protocol
- * (CSI u), which is what lets Ctrl+I arrive as something other than Tab.
+ * particular which extended keyboard protocol is active, which is what lets
+ * Ctrl+I arrive as something other than Tab.
  *
  * <p>The support line is read live from
- * {@link ECMA48Terminal#getKittyKeyboardSupport()} rather than inferred from
- * what the user happens to type: an application deciding whether to
- * advertise a Ctrl+I-style shortcut needs the answer before the user has
- * pressed anything, not after.</p>
+ * {@link ECMA48Terminal#getActiveKeyboardProtocol()} and related runtime
+ * state rather than inferred from what the user happens to type.</p>
  *
  * <p>Unlike other windows, this one deliberately swallows Tab and the arrow
  * keys instead of letting them move focus, so that they can be observed.</p>
@@ -207,36 +209,65 @@ public class DemoKeyboardWindow extends TWindow {
     }
 
     /**
-     * The live Kitty keyboard support determination for this window's
-     * screen, or null if this window is not backed by an ECMA-48 terminal
-     * (for example under the HeadlessBackend used in tests).
+     * The ECMA-48 terminal for this window's screen.
      *
-     * @return the support state, or null if not applicable
+     * @return the terminal, or null if not applicable
      */
-    private KittyKeyboard.SupportState support() {
+    private ECMA48Terminal terminal() {
         if (getScreen() instanceof ECMA48Terminal terminal) {
-            return terminal.getKittyKeyboardSupport();
+            return terminal;
         }
         return null;
     }
 
     /**
-     * One line summarizing whether Ctrl+I-style shortcuts can be trusted on
-     * this terminal right now.  This is the check an application would make
-     * before deciding whether to advertise such a shortcut in its own UI.
+     * Summarize the terminal's authoritative runtime keyboard state.
      *
-     * @return the status line to display
+     * @return the status text to display
      */
     private String statusLine() {
-        KittyKeyboard.SupportState support = support();
-        if (support == null) {
+        ECMA48Terminal terminal = terminal();
+        if (terminal == null) {
             return i18n.getString("protocolNotApplicable");
         }
-        return switch (support) {
-            case SUPPORTED -> i18n.getString("protocolSupported");
-            case UNSUPPORTED -> i18n.getString("protocolUnsupported");
-            case UNKNOWN -> i18n.getString("protocolDetecting");
+
+        String protocol = switch (terminal.getActiveKeyboardProtocol()) {
+            case KITTY -> i18n.getString("protocolKitty");
+            case MODIFY_OTHER_KEYS -> i18n.getString("protocolModifyOtherKeys");
+            case LEGACY -> terminal.isModifyOtherKeysRequested()
+                ? i18n.getString("protocolModifyOtherKeysRequested")
+                : i18n.getString("protocolLegacy");
         };
+
+        String kitty = switch (terminal.getKittyKeyboardSupport()) {
+            case SUPPORTED -> i18n.getString("kittyActive");
+            case UNSUPPORTED -> i18n.getString("kittyNotActive");
+            case UNKNOWN -> i18n.getString("kittyDetecting");
+        };
+
+        String modifyOtherKeys;
+        if (terminal.getActiveKeyboardProtocol()
+            == ECMA48Terminal.KeyboardProtocol.MODIFY_OTHER_KEYS
+        ) {
+            int previous = terminal.getModifyOtherKeysOriginalLevel();
+            modifyOtherKeys = (previous >= 0)
+                ? String.format(i18n.getString("modifyOtherKeysActivePrevious"),
+                    previous)
+                : i18n.getString("modifyOtherKeysActive");
+        } else if ((terminal.getActiveKeyboardProtocol()
+            == ECMA48Terminal.KeyboardProtocol.KITTY)
+            && terminal.isModifyOtherKeysRequested()
+        ) {
+            modifyOtherKeys =
+                i18n.getString("modifyOtherKeysRestored");
+        } else if (terminal.isModifyOtherKeysRequested()) {
+            modifyOtherKeys =
+                i18n.getString("modifyOtherKeysRequested");
+        } else {
+            modifyOtherKeys =
+                i18n.getString("modifyOtherKeysNotRequested");
+        }
+        return protocol + '\n' + kitty + '\n' + modifyOtherKeys;
     }
 
     private void refreshStatusText() {
@@ -245,10 +276,17 @@ public class DemoKeyboardWindow extends TWindow {
             .append('\n')
             .append('\n')
             .append(statusLine());
-        if (support() == KittyKeyboard.SupportState.UNSUPPORTED) {
+        ECMA48Terminal terminal = terminal();
+        if ((terminal != null)
+            && (terminal.getActiveKeyboardProtocol()
+                == ECMA48Terminal.KeyboardProtocol.LEGACY)
+            && !terminal.isModifyOtherKeysRequested()
+            && (terminal.getKittyKeyboardSupport()
+                == KittyKeyboard.SupportState.UNSUPPORTED)
+        ) {
             text.append('\n')
                 .append('\n')
-                .append(i18n.getString("unsupportedHint"));
+                .append(i18n.getString("legacyHint"));
         }
         String info = text.toString();
         if (!info.equals(infoText.getText())) {
