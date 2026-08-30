@@ -507,7 +507,7 @@ public class TEditorWindow extends TScrollableWindow {
         setBottomValue(editField.getMaximumRowNumber());
         setVerticalValue(editField.getVisibleRowNumber());
         setRightValue(editField.getMaximumColumnNumber());
-        setHorizontalValue(editField.getEditingColumnNumber());
+        setHorizontalValue(editField.getVisibleColumnNumber());
     }
 
     /**

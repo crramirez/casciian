@@ -165,7 +165,7 @@ class TTextPasteTest {
         assertEquals(editor.getMaximumRowNumber(), window.getBottomValue());
         assertEquals(editor.getVisibleRowNumber(), window.getVerticalValue());
         assertEquals(editor.getMaximumColumnNumber(), window.getRightValue());
-        assertEquals(editor.getEditingColumnNumber(),
+        assertEquals(editor.getVisibleColumnNumber(),
             window.getHorizontalValue());
     }
 
