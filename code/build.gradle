@@ -72,7 +72,12 @@ sourceSets {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.compilerArgs += ['-Xlint', '-Xdiags:verbose']
+    options.compilerArgs += ['-Xlint', '-Xdiags:verbose',
+                             '--add-modules', 'jdk.incubator.vector']
+}
+
+test {
+    jvmArgs '--add-modules', 'jdk.incubator.vector'
 }
 
 // Main library JAR: exclude demo/** content (matches compiled paths like demo/**)
@@ -226,10 +231,33 @@ graalvmNative {
 
             imageName = 'casciian-demo'
             mainClass = 'demo.Demo1'
-            buildArgs.add('-march=compatibility')
-            buildArgs.add('-Os')
+
+            // Optimization level. The native-image default (-O2) keeps the
+            // SIMD kernels in casciian.bits competitive with the JVM; -Os
+            // trades a large amount of that performance for a smaller
+            // binary, so it is opt-in via -PnativeOptimizeForSize=true.
+            if (project.findProperty('nativeOptimizeForSize')
+                ?.toString()
+                ?.equalsIgnoreCase('true')) {
+                buildArgs.add('-Os')
+            } else {
+                buildArgs.add('-H:+EnableFallbackCompilation')
+            }
+
+            // Target instruction set. The native-image default (x86-64-v3 on
+            // x86_64) allows AVX2, which the Vector API kernels rely on.
+            // '-march=compatibility' caps SIMD at SSE2 and makes native
+            // builds a poor baseline for Vector API measurements; it can
+            // still be selected explicitly for broad-hardware builds via
+            // -PnativeMarch=compatibility.
+            def nativeMarch = project.findProperty('nativeMarch')
+            if (nativeMarch != null && !nativeMarch.toString().isEmpty()) {
+                buildArgs.add("-march=${nativeMarch}".toString())
+            }
+
             buildArgs.add('--future-defaults=all')
             buildArgs.add('--enable-native-access=ALL-UNNAMED')
+            buildArgs.add('--add-modules=jdk.incubator.vector')
 
             if (System.getProperty('os.name', '')
                 .toLowerCase(Locale.ROOT)

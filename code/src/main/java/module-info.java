@@ -33,6 +33,7 @@ module casciian {
     requires transitive java.xml;
     requires org.jline.terminal;
     requires org.jline.terminal.jni;
+    requires jdk.incubator.vector;
 
     exports casciian;
     exports casciian.backend;
