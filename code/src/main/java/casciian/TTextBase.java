@@ -996,7 +996,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     }
 
     /**
-     * Check whether a mouse-driven text selection is currently active.
+     * Check whether text selection mode is currently active.
      *
      * @return true if selection mode is active
      */
