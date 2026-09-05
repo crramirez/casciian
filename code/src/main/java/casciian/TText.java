@@ -312,9 +312,15 @@ public class TText extends TTextBase {
      */
     @Override
     public void onMouseMotion(final TMouseEvent mouse) {
-        syncFromScrollers();
+        if (mouse.isMouse1() && (isInSelectionMode() || mouseOnTextArea(mouse))) {
+            syncFromScrollers();
+            super.onMouseMotion(mouse);
+            syncToScrollers();
+            return;
+        }
+
         super.onMouseMotion(mouse);
-        syncToScrollers();
+        syncFromScrollers();
     }
 
     /**

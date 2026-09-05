@@ -308,6 +308,22 @@ class TTextBaseTest {
         assertFalse(text.hasSelection());
     }
 
+    @Test
+    void textScrollbarDragWorksWhenSelectionAlreadyExists() {
+        TWindow window = makeWindow();
+        TText text = new TText(window, "word ".repeat(400), 1, 1, 20, 6);
+        window.activate(text);
+        text.setSelection(0, 0, 0, 4);
+
+        int scrollbarX = text.getWidth() - 1;
+        mouse(text, TMouseEvent.Type.MOUSE_DOWN, scrollbarX, 1);
+        mouse(text, TMouseEvent.Type.MOUSE_MOTION, scrollbarX, 3);
+        mouse(text, TMouseEvent.Type.MOUSE_UP, scrollbarX, 3);
+
+        assertTrue(text.getTopLine() > 0,
+            "dragging the vertical thumb did not scroll the text");
+    }
+
     // ------------------------------------------------------------------------
     // Clipboard --------------------------------------------------------------
     // ------------------------------------------------------------------------
