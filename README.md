@@ -138,6 +138,15 @@ For example: `java --enable-native-access=ALL-UNNAMED -jar casciian-demo.jar`
     number to run the TCP daemon on).  This will use the Xterm backend
     on a telnet server to share one screen to many terminals.
 
+To build and run a JPMS demo app layout (for strict modular testing):
+
+```sh
+cd code
+./gradlew zipDemoJpms
+unzip build/distributions/casciian-demo-jpms-app-<version>.zip
+./casciian-demo-jpms-app-<version>/bin/casciian-demo-jpms
+```
+
 Editing the Wiki
 ----------------
 

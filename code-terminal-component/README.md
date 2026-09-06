@@ -43,7 +43,8 @@ What's in here?
           simpler ANSI rendering.
 * **`demo`** — a small TUI application demonstrating the component. Its
   **File → OS Shell** item opens a `TTerminalWindow` running your shell.
-  Built as a fat JAR via the `jarDemo` task.
+  Built either as a standalone fat JAR (`jarDemo`) or as a JPMS app layout
+  (`zipDemoJpms` / `installDemoJpms`).
 
 Building
 --------
@@ -68,6 +69,14 @@ java -jar demo/build/libs/casciian-terminal-component-demo-<version>.jar
 
 The fat JAR bundles the demo, the component, the core casciian library and
 all runtime dependencies (including JLine), so it can be run standalone.
+
+To produce a JPMS demo app layout and run it as a named module:
+
+```sh
+./gradlew :demo:zipDemoJpms
+unzip demo/build/distributions/casciian-terminal-component-demo-jpms-app-<version>.zip
+./casciian-terminal-component-demo-jpms-app-<version>/bin/casciian-terminal-component-demo-jpms
+```
 
 Using the component in your application
 ---------------------------------------
