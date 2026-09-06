@@ -145,7 +145,7 @@ exec java --module-path "$APP_HOME/lib/*" --module casciian/demo.Demo1 "$@"
 '''
     def windowsLauncherText = '''@echo off
 set APP_HOME=%~dp0..
-java --module-path "%APP_HOME%\\lib\\*" --module casciian/demo.Demo1 %*
+java --module-path "%APP_HOME%\\lib" --module casciian/demo.Demo1 %*
 '''
     inputs.property('unixLauncherText', unixLauncherText)
     inputs.property('windowsLauncherText', windowsLauncherText)

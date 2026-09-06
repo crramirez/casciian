@@ -87,7 +87,7 @@ exec java --module-path "$APP_HOME/lib/*" --module casciian.terminal.component.d
 '''
     def windowsLauncherText = '''@echo off
 set APP_HOME=%~dp0..
-java --module-path "%APP_HOME%\\lib\\*" --module casciian.terminal.component.demo/demo.TerminalComponentDemo %*
+java --module-path "%APP_HOME%\\lib" --module casciian.terminal.component.demo/demo.TerminalComponentDemo %*
 '''
     inputs.property('unixLauncherText', unixLauncherText)
     inputs.property('windowsLauncherText', windowsLauncherText)
