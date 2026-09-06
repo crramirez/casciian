@@ -81,6 +81,17 @@ tasks.register('installDemoJpms', Sync) {
     description = 'Installs a JPMS demo app layout under build/install-jpms-demo.'
     dependsOn tasks.named('jarDemoJpms'), configurations.runtimeClasspath
 
+    def unixLauncherText = '''#!/usr/bin/env sh
+APP_HOME=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+exec java --module-path "$APP_HOME/lib/*" --module casciian.terminal.component.demo/demo.TerminalComponentDemo "$@"
+'''
+    def windowsLauncherText = '''@echo off
+set APP_HOME=%~dp0..
+java --module-path "%APP_HOME%\\lib\\*" --module casciian.terminal.component.demo/demo.TerminalComponentDemo %*
+'''
+    inputs.property('unixLauncherText', unixLauncherText)
+    inputs.property('windowsLauncherText', windowsLauncherText)
+
     into(layout.buildDirectory.dir('install-jpms-demo'))
 
     into('lib') {
@@ -93,17 +104,11 @@ tasks.register('installDemoJpms', Sync) {
         binDir.mkdirs()
 
         def unixLauncher = new File(binDir, 'casciian-terminal-component-demo-jpms')
-        unixLauncher.text = '''#!/usr/bin/env sh
-APP_HOME=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-exec java --module-path "$APP_HOME/lib/*" --module casciian.terminal.component.demo/demo.TerminalComponentDemo "$@"
-'''
+        unixLauncher.text = unixLauncherText
         unixLauncher.setExecutable(true, false)
 
         def windowsLauncher = new File(binDir, 'casciian-terminal-component-demo-jpms.bat')
-        windowsLauncher.text = '''@echo off
-set APP_HOME=%~dp0..
-java --module-path "%APP_HOME%\\lib\\*" --module casciian.terminal.component.demo/demo.TerminalComponentDemo %*
-'''
+        windowsLauncher.text = windowsLauncherText
     }
 }
 

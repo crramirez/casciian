@@ -15,5 +15,6 @@
  */
 
 module casciian.terminal.component.demo {
+    requires casciian;
     requires casciian.terminal.component;
 }

@@ -15,5 +15,6 @@
  */
 
 module casciian.java.desktop.demo {
+    requires casciian;
     requires casciian.java.desktop;
 }
