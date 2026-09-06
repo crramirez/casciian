@@ -123,6 +123,7 @@ tasks.register('jarDemoJpms', Jar) {
 
     from('src/main/demo-resources')
     from(sourceSets.main.output)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     archiveBaseName.set('casciian-demo-jpms')
     manifest {
