@@ -317,9 +317,9 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             selectionColumn1 = document.getCursor();
             selectionLine1 = document.getLineNumber();
             return;
-        } else if (!mouse.isMouse1()) {
-            inSelection = false;
         }
+
+        inSelection = false;
 
         // Pass to children
         super.onMouseDown(mouse);
@@ -993,6 +993,15 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             && (mouse.getX() < getTextAreaX() + getTextAreaWidth())
             && (mouse.getY() >= getTextAreaY())
             && (mouse.getY() < getTextAreaY() + getTextAreaHeight()));
+    }
+
+    /**
+     * Check whether text selection mode is currently active.
+     *
+     * @return true if selection mode is active
+     */
+    protected boolean isInSelectionMode() {
+        return inSelection;
     }
 
     /**
