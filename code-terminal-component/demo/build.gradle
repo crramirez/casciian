@@ -117,7 +117,9 @@ tasks.register('zipDemoJpms', Zip) {
     description = 'Creates a ZIP for the JPMS demo app layout.'
     dependsOn tasks.named('installDemoJpms')
 
-    from(layout.buildDirectory.dir('install-jpms-demo'))
+    into("casciian-terminal-component-demo-jpms-app-${project.version}") {
+        from(layout.buildDirectory.dir('install-jpms-demo'))
+    }
     archiveBaseName.set('casciian-terminal-component-demo-jpms-app')
     archiveVersion.set(project.version.toString())
     destinationDirectory.set(layout.buildDirectory.dir('distributions'))
