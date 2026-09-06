@@ -40,7 +40,8 @@ What's in here?
 * **`demo`** — a small TUI application demonstrating the add-on. It
   registers `ImageIORGBDecoder` on `ImageDecoderRegistry` and lets the
   user pick a `.png` / `.jpg` file from `File ▸ Open` to display it in a
-  `TImageWindow`. Built as a fat JAR via the `jarDemo` task.
+  `TImageWindow`. Built either as a standalone fat JAR (`jarDemo`) or as a
+  JPMS app layout (`zipDemoJpms` / `installDemoJpms`).
 
 Building
 --------
@@ -65,6 +66,14 @@ java -jar demo/build/libs/casciian-java-desktop-demo-<version>.jar
 
 The fat JAR bundles the demo, the add-on, the core casciian library and
 all runtime dependencies (including JLine), so it can be run standalone.
+
+To produce a JPMS demo app layout and run it as a named module:
+
+```sh
+./gradlew :demo:zipDemoJpms
+unzip demo/build/distributions/casciian-java-desktop-demo-jpms-app-<version>.zip
+./casciian-java-desktop-demo-jpms-app-<version>/bin/casciian-java-desktop-demo-jpms
+```
 
 Using the add-on in your application
 ------------------------------------

@@ -117,6 +117,64 @@ tasks.register('jarDemo', Jar) {
     }
 }
 
+tasks.register('jarDemoJpms', Jar) {
+    group = 'build'
+    description = 'Assembles a JPMS JAR containing casciian/** and demo/** (without bundled dependencies).'
+
+    from('src/main/demo-resources')
+    from(sourceSets.main.output)
+
+    archiveBaseName.set('casciian-demo-jpms')
+    manifest {
+        attributes(
+                'Main-Class': 'demo.Demo1',
+                'Implementation-Version': project.version
+        )
+    }
+}
+
+tasks.register('installDemoJpms', Sync) {
+    group = 'distribution'
+    description = 'Installs a JPMS demo app layout under build/install-jpms-demo.'
+    dependsOn tasks.named('jarDemoJpms'), configurations.runtimeClasspath
+
+    into(layout.buildDirectory.dir('install-jpms-demo'))
+
+    into('lib') {
+        from(tasks.named('jarDemoJpms'))
+        from(configurations.runtimeClasspath)
+    }
+
+    doLast {
+        def binDir = layout.buildDirectory.dir('install-jpms-demo/bin').get().asFile
+        binDir.mkdirs()
+
+        def unixLauncher = new File(binDir, 'casciian-demo-jpms')
+        unixLauncher.text = '''#!/usr/bin/env sh
+APP_HOME=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+exec java --module-path "$APP_HOME/lib/*" --module casciian/demo.Demo1 "$@"
+'''
+        unixLauncher.setExecutable(true, false)
+
+        def windowsLauncher = new File(binDir, 'casciian-demo-jpms.bat')
+        windowsLauncher.text = '''@echo off
+set APP_HOME=%~dp0..
+java --module-path "%APP_HOME%\\lib\\*" --module casciian/demo.Demo1 %*
+'''
+    }
+}
+
+tasks.register('zipDemoJpms', Zip) {
+    group = 'distribution'
+    description = 'Creates a ZIP for the JPMS demo app layout.'
+    dependsOn tasks.named('installDemoJpms')
+
+    from(layout.buildDirectory.dir('install-jpms-demo'))
+    archiveBaseName.set('casciian-demo-jpms-app')
+    archiveVersion.set(project.version.toString())
+    destinationDirectory.set(layout.buildDirectory.dir('distributions'))
+}
+
 // Ensure assemble also builds the demo jar
 tasks.assemble {
     dependsOn tasks.named('jarDemo')
