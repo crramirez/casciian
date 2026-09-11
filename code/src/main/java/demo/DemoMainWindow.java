@@ -270,6 +270,11 @@ public class DemoMainWindow extends TWindow {
             () -> new TEditDesktopStyleWindow(getApplication()));
         row += 2;
 
+        addLabel(i18n.getString("vectorPerformanceLabel"), 1, row);
+        addButton(i18n.getString("vectorPerformanceButton"), col, row,
+            () -> new DemoVectorPerformanceWindow(getApplication()));
+        row += 2;
+
         // Register the timers that drive the two progress bars.
         timer1 = getApplication().addTimer(250, true,
             new TAction() {

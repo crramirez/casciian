@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.bits;
 
@@ -29,6 +34,13 @@ public class UnicodeGlyphImage {
      * The bitmap image this glyph is supposed to represent.
      */
     private ImageRGB image = null;
+
+    /**
+     * Scratch buffer reused across stddev computations to avoid per-call
+     * allocations in hot rendering paths. Holds the whole image in
+     * row-major order.
+     */
+    private int[] pixels = new int[0];
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -71,6 +83,18 @@ public class UnicodeGlyphImage {
 
         int width = image.getWidth();
         int height = image.getHeight();
+        int pixelCount = width * height;
+
+        // Read the whole image once, in bulk, into a contiguous buffer.
+        // Per-pixel getRGB() calls cost more than the distance kernels that
+        // consume the data, and this method needs the same pixels three
+        // times.
+        if (pixels.length < pixelCount) {
+            pixels = new int[pixelCount];
+        }
+        if (pixelCount > 0) {
+            image.getRGB(0, 0, width, height, pixels, 0, width);
+        }
 
         // Try left half, top half, and full block, and whichever has the
         // least relative difference to the image is what we return.
@@ -83,16 +107,16 @@ public class UnicodeGlyphImage {
         foreColorRGB = ImageUtils.rgbAverage(image, 0, 0, width / 2, height);
         backColorRGB = ImageUtils.rgbAverage(image, width / 2, 0,
             width - width / 2, height);
-        bestStdDev = computeRegionStdDev(image, foreColorRGB,
-            backColorRGB, true, width, height);
+        bestStdDev = computeLeftRightStdDev(foreColorRGB, backColorRGB,
+            width, height);
 
         // Top half
         int newForeColorRGB = ImageUtils.rgbAverage(image, 0, 0, width,
             height / 2);
         int newBackColorRGB = ImageUtils.rgbAverage(image, 0, height / 2,
             width, height - height / 2);
-        double newRgbStdDev = computeRegionStdDev(image, newForeColorRGB,
-            newBackColorRGB, false, width, height);
+        double newRgbStdDev = computeTopBottomStdDev(newForeColorRGB,
+            newBackColorRGB, width, height);
         if (newRgbStdDev < bestStdDev) {
             ch = 0x2580;
             foreColorRGB = newForeColorRGB;
@@ -102,8 +126,7 @@ public class UnicodeGlyphImage {
 
         // Full block
         int newColorRGB = ImageUtils.rgbAverage(image, 0, 0, width, height);
-        newRgbStdDev = computeFullBlockStdDev(image, newColorRGB,
-            width, height);
+        newRgbStdDev = computeFullBlockStdDev(newColorRGB, width, height);
         if (newRgbStdDev < bestStdDev) {
             ch = 0x2588;
             foreColorRGB = newColorRGB;
@@ -118,66 +141,84 @@ public class UnicodeGlyphImage {
     }
 
     /**
-     * Compute the standard deviation between the image and a two-region
-     * split (left/right or top/bottom).
+     * Compute the standard deviation between the image and a left/right
+     * two-color split.
      *
-     * @param image the source image
-     * @param foreColor the average color for the foreground region
-     * @param backColor the average color for the background region
-     * @param leftRight if true, split left/right; if false, split top/bottom
+     * @param foreColor the average color of the left region
+     * @param backColor the average color of the right region
      * @param width the image width
      * @param height the image height
      * @return the standard deviation
      */
-    private double computeRegionStdDev(final ImageRGB image,
-        final int foreColor, final int backColor,
-        final boolean leftRight, final int width, final int height) {
+    private double computeLeftRightStdDev(final int foreColor,
+        final int backColor, final int width, final int height) {
 
-        long totalDiffSquared = 0;
-        int pixelCount = 0;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int pixel = image.getRGB(x, y);
-                int avgColor;
-                if (leftRight) {
-                    avgColor = (x < width / 2) ? foreColor : backColor;
-                } else {
-                    avgColor = (y < height / 2) ? foreColor : backColor;
-                }
-                totalDiffSquared += Rgb.distanceSquared(pixel, avgColor);
-                pixelCount++;
-            }
-        }
+        int pixelCount = width * height;
         if (pixelCount == 0) {
             return 0;
         }
+
+        // Each row contributes a left run and a right run of the flattened
+        // buffer, so the kernel can run over them in place without copying
+        // pixels into separate region buffers.
+        int leftWidth = width / 2;
+        int rightWidth = width - leftWidth;
+        long totalDiffSquared = 0;
+        for (int y = 0; y < height; y++) {
+            int rowStart = y * width;
+            totalDiffSquared += Rgb.distanceSquaredSum(pixels, rowStart,
+                leftWidth, foreColor);
+            totalDiffSquared += Rgb.distanceSquaredSum(pixels,
+                rowStart + leftWidth, rightWidth, backColor);
+        }
+        return Math.sqrt((double) totalDiffSquared / pixelCount);
+    }
+
+    /**
+     * Compute the standard deviation between the image and a top/bottom
+     * two-color split.
+     *
+     * @param foreColor the average color of the top region
+     * @param backColor the average color of the bottom region
+     * @param width the image width
+     * @param height the image height
+     * @return the standard deviation
+     */
+    private double computeTopBottomStdDev(final int foreColor,
+        final int backColor, final int width, final int height) {
+
+        int pixelCount = width * height;
+        if (pixelCount == 0) {
+            return 0;
+        }
+
+        // Both regions are contiguous in the flattened buffer.
+        int splitFore = width * (height / 2);
+        long totalDiffSquared =
+            Rgb.distanceSquaredSum(pixels, 0, splitFore, foreColor)
+            + Rgb.distanceSquaredSum(pixels, splitFore,
+                pixelCount - splitFore, backColor);
         return Math.sqrt((double) totalDiffSquared / pixelCount);
     }
 
     /**
      * Compute the standard deviation between the image and a single color.
      *
-     * @param image the source image
      * @param color the uniform color
      * @param width the image width
      * @param height the image height
      * @return the standard deviation
      */
-    private double computeFullBlockStdDev(final ImageRGB image,
-        final int color, final int width, final int height) {
+    private double computeFullBlockStdDev(final int color, final int width,
+        final int height) {
 
-        long totalDiffSquared = 0;
-        int pixelCount = 0;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int pixel = image.getRGB(x, y);
-                totalDiffSquared += Rgb.distanceSquared(pixel, color);
-                pixelCount++;
-            }
-        }
+        int pixelCount = width * height;
         if (pixelCount == 0) {
             return 0;
         }
+
+        long totalDiffSquared = Rgb.distanceSquaredSum(pixels, 0, pixelCount,
+            color);
         return Math.sqrt((double) totalDiffSquared / pixelCount);
     }
 }

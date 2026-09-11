@@ -94,13 +94,14 @@ final class ScaleImageUtils {
                 int right = (int) Math.ceil(center + support);
 
                 double sumR = 0, sumG = 0, sumB = 0, sumW = 0;
+
                 for (int i = left; i <= right; i++) {
                     double weight = mitchellNetravali(
                             (i - center) / filterScale);
                     int clamped = Math.max(0, Math.min(i, srcWidth - 1));
                     int pixel = srcRow[clamped];
                     sumR += ((pixel >>> 16) & 0xFF) * weight;
-                    sumG += ((pixel >>> 8) & 0xFF) * weight;
+                    sumG += ((pixel >>>  8) & 0xFF) * weight;
                     sumB += (pixel & 0xFF) * weight;
                     sumW += weight;
                 }
@@ -137,13 +138,14 @@ final class ScaleImageUtils {
             int[] dstRow = dst[y];
             for (int x = 0; x < cols; x++) {
                 double sumR = 0, sumG = 0, sumB = 0, sumW = 0;
+
                 for (int i = top; i <= bottom; i++) {
                     double weight = mitchellNetravali(
                             (i - center) / filterScale);
                     int clamped = Math.max(0, Math.min(i, srcHeight - 1));
                     int pixel = src[clamped][x];
                     sumR += ((pixel >>> 16) & 0xFF) * weight;
-                    sumG += ((pixel >>> 8) & 0xFF) * weight;
+                    sumG += ((pixel >>>  8) & 0xFF) * weight;
                     sumB += (pixel & 0xFF) * weight;
                     sumW += weight;
                 }
