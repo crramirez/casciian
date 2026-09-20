@@ -1781,6 +1781,17 @@ public class TApplication implements Runnable {
         if ((type != TMouseEvent.Type.MOUSE_MOTION)
             && (type != TMouseEvent.Type.MOUSE_UP)
         ) {
+            // A fresh left-button press ends any existing capture before
+            // normal hit-testing: the previous owner is notified and cleared
+            // so its stale drag cannot swallow the new interaction if the new
+            // target does not itself capture.  Wheel and other-button presses
+            // leave the capture intact.
+            if ((type == TMouseEvent.Type.MOUSE_DOWN) && mouse.isMouse1()) {
+                capture.onCaptureLost();
+                if (mouseCapture == capture) {
+                    mouseCapture = null;
+                }
+            }
             return false;
         }
         if (!isMouseCaptureValid(capture)) {

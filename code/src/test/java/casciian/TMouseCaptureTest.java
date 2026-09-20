@@ -142,6 +142,47 @@ class TMouseCaptureTest {
             "detached widgets must not become the capture owner");
     }
 
+    @Test
+    void freshLeftDownClearsPreviousCaptureBeforeNormalDispatch() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        int[] count = new int[1];
+        TButton a = new TButton(window, "A", 1, 1, counter(count));
+
+        pressInside(a);
+        assertTrue(app.hasMouseCapture(a));
+
+        // A fresh left-button press elsewhere must end A's capture so a new
+        // target that does not itself capture is not swallowed by A.
+        route(app, TMouseEvent.Type.MOUSE_DOWN,
+            a.getAbsoluteX() + 20, a.getAbsoluteY(), true);
+        assertNull(app.getMouseCapture(),
+            "a fresh left-button press must release the previous capture");
+
+        // A's stale press state must not later fire on an unrelated release.
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            a.getAbsoluteX() + 1, a.getAbsoluteY(), true);
+        assertEquals(0, count[0],
+            "the previous capturer must not keep a stale pressed state");
+    }
+
+    @Test
+    void nonLeftDownDuringCaptureKeepsCapture() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        TButton a = new TButton(window, "A", 1, 1, doNothing());
+
+        pressInside(a);
+        assertTrue(app.hasMouseCapture(a));
+
+        // A wheel or other-button press is delivered as MOUSE_DOWN with
+        // mouse1 == false; it must not disturb an active capture.
+        route(app, TMouseEvent.Type.MOUSE_DOWN,
+            a.getAbsoluteX() + 20, a.getAbsoluteY(), false);
+        assertTrue(app.hasMouseCapture(a),
+            "a non-left mouse press must not release the capture");
+    }
+
     // ------------------------------------------------------------------------
     // Button semantics -------------------------------------------------------
     // ------------------------------------------------------------------------
