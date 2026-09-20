@@ -359,8 +359,8 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             releaseMouseCapture();
             selecting = false;
             int newLine = documentLineFor(mouse);
-            int newSelectionLine0 = Math.min(newLine,
-                document.getLineCount() - 1);
+            int newSelectionLine0 = Math.max(0, Math.min(newLine,
+                document.getLineCount() - 1));
             int newSelectionColumn0 = documentColumnFor(mouse);
             newSelectionColumn0 = Math.max(0, Math.min(newSelectionColumn0,
                     document.getLine(newSelectionLine0).getDisplayLength() - 1));
