@@ -2610,7 +2610,7 @@ public class ECMA48Terminal extends LogicalScreen
      * in what order they are delivered to the terminal, so they are sorted
      * for a stable frame instead.
      * <p>
-     * Multi-threaded image encoding is experimental and likely borken.
+     * Multi-threaded image encoding is experimental and likely broken.
      *
      * @param sb StringBuilder to write the encoded images to
      */
