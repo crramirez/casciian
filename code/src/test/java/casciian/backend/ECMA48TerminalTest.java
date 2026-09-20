@@ -533,6 +533,21 @@ class ECMA48TerminalTest {
     }
 
     @Test
+    @DisplayName("SGR release reports only one button when multiple buttons are tracked")
+    void testSgrReleaseReportsOnlyOneButton() throws Exception {
+        terminal = createTerminalForMouseParsing(false,
+            "\033[<0;1;1M\033[<1;1;1M\033[<3;1;1m");
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 3);
+        assertEquals(3, mouseEvents.size());
+
+        TMouseEvent release = mouseEvents.get(2);
+        assertEquals(TMouseEvent.Type.MOUSE_UP, release.getType());
+        assertEquals(1, (release.isMouse1() ? 1 : 0)
+            + (release.isMouse2() ? 1 : 0)
+            + (release.isMouse3() ? 1 : 0));
+    }
+
+    @Test
     @DisplayName("closeTerminal does not throw exception")
     void testCloseTerminal() {
         terminal = createTerminal();

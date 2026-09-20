@@ -3261,12 +3261,10 @@ public class ECMA48Terminal extends LogicalScreen
                     if (mouse1) {
                         mouse1 = false;
                         eventMouse1 = true;
-                    }
-                    if (mouse2) {
+                    } else if (mouse2) {
                         mouse2 = false;
                         eventMouse2 = true;
-                    }
-                    if (mouse3) {
+                    } else if (mouse3) {
                         mouse3 = false;
                         eventMouse3 = true;
                     }
