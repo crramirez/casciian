@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import casciian.TApplication;
 import casciian.backend.HeadlessBackend;
 import casciian.backend.Screen;
+import casciian.bits.GraphicsChars;
 import static casciian.TKeypress.kbCtrlF1;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -51,6 +52,9 @@ class TSubMenuTest {
         String row = rowText(subMenu);
         assertTrue(row.contains("Recent"));
         assertFalse(row.contains(kbCtrlF1.toString()));
+        assertEquals(' ', charAt(subMenu, subMenu.getWidth() - 4));
+        assertEquals(GraphicsChars.CP437[0x10],
+            charAt(subMenu, subMenu.getWidth() - 3));
     }
 
     private String rowText(final TSubMenu subMenu) {
