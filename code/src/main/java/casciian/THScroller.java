@@ -200,7 +200,13 @@ public class THScroller extends TWidget {
     @Override
     public void onMouseDown(final TMouseEvent mouse) {
         if (rightValue == leftValue) {
-            inScroll = false;
+            // If the range collapsed while the thumb was held, release the
+            // capture here too; otherwise this scrollbar stays captured and
+            // swallows later events.
+            if (inScroll) {
+                inScroll = false;
+                releaseMouseCapture();
+            }
             return;
         }
 

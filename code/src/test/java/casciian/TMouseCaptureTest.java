@@ -486,6 +486,57 @@ class TMouseCaptureTest {
         assertNull(app.getMouseCapture());
     }
 
+    @Test
+    void disablingContainerReleasesCapturedDescendant() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        TPanel panel = new TPanel(window, 1, 1, 20, 6);
+        int[] count = new int[1];
+        TButton a = new TButton(panel, "A", 1, 1, counter(count));
+
+        pressInside(a);
+        assertTrue(app.hasMouseCapture(a));
+
+        // Disabling the container, not the button directly, must still notify
+        // and release the captured descendant.
+        panel.setEnabled(false);
+        assertNull(app.getMouseCapture(),
+            "disabling a container must release a captured descendant");
+
+        // Re-enabling and releasing normally must not fire the stale click.
+        panel.setEnabled(true);
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            a.getAbsoluteX() + 1, a.getAbsoluteY(), false);
+        assertEquals(0, count[0],
+            "a released descendant must not resume its old interaction");
+    }
+
+    @Test
+    void collapsedRangeOnMouseDownReleasesCapture() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        THScroller hScroller = new THScroller(window, 1, 1, 10);
+        TVScroller vScroller = new TVScroller(window, 20, 1, 8);
+
+        hScroller.setRightValue(10);
+        mouseDown(hScroller, 1, 0);
+        assertTrue(app.hasMouseCapture(hScroller));
+        // Range collapses while the thumb is held, then a fresh MOUSE_DOWN is
+        // hit-tested to the scrollbar before any motion/up event.
+        hScroller.setRightValue(hScroller.getLeftValue());
+        mouseDown(hScroller, 1, 0);
+        assertNull(app.getMouseCapture(),
+            "a collapsed horizontal range on mouse-down must release capture");
+
+        vScroller.setBottomValue(10);
+        mouseDown(vScroller, 0, 1);
+        assertTrue(app.hasMouseCapture(vScroller));
+        vScroller.setBottomValue(vScroller.getTopValue());
+        mouseDown(vScroller, 0, 1);
+        assertNull(app.getMouseCapture(),
+            "a collapsed vertical range on mouse-down must release capture");
+    }
+
     // ------------------------------------------------------------------------
     // Helpers ----------------------------------------------------------------
     // ------------------------------------------------------------------------

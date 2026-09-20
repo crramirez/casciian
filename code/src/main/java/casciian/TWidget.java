@@ -1204,9 +1204,17 @@ public abstract class TWidget implements Comparable<TWidget> {
         if (!enabled) {
             // A disabled widget must not keep the mouse capture, and must not
             // retain drag-style interaction state that a later event could
-            // resume once it is re-enabled.
-            onCaptureLost();
-            releaseMouseCapture();
+            // resume once it is re-enabled.  The capture owner may be this
+            // widget or any descendant, so notify and release whichever one
+            // actually holds it (mirroring remove()).
+            TApplication application = getApplication();
+            if (application != null) {
+                TWidget capture = application.getMouseCapture();
+                if ((capture != null) && containsWidget(capture)) {
+                    capture.onCaptureLost();
+                    application.releaseMouseCapture(capture);
+                }
+            }
             setActiveFlag(false);
             // See if there are any active siblings to switch to
             boolean foundSibling = false;
