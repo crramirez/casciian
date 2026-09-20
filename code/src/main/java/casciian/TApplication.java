@@ -1777,6 +1777,39 @@ public class TApplication implements Runnable {
     }
 
     /**
+     * Update the application-wide screen-selection bookkeeping for a mouse
+     * event.  This runs before any mouse-capture routing so that a screen
+     * selection that begins on a widget which captures the drag is still
+     * updated on captured motion and finalized (copied to the clipboard) on
+     * the captured release.
+     *
+     * @param mouse the mouse event, with screen-absolute coordinates
+     */
+    private void updateScreenSelection(final TMouseEvent mouse) {
+        if (mouse.isMouse1() && (mouse.isShift() || mouse.isCtrl())) {
+            // Screen selection.
+            if (inScreenSelection) {
+                screenSelectionX1 = mouse.getX();
+                screenSelectionY1 = mouse.getY();
+            } else {
+                inScreenSelection = true;
+                screenSelectionX0 = mouse.getX();
+                screenSelectionY0 = mouse.getY();
+                screenSelectionX1 = mouse.getX();
+                screenSelectionY1 = mouse.getY();
+                screenSelectionRectangle = mouse.isCtrl();
+            }
+        } else {
+            if (inScreenSelection) {
+                getScreen().copySelection(clipboard, screenSelectionX0,
+                    screenSelectionY0, screenSelectionX1, screenSelectionY1,
+                    screenSelectionRectangle);
+            }
+            inScreenSelection = false;
+        }
+    }
+
+    /**
      * Dispatch one event to the appropriate widget or application-level
      * event handler.  This is the primary event handler, it has the normal
      * application-wide event handling.
@@ -1796,8 +1829,11 @@ public class TApplication implements Runnable {
         // Special application-wide events -----------------------------------
 
         // If a widget owns the mouse capture, route drag/release events
-        // directly to it and skip normal dispatch.
+        // directly to it and skip normal dispatch.  The application-wide
+        // screen-selection bookkeeping must run before capture routing so a
+        // captured drag still updates and finalizes an in-progress selection.
         if (event instanceof TMouseEvent) {
+            updateScreenSelection((TMouseEvent) event);
             if (handleMouseCapture((TMouseEvent) event)) {
                 return;
             }
@@ -1814,28 +1850,6 @@ public class TApplication implements Runnable {
             typingHidMouse = false;
 
             TMouseEvent mouse = (TMouseEvent) event;
-
-            if (mouse.isMouse1() && (mouse.isShift() || mouse.isCtrl())) {
-                // Screen selection.
-                if (inScreenSelection) {
-                    screenSelectionX1 = mouse.getX();
-                    screenSelectionY1 = mouse.getY();
-                } else {
-                    inScreenSelection = true;
-                    screenSelectionX0 = mouse.getX();
-                    screenSelectionY0 = mouse.getY();
-                    screenSelectionX1 = mouse.getX();
-                    screenSelectionY1 = mouse.getY();
-                    screenSelectionRectangle = mouse.isCtrl();
-                }
-            } else {
-                if (inScreenSelection) {
-                    getScreen().copySelection(clipboard, screenSelectionX0,
-                        screenSelectionY0, screenSelectionX1, screenSelectionY1,
-                        screenSelectionRectangle);
-                }
-                inScreenSelection = false;
-            }
 
             if ((mouseX != mouse.getX()) || (mouseY != mouse.getY())) {
                 mouseX = mouse.getX();

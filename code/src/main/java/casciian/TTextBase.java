@@ -1,6 +1,10 @@
 /*
  * Casciian - Java Text User Interface
  *
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
+ *
+ * Modifications and maintenance:
  * Copyright 2025 Carlos Rafael Ramirez
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
