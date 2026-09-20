@@ -138,9 +138,8 @@ public class TSplitPane extends TWidget {
     public void onMouseDown(final TMouseEvent mouse) {
         this.mouse = mouse;
 
-        inSplitMove = false;
-
         if (mouse.isMouse1()) {
+            inSplitMove = false;
             if (vertical) {
                 inSplitMove = (mouse.getAbsoluteX() - getAbsoluteX() == split);
             } else {

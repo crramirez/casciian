@@ -334,6 +334,31 @@ class TMouseCaptureTest {
         assertNull(app.getMouseCapture());
     }
 
+    @Test
+    void splitPaneNonLeftDownDoesNotStrandCapture() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        TSplitPane split = new TSplitPane(window, 1, 1, 20, 8, true);
+        int startSplit = split.getSplit();
+
+        // Press on the divider column to begin moving it.
+        mouseDown(split, startSplit, 1);
+        assertTrue(app.hasMouseCapture(split),
+            "the split pane must own the capture while moving the divider");
+
+        // A non-left MOUSE_DOWN (for example a wheel event) arrives during the
+        // drag.  It must not clear the active drag state and strand the capture.
+        route(app, TMouseEvent.Type.MOUSE_DOWN,
+            split.getAbsoluteX() + startSplit, split.getAbsoluteY() + 1, false);
+        assertTrue(app.hasMouseCapture(split),
+            "the split pane stays captured after a non-left mouse press");
+
+        // The eventual left-button release still ends the drag.
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            split.getAbsoluteX() + startSplit, split.getAbsoluteY() + 1, true);
+        assertNull(app.getMouseCapture());
+    }
+
     // ------------------------------------------------------------------------
     // Scrollbar thumb drag ---------------------------------------------------
     // ------------------------------------------------------------------------
