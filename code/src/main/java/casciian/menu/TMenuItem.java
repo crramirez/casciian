@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.menu;
 
@@ -273,7 +278,7 @@ public class TMenuItem extends TWidget {
 
         putStringXY(labelOffset, 0, mnemonic.getRawLabel(),
             menuColor);
-        if (key != null) {
+        if (usesAcceleratorKey() && (key != null)) {
             String keyLabel = key.toString();
             putStringXY((getWidth() - StringUtils.width(keyLabel) - 2), 0,
                 keyLabel, menuColor);
@@ -364,7 +369,7 @@ public class TMenuItem extends TWidget {
     public final void setKey(final TKeypress key) {
         this.key = key;
 
-        if (key != null) {
+        if (usesAcceleratorKey() && (key != null)) {
             int newWidth = (StringUtils.width(label) + 4 +
                 StringUtils.width(key.toString()) + 2);
             if (SystemProperties.isMenuIcons()) {
@@ -411,13 +416,23 @@ public class TMenuItem extends TWidget {
     }
 
     /**
+     * Returns whether this menu item uses its global accelerator key for
+     * rendering and width calculations.
+     *
+     * @return true if the accelerator key participates in layout/rendering
+     */
+    protected boolean usesAcceleratorKey() {
+        return true;
+    }
+
+    /**
      * Recompute this menu item's width based on its label, optional
      * accelerator key, and the current menu-icons setting.  This allows the
      * width to stay correct when the menu-icons option is toggled at runtime.
      */
     public void recomputeWidth() {
         int newWidth = StringUtils.width(label) + 4;
-        if (key != null) {
+        if (usesAcceleratorKey() && (key != null)) {
             newWidth += StringUtils.width(key.toString()) + 2;
         }
         if (SystemProperties.isMenuIcons()) {

@@ -236,6 +236,17 @@ public class TSubMenu extends TMenuItem {
     }
 
     /**
+     * Submenus ignore global accelerator keys.  Their rows reserve space only
+     * for the label, hierarchy arrow, and border padding.
+     *
+     * @return false always
+     */
+    @Override
+    protected boolean usesAcceleratorKey() {
+        return false;
+    }
+
+    /**
      * Convenience function to add a custom menu item.
      *
      * @param id menu item ID.  Must be greater than 1024.
