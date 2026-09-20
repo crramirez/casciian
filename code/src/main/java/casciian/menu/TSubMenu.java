@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian.menu;
 
@@ -60,7 +65,9 @@ public class TSubMenu extends TMenuItem {
 
         this.menu = new TMenu(parent.getApplication(), x, getAbsoluteY() - 1,
             title);
-        setWidth(menu.getWidth() + 2);
+        // Reserve two extra columns beyond the label so the hierarchy arrow
+        // has one space before the text and one space before the right border.
+        setWidth(getWidth() + 2);
 
         this.menu.isSubMenu = true;
     }
@@ -154,8 +161,8 @@ public class TSubMenu extends TMenuItem {
             }
         }
 
-        // Add the arrow
-        putCharXY(getWidth() - 2, 0, GraphicsChars.CP437[0x10], menuColor);
+        // Add the arrow, keeping one space between it and the right border.
+        putCharXY(getWidth() - 3, 0, GraphicsChars.CP437[0x10], menuColor);
     }
 
     /**
@@ -223,6 +230,20 @@ public class TSubMenu extends TMenuItem {
         // width of the widest pop-up entry and never shrink back.
         menu.recomputeWidth();
         super.recomputeWidth();
+        // Reserve two extra columns beyond the label so the hierarchy arrow
+        // has one space before the text and one space before the right border.
+        setWidth(getWidth() + 2);
+    }
+
+    /**
+     * Submenus ignore global accelerator keys.  Their rows reserve space only
+     * for the label, hierarchy arrow, and border padding.
+     *
+     * @return false always
+     */
+    @Override
+    protected boolean usesAcceleratorKey() {
+        return false;
     }
 
     /**
