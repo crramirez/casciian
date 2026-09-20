@@ -3216,13 +3216,46 @@ public class ECMA48Terminal extends LogicalScreen
         switch (buttons & 0xE3) {
             case 0:
                 eventMouse1 = true;
+                // Some Windows-native JLine backends (jline-terminal-jni's
+                // AbstractWindowsTerminal.processMouseEvent) omit the SGR
+                // motion bit (32) while dragging, resending the plain
+                // button-down code instead. If mouse1 is already tracked
+                // as pressed, treat the repeat as motion rather than a
+                // new press.
+                if (release) {
+                    mouse1 = false;
+                } else if (mouse1) {
+                    eventType = TMouseEvent.Type.MOUSE_MOTION;
+                } else {
+                    mouse1 = true;
+                }
                 break;
             case 1:
                 eventMouse2 = true;
+                if (release) {
+                    mouse2 = false;
+                } else if (mouse2) {
+                    eventType = TMouseEvent.Type.MOUSE_MOTION;
+                } else {
+                    mouse2 = true;
+                }
                 break;
             case 2:
                 eventMouse3 = true;
+                if (release) {
+                    mouse3 = false;
+                } else if (mouse3) {
+                    eventType = TMouseEvent.Type.MOUSE_MOTION;
+                } else {
+                    mouse3 = true;
+                }
                 break;
+            case 3:
+                // Some Windows-native JLine backends also omit the motion
+                // bit for plain hover (no buttons down), sending the
+                // X10-style "no button" code instead of 35. A real release
+                // always keeps its own button code in SGR mode, so a
+                // non-release 3 can only mean hover motion here.
             case 35:
                 // Motion only, no buttons down
                 eventType = TMouseEvent.Type.MOUSE_MOTION;
@@ -3231,6 +3264,7 @@ public class ECMA48Terminal extends LogicalScreen
             case 32:
                 // Dragging with mouse1 down
                 eventMouse1 = true;
+                mouse1 = true;
                 eventType = TMouseEvent.Type.MOUSE_MOTION;
                 break;
 
@@ -3238,12 +3272,14 @@ public class ECMA48Terminal extends LogicalScreen
                  96, // Dragging with mouse2 down after wheelUp
                  97: // Dragging with mouse2 down after wheelDown
                 eventMouse2 = true;
+                mouse2 = true;
                 eventType = TMouseEvent.Type.MOUSE_MOTION;
                 break;
 
             case 34:
                 // Dragging with mouse3 down
                 eventMouse3 = true;
+                mouse3 = true;
                 eventType = TMouseEvent.Type.MOUSE_MOTION;
                 break;
 
