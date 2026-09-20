@@ -855,6 +855,16 @@ public abstract class TWidget implements Comparable<TWidget> {
             throw new IndexOutOfBoundsException("child widget is not in " +
                 "list of children of this parent");
         }
+        // If the widget being removed (or one of its descendants) owns the
+        // mouse capture, release it so we do not leave a stale reference.
+        TApplication application = getApplication();
+        if (application != null) {
+            TWidget capture = application.getMouseCapture();
+            if ((capture != null) && child.containsWidget(capture)) {
+                capture.onCaptureLost();
+                application.releaseMouseCapture(capture);
+            }
+        }
         if ((window != null) && child.containsWidget(window.getDefaultButton())) {
             window.setDefaultButton(null);
         }
@@ -1192,6 +1202,19 @@ public abstract class TWidget implements Comparable<TWidget> {
     public void setEnabled(final boolean enabled) {
         this.enabled = enabled;
         if (!enabled) {
+            // A disabled widget must not keep the mouse capture, and must not
+            // retain drag-style interaction state that a later event could
+            // resume once it is re-enabled.  The capture owner may be this
+            // widget or any descendant, so notify and release whichever one
+            // actually holds it (mirroring remove()).
+            TApplication application = getApplication();
+            if (application != null) {
+                TWidget capture = application.getMouseCapture();
+                if ((capture != null) && containsWidget(capture)) {
+                    capture.onCaptureLost();
+                    application.releaseMouseCapture(capture);
+                }
+            }
             setActiveFlag(false);
             // See if there are any active siblings to switch to
             boolean foundSibling = false;
@@ -1365,6 +1388,79 @@ public abstract class TWidget implements Comparable<TWidget> {
             return window.getApplication();
         }
         return null;
+    }
+
+    /**
+     * Request that this widget own the mouse capture.  While a widget owns
+     * the capture, mouse motion and mouse release events are routed directly
+     * to it even when the pointer leaves its bounds.  Widgets should call this
+     * when they begin a stateful drag-style interaction (button press, text
+     * selection, scrollbar thumb dragging, ...).  It is safe to call this
+     * repeatedly.
+     *
+     * @see TApplication#captureMouse(TWidget)
+     */
+    protected final void captureMouse() {
+        TApplication application = getApplication();
+        if (application != null) {
+            application.captureMouse(this);
+        }
+    }
+
+    /**
+     * Release the mouse capture if this widget currently owns it.  Releasing
+     * a capture owned by another widget is a no-op.  Widgets should call this
+     * when their stateful drag-style interaction ends.
+     *
+     * @see TApplication#releaseMouseCapture(TWidget)
+     */
+    protected final void releaseMouseCapture() {
+        TApplication application = getApplication();
+        if (application != null) {
+            application.releaseMouseCapture(this);
+        }
+    }
+
+    /**
+     * Determine whether this widget currently owns the mouse capture.
+     *
+     * @return true if this widget owns the mouse capture
+     * @see TApplication#hasMouseCapture(TWidget)
+     */
+    protected final boolean hasMouseCapture() {
+        TApplication application = getApplication();
+        return (application != null) && application.hasMouseCapture(this);
+    }
+
+    /**
+     * Hook invoked on a scrollbar's container when the scroll box value
+     * changes because the user is dragging it while the scrollbar owns the
+     * mouse capture.  While a scrollbar owns the capture, its container's
+     * mouse handlers are not called, so containers that copy their view
+     * position from their scrollbars inside {@code onMouseMotion}/
+     * {@code onMouseUp} (rather than inside {@code draw()}) override this to
+     * keep the view in sync during a captured drag.  The default
+     * implementation does nothing.
+     *
+     * @see TVScroller
+     * @see THScroller
+     */
+    protected void onScrollerChange() {
+        // Default: nothing.  Containers that read their scrollbars from mouse
+        // handlers override this.
+    }
+
+    /**
+     * Hook invoked when this widget is about to lose the application mouse
+     * capture for a reason other than the normal end of its own drag
+     * interaction (for example, being disabled).  Subclasses that maintain
+     * drag-style interaction state (button press, text selection, scrollbar
+     * thumb drag, split-pane divider drag, ...) override this to reset that
+     * state so a later event cannot resume a stale interaction.  The default
+     * implementation does nothing.
+     */
+    protected void onCaptureLost() {
+        // Default: nothing.  Widgets that hold drag-style state override this.
     }
 
     /**

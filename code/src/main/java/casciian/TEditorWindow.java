@@ -275,6 +275,19 @@ public class TEditorWindow extends TScrollableWindow {
     }
 
     /**
+     * Keep the editor in sync while the user drags a scrollbar box that owns
+     * the mouse capture.  During a captured drag the container's mouse
+     * handlers are not called, so this hook applies the scrollbar values to
+     * the editor.
+     */
+    @Override
+    protected void onScrollerChange() {
+        editField.setVisibleRowNumber(getVerticalValue());
+        editField.setVisibleColumnNumber(getHorizontalValue());
+        setHorizontalValue(editField.getVisibleColumnNumber());
+    }
+
+    /**
      * Handle keystrokes.
      *
      * @param keypress keystroke event

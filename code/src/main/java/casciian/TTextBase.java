@@ -1,6 +1,10 @@
 /*
  * Casciian - Java Text User Interface
  *
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
+ *
+ * Modifications and maintenance:
  * Copyright 2025 Carlos Rafael Ramirez
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -93,9 +97,19 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     private int leftColumn = 0;
 
     /**
-     * If true, the mouse is dragging a selection.
+     * If true, a selection exists (via mouse drag or shifted navigation).
      */
     private boolean inSelection = false;
+
+    /**
+     * If true, the mouse is actively dragging a selection: the widget owns
+     * the mouse capture and mouse motion extends the selection.  This is
+     * distinct from {@link #inSelection}, which stays true after the drag
+     * ends so the finished selection persists.  Keeping them separate stops a
+     * later drag that begins outside the widget from continuing the old
+     * selection.
+     */
+    private boolean selecting = false;
 
     /**
      * Selection starting column.
@@ -301,7 +315,10 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         }
 
         if (mouse.isMouse1() && mouseOnTextArea(mouse)) {
-            // Selection.
+            // Selection.  Own the mouse capture so the drag continues to be
+            // delivered here even when the pointer leaves the text area.
+            captureMouse();
+            selecting = true;
             int newLine = documentLineFor(mouse);
             int newX = documentColumnFor(mouse);
 
@@ -319,7 +336,11 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             return;
         }
 
+        if (selecting) {
+            releaseMouseCapture();
+        }
         inSelection = false;
+        selecting = false;
 
         // Pass to children
         super.onMouseDown(mouse);
@@ -332,10 +353,14 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     @Override
     public void onMouseUp(final TMouseEvent mouse) {
-        if (mouse.isMouse1() && inSelection) {
+        if (mouse.isMouse1() && selecting) {
+            // The selection drag is ending: release the capture and stop
+            // actively selecting.  The selection itself persists.
+            releaseMouseCapture();
+            selecting = false;
             int newLine = documentLineFor(mouse);
-            int newSelectionLine0 = Math.min(newLine,
-                document.getLineCount() - 1);
+            int newSelectionLine0 = Math.max(0, Math.min(newLine,
+                document.getLineCount() - 1));
             int newSelectionColumn0 = documentColumnFor(mouse);
             newSelectionColumn0 = Math.max(0, Math.min(newSelectionColumn0,
                     document.getLine(newSelectionLine0).getDisplayLength() - 1));
@@ -360,7 +385,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     @Override
     public void onMouseMotion(final TMouseEvent mouse) {
 
-        if (mouse.isMouse1() && (inSelection || mouseOnTextArea(mouse))) {
+        if (mouse.isMouse1() && (selecting || mouseOnTextArea(mouse))) {
             // Set the row and column.  When the mouse is dragged past the
             // left or top border the computed position can be negative: clamp
             // it to the beginning of the document so that the view keeps
@@ -370,10 +395,14 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             int newX = Math.max(0, documentColumnFor(mouse));
 
             // Selection.
-            if (inSelection) {
+            if (selecting) {
                 selectionColumn1 = newX;
                 selectionLine1 = newLine;
             } else {
+                // A drag that begins inside the text area starts a selection;
+                // own the mouse capture for the rest of the drag.
+                captureMouse();
+                selecting = true;
                 inSelection = true;
                 selectionColumn0 = newX;
                 selectionLine0 = newLine;
@@ -389,6 +418,15 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
 
         // Pass to children
         super.onMouseMotion(mouse);
+    }
+
+    /**
+     * Stop an active selection drag when the mouse capture is taken away (for
+     * example when this widget is disabled mid-drag).
+     */
+    @Override
+    protected void onCaptureLost() {
+        selecting = false;
     }
 
     /**
@@ -432,13 +470,13 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
                 || keypress.equals(kbEnd)
             ) {
                 // Non-shifted navigation keys disable selection.
-                inSelection = false;
+                clearSelectionState();
             }
             if ((selectionColumn0 == selectionColumn1)
                 && (selectionLine0 == selectionLine1)
             ) {
                 // The user clicked a spot and started typing.
-                inSelection = false;
+                clearSelectionState();
             }
         }
 
@@ -1455,7 +1493,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             saveUndo();
         }
 
-        inSelection = false;
+        clearSelectionState();
 
         int startCol = selectionColumn0;
         int startRow = selectionLine0;
@@ -1706,7 +1744,27 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      * Unset the selection.
      */
     public void unsetSelection() {
+        clearSelectionState();
+    }
+
+    /**
+     * Clear both the active-selection flag and the in-progress drag flag,
+     * releasing the mouse capture if a drag is still active.  All reset paths
+     * (keyboard navigation, editing commands, undo/redo) must go through this
+     * helper: clearing only {@link #inSelection} would leave a stale capture
+     * held by an in-progress drag, because once {@link #selecting} is cleared
+     * captured motion/release events no longer enter the selecting branch that
+     * would otherwise release the capture.
+     */
+    private void clearSelectionState() {
+        // If a drag is still active, release the capture first: once selecting
+        // is cleared, captured motion/release events no longer enter the
+        // selecting branch, so nothing else would release the stale capture.
+        if (selecting) {
+            releaseMouseCapture();
+        }
         inSelection = false;
+        selecting = false;
     }
 
     /**
@@ -1773,7 +1831,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         if (!isEditable()) {
             return;
         }
-        inSelection = false;
+        clearSelectionState();
         if ((undoListI >= 0) && (undoListI < undoList.size())) {
             SavedState state = undoList.get(undoListI);
             document = state.document.dup();
@@ -1792,7 +1850,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         if (!isEditable()) {
             return;
         }
-        inSelection = false;
+        clearSelectionState();
         if ((undoListI >= 0) && (undoListI < undoList.size())) {
             SavedState state = undoList.get(undoListI);
             document = state.document.dup();
