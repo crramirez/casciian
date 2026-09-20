@@ -332,6 +332,9 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             return;
         }
 
+        if (selecting) {
+            releaseMouseCapture();
+        }
         inSelection = false;
         selecting = false;
 

@@ -1654,6 +1654,12 @@ public class TApplication implements Runnable {
         if (widget == null) {
             return;
         }
+        if (mouseCapture == widget) {
+            return;
+        }
+        if (mouseCapture != null) {
+            mouseCapture.onCaptureLost();
+        }
         mouseCapture = widget;
     }
 
@@ -1747,7 +1753,10 @@ public class TApplication implements Runnable {
             return false;
         }
         if (!isMouseCaptureValid(capture)) {
-            mouseCapture = null;
+            capture.onCaptureLost();
+            if (mouseCapture == capture) {
+                mouseCapture = null;
+            }
             return false;
         }
 
@@ -3678,7 +3687,11 @@ public class TApplication implements Runnable {
             && ((mouseCapture == window)
                 || (mouseCapture.getWindow() == window))
         ) {
-            mouseCapture = null;
+            TWidget capture = mouseCapture;
+            capture.onCaptureLost();
+            if (mouseCapture == capture) {
+                mouseCapture = null;
+            }
         }
 
         // If the window has a close effect, kick that off.

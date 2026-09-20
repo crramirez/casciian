@@ -95,6 +95,33 @@ class TMouseCaptureTest {
         assertNull(app.getMouseCapture());
     }
 
+    @Test
+    void replacingCaptureClearsPreviousWidgetInteractionState() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        int[] countA = new int[1];
+        int[] countB = new int[1];
+        TButton a = new TButton(window, "A", 1, 1, counter(countA));
+        TButton b = new TButton(window, "B", 10, 1, counter(countB));
+
+        pressInside(a);
+        assertTrue(app.hasMouseCapture(a));
+
+        pressInside(b);
+        assertTrue(app.hasMouseCapture(b));
+        assertFalse(app.hasMouseCapture(a));
+
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            b.getAbsoluteX() + 1, b.getAbsoluteY(), true);
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            a.getAbsoluteX() + 1, a.getAbsoluteY(), true);
+
+        assertEquals(0, countA[0],
+            "the previous capturer must not keep a stale pressed state");
+        assertEquals(1, countB[0],
+            "the replacement capturer should still handle its own release");
+    }
+
     // ------------------------------------------------------------------------
     // Button semantics -------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -239,6 +266,22 @@ class TMouseCaptureTest {
             "a stray drag after release must not extend the selection");
     }
 
+    @Test
+    void clickingOutsideTextAreaReleasesTextCapture() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 12);
+        TText text = new TText(window, "hello world\nsecond line\nthird line",
+            1, 1, 20, 6);
+
+        mouseDown(text, 3, 0);
+        assertTrue(app.hasMouseCapture(text));
+
+        mouseDown(text, -1, -1);
+
+        assertNull(app.getMouseCapture(),
+            "clicking outside the text area must drop the active selection drag");
+    }
+
     // ------------------------------------------------------------------------
     // Split pane divider drag ------------------------------------------------
     // ------------------------------------------------------------------------
@@ -321,7 +364,8 @@ class TMouseCaptureTest {
     void removingCapturedWidgetClearsCapture() {
         TApplication app = new TApplication(new HeadlessBackend());
         TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
-        TButton a = new TButton(window, "A", 1, 1, doNothing());
+        int[] count = new int[1];
+        TButton a = new TButton(window, "A", 1, 1, counter(count));
 
         pressInside(a);
         assertTrue(app.hasMouseCapture(a));
@@ -329,6 +373,13 @@ class TMouseCaptureTest {
         window.remove(a);
 
         assertNull(app.getMouseCapture());
+
+        TWindow otherWindow = new TWindow(app, "other", 0, 12, 40, 10);
+        a.setParent(otherWindow, false);
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            a.getAbsoluteX() + 1, a.getAbsoluteY(), true);
+        assertEquals(0, count[0],
+            "removing a captured widget must clear its pressed state");
 
         // Subsequent mouse events must not throw or be routed anywhere.
         route(app, TMouseEvent.Type.MOUSE_MOTION, 5, 5, true);

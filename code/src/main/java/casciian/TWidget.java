@@ -861,6 +861,7 @@ public abstract class TWidget implements Comparable<TWidget> {
         if (application != null) {
             TWidget capture = application.getMouseCapture();
             if ((capture != null) && child.containsWidget(capture)) {
+                capture.onCaptureLost();
                 application.releaseMouseCapture(capture);
             }
         }
