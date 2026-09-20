@@ -1,0 +1,24 @@
+/*
+ * Multi-project settings for the Casciian Image Decoders add-on and its demo.
+ *
+ * The add-on (casciian-image-decoders) is publishable to Maven Central. Users
+ * can opt into it when they want extra pure-Java image decoders (BMP, XPM, and
+ * more to come) on top of the Sixel decoder shipped with the core library,
+ * without pulling in java.desktop.
+ *
+ * For local development we use a Gradle composite build that points at the
+ * sibling `code/` project, so changes to casciian itself are picked up without
+ * needing to publish a snapshot first.
+ */
+rootProject.name = 'code-image-decoders'
+
+include 'casciian-image-decoders'
+include 'demo'
+
+// Composite build: substitute io.github.crramirez:casciian with the sibling
+// casciian project so local builds work without publishing first.
+includeBuild('../code') {
+    dependencySubstitution {
+        substitute module('io.github.crramirez:casciian') using project(':')
+    }
+}
