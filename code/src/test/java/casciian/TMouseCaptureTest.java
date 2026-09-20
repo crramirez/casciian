@@ -122,6 +122,26 @@ class TMouseCaptureTest {
             "the replacement capturer should still handle its own release");
     }
 
+    @Test
+    void captureOwnershipRejectsForeignOrDetachedWidgets() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        TButton local = new TButton(window, "A", 1, 1, doNothing());
+
+        TApplication otherApp = new TApplication(new HeadlessBackend());
+        TWindow otherWindow = new TWindow(otherApp, "other", 0, 0, 40, 10);
+        TButton foreign = new TButton(otherWindow, "B", 1, 1, doNothing());
+
+        app.captureMouse(foreign);
+        assertNull(app.getMouseCapture(),
+            "foreign widgets must not become this application's capture owner");
+
+        window.remove(local);
+        app.captureMouse(local);
+        assertNull(app.getMouseCapture(),
+            "detached widgets must not become the capture owner");
+    }
+
     // ------------------------------------------------------------------------
     // Button semantics -------------------------------------------------------
     // ------------------------------------------------------------------------

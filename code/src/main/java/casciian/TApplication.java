@@ -1654,6 +1654,9 @@ public class TApplication implements Runnable {
         if (widget == null) {
             return;
         }
+        if ((widget.getApplication() != this) || !isMouseCaptureValid(widget)) {
+            return;
+        }
         if (mouseCapture == widget) {
             return;
         }
