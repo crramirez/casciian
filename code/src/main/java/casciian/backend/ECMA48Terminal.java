@@ -31,7 +31,6 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -239,7 +238,7 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * The backend that is reading from this terminal.
      */
-    private Backend backend;
+    private final Backend backend;
 
     /**
      * The session information.
@@ -247,9 +246,10 @@ public class ECMA48Terminal extends LogicalScreen
     private SessionInfo sessionInfo;
 
     /**
-     * The event queue, filled up by a thread reading on input.
+     * The event queue, filled up by a thread reading on input.  This is also
+     * the monitor guarding its own contents, so it must never be reassigned.
      */
-    private List<TInputEvent> eventQueue;
+    private final List<TInputEvent> eventQueue = new ArrayList<>();
 
     /**
      * If true, we want the reader thread to exit gracefully.
@@ -257,15 +257,15 @@ public class ECMA48Terminal extends LogicalScreen
     private volatile boolean stopReaderThread;
 
     /**
-     * The reader thread.
+     * The reader thread.  Assigned once by each root constructor.
      */
-    private Thread readerThread;
+    private final Thread readerThread;
 
     /**
      * Parameters being collected.  E.g. if the string is \033[1;3m, then
      * params[0] will be 1 and params[1] will be 3.
      */
-    private List<String> params;
+    private final List<String> params = new ArrayList<>();
 
     /**
      * Current parsing state.
@@ -527,7 +527,7 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * The string being built by XTVERSION.
      */
-    private StringBuilder xtversionResponse = new StringBuilder();
+    private final StringBuilder xtversionResponse = new StringBuilder();
 
     /**
      * The string returned by XTVERSION.
@@ -537,12 +537,12 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * The string being built by OSC.
      */
-    private StringBuilder oscResponse = new StringBuilder();
+    private final StringBuilder oscResponse = new StringBuilder();
 
     /**
      * Pasted text being collected.
      */
-    private StringBuilder pasteText = new StringBuilder();
+    private final StringBuilder pasteText = new StringBuilder();
 
     /**
      * If true, this terminal has the mouse/keyboard focus.  We default to
@@ -554,7 +554,8 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * If true, this terminal reported (via DECRPM) that it supports
      * Synchronized Output mode (2026).  See
-     * https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
+     * <a href="https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036">the
+     * Synchronized Output specification</a>
      * for details of this mode.  This only records the probe result: frame
      * wrapping is driven by {@link #synchronizedOutputEnabled}, because the
      * probe response can arrive after several frames have been emitted and
@@ -590,12 +591,12 @@ public class ECMA48Terminal extends LogicalScreen
     private long lastFlushTime;
 
     /**
-     * The bytes being written in this second.
+     * The bytes written so far in the second currently in progress.
      */
     private int bytesPerSecond;
 
     /**
-     * The bytes per second for the last second.
+     * The total bytes written during the last completed second.
      */
     private int lastBytesPerSecond;
 
@@ -655,12 +656,7 @@ public class ECMA48Terminal extends LogicalScreen
      * LRU cache for rendered image strings.
      * Uses LinkedHashMap with access-order for automatic LRU eviction.
      */
-    private class ImageCache {
-
-        /**
-         * Maximum size of the cache.
-         */
-        private final int maxSize;
+    private static class ImageCache {
 
         /**
          * The entries stored in the cache using LinkedHashMap for LRU ordering.
@@ -681,7 +677,6 @@ public class ECMA48Terminal extends LogicalScreen
          * @param maxSize the maximum size of the cache
          */
         public ImageCache(final int maxSize) {
-            this.maxSize = maxSize;
             // Create LinkedHashMap with access-order (accessOrder=true) and automatic eviction.
             // removeEldestEntry is called after insertion, so size() > maxSize means we just
             // exceeded the limit and need to evict the eldest entry.
@@ -728,24 +723,13 @@ public class ECMA48Terminal extends LogicalScreen
         public synchronized void put(final ArrayList<Cell> cells, final String data) {
             cache.put(makeKey(cells), data);
         }
-
-        /**
-         * Get the number of entries in the cache.
-         *
-         * @return the number of entries
-         */
-        public synchronized int size() {
-            return cache.size();
-        }
     }
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
 
-    /**
-     * Static constructor.
-     */
+    // Static constructor.
     static {
         setCGAColors();
     }
@@ -922,7 +906,6 @@ public class ECMA48Terminal extends LogicalScreen
         reloadOptions();
 
         // Spin up the input reader
-        eventQueue = new ArrayList<TInputEvent>();
         readerThread = new Thread(this);
         readerThread.start();
 
@@ -1065,7 +1048,6 @@ public class ECMA48Terminal extends LogicalScreen
         reloadOptions();
 
         // Spin up the input reader
-        eventQueue = new ArrayList<TInputEvent>();
         readerThread = new Thread(this);
         readerThread.start();
 
@@ -1199,11 +1181,13 @@ public class ECMA48Terminal extends LogicalScreen
                 writer.flush();
 
                 long now = System.currentTimeMillis();
-                if ((int) (now / 1000) == (int) (lastFlushTime / 1000)) {
+                if ((now / 1000) == (lastFlushTime / 1000)) {
                     bytesPerSecond += frameLength;
                 } else {
-                    lastBytesPerSecond = frameLength;
-                    bytesPerSecond = 0;
+                    // The second rolled over: publish what it accumulated and
+                    // start the new second with this frame.
+                    lastBytesPerSecond = bytesPerSecond;
+                    bytesPerSecond = frameLength;
                 }
                 lastFlushTime = now;
             }
@@ -1293,8 +1277,13 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Return any events in the IO queue.
      *
-     * @param queue list to append new events to
+     * @param queue list to append new events to.  Callers use this list as
+     *              its own monitor (see TApplication.primaryEventHandler()),
+     *              so it is locked here as well for the benefit of callers
+     *              that do not already hold it.  The lock is re-entrant for
+     *              those that do.
      */
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     public void getEvents(final List<TInputEvent> queue) {
         synchronized (eventQueue) {
             if (!eventQueue.isEmpty()) {
@@ -1319,8 +1308,10 @@ public class ECMA48Terminal extends LogicalScreen
             readerThread.join();
         } catch (InterruptedException e) {
             if (DEBUG_TO_STDERR) {
+                //noinspection CallToPrintStackTrace
                 e.printStackTrace();
             }
+            Thread.currentThread().interrupt();
         }
 
         // Pop the Kitty keyboard protocol flags before anything can close
@@ -1637,13 +1628,8 @@ public class ECMA48Terminal extends LogicalScreen
         // Default to HQ quantizer.
         sixelEncoder = new HQSixelEncoder();
 
-        if (System.getProperty("casciian.ECMA48.sixelFastAndDirty",
-            "false").equals("true")
-        ) {
-            sixelFastAndDirty = true;
-        } else {
-            sixelFastAndDirty = false;
-        }
+        sixelFastAndDirty = System.getProperty(
+            "casciian.ECMA48.sixelFastAndDirty", "false").equals("true");
         sixelEncoder.reloadOptions();
 
         // Request xterm use the sixel settings we want
@@ -1685,12 +1671,13 @@ public class ECMA48Terminal extends LogicalScreen
         // XTerm where it acts like "soft".
         String textBlinkStr = System.getProperty("casciian.ECMA48.textBlink",
             "auto").toLowerCase();
-        if (textBlinkStr.equals("off")) {
-            textBlinkOption = TextBlinkOption.OFF;
-        } else if (textBlinkStr.equals("hard")) {
-            textBlinkOption = TextBlinkOption.HARD;
-        } else if (textBlinkStr.equals("soft")) {
-            textBlinkOption = TextBlinkOption.SOFT;
+        switch (textBlinkStr) {
+            case "off" -> textBlinkOption = TextBlinkOption.OFF;
+            case "hard" -> textBlinkOption = TextBlinkOption.HARD;
+            case "soft" -> textBlinkOption = TextBlinkOption.SOFT;
+            default -> {
+                // "auto": leave the default in place.
+            }
         }
         // casciian.textBlink overrides all
         if (!SystemProperties.isTextBlink()) {
@@ -1721,6 +1708,55 @@ public class ECMA48Terminal extends LogicalScreen
     // ------------------------------------------------------------------------
 
     /**
+     * Hand a batch of freshly parsed events over to the backend thread and
+     * wake up the listener, then clear the batch.  Does nothing if the batch
+     * is empty.
+     *
+     * @param events the events parsed since the last publish
+     */
+    private void publishEvents(final List<TInputEvent> events) {
+        if (events.isEmpty()) {
+            return;
+        }
+
+        if (DEBUG_TO_STDERR) {
+            System.err.print("Checking eventQueue...");
+        }
+        synchronized (eventQueue) {
+            eventQueue.addAll(events);
+        }
+        if (DEBUG_TO_STDERR) {
+            System.err.print("done.\n");
+        }
+        events.clear();
+
+        wakeUpListener();
+    }
+
+    /**
+     * Wake up the listener that run() notifies on new input, if there is one.
+     */
+    private void wakeUpListener() {
+        // Read the volatile field once: setListener() can swap it out from
+        // under us, and locking one instance while notifying another would
+        // leave the waiter asleep.
+        final Object currentListener = listener;
+        if (currentListener == null) {
+            return;
+        }
+
+        if (DEBUG_TO_STDERR) {
+            System.err.print("Waking up listener...");
+        }
+        synchronized (currentListener) {
+            currentListener.notifyAll();
+        }
+        if (DEBUG_TO_STDERR) {
+            System.err.print("done.\n");
+        }
+    }
+
+    /**
      * Read function runs on a separate thread.
      */
     public void run() {
@@ -1728,16 +1764,14 @@ public class ECMA48Terminal extends LogicalScreen
         // available() will often return > 1, so we need to read in chunks to
         // stay caught up.
         char[] readBuffer = new char[128];
-        List<TInputEvent> events = new ArrayList<TInputEvent>();
-
-        //boolean debugToStderr = true;
+        List<TInputEvent> events = new ArrayList<>();
 
         while (!done && !stopReaderThread) {
             try {
                 // We assume that if inputStream has bytes available, then
                 // input won't block on read().
                 if (DEBUG_TO_STDERR) {
-                    System.err.printf("Looking for input...");
+                    System.err.print("Looking for input...");
                 }
 
                 int n = terminal.available();
@@ -1768,11 +1802,6 @@ public class ECMA48Terminal extends LogicalScreen
 
                     int rc = terminal.read(readBuffer, 0, readBuffer.length);
 
-                    /*
-                    System.err.printf("AFTER read() %d\n", rc);
-                    System.err.flush();
-                    */
-
                     if (rc == -1) {
                         if (DEBUG_TO_STDERR) {
                             System.err.println(" ---- EOF ----");
@@ -1788,75 +1817,23 @@ public class ECMA48Terminal extends LogicalScreen
                             }
                             System.err.printf("%d rc = %d INPUT: ",
                                 System.currentTimeMillis(), rc);
-                            System.err.println(sb.toString());
+                            System.err.println(sb);
                         }
                         for (int i = 0; i < rc; i++) {
                             int ch = readBuffer[i];
                             processChar(events, (char) ch);
                         }
                         getIdleEvents(events);
-                        if (!events.isEmpty()) {
-                            // Add to the queue for the backend thread to
-                            // be able to obtain.
-                            if (DEBUG_TO_STDERR) {
-                                System.err.printf("Checking eventQueue...");
-                            }
-
-                            synchronized (eventQueue) {
-                                eventQueue.addAll(events);
-                            }
-                            if (DEBUG_TO_STDERR) {
-                                System.err.printf("done.\n");
-                            }
-
-                            if (listener != null) {
-                                if (DEBUG_TO_STDERR) {
-                                    System.err.printf("Waking up listener...");
-                                }
-
-                                synchronized (listener) {
-                                    listener.notifyAll();
-                                }
-                                if (DEBUG_TO_STDERR) {
-                                    System.err.printf("done.\n");
-                                }
-
-                            }
-                            events.clear();
-                        }
+                        // Add to the queue for the backend thread to be able
+                        // to obtain.
+                        publishEvents(events);
                     }
                 } else {
                     if (DEBUG_TO_STDERR) {
                         System.err.println("Looking for idle events");
                     }
                     getIdleEvents(events);
-                    if (!events.isEmpty()) {
-                        if (DEBUG_TO_STDERR) {
-                            System.err.printf("Checking eventQueue...");
-                        }
-
-                        synchronized (eventQueue) {
-                            eventQueue.addAll(events);
-                        }
-                        if (DEBUG_TO_STDERR) {
-                            System.err.printf("done.\n");
-                        }
-
-                        if (listener != null) {
-                            if (DEBUG_TO_STDERR) {
-                                System.err.printf("Waking up listener...");
-                            }
-
-                            synchronized (listener) {
-                                listener.notifyAll();
-                            }
-                            if (DEBUG_TO_STDERR) {
-                                System.err.printf("done.\n");
-                            }
-
-                        }
-                        events.clear();
-                    }
+                    publishEvents(events);
 
                     synchronized (outputLock) {
                         PrintWriter writer = output;
@@ -1867,28 +1844,27 @@ public class ECMA48Terminal extends LogicalScreen
                     }
 
                     // Wait 20 millis for more data
+                    //noinspection BusyWait
                     Thread.sleep(20);
                 }
-                // System.err.println("end while loop"); System.err.flush();
             } catch (InterruptedException e) {
                 // SQUASH
             } catch (IOException e) {
-                e.printStackTrace();
+                // Never write to stderr unconditionally: the alternate screen
+                // buffer is active and a stack trace would corrupt it.
+                if (DEBUG_TO_STDERR) {
+                    //noinspection CallToPrintStackTrace
+                    e.printStackTrace();
+                }
                 done = true;
             }
-        } // while ((done == false) && (stopReaderThread == false))
+        } // while (!done && !stopReaderThread)
 
         // Pass an event up to TApplication to tell it this Backend is done.
         synchronized (eventQueue) {
             eventQueue.add(new TCommandEvent(backend, cmBackendDisconnect));
         }
-        if (listener != null) {
-            synchronized (listener) {
-                listener.notifyAll();
-            }
-        }
-
-        // System.err.println("*** run() exiting..."); System.err.flush();
+        wakeUpListener();
     }
 
     // ------------------------------------------------------------------------
@@ -2191,13 +2167,13 @@ public class ECMA48Terminal extends LogicalScreen
             if (!lCell.equals(pCell) || lCell.isPulse() || reallyCleared) {
 
                 if (DEBUG_TO_STDERR && reallyDebug) {
-                    System.err.printf("\n--\n");
+                    System.err.print("\n--\n");
                     System.err.printf(" Y: %d X: %d lastX %d textEnd %d\n",
                         y, x, lastX, textEnd);
                     System.err.printf("   lCell: %s\n", lCell);
                     System.err.printf("   pCell: %s\n", pCell);
                     System.err.printf("   lastAttr: %s\n", lastAttr);
-                    System.err.printf("    ====    \n");
+                    System.err.print("    ====    \n");
                 }
 
                 if (lastAttr == null) {
@@ -2216,8 +2192,6 @@ public class ECMA48Terminal extends LogicalScreen
                         sb.append(gotoXY(x, y));
                     }
                 }
-
-                assert (lastAttr != null);
 
                 if ((x == textEnd) && (textEnd < width - 1)) {
                     assert (lCell.isBlank());
@@ -2291,11 +2265,9 @@ public class ECMA48Terminal extends LogicalScreen
                     switch (lCellIntensity) {
                         case 1 -> attrSgr.append(";1");
                         case 2 -> attrSgr.append(";2");
-                        default -> {
-                            if (lastIntensity != 0) {
-                                attrSgr.append(";22");
-                            }
-                        }
+                        // lCellIntensity differs from lastIntensity and is 0,
+                        // so lastIntensity is non-zero and must be reset.
+                        default -> attrSgr.append(";22");
                     }
                 }
                 if (lCell.isItalic() != lastAttr.isItalic()) {
@@ -2343,7 +2315,7 @@ public class ECMA48Terminal extends LogicalScreen
                         attrSgr.append(";29");
                     }
                 }
-                if (attrSgr.length() > 0) {
+                if (!attrSgr.isEmpty()) {
                     if (DEBUG_TO_STDERR && reallyDebug) {
                         System.err.println("2 attr: " + attrSgr.substring(1));
                     }
@@ -2448,7 +2420,6 @@ public class ECMA48Terminal extends LogicalScreen
                     && ((lCell.getBackColorRGB() != lastAttr.getBackColorRGB())
                     || (lastAttr.getBackColorRGB() < 0))
                 ) {
-                    //noinspection ConstantValue
                     if (DEBUG_TO_STDERR && reallyDebug) {
                         System.err.println("5 set backColorRGB");
                     }
@@ -2459,14 +2430,12 @@ public class ECMA48Terminal extends LogicalScreen
                         != lastAttr.getBackColorPalette())
                     || (lastAttr.getBackColorPalette() < 0))
                 ) {
-                    //noinspection ConstantValue
                     if (DEBUG_TO_STDERR && reallyDebug) {
                         System.err.println("5p set backColorPalette");
                     }
                     sb.append(colorPalette(lCell.getBackColorPalette(), false));
                 } else if (lCell.isDefaultColor(false)) {
                     if (!lastAttr.isDefaultColor(false)) {
-                        //noinspection ConstantValue
                         if (DEBUG_TO_STDERR && reallyDebug) {
                             System.err.println("5b set DEFAULT backColor");
                         }
@@ -2532,14 +2501,166 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Receiver for the horizontal runs of image cells discovered by
+     * {@link #forEachImageRun}.
+     */
+    private interface ImageRunConsumer {
+
+        /**
+         * Handle one run of adjacent image cells on a single row.
+         *
+         * @param x     column coordinate of the left-most cell in the run
+         * @param y     row coordinate of the run
+         * @param cells the cells in the run, freshly allocated for this call
+         */
+        void accept(int x, int y, ArrayList<Cell> cells);
+    }
+
+    /**
+     * Find every horizontal run of image cells on the logical screen that
+     * differs from the physical screen, updating the physical screen as it
+     * goes, and hand each run to consumer.  This is the shared scan behind
+     * both the single- and multi-threaded image flush paths.
+     *
+     * @param consumer the receiver for each run found
+     */
+    private void forEachImageRun(final ImageRunConsumer consumer) {
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (!logical[x][y].isImage()) {
+                    continue;
+                }
+
+                int right = x;
+                // This little loop is a *HUGE* bottleneck for image cells
+                // when imageId is not set.  Higher layers of code should
+                // always aim to set imageId before putting it on the screen.
+                while ((right < width)
+                    && (logical[right][y].isImage())
+                    && (!logical[right][y].equals(physical[right][y])
+                    || reallyCleared)
+                ) {
+                    right++;
+                }
+
+                ArrayList<Cell> cellsToDraw = new ArrayList<>(right - x);
+                for (int i = 0; i < (right - x); i++) {
+                    cellsToDraw.add(logical[x + i][y]);
+
+                    // Physical is always updated.
+                    physical[x + i][y].setTo(logical[x + i][y]);
+                }
+                if (!cellsToDraw.isEmpty()) {
+                    ensureImageCache();
+                    consumer.accept(x, y, cellsToDraw);
+                }
+
+                x = right;
+            }
+        }
+    }
+
+    /**
+     * Create the cache for whichever image encoding is currently active, if
+     * it has not been created yet.
+     */
+    private void ensureImageCache() {
+        if (jexerImageOption != JexerImageOption.DISABLED) {
+            if (jexerCache == null) {
+                jexerCache = new ImageCache(height * width * 10);
+            }
+        } else if (sixel) {
+            if (sixelCache == null) {
+                sixelCache = new ImageCache(height * width * 10);
+            }
+        } else {
+            if (unicodeGlyphCache == null) {
+                unicodeGlyphCache = new ImageCache(height * width);
+            }
+        }
+    }
+
+    /**
+     * Encode a run of image cells using whichever image encoding is currently
+     * active.
+     *
+     * @param x     column coordinate of the left-most cell in the run
+     * @param y     row coordinate of the run
+     * @param cells the cells in the run
+     * @return the string to emit to the terminal
+     */
+    private String encodeImage(final int x, final int y,
+        final ArrayList<Cell> cells) {
+
+        if (jexerImageOption != JexerImageOption.DISABLED) {
+            return toJexerImage(x, y, cells);
+        }
+        if (sixel) {
+            return toSixel(x, y, cells);
+        }
+        return toPseudoImage(x, y, cells);
+    }
+
+    /**
+     * Encode all of the image runs on the screen on virtual threads and
+     * append the results to sb.
+     * <p>
+     * Image encoding is expensive, especially when the image is not in cache.
+     * Since each encoded image carries its own gotoxy(), it does not matter
+     * in what order they are delivered to the terminal, so they are sorted
+     * for a stable frame instead.
+     * <p>
+     * Multi-threaded image encoding is experimental and likely broken.
+     *
+     * @param sb StringBuilder to write the encoded images to
+     */
+    private void flushImagesThreaded(final StringBuilder sb) {
+        // Virtual threads are unbounded, so imageThreadCount is enforced with
+        // a semaphore that limits how many encodings run at the same time.
+        final Semaphore imagePermits = new Semaphore(imageThreadCount);
+        final List<Future<String>> imageResults = new ArrayList<>();
+
+        try (ExecutorService imageExecutor =
+                 Executors.newVirtualThreadPerTaskExecutor()
+        ) {
+            forEachImageRun((x, y, cells) ->
+                imageResults.add(imageExecutor.submit(() -> {
+                    imagePermits.acquire();
+                    try {
+                        return encodeImage(x, y, cells);
+                    } finally {
+                        imagePermits.release();
+                    }
+                })));
+
+            // Collect all the encoded images.
+            List<String> threadedImages =
+                new ArrayList<>(imageResults.size());
+            for (Future<String> image : imageResults) {
+                try {
+                    threadedImages.add(image.get());
+                } catch (ExecutionException e) {
+                    // SQUASH
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+
+            Collections.sort(threadedImages);
+            for (String imageString : threadedImages) {
+                sb.append(imageString);
+            }
+        }
+    }
+
+    /**
      * Render the screen to a string that can be emitted to something that
      * knows how to process ECMA-48/ANSI X3.64 escape sequences.
      *
      * @param sb StringBuilder to write escape sequences to
      */
     private void flushString(final StringBuilder sb) {
-        final boolean reallyDebug = false;
-
         CellAttributes attr = null;
 
         if (reallyCleared) {
@@ -2550,11 +2671,7 @@ public class ECMA48Terminal extends LogicalScreen
         /*
          * For images support, draw all of the image output first, and
          * then draw all the text afterwards.
-         *
-         * We are deliberately using a font that is four pixels smaller than
-         * the cell height.
          */
-        int glyphFontSize = Math.max(4, getTextHeight() - 4);
         for (int y = 0; y < height; y++) {
             boolean unsetRow = false;
             boolean eraseImagesOnRow = false;
@@ -2587,7 +2704,7 @@ public class ECMA48Terminal extends LogicalScreen
                 if ((blankImageRow == null)
                     || (blankImageRow.size() < width)
                 ) {
-                    blankImageRow = new ArrayList<Cell>(width);
+                    blankImageRow = new ArrayList<>(width);
                     Cell blank = new Cell();
                     ImageRGB newImage = new ArrayImageRGB(textWidthPixels,
                         textHeightPixels);
@@ -2598,136 +2715,15 @@ public class ECMA48Terminal extends LogicalScreen
                         blankImageRow.add(new Cell(blank));
                     }
                 }
-                if (jexerImageOption != JexerImageOption.DISABLED) {
-                    sb.append(toJexerImage(0, y, blankImageRow));
-                } else if (sixel) {
-                    sb.append(toSixel(0, y, blankImageRow));
-                } else {
-                    sb.append(toPseudoImage(0, y, blankImageRow));
-                }
+                sb.append(encodeImage(0, y, blankImageRow));
             }
 
         } //for (int y = 0; y < height; y++) {
 
-        /*
-         * Image encoding is expensive, especially when the image is not in
-         * cache.  We multithread it.  Since each image contains its own
-         * gotoxy(), it doesn't matter in what order they are delivered to
-         * the terminal.
-         */
-        ExecutorService imageExecutor = null;
-        List<Future<String>> imageResults = null;
-        // Virtual threads are unbounded, so imageThreadCount is enforced with
-        // a semaphore that limits how many encodings run at the same time.
-        final Semaphore imagePermits = (imageThreadCount > 1 ?
-            new Semaphore(imageThreadCount) : null);
-
         if (imageThreadCount > 1) {
-            imageExecutor = Executors.newVirtualThreadPerTaskExecutor();
-            imageResults = new ArrayList<Future<String>>();
-        }
-
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                ComplexCell lCell = logical[x][y];
-                ComplexCell pCell = physical[x][y];
-
-                if (!lCell.isImage()) {
-                    continue;
-                }
-
-                int right = x;
-                // This little loop is a *HUGE* bottleneck for image cells
-                // when imageId is not set.  Higher layers of code should
-                // always aim to set imageId before putting it on the screen.
-                while ((right < width)
-                    && (logical[right][y].isImage())
-                    && (!logical[right][y].equals(physical[right][y])
-                    || reallyCleared)
-                ) {
-                    right++;
-                }
-
-                ArrayList<Cell> cellsToDraw = new ArrayList<Cell>();
-                for (int i = 0; i < (right - x); i++) {
-                    cellsToDraw.add(logical[x + i][y]);
-
-                    // Physical is always updated.
-                    physical[x + i][y].setTo(logical[x + i][y]);
-                }
-                if (!cellsToDraw.isEmpty()) {
-                    if (jexerImageOption != JexerImageOption.DISABLED) {
-                        if (jexerCache == null) {
-                            jexerCache = new ImageCache(height * width * 10);
-                        }
-                    } else if (sixel) {
-                        if (sixelCache == null) {
-                            sixelCache = new ImageCache(height * width * 10);
-                        }
-                    } else {
-                        if (unicodeGlyphCache == null) {
-                            unicodeGlyphCache = new ImageCache(height * width);
-                        }
-                    }
-
-                    if (imageThreadCount == 1) {
-                        // Single-threaded
-                        if (jexerImageOption != JexerImageOption.DISABLED) {
-                            sb.append(toJexerImage(x, y, cellsToDraw));
-                        } else if (sixel) {
-                            sb.append(toSixel(x, y, cellsToDraw));
-                        } else {
-                            sb.append(toPseudoImage(x, y, cellsToDraw));
-                        }
-                    } else {
-                        // Multi-threaded: experimental and likely borken
-                        final int callX = x;
-                        final int callY = y;
-
-                        // Make a deep copy of the cells to render.
-                        final ArrayList<Cell> callCells;
-                        callCells = new ArrayList<Cell>(cellsToDraw);
-                        imageResults.add(imageExecutor.submit(new Callable<String>() {
-                            @Override
-                            public String call() throws InterruptedException {
-                                imagePermits.acquire();
-                                try {
-                                    if (jexerImageOption != JexerImageOption.DISABLED) {
-                                        return toJexerImage(callX, callY, callCells);
-                                    } else if (sixel) {
-                                        return toSixel(callX, callY, callCells);
-                                    } else {
-                                        return toPseudoImage(callX, callY, callCells);
-                                    }
-                                } finally {
-                                    imagePermits.release();
-                                }
-                            }
-                        }));
-                    }
-                }
-
-                x = right;
-            }
-        }
-
-        if (imageThreadCount > 1) {
-            List<String> threadedImages = new ArrayList<>(imageResults.size());
-            // Collect all the encoded images.
-            while (!imageResults.isEmpty()) {
-                Future<String> image = imageResults.removeFirst();
-                try {
-                    threadedImages.add(image.get());
-                } catch (InterruptedException | ExecutionException e) {
-                    // SQUASH
-                }
-            }
-            imageExecutor.shutdown();
-
-            Collections.sort(threadedImages);
-            for (String imageString : threadedImages) {
-                sb.append(imageString);
-            }
+            flushImagesThreaded(sb);
+        } else {
+            forEachImageRun((x, y, cells) -> sb.append(encodeImage(x, y, cells)));
         }
 
         // Draw the text part now.
@@ -2856,7 +2852,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @param mouseStyle the pointer style string, one of: "default", "none",
      *                   "hand", "text", "move", or "crosshair"
      */
-    public void setMouseStyle(final String mouseStyle) {
+    public void setMouseStyle(@SuppressWarnings("unused") final String mouseStyle) {
         // TODO: For now disregard this.  OSC 22 came out with XTerm 367
         // which can select X11 cursors/pointers, but mintty implemented it
         // against Win32 cursors/pointers.  And neither bothered to implement
@@ -2864,11 +2860,19 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Append a character to the parameter currently being collected.
+     *
+     * @param ch the character to append
+     */
+    private void appendToLastParam(final char ch) {
+        params.set(params.size() - 1, params.getLast() + ch);
+    }
+
+    /**
      * Reset keyboard/mouse input parser.
      */
     private void resetParser() {
         state = ParseState.GROUND;
-        params = new ArrayList<String>();
         params.clear();
         params.add("");
         decPrivateModeFlag = false;
@@ -3017,7 +3021,8 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Produce mouse events based on "Any event tracking" and UTF-8
      * coordinates.  See
-     * http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
+     * <a href="http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking">XTerm
+     * Control Sequences: Mouse Tracking</a>
      *
      * @return a MOUSE_MOTION, MOUSE_UP, or MOUSE_DOWN event
      */
@@ -3164,7 +3169,8 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Produce mouse events based on "Any event tracking" and SGR
      * coordinates.  See
-     * http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
+     * <a href="http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking">XTerm
+     * Control Sequences: Mouse Tracking</a>
      *
      * @param release if true, this was a release ('m')
      * @return a MOUSE_MOTION, MOUSE_UP, or MOUSE_DOWN event
@@ -3894,8 +3900,7 @@ public class ECMA48Terminal extends LogicalScreen
             case CSI_ENTRY:
                 // Numbers - parameter values
                 if ((ch >= '0') && (ch <= '9')) {
-                    params.set(params.size() - 1,
-                        params.get(params.size() - 1) + ch);
+                    appendToLastParam(ch);
                     state = ParseState.CSI_PARAM;
                     return;
                 }
@@ -3966,8 +3971,7 @@ public class ECMA48Terminal extends LogicalScreen
             case MOUSE_SGR:
                 // Numbers - parameter values
                 if ((ch >= '0') && (ch <= '9')) {
-                    params.set(params.size() - 1,
-                        params.get(params.size() - 1) + ch);
+                    appendToLastParam(ch);
                     return;
                 }
                 // Parameter separator
@@ -3976,36 +3980,21 @@ public class ECMA48Terminal extends LogicalScreen
                     return;
                 }
 
-                switch (ch) {
-                    case 'M':
-                        // Generate a mouse press event
-                        TInputEvent event = parseMouseSGR(false);
-                        if (event != null) {
-                            events.add(event);
-                        }
-                        resetParser();
-                        return;
-                    case 'm':
-                        // Generate a mouse release event
-                        event = parseMouseSGR(true);
-                        if (event != null) {
-                            events.add(event);
-                        }
-                        resetParser();
-                        return;
-                    default:
-                        break;
+                // 'M' generates a mouse press event, 'm' a release event.
+                // Anything else is an unknown keystroke, ignored.
+                if ((ch == 'M') || (ch == 'm')) {
+                    TInputEvent event = parseMouseSGR(ch == 'm');
+                    if (event != null) {
+                        events.add(event);
+                    }
                 }
-
-                // Unknown keystroke, ignore
                 resetParser();
                 return;
 
             case CSI_PARAM:
                 // Numbers - parameter values
                 if ((ch >= '0') && (ch <= '9')) {
-                    params.set(params.size() - 1,
-                        params.get(params.size() - 1) + ch);
+                    appendToLastParam(ch);
                     state = ParseState.CSI_PARAM;
                     return;
                 }
@@ -4018,8 +4007,7 @@ public class ECMA48Terminal extends LogicalScreen
                 // these for alternate key codes and event types; keep them
                 // attached to the parameter they qualify.
                 if (ch == ':') {
-                    params.set(params.size() - 1,
-                        params.get(params.size() - 1) + ch);
+                    appendToLastParam(ch);
                     return;
                 }
 
@@ -4149,8 +4137,8 @@ public class ECMA48Terminal extends LogicalScreen
                                 && (!params.get(1).equals("0"))
                             ) {
                                 if (DEBUG_TO_STDERR) {
-                                    System.err.printf("Graphics query error: " +
-                                        params);
+                                    System.err.println("Graphics query error: "
+                                        + params);
                                 }
                                 break;
                             }
@@ -4162,9 +4150,8 @@ public class ECMA48Terminal extends LogicalScreen
                                         params.get(1), params.get(2));
                                 }
                                 if (params.getFirst().equals("1")) {
-                                    int registers = sixelEncoder.getPaletteSize();
                                     try {
-                                        registers = Integer.parseInt(params.get(2));
+                                        int registers = Integer.parseInt(params.get(2));
                                         if (DEBUG_TO_STDERR) {
                                             System.err.println("Terminal reports " +
                                                 registers + " sixel colors, current " +
@@ -4189,6 +4176,7 @@ public class ECMA48Terminal extends LogicalScreen
                                         }
                                     } catch (NumberFormatException e) {
                                         if (DEBUG_TO_STDERR) {
+                                            //noinspection CallToPrintStackTrace
                                             e.printStackTrace();
                                         }
                                     }
@@ -4293,6 +4281,7 @@ public class ECMA48Terminal extends LogicalScreen
                                     heightPixels = Integer.parseInt(params.get(1));
                                 } catch (NumberFormatException e) {
                                     if (DEBUG_TO_STDERR) {
+                                        //noinspection CallToPrintStackTrace
                                         e.printStackTrace();
                                     }
                                 }
@@ -4333,6 +4322,7 @@ public class ECMA48Terminal extends LogicalScreen
                                     textHeightPixels = Integer.parseInt(params.get(1));
                                 } catch (NumberFormatException e) {
                                     if (DEBUG_TO_STDERR) {
+                                        //noinspection CallToPrintStackTrace
                                         e.printStackTrace();
                                     }
                                 }
@@ -4352,8 +4342,7 @@ public class ECMA48Terminal extends LogicalScreen
 
                                 // Since the terminal supports CSI 18 t, stop
                                 // spawning stty.
-                                if (sessionInfo instanceof TTYSessionInfo) {
-                                    TTYSessionInfo tty = (TTYSessionInfo) sessionInfo;
+                                if (sessionInfo instanceof TTYSessionInfo tty) {
                                     tty.windowSizeQuery = this::sendWindowSizeQuery;
                                     tty.lastFallbackQueryTime = System.currentTimeMillis();
 
@@ -4364,6 +4353,7 @@ public class ECMA48Terminal extends LogicalScreen
                                         newHeight = Integer.parseInt(params.get(1));
                                     } catch (NumberFormatException e) {
                                         if (DEBUG_TO_STDERR) {
+                                            //noinspection CallToPrintStackTrace
                                             e.printStackTrace();
                                         }
                                     }
@@ -4386,11 +4376,7 @@ public class ECMA48Terminal extends LogicalScreen
                                         synchronized (eventQueue) {
                                             eventQueue.add(event);
                                         }
-                                        if (listener != null) {
-                                            synchronized (listener) {
-                                                listener.notifyAll();
-                                            }
-                                        }
+                                        wakeUpListener();
                                     }
                                 }
                             }
@@ -4443,8 +4429,8 @@ public class ECMA48Terminal extends LogicalScreen
                 return;
 
             case MOUSE:
-                params.set(0, params.get(params.size() - 1) + ch);
-                if (params.get(0).length() == 3) {
+                appendToLastParam(ch);
+                if (params.getFirst().length() == 3) {
                     // We have enough to generate a mouse event
                     events.add(parseMouse());
                     resetParser();
@@ -4470,7 +4456,7 @@ public class ECMA48Terminal extends LogicalScreen
 
             case OSC:
                 if ((ch == '\\') &&
-                    (oscResponse.length() > 0) &&
+                    (!oscResponse.isEmpty()) &&
                     (oscResponse.charAt(oscResponse.length() - 1)
                         == 0x1B)
                 ) {
@@ -4511,7 +4497,6 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         // This "should" be impossible to reach
-        return;
     }
 
     /**
@@ -4534,19 +4519,6 @@ public class ECMA48Terminal extends LogicalScreen
         } else {
             return "\033[?1070h\033[?1;1;0S\033[?8452h";
         }
-    }
-
-    /**
-     * Restore (u)xterm its default sixel settings:
-     * <p>
-     * - enable sixel scrolling
-     * <p>
-     * - enable private color registers
-     *
-     * @return the string to emit to xterm
-     */
-    private String xtermResetSixelSettings() {
-        return "\033[?1070h";
     }
 
     /**
@@ -4592,7 +4564,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @param on if true, enable metaSendsEscape
      * @return the string to emit to xterm
      */
-    private String xtermMetaSendsEscape(final boolean on) {
+    private String xtermMetaSendsEscape(@SuppressWarnings("SameParameterValue") final boolean on) {
         if (on) {
             return "\033[?1036h\033[?1034l";
         }
@@ -4790,6 +4762,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @return true if all sixel output is using the same palette that is set
      * in one DCS sequence and used in later sequences
      */
+    @SuppressWarnings("unused")
     public boolean hasSixelSharedPalette() {
         return sixelEncoder.hasSharedPalette();
     }
@@ -4814,6 +4787,7 @@ public class ECMA48Terminal extends LogicalScreen
      *
      * @return the palette size
      */
+    @SuppressWarnings("unused")
     public int getSixelPaletteSize() {
         return sixelEncoder.getPaletteSize();
     }
@@ -4890,7 +4864,7 @@ public class ECMA48Terminal extends LogicalScreen
         if (!sixel) {
             sb.append(normal());
             sb.append(gotoXY(x, y));
-            sb.append(" ".repeat(cells.size()));
+            sb.repeat(' ', cells.size());
             return sb.toString();
         }
 
@@ -4910,9 +4884,7 @@ public class ECMA48Terminal extends LogicalScreen
                 // instead.
                 sb.append(normal());
                 sb.append(gotoXY(x, y));
-                for (int j = 0; j < cells.size(); j++) {
-                    sb.append(' ');
-                }
+                sb.repeat(' ', cells.size());
                 return sb.toString();
             }
         }
@@ -4933,6 +4905,7 @@ public class ECMA48Terminal extends LogicalScreen
                 }
                 // Compute the hashcode so that the cell image hash is
                 // available for looking up in the image cache.
+                //noinspection ResultOfMethodCallIgnored
                 cell.hashCode();
             }
 
@@ -4957,13 +4930,10 @@ public class ECMA48Terminal extends LogicalScreen
         if ((sixelEncoder instanceof HQSixelEncoder)
             && (sixelEncoder.getPaletteSize() > 64)
         ) {
+            //noinspection MathClampMigration
             maxChunkLength = Math.max(8 * getTextWidth(),
                 Math.min(maxChunkLength,
                     sixelEncoder.getPaletteSize() * 10 / getTextHeight()));
-            /*
-            System.err.printf("maxChunkLength: %d cache used size %d\n",
-                maxChunkLength, cache != null ? cache.size() : 0);
-             */
         }
         if (cells.size() * getTextWidth() > maxChunkLength) {
             StringBuilder chunkSb = new StringBuilder();
@@ -4973,7 +4943,7 @@ public class ECMA48Terminal extends LogicalScreen
             int chunkX = x;
             ArrayList<Cell> chunk;
             while (remaining > 0) {
-                chunk = new ArrayList<Cell>(cells.subList(chunkStart,
+                chunk = new ArrayList<>(cells.subList(chunkStart,
                     chunkStart + Math.min(chunkSize, remaining)));
                 chunkSb.append(toSixel(chunkX, y, chunk));
                 chunkStart += chunkSize;
@@ -5017,9 +4987,7 @@ public class ECMA48Terminal extends LogicalScreen
             // There is no point, xterm will not display this image.
             sb.append(normal());
             sb.append(gotoXY(x, y));
-            for (int i = 0; i < cells.size(); i++) {
-                sb.append(' ');
-            }
+            sb.repeat(' ', cells.size());
             return;
         }
 
@@ -5043,6 +5011,7 @@ public class ECMA48Terminal extends LogicalScreen
      *
      * @return true if this terminal is emitting sixel
      */
+    @SuppressWarnings("unused")
     public boolean hasSixel() {
         return sixel;
     }
@@ -5092,7 +5061,7 @@ public class ECMA48Terminal extends LogicalScreen
         }
         totalWidth -= ((cells.size() - 1) * tileWidth);
         try {
-            rgbArray = cells.get(cells.size() - 1).getImage().getRGB(0, 0,
+            rgbArray = cells.getLast().getImage().getRGB(0, 0,
                 totalWidth, tileHeight, null, 0, totalWidth);
         } catch (Exception e) {
             // TODO: Both of these setRGB cases are failing sometimes in
@@ -5159,7 +5128,7 @@ public class ECMA48Terminal extends LogicalScreen
         if (jexerImageOption == JexerImageOption.DISABLED) {
             sb.append(normal());
             sb.append(sortableGotoXY(x, y));
-            sb.append(" ".repeat(cells.size()));
+            sb.repeat(' ', cells.size());
             return sb.toString();
         }
 
@@ -5176,6 +5145,7 @@ public class ECMA48Terminal extends LogicalScreen
             }
             // Compute the hashcode so that the cell image hash is available
             // for looking up in the image cache.
+            //noinspection ResultOfMethodCallIgnored
             cell.hashCode();
         }
         if (saveInCache && cache != null) {
@@ -5216,7 +5186,7 @@ public class ECMA48Terminal extends LogicalScreen
             cache.put(cells, sb.toString());
         }
 
-        return (gotoXY(x, y) + sb.toString());
+        return (gotoXY(x, y) + sb);
     }
 
     // ------------------------------------------------------------------------
@@ -5374,13 +5344,11 @@ public class ECMA48Terminal extends LogicalScreen
         if (rgb.startsWith("#")) {
             rgb = rgb.substring(1);
         }
-        int rgbInt = 0;
         try {
-            rgbInt = Integer.parseInt(rgb, 16);
+            return Integer.parseInt(rgb, 16);
         } catch (NumberFormatException e) {
             return defaultColor;
         }
-        return rgbInt;
     }
 
     /**
@@ -5605,8 +5573,9 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the string to emit to an ANSI/ECMA-style terminal,
      * e.g. "\033[38;5;Nm"
      */
+    @SuppressWarnings("SameParameterValue")
     private String forcedPaletteColor(final boolean bold, final Color color,
-                            final boolean foreground) {
+                                      final boolean foreground) {
         return colorPalette(Palette256.fromRgb(getPaletteColor(color, bold)), foreground);
     }
 
@@ -5692,6 +5661,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[42m"
      */
+    @SuppressWarnings("SameParameterValue")
     private String color(final Color color, final boolean foreground,
                          final boolean header) {
 
@@ -5820,7 +5790,7 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the string to emit to an ANSI / ECMA-style terminal,
      * e.g. "\033[0m"
      */
-    private String normal(final boolean header) {
+    private String normal(@SuppressWarnings("SameParameterValue") final boolean header) {
         if (header) {
             return "\033[0;37;40m";
         }
