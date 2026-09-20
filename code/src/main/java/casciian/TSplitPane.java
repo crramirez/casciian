@@ -215,6 +215,15 @@ public class TSplitPane extends TWidget {
         super.onMouseMotion(mouse);
     }
 
+    /**
+     * Stop moving the split divider when the mouse capture is taken away (for
+     * example when this widget is disabled mid-drag).
+     */
+    @Override
+    protected void onCaptureLost() {
+        inSplitMove = false;
+    }
+
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------

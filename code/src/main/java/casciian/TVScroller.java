@@ -92,13 +92,17 @@ public class TVScroller extends TWidget {
      */
     @Override
     public void onMouseUp(final TMouseEvent mouse) {
-        if (bottomValue == topValue) {
-            return;
-        }
-
+        // Handle an in-progress thumb drag before the equal-range early
+        // return: if the range collapsed while the thumb was held, we still
+        // must clear inScroll and release the capture, otherwise this
+        // scrollbar stays captured and swallows later events.
         if (inScroll) {
             inScroll = false;
             releaseMouseCapture();
+            return;
+        }
+
+        if (bottomValue == topValue) {
             return;
         }
 
@@ -196,7 +200,8 @@ public class TVScroller extends TWidget {
             return;
         }
 
-        if ((mouse.getX() == 0)
+        if ((mouse.isMouse1())
+            && (mouse.getX() == 0)
             && (mouse.getY() == boxPosition())
         ) {
             inScroll = true;
@@ -208,6 +213,15 @@ public class TVScroller extends TWidget {
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Stop an in-progress thumb drag when the mouse capture is taken away (for
+     * example when this scrollbar is disabled mid-drag).
+     */
+    @Override
+    protected void onCaptureLost() {
+        inScroll = false;
+    }
 
     /**
      * Draw a vertical scroll bar.

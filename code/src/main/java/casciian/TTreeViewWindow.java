@@ -170,6 +170,18 @@ public class TTreeViewWindow extends TScrollableWindow {
     }
 
     /**
+     * Handle a captured scrollbar thumb drag.  While a scrollbar owns the
+     * mouse capture this window's mouse handlers are bypassed, so sync the
+     * tree view from the scrollbar values here.
+     */
+    @Override
+    protected void onScrollerChange() {
+        treeView.setTopLine(getVerticalValue());
+        treeView.setLeftColumn(getHorizontalValue());
+        reflowData();
+    }
+
+    /**
      * Handle keystrokes.
      *
      * @param keypress keystroke event

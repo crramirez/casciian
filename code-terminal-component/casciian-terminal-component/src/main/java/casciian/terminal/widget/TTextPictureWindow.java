@@ -194,6 +194,17 @@ public class TTextPictureWindow extends TScrollableWindow {
     }
 
     /**
+     * Handle a captured scrollbar thumb drag.  While a scrollbar owns the
+     * mouse capture this window's mouse handlers are bypassed, so sync the
+     * picture view from the scrollbar values here.
+     */
+    @Override
+    protected void onScrollerChange() {
+        pictureField.setVerticalValue(getVerticalValue());
+        pictureField.setHorizontalValue(getHorizontalValue());
+    }
+
+    /**
      * Handle window/screen resize events.
      *
      * @param event resize event

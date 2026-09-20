@@ -402,6 +402,18 @@ public class TTerminalWindow extends TScrollableWindow {
     }
 
     /**
+     * Handle a captured scrollbar thumb drag.  While a scrollbar owns the
+     * mouse capture this window's mouse handlers are bypassed, so sync the
+     * terminal from the scrollbar value here.
+     */
+    @Override
+    protected void onScrollerChange() {
+        if (terminal != null) {
+            terminal.setVerticalValue(getVerticalValue());
+        }
+    }
+
+    /**
      * Get this window's help topic to load.
      *
      * @return the topic name

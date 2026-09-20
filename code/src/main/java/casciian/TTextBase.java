@@ -414,6 +414,15 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     }
 
     /**
+     * Stop an active selection drag when the mouse capture is taken away (for
+     * example when this widget is disabled mid-drag).
+     */
+    @Override
+    protected void onCaptureLost() {
+        selecting = false;
+    }
+
+    /**
      * Handle keystrokes.
      *
      * @param keypress keystroke event
@@ -1728,6 +1737,12 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      * Unset the selection.
      */
     public void unsetSelection() {
+        // If a drag is still active, release the capture first: once selecting
+        // is cleared, captured motion/release events no longer enter the
+        // selecting branch, so nothing else would release the stale capture.
+        if (selecting) {
+            releaseMouseCapture();
+        }
         inSelection = false;
         selecting = false;
     }

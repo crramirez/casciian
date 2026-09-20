@@ -436,9 +436,24 @@ public class TButton extends TWidget {
     public void dispatch() {
         if (action != null) {
             action.DO(this);
-            mousePressed = false;
-            mouseArmed = false;
         }
+        // dispatch() also fires on Enter/Space, so it can run while a mouse
+        // press still owns the application capture.  Reset the press state and
+        // release the capture unconditionally so no later motion/up event stays
+        // routed to a button that no longer considers the press active.
+        mousePressed = false;
+        mouseArmed = false;
+        releaseMouseCapture();
+    }
+
+    /**
+     * Reset the button press state when the mouse capture is taken away (for
+     * example when the button is disabled mid-press).
+     */
+    @Override
+    protected void onCaptureLost() {
+        mousePressed = false;
+        mouseArmed = false;
     }
 
     /**

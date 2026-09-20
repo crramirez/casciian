@@ -199,7 +199,8 @@ public class THScroller extends TWidget {
             return;
         }
 
-        if ((mouse.getY() == 0)
+        if ((mouse.isMouse1())
+            && (mouse.getY() == 0)
             && (mouse.getX() == boxPosition())
         ) {
             inScroll = true;
@@ -212,6 +213,15 @@ public class THScroller extends TWidget {
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Stop an in-progress thumb drag when the mouse capture is taken away (for
+     * example when this scrollbar is disabled mid-drag).
+     */
+    @Override
+    protected void onCaptureLost() {
+        inScroll = false;
+    }
 
     /**
      * Draw a horizontal scroll bar.

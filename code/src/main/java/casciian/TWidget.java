@@ -1201,7 +1201,10 @@ public abstract class TWidget implements Comparable<TWidget> {
     public void setEnabled(final boolean enabled) {
         this.enabled = enabled;
         if (!enabled) {
-            // A disabled widget must not keep the mouse capture.
+            // A disabled widget must not keep the mouse capture, and must not
+            // retain drag-style interaction state that a later event could
+            // resume once it is re-enabled.
+            onCaptureLost();
             releaseMouseCapture();
             setActiveFlag(false);
             // See if there are any active siblings to switch to
@@ -1436,6 +1439,19 @@ public abstract class TWidget implements Comparable<TWidget> {
     protected void onScrollerChange() {
         // Default: nothing.  Containers that read their scrollbars from mouse
         // handlers override this.
+    }
+
+    /**
+     * Hook invoked when this widget is about to lose the application mouse
+     * capture for a reason other than the normal end of its own drag
+     * interaction (for example, being disabled).  Subclasses that maintain
+     * drag-style interaction state (button press, text selection, scrollbar
+     * thumb drag, split-pane divider drag, ...) override this to reset that
+     * state so a later event cannot resume a stale interaction.  The default
+     * implementation does nothing.
+     */
+    protected void onCaptureLost() {
+        // Default: nothing.  Widgets that hold drag-style state override this.
     }
 
     /**
