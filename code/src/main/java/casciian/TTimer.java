@@ -32,8 +32,10 @@ public class TTimer {
 
     /**
      * Duration (in millis) between ticks if this is a recurring timer.
+     * Volatile because it can be changed from the event thread while the
+     * timer thread is ticking.
      */
-    private long duration = 0;
+    private volatile long duration = 0;
 
     /**
      * The next time this timer needs to be ticked.
@@ -87,6 +89,17 @@ public class TTimer {
      */
     public void setRecurring(final boolean recurring) {
         this.recurring = recurring;
+    }
+
+    /**
+     * Set the duration between ticks.  Changing this from inside the timer's
+     * own action takes effect on the next tick, because tick() recomputes the
+     * next tick time after the action runs.
+     *
+     * @param duration number of milliseconds to wait between ticks
+     */
+    public void setDuration(final long duration) {
+        this.duration = duration;
     }
 
     /**

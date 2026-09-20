@@ -1,19 +1,25 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
+import casciian.backend.Backend;
 import casciian.bits.CellAttributes;
 import casciian.bits.GraphicsChars;
 import casciian.event.TMouseEvent;
@@ -57,6 +63,41 @@ public class TVScroller extends TWidget {
      */
     private boolean inScroll = false;
 
+    /**
+     * Regions of the scroll bar that respond to a mouse press.
+     */
+    private enum Region {
+        NONE,
+        ARROW_UP,
+        ARROW_DOWN,
+        PAGE_UP,
+        PAGE_DOWN,
+        BOX,
+    }
+
+    /**
+     * The region the mouse was pressed on, used to stop auto-repeat once the
+     * mouse moves off it.
+     */
+    private Region pressedRegion = Region.NONE;
+
+    /**
+     * The row the mouse was pressed on, used to stop a page scroll once the
+     * box reaches the mouse.
+     */
+    private int pressedY = 0;
+
+    /**
+     * The backend of the press being repeated, reused for the synthesized
+     * repeat events.
+     */
+    private Backend pressedBackend = null;
+
+    /**
+     * Repeats the press action while the mouse button is held down.
+     */
+    private final MouseAutoRepeat autoRepeat = new MouseAutoRepeat();
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -87,54 +128,9 @@ public class TVScroller extends TWidget {
      */
     @Override
     public void onMouseUp(final TMouseEvent mouse) {
-        if (bottomValue == topValue) {
-            return;
-        }
-
-        if (inScroll) {
-            inScroll = false;
-            return;
-        }
-
-        if ((mouse.getX() == 0)
-            && (mouse.getY() == 0)
-        ) {
-            // Clicked on the top arrow
-            decrement();
-            return;
-        }
-
-        if ((mouse.getX() == 0)
-            && (mouse.getY() == getHeight() - 1)
-        ) {
-            // Clicked on the bottom arrow
-            increment();
-            return;
-        }
-
-        if ((mouse.getX() == 0)
-            && (mouse.getY() > 0)
-            && (mouse.getY() < boxPosition())
-        ) {
-            // Clicked between the top arrow and the box
-            value -= bigChange;
-            if (value < topValue) {
-                value = topValue;
-            }
-            return;
-        }
-
-        if ((mouse.getX() == 0)
-            && (mouse.getY() > boxPosition())
-            && (mouse.getY() < getHeight() - 1)
-        ) {
-            // Clicked between the box and the bottom arrow
-            value += bigChange;
-            if (value > bottomValue) {
-                value = bottomValue;
-            }
-            return;
-        }
+        autoRepeat.stop();
+        pressedRegion = Region.NONE;
+        inScroll = false;
     }
 
     /**
@@ -165,6 +161,17 @@ public class TVScroller extends TWidget {
             return;
         }
 
+        // Motion is broadcast to every widget, so this also fires once the
+        // mouse has left the scroll bar entirely.  That is what stops the
+        // repeat when the button is released somewhere else, since onMouseUp
+        // only reaches widgets the mouse is still over.
+        if (!mouse.isMouse1()
+            || (regionAt(mouse.getX(), mouse.getY()) != pressedRegion)
+        ) {
+            autoRepeat.stop();
+            pressedRegion = Region.NONE;
+        }
+
         inScroll = false;
     }
 
@@ -178,13 +185,44 @@ public class TVScroller extends TWidget {
         if (bottomValue == topValue) {
             return;
         }
+        if (!mouse.isMouse1()) {
+            return;
+        }
 
-        if ((mouse.getX() == 0)
-            && (mouse.getY() == boxPosition())
-        ) {
+        if (mouse.isAutoRepeat()) {
+            // Re-dispatched by our own repeat timer; the pressed region is
+            // already known and the timer is already running.
+            performStep();
+            return;
+        }
+
+        pressedRegion = regionAt(mouse.getX(), mouse.getY());
+        pressedY = mouse.getY();
+        pressedBackend = mouse.getBackend();
+
+        if (pressedRegion == Region.BOX) {
             inScroll = true;
             return;
         }
+        if (pressedRegion == Region.NONE) {
+            return;
+        }
+
+        autoRepeat.start(this, new TAction() {
+            @Override
+            public void DO() {
+                repeatStep();
+            }
+        });
+    }
+
+    /**
+     * Release the repeat timer when this widget goes away.
+     */
+    @Override
+    public void close() {
+        autoRepeat.stop();
+        super.close();
     }
 
     // ------------------------------------------------------------------------
@@ -308,6 +346,119 @@ public class TVScroller extends TWidget {
      */
     public void setBigChange(final int bigChange) {
         this.bigChange = bigChange;
+    }
+
+    /**
+     * Determine which region of the scroll bar a point is on.
+     *
+     * @param x column relative to this widget
+     * @param y row relative to this widget
+     * @return the region, or NONE if the point is off the bar
+     */
+    private Region regionAt(final int x, final int y) {
+        if ((x != 0) || (bottomValue == topValue)) {
+            return Region.NONE;
+        }
+        if (y == 0) {
+            return Region.ARROW_UP;
+        }
+        if (y == getHeight() - 1) {
+            return Region.ARROW_DOWN;
+        }
+        if ((y < 0) || (y > getHeight() - 1)) {
+            return Region.NONE;
+        }
+        int box = boxPosition();
+        if (y == box) {
+            return Region.BOX;
+        }
+        return (y < box ? Region.PAGE_UP : Region.PAGE_DOWN);
+    }
+
+    /**
+     * Apply one scroll step for the region the mouse was pressed on.
+     */
+    private void performStep() {
+        switch (pressedRegion) {
+            case ARROW_UP:
+                stepBy(-smallChange);
+                break;
+            case ARROW_DOWN:
+                stepBy(smallChange);
+                break;
+            case PAGE_UP:
+                pageBy(-bigChange);
+                break;
+            case PAGE_DOWN:
+                pageBy(bigChange);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Perform one repeat by re-dispatching the press through the parent,
+     * rather than scrolling directly.
+     *
+     * <p>Containers such as TTreeViewScrollable and TText copy the scroll bar
+     * value into their view and reflow only inside their own mouse handlers.
+     * Going back through the parent runs those handlers, so the content
+     * scrolls with the scroll bar instead of lagging until the next real
+     * mouse event.</p>
+     */
+    private void repeatStep() {
+        TWidget parent = getParent();
+        if (parent == null) {
+            performStep();
+            return;
+        }
+
+        int absoluteX = getAbsoluteX();
+        int absoluteY = getAbsoluteY() + pressedY;
+        TMouseEvent event = new TMouseEvent(pressedBackend,
+            TMouseEvent.Type.MOUSE_DOWN, absoluteX, absoluteY,
+            absoluteX, absoluteY, 0, 0,
+            true, false, false, false, false, false, false, false);
+        event.setAutoRepeat(true);
+        parent.onMouseDown(event);
+    }
+
+    /**
+     * Change value by delta, stopping the auto-repeat once it can go no
+     * further.
+     *
+     * @param delta amount to add to value
+     */
+    private void stepBy(final int delta) {
+        if (bottomValue == topValue) {
+            autoRepeat.stop();
+            return;
+        }
+        int oldValue = value;
+        value = Math.clamp((long) value + delta, topValue, bottomValue);
+        if (value == oldValue) {
+            // Already against the end, nothing left to repeat.
+            autoRepeat.stop();
+        }
+    }
+
+    /**
+     * Change value by delta, stopping the auto-repeat once it can go no
+     * further or the box has reached the mouse.
+     *
+     * @param delta amount to add to value
+     */
+    private void pageBy(final int delta) {
+        stepBy(delta);
+        if (bottomValue == topValue) {
+            return;
+        }
+        // Stop before the box jumps past the mouse, the way Swing does.
+        int box = boxPosition();
+        if ((delta < 0 && box <= pressedY) || (delta > 0 && box >= pressedY)) {
+            autoRepeat.stop();
+        }
     }
 
     /**

@@ -300,9 +300,17 @@ public class TText extends TTextBase {
             return;
         }
 
-        syncFromScrollers();
+        if (mouseOnTextArea(mouse)) {
+            syncFromScrollers();
+            super.onMouseDown(mouse);
+            syncToScrollers();
+            return;
+        }
+
+        // The press landed on a scroll bar, which scrolls on press.  Read the
+        // new position back out rather than writing the old one over it.
         super.onMouseDown(mouse);
-        syncToScrollers();
+        syncFromScrollers();
     }
 
     /**

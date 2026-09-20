@@ -212,6 +212,16 @@ public class TEditorWindow extends TScrollableWindow {
                 // Horizontal scrollbar actions
                 editField.setVisibleColumnNumber(getHorizontalValue());
             }
+            // The scroll bars scroll on press, so follow them here as well as
+            // in onMouseUp, otherwise a held arrow moves the bar but not the
+            // text.
+            if (mouse.isMouse1() && mouseOnVerticalScroller(mouse)) {
+                editField.setVisibleRowNumber(getVerticalValue());
+            }
+            if (mouse.isMouse1() && mouseOnHorizontalScroller(mouse)) {
+                editField.setVisibleColumnNumber(getHorizontalValue());
+                setHorizontalValue(editField.getVisibleColumnNumber());
+            }
         }
     }
 

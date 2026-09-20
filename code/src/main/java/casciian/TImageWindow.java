@@ -228,6 +228,17 @@ public class TImageWindow extends TScrollableWindow {
             panStartLeft = imageField.getLeft();
             panStartTop = imageField.getTop();
         }
+
+        // The scroll bars scroll on press, so pull their new position into
+        // the image before writing it back out below, otherwise the old
+        // position would overwrite the step that just happened.
+        if (mouse.isMouse1() && mouseOnVerticalScroller(mouse)) {
+            imageField.setTop(getVerticalValue());
+        }
+        if (mouse.isMouse1() && mouseOnHorizontalScroller(mouse)) {
+            imageField.setLeft(getHorizontalValue());
+        }
+
         setVerticalValue(imageField.getTop());
         setBottomValue(imageField.getRows() - imageField.getHeight());
         setHorizontalValue(imageField.getLeft());
