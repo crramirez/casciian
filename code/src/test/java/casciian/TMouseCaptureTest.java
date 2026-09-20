@@ -205,6 +205,40 @@ class TMouseCaptureTest {
         assertNotNull(text.getSelection());
     }
 
+    @Test
+    void strayDragAfterReleaseDoesNotContinueSelection() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 12);
+        TText text = new TText(window, "hello world\nsecond line\nthird line",
+            1, 1, 20, 6);
+
+        // Press inside the text area and drag to form a real selection.
+        mouseDown(text, 3, 0);
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            text.getAbsoluteX() + 8, text.getAbsoluteY() + 1, true);
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            text.getAbsoluteX() + 8, text.getAbsoluteY() + 1, true);
+
+        assertNull(app.getMouseCapture());
+        String selection = text.getSelection();
+        assertNotNull(selection);
+
+        // A later press begins elsewhere in the window (not on the text
+        // widget) and the resulting motion is broadcast to all children with
+        // mouse button 1 held.  Because the text widget is no longer actively
+        // selecting, this stray drag must not extend the existing selection.
+        TMouseEvent stray = new TMouseEvent(null, TMouseEvent.Type.MOUSE_MOTION,
+            text.getWidth() + 5, text.getHeight() + 5,
+            text.getAbsoluteX() + text.getWidth() + 5,
+            text.getAbsoluteY() + text.getHeight() + 5,
+            0, 0, true, false, false, false, false, false, false, false);
+        text.onMouseMotion(stray);
+
+        assertNull(app.getMouseCapture());
+        assertEquals(selection, text.getSelection(),
+            "a stray drag after release must not extend the selection");
+    }
+
     // ------------------------------------------------------------------------
     // Split pane divider drag ------------------------------------------------
     // ------------------------------------------------------------------------

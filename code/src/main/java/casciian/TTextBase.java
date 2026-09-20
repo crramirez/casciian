@@ -93,9 +93,19 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     private int leftColumn = 0;
 
     /**
-     * If true, the mouse is dragging a selection.
+     * If true, a selection exists (via mouse drag or shifted navigation).
      */
     private boolean inSelection = false;
+
+    /**
+     * If true, the mouse is actively dragging a selection: the widget owns
+     * the mouse capture and mouse motion extends the selection.  This is
+     * distinct from {@link #inSelection}, which stays true after the drag
+     * ends so the finished selection persists.  Keeping them separate stops a
+     * later drag that begins outside the widget from continuing the old
+     * selection.
+     */
+    private boolean selecting = false;
 
     /**
      * Selection starting column.
@@ -304,6 +314,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             // Selection.  Own the mouse capture so the drag continues to be
             // delivered here even when the pointer leaves the text area.
             captureMouse();
+            selecting = true;
             int newLine = documentLineFor(mouse);
             int newX = documentColumnFor(mouse);
 
@@ -322,6 +333,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         }
 
         inSelection = false;
+        selecting = false;
 
         // Pass to children
         super.onMouseDown(mouse);
@@ -334,9 +346,11 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     @Override
     public void onMouseUp(final TMouseEvent mouse) {
-        if (mouse.isMouse1() && inSelection) {
-            // The selection interaction is ending: release the capture.
+        if (mouse.isMouse1() && selecting) {
+            // The selection drag is ending: release the capture and stop
+            // actively selecting.  The selection itself persists.
             releaseMouseCapture();
+            selecting = false;
             int newLine = documentLineFor(mouse);
             int newSelectionLine0 = Math.min(newLine,
                 document.getLineCount() - 1);
@@ -364,7 +378,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
     @Override
     public void onMouseMotion(final TMouseEvent mouse) {
 
-        if (mouse.isMouse1() && (inSelection || mouseOnTextArea(mouse))) {
+        if (mouse.isMouse1() && (selecting || mouseOnTextArea(mouse))) {
             // Set the row and column.  When the mouse is dragged past the
             // left or top border the computed position can be negative: clamp
             // it to the beginning of the document so that the view keeps
@@ -374,13 +388,14 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             int newX = Math.max(0, documentColumnFor(mouse));
 
             // Selection.
-            if (inSelection) {
+            if (selecting) {
                 selectionColumn1 = newX;
                 selectionLine1 = newLine;
             } else {
                 // A drag that begins inside the text area starts a selection;
                 // own the mouse capture for the rest of the drag.
                 captureMouse();
+                selecting = true;
                 inSelection = true;
                 selectionColumn0 = newX;
                 selectionLine0 = newLine;
@@ -1714,6 +1729,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      */
     public void unsetSelection() {
         inSelection = false;
+        selecting = false;
     }
 
     /**
