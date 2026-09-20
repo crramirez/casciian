@@ -238,6 +238,48 @@ class TMouseCaptureTest {
     }
 
     // ------------------------------------------------------------------------
+    // Scrollbar thumb drag ---------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    @Test
+    void scrollbarThumbDragOutsideScrollsWithoutSelectingText() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 40; i++) {
+            sb.append("line ").append(i).append("\n");
+        }
+        TText text = new TText(window, sb.toString(), 1, 1, 20, 8);
+        TVScroller vScroller = text.getVerticalScroller();
+        assertNotNull(vScroller);
+
+        // Press on the scroll box (at value 0 it sits at relative row 1).
+        mouseDown(vScroller, 0, 1);
+        assertTrue(app.hasMouseCapture(vScroller),
+            "dragging the scroll box must capture the mouse");
+
+        // Drag the pointer down and to the LEFT, into the text area and past
+        // the left border of the scrollbar - exactly the "leave the scrollbar
+        // by mistake" case.  The scrollbar keeps the capture and scrolls; the
+        // text must NOT begin a selection.
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            vScroller.getAbsoluteX() - 6, vScroller.getAbsoluteY() + 4, true);
+        assertTrue(app.hasMouseCapture(vScroller),
+            "the scrollbar stays the owner while the pointer is outside");
+        assertTrue(vScroller.getValue() > 0,
+            "dragging the scroll box must scroll the view");
+        assertNull(text.getSelection(),
+            "leaving the scrollbar must not start a text selection");
+
+        // Release ends the drag and drops the capture.
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            vScroller.getAbsoluteX() - 6, vScroller.getAbsoluteY() + 4, true);
+        assertNull(app.getMouseCapture());
+        assertNull(text.getSelection(),
+            "no selection should exist after a scrollbar drag");
+    }
+
+    // ------------------------------------------------------------------------
     // Lifecycle safety -------------------------------------------------------
     // ------------------------------------------------------------------------
 

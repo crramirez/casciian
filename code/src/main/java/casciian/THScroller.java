@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
@@ -90,6 +95,7 @@ public class THScroller extends TWidget {
 
         if (inScroll) {
             inScroll = false;
+            releaseMouseCapture();
             return;
         }
 
@@ -147,27 +153,38 @@ public class THScroller extends TWidget {
     public void onMouseMotion(final TMouseEvent mouse) {
 
         if (rightValue == leftValue) {
-            inScroll = false;
             return;
         }
 
         if ((mouse.isMouse1())
             && (inScroll)
-            && (mouse.getX() > 0)
-            && (mouse.getX() < getWidth() - 1)
         ) {
+            // Dragging the scroll box.  This scrollbar owns the mouse
+            // capture, so the pointer may be anywhere - including outside the
+            // scrollbar's bounds.  Clamp the box position to the track so the
+            // drag keeps working when the pointer leaves the scrollbar.
+            int boxX = mouse.getX();
+            if (boxX < 1) {
+                boxX = 1;
+            }
+            if (boxX > getWidth() - 2) {
+                boxX = getWidth() - 2;
+            }
             // Recompute value based on new box position
             value = (rightValue - leftValue)
-                * (mouse.getX()) / (getWidth() - 3) + leftValue;
+                * (boxX) / (getWidth() - 3) + leftValue;
             if (value > rightValue) {
                 value = rightValue;
             }
             if (value < leftValue) {
                 value = leftValue;
             }
+            TWidget parent = getParent();
+            if (parent != null) {
+                parent.onScrollerChange();
+            }
             return;
         }
-        inScroll = false;
     }
 
     /**
@@ -186,6 +203,7 @@ public class THScroller extends TWidget {
             && (mouse.getX() == boxPosition())
         ) {
             inScroll = true;
+            captureMouse();
             return;
         }
 

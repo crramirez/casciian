@@ -177,6 +177,19 @@ public class TTreeViewScrollable extends TScrollable {
     }
 
     /**
+     * Keep the tree view in sync while the user drags a scrollbar box that
+     * owns the mouse capture.  During a captured drag the container's mouse
+     * handlers are not called, so this hook applies the scrollbar values to
+     * the tree view.
+     */
+    @Override
+    protected void onScrollerChange() {
+        treeView.setTopLine(getVerticalValue());
+        treeView.setLeftColumn(getHorizontalValue());
+        reflowData();
+    }
+
+    /**
      * Handle keystrokes.
      *
      * @param keypress keystroke event

@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
@@ -93,6 +98,7 @@ public class TVScroller extends TWidget {
 
         if (inScroll) {
             inScroll = false;
+            releaseMouseCapture();
             return;
         }
 
@@ -150,22 +156,33 @@ public class TVScroller extends TWidget {
 
         if ((mouse.isMouse1())
             && (inScroll)
-            && (mouse.getY() > 0)
-            && (mouse.getY() < getHeight() - 1)
         ) {
+            // Dragging the scroll box.  This scrollbar owns the mouse
+            // capture, so the pointer may be anywhere - including outside the
+            // scrollbar's bounds.  Clamp the box position to the track so the
+            // drag keeps working when the pointer leaves the scrollbar.
+            int boxY = mouse.getY();
+            if (boxY < 1) {
+                boxY = 1;
+            }
+            if (boxY > getHeight() - 2) {
+                boxY = getHeight() - 2;
+            }
             // Recompute value based on new box position
             value = (bottomValue - topValue)
-                * (mouse.getY()) / (getHeight() - 3) + topValue;
+                * (boxY) / (getHeight() - 3) + topValue;
             if (value > bottomValue) {
                 value = bottomValue;
             }
             if (value < topValue) {
                 value = topValue;
             }
+            TWidget parent = getParent();
+            if (parent != null) {
+                parent.onScrollerChange();
+            }
             return;
         }
-
-        inScroll = false;
     }
 
     /**
@@ -183,6 +200,7 @@ public class TVScroller extends TWidget {
             && (mouse.getY() == boxPosition())
         ) {
             inScroll = true;
+            captureMouse();
             return;
         }
     }

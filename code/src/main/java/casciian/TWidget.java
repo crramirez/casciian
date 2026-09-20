@@ -1421,6 +1421,24 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
+     * Hook invoked on a scrollbar's container when the scroll box value
+     * changes because the user is dragging it while the scrollbar owns the
+     * mouse capture.  While a scrollbar owns the capture, its container's
+     * mouse handlers are not called, so containers that copy their view
+     * position from their scrollbars inside {@code onMouseMotion}/
+     * {@code onMouseUp} (rather than inside {@code draw()}) override this to
+     * keep the view in sync during a captured drag.  The default
+     * implementation does nothing.
+     *
+     * @see TVScroller
+     * @see THScroller
+     */
+    protected void onScrollerChange() {
+        // Default: nothing.  Containers that read their scrollbars from mouse
+        // handlers override this.
+    }
+
+    /**
      * Get the Screen.
      *
      * @return the Screen, or null if not assigned

@@ -413,6 +413,18 @@ public class TTableWindow extends TScrollableWindow {
     }
 
     /**
+     * Keep the table in sync while the user drags a scrollbar box that owns
+     * the mouse capture.  During a captured drag the container's mouse
+     * handlers are not called, so this hook applies the scrollbar values to
+     * the table.
+     */
+    @Override
+    protected void onScrollerChange() {
+        tableField.setSelectedRowNumber(getVerticalValue());
+        tableField.setSelectedColumnNumber(getHorizontalValue());
+    }
+
+    /**
      * Handle keystrokes.
      *
      * @param keypress keystroke event
