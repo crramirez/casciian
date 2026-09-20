@@ -130,6 +130,10 @@ public class THScroller extends TWidget {
     public void onMouseUp(final TMouseEvent mouse) {
         autoRepeat.stop();
         pressedRegion = Region.NONE;
+        // Handle an in-progress thumb drag before the equal-range early
+        // return: if the range collapsed while the thumb was held, we still
+        // must clear inScroll and release the capture, otherwise this
+        // scrollbar stays captured and swallows later events.
         if (inScroll) {
             // Only a left-button release ends the thumb drag.  A non-left
             // release (mouse1 == false) is routed here while the left button
@@ -138,7 +142,6 @@ public class THScroller extends TWidget {
                 inScroll = false;
                 releaseMouseCapture();
             }
-            return;
         }
     }
 
@@ -159,8 +162,8 @@ public class THScroller extends TWidget {
             return;
         }
 
-        if ((mouse.isMouse1())
-            && (inScroll)
+        if (mouse.isMouse1()
+            && inScroll && pressedRegion == Region.BOX
         ) {
             // Dragging the scroll box.  This scrollbar owns the mouse
             // capture, so the pointer may be anywhere - including outside the
@@ -233,21 +236,21 @@ public class THScroller extends TWidget {
         pressedX = mouse.getX();
         pressedBackend = mouse.getBackend();
 
-        if (pressedRegion == Region.BOX) {
-            inScroll = true;
-            captureMouse();
-            return;
-        }
         if (pressedRegion == Region.NONE) {
             return;
         }
 
+        if (pressedRegion != Region.BOX) {
         autoRepeat.start(this, new TAction() {
             @Override
             public void DO() {
                 repeatStep();
             }
         });
+    }
+
+        inScroll = true;
+        captureMouse();
     }
 
     /**

@@ -142,7 +142,6 @@ public class TVScroller extends TWidget {
                 inScroll = false;
                 releaseMouseCapture();
             }
-            return;
         }
     }
 
@@ -163,8 +162,8 @@ public class TVScroller extends TWidget {
             return;
         }
 
-        if ((mouse.isMouse1())
-            && (inScroll)
+        if (mouse.isMouse1()
+            && inScroll && pressedRegion == Region.BOX
         ) {
             // Dragging the scroll box.  This scrollbar owns the mouse
             // capture, so the pointer may be anywhere - including outside the
@@ -206,7 +205,7 @@ public class TVScroller extends TWidget {
     }
 
     /**
-     * Handle mouse press events.
+     * Handle mouse button press events.
      *
      * @param mouse mouse button press event
      */
@@ -237,21 +236,21 @@ public class TVScroller extends TWidget {
         pressedY = mouse.getY();
         pressedBackend = mouse.getBackend();
 
-        if (pressedRegion == Region.BOX) {
-            inScroll = true;
-            captureMouse();
-            return;
-        }
         if (pressedRegion == Region.NONE) {
             return;
         }
 
-        autoRepeat.start(this, new TAction() {
-            @Override
-            public void DO() {
-                repeatStep();
-            }
-        });
+        if (pressedRegion != Region.BOX) {
+            autoRepeat.start(this, new TAction() {
+                @Override
+                public void DO() {
+                    repeatStep();
+                }
+            });
+        }
+
+        inScroll = true;
+        captureMouse();
     }
 
     /**
