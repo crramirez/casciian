@@ -1776,19 +1776,21 @@ class ECMA48TerminalTest {
 
     private List<TMouseEvent> collectMouseEvents(final ECMA48Terminal t,
         final int maxEvents) throws InterruptedException {
+        List<TMouseEvent> mouseEvents = new ArrayList<>();
         List<casciian.event.TInputEvent> events = new ArrayList<>();
         long deadline = System.currentTimeMillis() + 500L;
-        while (System.currentTimeMillis() < deadline && events.size() < maxEvents) {
+        while (System.currentTimeMillis() < deadline
+            && mouseEvents.size() < maxEvents) {
             if (t.hasEvents()) {
+                events.clear();
                 t.getEvents(events);
+                for (casciian.event.TInputEvent event : events) {
+                    if (event instanceof TMouseEvent mouseEvent) {
+                        mouseEvents.add(mouseEvent);
+                    }
+                }
             } else {
                 Thread.sleep(10L);
-            }
-        }
-        List<TMouseEvent> mouseEvents = new ArrayList<>();
-        for (casciian.event.TInputEvent event: events) {
-            if (event instanceof TMouseEvent mouseEvent) {
-                mouseEvents.add(mouseEvent);
             }
         }
         return mouseEvents;
