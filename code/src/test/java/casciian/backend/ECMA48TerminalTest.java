@@ -548,6 +548,23 @@ class ECMA48TerminalTest {
     }
 
     @Test
+    @DisplayName("SGR code 3 release without tracked button is hover motion")
+    void testSgrCodeThreeReleaseWithoutTrackedButtonIsMotion()
+        throws Exception {
+        terminal = createTerminalForMouseParsing(false, "\033[<3;2;1m");
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 1);
+        assertEquals(1, mouseEvents.size());
+
+        TMouseEvent event = mouseEvents.get(0);
+        assertEquals(TMouseEvent.Type.MOUSE_MOTION, event.getType());
+        assertFalse(event.isMouse1());
+        assertFalse(event.isMouse2());
+        assertFalse(event.isMouse3());
+        assertEquals(1, event.getX());
+        assertEquals(0, event.getY());
+    }
+
+    @Test
     @DisplayName("closeTerminal does not throw exception")
     void testCloseTerminal() {
         terminal = createTerminal();

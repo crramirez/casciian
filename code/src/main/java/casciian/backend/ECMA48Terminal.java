@@ -3267,6 +3267,12 @@ public class ECMA48Terminal extends LogicalScreen
                     } else if (mouse3) {
                         mouse3 = false;
                         eventMouse3 = true;
+                    } else {
+                        // No button was tracked as pressed, so there is
+                        // nothing to release. Emitting a MOUSE_UP with no
+                        // button flags set would confuse downstream mouse-up
+                        // handlers, so treat this as plain hover motion.
+                        eventType = TMouseEvent.Type.MOUSE_MOTION;
                     }
                     break;
                 }
