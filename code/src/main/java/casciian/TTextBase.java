@@ -470,13 +470,13 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
                 || keypress.equals(kbEnd)
             ) {
                 // Non-shifted navigation keys disable selection.
-                inSelection = false;
+                clearSelectionState();
             }
             if ((selectionColumn0 == selectionColumn1)
                 && (selectionLine0 == selectionLine1)
             ) {
                 // The user clicked a spot and started typing.
-                inSelection = false;
+                clearSelectionState();
             }
         }
 
@@ -1493,7 +1493,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
             saveUndo();
         }
 
-        inSelection = false;
+        clearSelectionState();
 
         int startCol = selectionColumn0;
         int startRow = selectionLine0;
@@ -1744,6 +1744,19 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
      * Unset the selection.
      */
     public void unsetSelection() {
+        clearSelectionState();
+    }
+
+    /**
+     * Clear both the active-selection flag and the in-progress drag flag,
+     * releasing the mouse capture if a drag is still active.  All reset paths
+     * (keyboard navigation, editing commands, undo/redo) must go through this
+     * helper: clearing only {@link #inSelection} would leave a stale capture
+     * held by an in-progress drag, because once {@link #selecting} is cleared
+     * captured motion/release events no longer enter the selecting branch that
+     * would otherwise release the capture.
+     */
+    private void clearSelectionState() {
         // If a drag is still active, release the capture first: once selecting
         // is cleared, captured motion/release events no longer enter the
         // selecting branch, so nothing else would release the stale capture.
@@ -1818,7 +1831,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         if (!isEditable()) {
             return;
         }
-        inSelection = false;
+        clearSelectionState();
         if ((undoListI >= 0) && (undoListI < undoList.size())) {
             SavedState state = undoList.get(undoListI);
             document = state.document.dup();
@@ -1837,7 +1850,7 @@ public abstract class TTextBase extends TScrollable implements EditMenuUser {
         if (!isEditable()) {
             return;
         }
-        inSelection = false;
+        clearSelectionState();
         if ((undoListI >= 0) && (undoListI < undoList.size())) {
             SavedState state = undoList.get(undoListI);
             document = state.document.dup();

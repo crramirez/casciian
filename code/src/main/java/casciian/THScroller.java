@@ -94,8 +94,13 @@ public class THScroller extends TWidget {
     public void onMouseUp(final TMouseEvent mouse) {
 
         if (inScroll) {
-            inScroll = false;
-            releaseMouseCapture();
+            // Only a left-button release ends the thumb drag.  A non-left
+            // release (mouse1 == false) is routed here while the left button
+            // is still held; consume it without dropping the capture.
+            if (mouse.isMouse1()) {
+                inScroll = false;
+                releaseMouseCapture();
+            }
             return;
         }
 
@@ -202,8 +207,8 @@ public class THScroller extends TWidget {
         if (rightValue == leftValue) {
             // If the range collapsed while the thumb was held, release the
             // capture here too; otherwise this scrollbar stays captured and
-            // swallows later events.
-            if (inScroll) {
+            // swallows later events.  Only a left-button event ends the drag.
+            if (inScroll && mouse.isMouse1()) {
                 inScroll = false;
                 releaseMouseCapture();
             }

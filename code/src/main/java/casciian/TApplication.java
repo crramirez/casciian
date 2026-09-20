@@ -1731,6 +1731,34 @@ public class TApplication implements Runnable {
     }
 
     /**
+     * Determine whether a captured widget lies within a given receiver's
+     * subtree (i.e. is the receiver itself or one of its descendants).  This
+     * is used during modal dispatch to ensure that only a capture owned by the
+     * modal receiver routes events to it; a stale capture from an underlying
+     * window must not swallow the modal dialog's events.
+     *
+     * @param widget the capturing widget
+     * @param receiver the subtree root to test against; if null, the widget is
+     * never considered within it
+     * @return true if the widget is the receiver or a descendant of it
+     */
+    private boolean isCaptureWithin(final TWidget widget,
+        final TWidget receiver) {
+
+        if (receiver == null) {
+            return false;
+        }
+        TWidget w = widget;
+        while (w != null) {
+            if (w == receiver) {
+                return true;
+            }
+            w = w.getParent();
+        }
+        return false;
+    }
+
+    /**
      * If a widget currently owns the mouse capture, route a drag (mouse
      * motion) or mouse release event directly to it, converting the event
      * coordinates to be relative to the captured widget.  The captured widget
@@ -2070,8 +2098,22 @@ public class TApplication implements Runnable {
         }
 
         // If a widget owns the mouse capture, route drag/release events
-        // directly to it and skip normal dispatch.
+        // directly to it and skip normal dispatch.  A capture owned by a
+        // widget outside the modal receiver's subtree (for example, one left
+        // behind in an underlying window when a modal dialog was opened from a
+        // callback before the callback released its capture) must not swallow
+        // events destined for the modal dialog: force-release it first so
+        // normal modal dispatch can proceed.
         if (event instanceof TMouseEvent) {
+            TWidget capture = mouseCapture;
+            if ((capture != null)
+                && !isCaptureWithin(capture, secondaryEventReceiver)
+            ) {
+                capture.onCaptureLost();
+                if (mouseCapture == capture) {
+                    mouseCapture = null;
+                }
+            }
             if (handleMouseCapture((TMouseEvent) event)) {
                 return;
             }
