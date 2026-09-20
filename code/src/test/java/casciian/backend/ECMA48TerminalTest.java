@@ -482,8 +482,12 @@ class ECMA48TerminalTest {
         TMouseEvent repeatedPress = mouseEvents.get(1);
 
         assertEquals(TMouseEvent.Type.MOUSE_DOWN, firstPress.getType());
+        assertEquals(0, firstPress.getX());
+        assertEquals(0, firstPress.getY());
         assertEquals(TMouseEvent.Type.MOUSE_MOTION, repeatedPress.getType());
         assertTrue(repeatedPress.isMouse1());
+        assertEquals(1, repeatedPress.getX());
+        assertEquals(0, repeatedPress.getY());
     }
 
     @Test
@@ -497,6 +501,8 @@ class ECMA48TerminalTest {
 
         assertEquals(TMouseEvent.Type.MOUSE_DOWN, repeatedPress.getType());
         assertTrue(repeatedPress.isMouse1());
+        assertEquals(1, repeatedPress.getX());
+        assertEquals(0, repeatedPress.getY());
     }
 
     @Test
@@ -511,6 +517,15 @@ class ECMA48TerminalTest {
         assertTrue(release.isMouse1());
         TMouseEvent windowsHover = windowsEvents.get(2);
         assertEquals(TMouseEvent.Type.MOUSE_MOTION, windowsHover.getType());
+
+        terminal.closeTerminal();
+        terminal = createTerminalForMouseParsing(false,
+            "\033[<0;1;1M\033[<3;1;1m");
+        List<TMouseEvent> nonWindowsReleaseEvents = collectMouseEvents(terminal, 2);
+        assertEquals(2, nonWindowsReleaseEvents.size());
+        TMouseEvent nonWindowsRelease = nonWindowsReleaseEvents.get(1);
+        assertEquals(TMouseEvent.Type.MOUSE_UP, nonWindowsRelease.getType());
+        assertTrue(nonWindowsRelease.isMouse1());
 
         terminal.closeTerminal();
         terminal = createTerminalForMouseParsing(false, "\033[<3;2;1M");
