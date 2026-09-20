@@ -154,6 +154,12 @@ public class TVScroller extends TWidget {
      */
     @Override
     public void onMouseMotion(final TMouseEvent mouse) {
+        if (inScroll && (bottomValue == topValue)) {
+            inScroll = false;
+            releaseMouseCapture();
+            return;
+        }
+
         if (bottomValue == topValue) {
             return;
         }

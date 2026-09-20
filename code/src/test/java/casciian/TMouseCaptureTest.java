@@ -356,6 +356,32 @@ class TMouseCaptureTest {
             "no selection should exist after a scrollbar drag");
     }
 
+    @Test
+    void collapsedScrollbarRangeDuringDragReleasesCapture() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        THScroller hScroller = new THScroller(window, 1, 1, 10);
+        TVScroller vScroller = new TVScroller(window, 20, 1, 8);
+
+        hScroller.setRightValue(10);
+        mouseDown(hScroller, 1, 0);
+        assertTrue(app.hasMouseCapture(hScroller));
+        hScroller.setRightValue(hScroller.getLeftValue());
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            hScroller.getAbsoluteX() + 4, hScroller.getAbsoluteY(), true);
+        assertNull(app.getMouseCapture(),
+            "a collapsed horizontal range must stop the thumb drag");
+
+        vScroller.setBottomValue(10);
+        mouseDown(vScroller, 0, 1);
+        assertTrue(app.hasMouseCapture(vScroller));
+        vScroller.setBottomValue(vScroller.getTopValue());
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            vScroller.getAbsoluteX(), vScroller.getAbsoluteY() + 4, true);
+        assertNull(app.getMouseCapture(),
+            "a collapsed vertical range must stop the thumb drag");
+    }
+
     // ------------------------------------------------------------------------
     // Lifecycle safety -------------------------------------------------------
     // ------------------------------------------------------------------------

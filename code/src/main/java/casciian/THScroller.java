@@ -151,6 +151,11 @@ public class THScroller extends TWidget {
      */
     @Override
     public void onMouseMotion(final TMouseEvent mouse) {
+        if (inScroll && (rightValue == leftValue)) {
+            inScroll = false;
+            releaseMouseCapture();
+            return;
+        }
 
         if (rightValue == leftValue) {
             return;
