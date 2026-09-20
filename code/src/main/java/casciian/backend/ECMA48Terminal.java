@@ -3213,6 +3213,7 @@ public class ECMA48Terminal extends LogicalScreen
             return null;
         }
 
+        boolean windowsMouseHack = isWindowsForMouseParsing();
         switch (buttons & 0xE3) {
             case 0:
                 eventMouse1 = true;
@@ -3224,7 +3225,7 @@ public class ECMA48Terminal extends LogicalScreen
                 // new press.
                 if (release) {
                     mouse1 = false;
-                } else if (mouse1) {
+                } else if (windowsMouseHack && mouse1) {
                     eventType = TMouseEvent.Type.MOUSE_MOTION;
                 } else {
                     mouse1 = true;
@@ -3234,7 +3235,7 @@ public class ECMA48Terminal extends LogicalScreen
                 eventMouse2 = true;
                 if (release) {
                     mouse2 = false;
-                } else if (mouse2) {
+                } else if (windowsMouseHack && mouse2) {
                     eventType = TMouseEvent.Type.MOUSE_MOTION;
                 } else {
                     mouse2 = true;
@@ -3244,7 +3245,7 @@ public class ECMA48Terminal extends LogicalScreen
                 eventMouse3 = true;
                 if (release) {
                     mouse3 = false;
-                } else if (mouse3) {
+                } else if (windowsMouseHack && mouse3) {
                     eventType = TMouseEvent.Type.MOUSE_MOTION;
                 } else {
                     mouse3 = true;
@@ -3256,6 +3257,26 @@ public class ECMA48Terminal extends LogicalScreen
                 // X10-style "no button" code instead of 35. A real release
                 // always keeps its own button code in SGR mode, so a
                 // non-release 3 can only mean hover motion here.
+                if (release) {
+                    if (mouse1) {
+                        mouse1 = false;
+                        eventMouse1 = true;
+                    }
+                    if (mouse2) {
+                        mouse2 = false;
+                        eventMouse2 = true;
+                    }
+                    if (mouse3) {
+                        mouse3 = false;
+                        eventMouse3 = true;
+                    }
+                    break;
+                }
+                if (windowsMouseHack) {
+                    eventType = TMouseEvent.Type.MOUSE_MOTION;
+                    break;
+                }
+                return null;
             case 35:
                 // Motion only, no buttons down
                 eventType = TMouseEvent.Type.MOUSE_MOTION;
@@ -4680,6 +4701,15 @@ public class ECMA48Terminal extends LogicalScreen
     protected boolean isWindowsTerminalSession() {
         String wtSession = System.getenv("WT_SESSION");
         return (wtSession != null) && !wtSession.isEmpty();
+    }
+
+    /**
+     * Determine if Windows-specific mouse parsing workarounds should be used.
+     *
+     * @return true only on Windows
+     */
+    protected boolean isWindowsForMouseParsing() {
+        return OsUtils.isWindows();
     }
 
     /**

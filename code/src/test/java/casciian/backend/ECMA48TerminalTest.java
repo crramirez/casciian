@@ -18,6 +18,7 @@ package casciian.backend;
 
 import casciian.bits.CellAttributes;
 import casciian.bits.Color;
+import casciian.event.TMouseEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -466,6 +469,52 @@ class ECMA48TerminalTest {
         terminal = createTerminal();
         // With no input, should return false
         assertFalse(terminal.hasEvents());
+    }
+
+    @Test
+    @DisplayName("Windows SGR repeated button down is treated as drag motion")
+    void testSgrRepeatedButtonDownOnWindowsBecomesMotion() throws Exception {
+        terminal = createTerminalForMouseParsing(true,
+            "\033[<0;1;1M\033[<0;2;1M");
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 2);
+        assertEquals(2, mouseEvents.size());
+        TMouseEvent firstPress = mouseEvents.get(0);
+        TMouseEvent repeatedPress = mouseEvents.get(1);
+
+        assertEquals(TMouseEvent.Type.MOUSE_DOWN, firstPress.getType());
+        assertEquals(TMouseEvent.Type.MOUSE_MOTION, repeatedPress.getType());
+        assertTrue(repeatedPress.isMouse1());
+    }
+
+    @Test
+    @DisplayName("Non-Windows SGR repeated button down stays as button down")
+    void testSgrRepeatedButtonDownOffWindowsStaysDown() throws Exception {
+        terminal = createTerminalForMouseParsing(false,
+            "\033[<0;1;1M\033[<0;2;1M");
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 2);
+        assertEquals(2, mouseEvents.size());
+        TMouseEvent repeatedPress = mouseEvents.get(1);
+
+        assertEquals(TMouseEvent.Type.MOUSE_DOWN, repeatedPress.getType());
+        assertTrue(repeatedPress.isMouse1());
+    }
+
+    @Test
+    @DisplayName("SGR code 3 keeps release as MOUSE_UP and is hover motion only on Windows")
+    void testSgrCodeThreeReleaseAndHoverBehavior() throws Exception {
+        terminal = createTerminalForMouseParsing(true,
+            "\033[<0;1;1M\033[<3;1;1m\033[<3;2;1M");
+        List<TMouseEvent> windowsEvents = collectMouseEvents(terminal, 3);
+        assertEquals(3, windowsEvents.size());
+        TMouseEvent release = windowsEvents.get(1);
+        assertEquals(TMouseEvent.Type.MOUSE_UP, release.getType());
+        assertTrue(release.isMouse1());
+        TMouseEvent windowsHover = windowsEvents.get(2);
+        assertEquals(TMouseEvent.Type.MOUSE_MOTION, windowsHover.getType());
+
+        terminal.closeTerminal();
+        terminal = createTerminalForMouseParsing(false, "\033[<3;2;1M");
+        assertTrue(collectMouseEvents(terminal, 1).isEmpty());
     }
 
     @Test
@@ -1690,6 +1739,44 @@ class ECMA48TerminalTest {
             fail("Failed to create terminal: " + e.getMessage());
             return null;
         }
+    }
+
+    private ECMA48Terminal createTerminalForMouseParsing(
+        final boolean windowsMouseParsing, final String inputSequence) {
+        try {
+            byte[] bytes = inputSequence.getBytes(StandardCharsets.UTF_8);
+            ByteArrayInputStream mouseInputStream = new ByteArrayInputStream(bytes);
+            return new ECMA48Terminal(mockBackend, null, mouseInputStream,
+                outputStream) {
+                @Override
+                protected boolean isWindowsForMouseParsing() {
+                    return windowsMouseParsing;
+                }
+            };
+        } catch (Exception e) {
+            fail("Failed to create terminal: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private List<TMouseEvent> collectMouseEvents(final ECMA48Terminal t,
+        final int maxEvents) throws InterruptedException {
+        List<casciian.event.TInputEvent> events = new ArrayList<>();
+        long deadline = System.currentTimeMillis() + 500L;
+        while (System.currentTimeMillis() < deadline && events.size() < maxEvents) {
+            if (t.hasEvents()) {
+                t.getEvents(events);
+            } else {
+                Thread.sleep(10L);
+            }
+        }
+        List<TMouseEvent> mouseEvents = new ArrayList<>();
+        for (casciian.event.TInputEvent event: events) {
+            if (event instanceof TMouseEvent mouseEvent) {
+                mouseEvents.add(mouseEvent);
+            }
+        }
+        return mouseEvents;
     }
     
     /**
