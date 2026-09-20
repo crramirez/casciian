@@ -71,9 +71,18 @@ public class TerminalJlineImpl implements Terminal {
 
             // Save original attributes for later restoration
             originalAttributes = new Attributes(tempTerminal.getAttributes());
-            
+
             // Only assign to field after all initialization succeeds
             jlineTerminal = tempTerminal;
+
+            if (debugToStderr) {
+                String keyMouseCapability = jlineTerminal.getStringCapability(
+                    InfoCmp.Capability.key_mouse);
+                System.err.println("[TerminalJlineImpl] terminal class=" + jlineTerminal.getClass().getName()
+                    + " type=" + jlineTerminal.getType()
+                    + " hasMouseSupport=" + (keyMouseCapability != null)
+                    + " keyMouseCapability=" + keyMouseCapability);
+            }
         } catch (IOException | RuntimeException e) {
             // Clean up partially initialized terminal on failure
             if (tempTerminal != null) {
