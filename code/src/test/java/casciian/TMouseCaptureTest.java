@@ -1,0 +1,351 @@
+/*
+ * Casciian - Java Text User Interface
+ *
+ * Copyright 2025 Carlos Rafael Ramirez
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+package casciian;
+
+import org.junit.jupiter.api.Test;
+
+import casciian.backend.HeadlessBackend;
+import casciian.event.TMouseEvent;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Tests the global mouse capture mechanism: a widget that begins a stateful
+ * mouse interaction owns drag/release events through to the end, even when the
+ * pointer leaves its bounds or moves over another widget.
+ */
+class TMouseCaptureTest {
+
+    /**
+     * A TButton that records how many mouse release and motion events it
+     * receives, so that tests can verify which widget events are routed to.
+     */
+    private static class CountingButton extends TButton {
+        int ups = 0;
+        int motions = 0;
+
+        CountingButton(final TWidget parent, final String text, final int x,
+            final int y, final TAction action) {
+
+            super(parent, text, x, y, action);
+        }
+
+        @Override
+        public void onMouseUp(final TMouseEvent mouse) {
+            ups++;
+            super.onMouseUp(mouse);
+        }
+
+        @Override
+        public void onMouseMotion(final TMouseEvent mouse) {
+            motions++;
+            super.onMouseMotion(mouse);
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // Capture ownership API --------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    @Test
+    void captureOwnershipIsExclusiveAndReleasableOnlyByOwner() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        TButton a = new TButton(window, "A", 1, 1, doNothing());
+        TButton b = new TButton(window, "B", 10, 1, doNothing());
+
+        assertNull(app.getMouseCapture());
+
+        app.captureMouse(a);
+        assertTrue(app.hasMouseCapture(a));
+        assertFalse(app.hasMouseCapture(b));
+
+        // Requesting capture again by the same widget is safe.
+        app.captureMouse(a);
+        assertTrue(app.hasMouseCapture(a));
+
+        // Only one owner at a time; requesting replaces the previous owner.
+        app.captureMouse(b);
+        assertTrue(app.hasMouseCapture(b));
+        assertFalse(app.hasMouseCapture(a));
+
+        // Releasing another widget's capture is a no-op.
+        app.releaseMouseCapture(a);
+        assertTrue(app.hasMouseCapture(b));
+
+        // The owner can release its own capture.
+        app.releaseMouseCapture(b);
+        assertNull(app.getMouseCapture());
+    }
+
+    // ------------------------------------------------------------------------
+    // Button semantics -------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    @Test
+    void buttonReleaseOutsideDoesNotDispatch() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        int[] count = new int[1];
+        TButton a = new TButton(window, "A", 1, 1, counter(count));
+
+        pressInside(a);
+        assertTrue(app.hasMouseCapture(a));
+
+        // Drag the pointer well outside the button, still holding.
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            a.getAbsoluteX() - 5, a.getAbsoluteY(), true);
+        assertTrue(app.hasMouseCapture(a),
+            "the button must keep the capture while the pointer is outside");
+
+        // Release outside the button.
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            a.getAbsoluteX() - 5, a.getAbsoluteY(), true);
+
+        assertEquals(0, count[0], "action must not fire on release outside");
+        assertNull(app.getMouseCapture(), "capture must be released");
+    }
+
+    @Test
+    void buttonLeaveAndReenterDispatchesExactlyOnce() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        int[] count = new int[1];
+        TButton a = new TButton(window, "A", 1, 1, counter(count));
+
+        pressInside(a);
+
+        // Drag outside then back inside while holding.
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            a.getAbsoluteX() - 5, a.getAbsoluteY(), true);
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            a.getAbsoluteX() + 1, a.getAbsoluteY(), true);
+        assertTrue(app.hasMouseCapture(a));
+
+        // Release back inside the button.
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            a.getAbsoluteX() + 1, a.getAbsoluteY(), true);
+
+        assertEquals(1, count[0], "action must fire exactly once");
+        assertNull(app.getMouseCapture());
+    }
+
+    @Test
+    void releaseOverDifferentWidgetGoesToCapturer() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        int[] countA = new int[1];
+        int[] countB = new int[1];
+        CountingButton a = new CountingButton(window, "A", 1, 1,
+            counter(countA));
+        CountingButton b = new CountingButton(window, "B", 12, 1,
+            counter(countB));
+
+        pressInside(a);
+
+        // Move over and release over button B.
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            b.getAbsoluteX() + 1, b.getAbsoluteY(), true);
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            b.getAbsoluteX() + 1, b.getAbsoluteY(), true);
+
+        // Button A received the drag and the release; button B saw neither.
+        assertTrue(a.ups >= 1, "capturer A must receive the release");
+        assertEquals(0, b.ups, "B must not receive the release");
+        assertEquals(0, b.motions, "B must not receive the drag");
+        assertEquals(0, countA[0], "A must not fire (released outside A)");
+        assertEquals(0, countB[0], "B must not activate");
+        assertNull(app.getMouseCapture());
+    }
+
+    // ------------------------------------------------------------------------
+    // Text selection ---------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    @Test
+    void textSelectionContinuesOutsideBoundsThenReleases() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 12);
+        TText text = new TText(window, "hello world\nsecond line\nthird line",
+            1, 1, 20, 6);
+
+        // Press inside the text area to begin a selection.
+        mouseDown(text, 3, 0);
+        assertTrue(app.hasMouseCapture(text),
+            "text selection must capture the mouse");
+
+        // Drag past the left/top border (negative relative coordinates).
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            text.getAbsoluteX() - 4, text.getAbsoluteY() + 2, true);
+        assertTrue(app.hasMouseCapture(text),
+            "selection must continue while the pointer is outside");
+
+        // Release finalizes the selection and drops the capture.
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            text.getAbsoluteX() - 4, text.getAbsoluteY() + 2, true);
+
+        assertNull(app.getMouseCapture());
+        assertNotNull(text.getSelection());
+    }
+
+    // ------------------------------------------------------------------------
+    // Split pane divider drag ------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    @Test
+    void splitPaneDividerDragContinuesOutsideAndReleases() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        TSplitPane split = new TSplitPane(window, 1, 1, 20, 8, true);
+        int startSplit = split.getSplit();
+
+        // Press on the divider column to begin moving it.
+        mouseDown(split, startSplit, 1);
+        assertTrue(app.hasMouseCapture(split),
+            "the split pane must own the capture while moving the divider");
+
+        // Drag the pointer well past the right edge of the pane.
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            split.getAbsoluteX() + split.getWidth() + 10,
+            split.getAbsoluteY() + 1, true);
+        assertTrue(app.hasMouseCapture(split),
+            "the split pane stays the owner while the pointer is outside");
+        assertEquals(split.getWidth() - 2, split.getSplit(),
+            "the divider keeps following the pointer and clamps at the edge");
+
+        // Release ends the drag.
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            split.getAbsoluteX() + split.getWidth() + 10,
+            split.getAbsoluteY() + 1, true);
+        assertNull(app.getMouseCapture());
+    }
+
+    // ------------------------------------------------------------------------
+    // Lifecycle safety -------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    @Test
+    void removingCapturedWidgetClearsCapture() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        TButton a = new TButton(window, "A", 1, 1, doNothing());
+
+        pressInside(a);
+        assertTrue(app.hasMouseCapture(a));
+
+        window.remove(a);
+
+        assertNull(app.getMouseCapture());
+
+        // Subsequent mouse events must not throw or be routed anywhere.
+        route(app, TMouseEvent.Type.MOUSE_MOTION, 5, 5, true);
+        route(app, TMouseEvent.Type.MOUSE_UP, 5, 5, false);
+        assertNull(app.getMouseCapture());
+    }
+
+    @Test
+    void closingCapturedWindowClearsCapture() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        TButton a = new TButton(window, "A", 1, 1, doNothing());
+
+        pressInside(a);
+        assertTrue(app.hasMouseCapture(a));
+
+        app.closeWindow(window);
+
+        assertNull(app.getMouseCapture());
+    }
+
+    @Test
+    void disablingCapturedWidgetClearsCapture() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        TButton a = new TButton(window, "A", 1, 1, doNothing());
+
+        pressInside(a);
+        assertTrue(app.hasMouseCapture(a));
+
+        a.setEnabled(false);
+
+        assertNull(app.getMouseCapture());
+    }
+
+    // ------------------------------------------------------------------------
+    // Helpers ----------------------------------------------------------------
+    // ------------------------------------------------------------------------
+
+    private TAction doNothing() {
+        return new TAction() {
+            public void DO() {
+                // no-op
+            }
+        };
+    }
+
+    private TAction counter(final int[] count) {
+        return new TAction() {
+            public void DO() {
+                count[0]++;
+            }
+        };
+    }
+
+    /**
+     * Press mouse button 1 inside a button, at relative position (1, 0).
+     *
+     * @param button the button to press
+     */
+    private void pressInside(final TButton button) {
+        mouseDown(button, 1, 0);
+    }
+
+    /**
+     * Send a MOUSE_DOWN directly to a widget with coordinates relative to it.
+     *
+     * @param widget the target widget
+     * @param x relative column
+     * @param y relative row
+     */
+    private void mouseDown(final TWidget widget, final int x, final int y) {
+        TMouseEvent event = new TMouseEvent(null, TMouseEvent.Type.MOUSE_DOWN,
+            x, y, widget.getAbsoluteX() + x, widget.getAbsoluteY() + y, 0, 0,
+            true, false, false, false, false, false, false, false);
+        widget.onMouseDown(event);
+    }
+
+    /**
+     * Route a mouse event through the application's capture mechanism.  The
+     * coordinates are absolute screen coordinates.
+     *
+     * @param app the application
+     * @param type the event type
+     * @param absX absolute column
+     * @param absY absolute row
+     * @param mouse1 whether mouse button 1 is held
+     */
+    private void route(final TApplication app, final TMouseEvent.Type type,
+        final int absX, final int absY, final boolean mouse1) {
+
+        TMouseEvent event = new TMouseEvent(null, type, absX, absY, absX, absY,
+            0, 0, mouse1, false, false, false, false, false, false, false);
+        app.handleMouseCapture(event);
+    }
+}

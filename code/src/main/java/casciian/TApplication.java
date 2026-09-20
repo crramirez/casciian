@@ -338,6 +338,17 @@ public class TApplication implements Runnable {
     private boolean focusFollowsMouse = false;
 
     /**
+     * The widget that currently owns the mouse capture, or null if no widget
+     * owns it.  While a widget owns the capture, mouse motion and mouse
+     * release events are routed directly to it regardless of the pointer
+     * position, so that stateful drag-style interactions (button presses,
+     * text selection, scrollbar thumb dragging, ...) complete on the widget
+     * that started them.  This is an internal Casciian event-routing
+     * abstraction and is not a native OS mouse grab.
+     */
+    private TWidget mouseCapture = null;
+
+    /**
      * If true, the mouse should not be displayed because a keystroke was
      * typed.
      */
@@ -1627,6 +1638,133 @@ public class TApplication implements Runnable {
     }
 
     /**
+     * Give a widget ownership of the mouse capture.  While a widget owns the
+     * capture, subsequent mouse motion and mouse release events are routed
+     * directly to it (see {@link #handleMouseCapture(TMouseEvent)}), even when
+     * the pointer leaves the widget's bounds.  Only one widget may own the
+     * capture at a time; requesting capture replaces any previous owner.  A
+     * widget may safely request capture that it already owns.
+     *
+     * <p>This is the low-level entry point.  Widgets normally call the
+     * convenience method {@link TWidget#captureMouse()} instead.</p>
+     *
+     * @param widget the widget requesting capture; if null, this is a no-op
+     */
+    public final void captureMouse(final TWidget widget) {
+        if (widget == null) {
+            return;
+        }
+        mouseCapture = widget;
+    }
+
+    /**
+     * Release the mouse capture, but only if the supplied widget currently
+     * owns it.  Releasing another widget's capture is a no-op so that a
+     * widget cannot accidentally clear a capture it does not own.
+     *
+     * <p>This is the low-level entry point.  Widgets normally call the
+     * convenience method {@link TWidget#releaseMouseCapture()} instead.</p>
+     *
+     * @param widget the widget releasing capture
+     */
+    public final void releaseMouseCapture(final TWidget widget) {
+        if ((widget != null) && (mouseCapture == widget)) {
+            mouseCapture = null;
+        }
+    }
+
+    /**
+     * Get the widget that currently owns the mouse capture.
+     *
+     * @return the capturing widget, or null if no widget owns the capture
+     */
+    public final TWidget getMouseCapture() {
+        return mouseCapture;
+    }
+
+    /**
+     * Determine whether a widget currently owns the mouse capture.
+     *
+     * @param widget the widget to check
+     * @return true if the widget owns the capture
+     */
+    public final boolean hasMouseCapture(final TWidget widget) {
+        return (widget != null) && (mouseCapture == widget);
+    }
+
+    /**
+     * Determine whether the widget that currently owns the mouse capture is
+     * still valid, i.e. still enabled and still attached to a shown top-level
+     * window or the desktop.  This guards against stale capture references
+     * left behind when a captured widget is removed, closed, disabled, or its
+     * window is closed.
+     *
+     * @param widget the capturing widget
+     * @return true if the widget can still receive routed capture events
+     */
+    private boolean isMouseCaptureValid(final TWidget widget) {
+        TWidget w = widget;
+        while (w != null) {
+            if (!w.isEnabled()) {
+                return false;
+            }
+            if (w == desktop) {
+                return true;
+            }
+            if (w instanceof TWindow) {
+                synchronized (windows) {
+                    return windows.contains(w) && ((TWindow) w).isShown();
+                }
+            }
+            w = w.getParent();
+        }
+        return false;
+    }
+
+    /**
+     * If a widget currently owns the mouse capture, route a drag (mouse
+     * motion) or mouse release event directly to it, converting the event
+     * coordinates to be relative to the captured widget.  The captured widget
+     * may receive coordinates outside its own bounds (including negative
+     * values); it is up to the widget to decide whether the pointer is
+     * currently inside.  Mouse press and double-click events are never
+     * redirected: a fresh press always goes through normal hit-testing so a
+     * widget can decide whether to begin a new captured interaction.
+     *
+     * @param mouse the mouse event
+     * @return true if the event was consumed by the captured widget and
+     * normal dispatch should be skipped
+     */
+    boolean handleMouseCapture(final TMouseEvent mouse) {
+        TWidget capture = mouseCapture;
+        if (capture == null) {
+            return false;
+        }
+        TMouseEvent.Type type = mouse.getType();
+        if ((type != TMouseEvent.Type.MOUSE_MOTION)
+            && (type != TMouseEvent.Type.MOUSE_UP)
+        ) {
+            return false;
+        }
+        if (!isMouseCaptureValid(capture)) {
+            mouseCapture = null;
+            return false;
+        }
+
+        // Track the pointer position for the mouse cursor and unhide it.
+        typingHidMouse = false;
+        mouseX = mouse.getAbsoluteX();
+        mouseY = mouse.getAbsoluteY();
+
+        // Convert to coordinates relative to the captured widget, even if the
+        // pointer is currently outside its bounds.
+        mouse.setX(mouse.getAbsoluteX() - capture.getAbsoluteX());
+        mouse.setY(mouse.getAbsoluteY() - capture.getAbsoluteY());
+        capture.handleEvent(mouse);
+        return true;
+    }
+
+    /**
      * Dispatch one event to the appropriate widget or application-level
      * event handler.  This is the primary event handler, it has the normal
      * application-wide event handling.
@@ -1644,6 +1782,14 @@ public class TApplication implements Runnable {
         TMouseEvent doubleClick = null;
 
         // Special application-wide events -----------------------------------
+
+        // If a widget owns the mouse capture, route drag/release events
+        // directly to it and skip normal dispatch.
+        if (event instanceof TMouseEvent) {
+            if (handleMouseCapture((TMouseEvent) event)) {
+                return;
+            }
+        }
 
         if (event instanceof TKeypressEvent) {
             if (SystemProperties.isHideMouseWhenTyping()) {
@@ -1895,6 +2041,14 @@ public class TApplication implements Runnable {
         if (debugEvents) {
             System.err.printf("%s secondaryHandleEvent: %s\n",
                 Thread.currentThread(), event);
+        }
+
+        // If a widget owns the mouse capture, route drag/release events
+        // directly to it and skip normal dispatch.
+        if (event instanceof TMouseEvent) {
+            if (handleMouseCapture((TMouseEvent) event)) {
+                return;
+            }
         }
 
         // Peek at the mouse position
@@ -3517,6 +3671,15 @@ public class TApplication implements Runnable {
         // Let window know that it is about to be closed, while it is still
         // visible on screen.
         window.onPreClose();
+
+        // If a widget inside this window (or the window itself) owns the mouse
+        // capture, release it so we do not leave a stale capture reference.
+        if ((mouseCapture != null)
+            && ((mouseCapture == window)
+                || (mouseCapture.getWindow() == window))
+        ) {
+            mouseCapture = null;
+        }
 
         // If the window has a close effect, kick that off.
         if (!window.disableCloseEffect() && SystemProperties.isAnimations()) {

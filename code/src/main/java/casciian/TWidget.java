@@ -855,6 +855,15 @@ public abstract class TWidget implements Comparable<TWidget> {
             throw new IndexOutOfBoundsException("child widget is not in " +
                 "list of children of this parent");
         }
+        // If the widget being removed (or one of its descendants) owns the
+        // mouse capture, release it so we do not leave a stale reference.
+        TApplication application = getApplication();
+        if (application != null) {
+            TWidget capture = application.getMouseCapture();
+            if ((capture != null) && child.containsWidget(capture)) {
+                application.releaseMouseCapture(capture);
+            }
+        }
         if ((window != null) && child.containsWidget(window.getDefaultButton())) {
             window.setDefaultButton(null);
         }
@@ -1192,6 +1201,8 @@ public abstract class TWidget implements Comparable<TWidget> {
     public void setEnabled(final boolean enabled) {
         this.enabled = enabled;
         if (!enabled) {
+            // A disabled widget must not keep the mouse capture.
+            releaseMouseCapture();
             setActiveFlag(false);
             // See if there are any active siblings to switch to
             boolean foundSibling = false;
@@ -1365,6 +1376,48 @@ public abstract class TWidget implements Comparable<TWidget> {
             return window.getApplication();
         }
         return null;
+    }
+
+    /**
+     * Request that this widget own the mouse capture.  While a widget owns
+     * the capture, mouse motion and mouse release events are routed directly
+     * to it even when the pointer leaves its bounds.  Widgets should call this
+     * when they begin a stateful drag-style interaction (button press, text
+     * selection, scrollbar thumb dragging, ...).  It is safe to call this
+     * repeatedly.
+     *
+     * @see TApplication#captureMouse(TWidget)
+     */
+    protected final void captureMouse() {
+        TApplication application = getApplication();
+        if (application != null) {
+            application.captureMouse(this);
+        }
+    }
+
+    /**
+     * Release the mouse capture if this widget currently owns it.  Releasing
+     * a capture owned by another widget is a no-op.  Widgets should call this
+     * when their stateful drag-style interaction ends.
+     *
+     * @see TApplication#releaseMouseCapture(TWidget)
+     */
+    protected final void releaseMouseCapture() {
+        TApplication application = getApplication();
+        if (application != null) {
+            application.releaseMouseCapture(this);
+        }
+    }
+
+    /**
+     * Determine whether this widget currently owns the mouse capture.
+     *
+     * @return true if this widget owns the mouse capture
+     * @see TApplication#hasMouseCapture(TWidget)
+     */
+    protected final boolean hasMouseCapture() {
+        TApplication application = getApplication();
+        return (application != null) && application.hasMouseCapture(this);
     }
 
     /**
