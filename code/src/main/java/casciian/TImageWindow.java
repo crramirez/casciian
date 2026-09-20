@@ -304,6 +304,18 @@ public class TImageWindow extends TScrollableWindow {
     }
 
     /**
+     * Keep the image in sync while the user drags a scrollbar box that owns
+     * the mouse capture.  During a captured drag the container's mouse
+     * handlers are not called, so this hook applies the scrollbar values to
+     * the image.
+     */
+    @Override
+    protected void onScrollerChange() {
+        imageField.setTop(getVerticalValue());
+        imageField.setLeft(getHorizontalValue());
+    }
+
+    /**
      * Handle window/screen resize events.
      *
      * @param event resize event

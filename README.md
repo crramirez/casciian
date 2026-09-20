@@ -79,6 +79,19 @@ embedding a terminal. It is a separate Gradle multi-project under
 can add it as an extra dependency when they need it. This component will be
 released starting from Casciian version 1.6.
 
+## Image Decoders Add-on (from Casciian 1.6)
+
+Core Casciian ships a single image decoder (`SixelImageDecoder`) to keep
+the library small. Extra **pure-Java** decoders — currently BMP and XPM,
+with more such as PNG planned — live in the optional
+[`casciian-image-decoders`](code-image-decoders/README.md) add-on. Unlike
+the Java Desktop add-on, these decoders do not depend on `java.desktop`,
+so they remain compatible with GraalVM `native-image`. It is a separate
+Gradle multi-project under `code-image-decoders/` and is publishable to
+Maven Central, so users can add it as an extra dependency when they need
+it. Adding it registers the decoders automatically via `ServiceLoader`,
+so any `TImageWindow` can open the supported formats out of the box.
+
 ## License
 
 This project is distributed under the Apache License, Version 2.0.

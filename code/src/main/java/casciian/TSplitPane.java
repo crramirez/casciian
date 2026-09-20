@@ -1,16 +1,21 @@
 /*
  * Casciian - Java Text User Interface
  *
- * Written 2013-2025 by Autumn Lamonte
+ * Original work written 2013–2025 by Autumn Lamonte
+ * and dedicated to the public domain via CC0.
  *
- * To the extent possible under law, the author(s) have dedicated all
- * copyright and related and neighboring rights to this software to the
- * public domain worldwide. This software is distributed without any
- * warranty.
+ * Modifications and maintenance:
+ * Copyright 2025 Carlos Rafael Ramirez
  *
- * You should have received a copy of the CC0 Public Domain Dedication along
- * with this software. If not, see
- * <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 package casciian;
 
@@ -133,15 +138,17 @@ public class TSplitPane extends TWidget {
     public void onMouseDown(final TMouseEvent mouse) {
         this.mouse = mouse;
 
-        inSplitMove = false;
-
         if (mouse.isMouse1()) {
+            inSplitMove = false;
             if (vertical) {
                 inSplitMove = (mouse.getAbsoluteX() - getAbsoluteX() == split);
             } else {
                 inSplitMove = (mouse.getAbsoluteY() - getAbsoluteY() == split);
             }
             if (inSplitMove) {
+                // Own the mouse capture so the divider keeps following the
+                // pointer even when it leaves the split pane's bounds.
+                captureMouse();
                 return;
             }
         }
@@ -162,6 +169,7 @@ public class TSplitPane extends TWidget {
         if (inSplitMove && mouse.isMouse1()) {
             // Stop moving split
             inSplitMove = false;
+            releaseMouseCapture();
             return;
         }
 
@@ -177,15 +185,6 @@ public class TSplitPane extends TWidget {
     @Override
     public void onMouseMotion(final TMouseEvent mouse) {
         this.mouse = mouse;
-
-        if ((mouse.getAbsoluteX() - getAbsoluteX() < 0)
-            || (mouse.getAbsoluteX() - getAbsoluteX() >= getWidth())
-            || (mouse.getAbsoluteY() - getAbsoluteY() < 0)
-            || (mouse.getAbsoluteY() - getAbsoluteY() >= getHeight())
-        ) {
-            // Mouse has travelled out of my window.
-            inSplitMove = false;
-        }
 
         if (focusFollowsMouse) {
             if ((top != null) && (top.mouseWouldHit(mouse))) {
@@ -213,6 +212,15 @@ public class TSplitPane extends TWidget {
 
         // I didn't take it, pass it on to my children
         super.onMouseMotion(mouse);
+    }
+
+    /**
+     * Stop moving the split divider when the mouse capture is taken away (for
+     * example when this widget is disabled mid-drag).
+     */
+    @Override
+    protected void onCaptureLost() {
+        inSplitMove = false;
     }
 
     // ------------------------------------------------------------------------

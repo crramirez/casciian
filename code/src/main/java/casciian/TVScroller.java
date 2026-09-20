@@ -130,7 +130,20 @@ public class TVScroller extends TWidget {
     public void onMouseUp(final TMouseEvent mouse) {
         autoRepeat.stop();
         pressedRegion = Region.NONE;
-        inScroll = false;
+        // Handle an in-progress thumb drag before the equal-range early
+        // return: if the range collapsed while the thumb was held, we still
+        // must clear inScroll and release the capture, otherwise this
+        // scrollbar stays captured and swallows later events.
+        if (inScroll) {
+            // Only a left-button release ends the thumb drag.  A non-left
+            // release (mouse1 == false) is routed here while the left button
+            // is still held; consume it without dropping the capture.
+            if (mouse.isMouse1()) {
+                inScroll = false;
+                releaseMouseCapture();
+            }
+            return;
+        }
     }
 
     /**
@@ -140,23 +153,42 @@ public class TVScroller extends TWidget {
      */
     @Override
     public void onMouseMotion(final TMouseEvent mouse) {
+        if (inScroll && (bottomValue == topValue)) {
+            inScroll = false;
+            releaseMouseCapture();
+            return;
+        }
+
         if (bottomValue == topValue) {
             return;
         }
 
         if ((mouse.isMouse1())
             && (inScroll)
-            && (mouse.getY() > 0)
-            && (mouse.getY() < getHeight() - 1)
         ) {
+            // Dragging the scroll box.  This scrollbar owns the mouse
+            // capture, so the pointer may be anywhere - including outside the
+            // scrollbar's bounds.  Clamp the box position to the track so the
+            // drag keeps working when the pointer leaves the scrollbar.
+            int boxY = mouse.getY();
+            if (boxY < 1) {
+                boxY = 1;
+            }
+            if (boxY > getHeight() - 2) {
+                boxY = getHeight() - 2;
+            }
             // Recompute value based on new box position
             value = (bottomValue - topValue)
-                * (mouse.getY()) / (getHeight() - 3) + topValue;
+                * (boxY) / (getHeight() - 3) + topValue;
             if (value > bottomValue) {
                 value = bottomValue;
             }
             if (value < topValue) {
                 value = topValue;
+            }
+            TWidget parent = getParent();
+            if (parent != null) {
+                parent.onScrollerChange();
             }
             return;
         }
@@ -171,8 +203,6 @@ public class TVScroller extends TWidget {
             autoRepeat.stop();
             pressedRegion = Region.NONE;
         }
-
-        inScroll = false;
     }
 
     /**
@@ -183,6 +213,13 @@ public class TVScroller extends TWidget {
     @Override
     public void onMouseDown(final TMouseEvent mouse) {
         if (bottomValue == topValue) {
+            // If the range collapsed while the thumb was held, release the
+            // capture here too; otherwise this scrollbar stays captured and
+            // swallows later events.  Only a left-button event ends the drag.
+            if (inScroll && mouse.isMouse1()) {
+                inScroll = false;
+                releaseMouseCapture();
+            }
             return;
         }
         if (!mouse.isMouse1()) {
@@ -202,6 +239,7 @@ public class TVScroller extends TWidget {
 
         if (pressedRegion == Region.BOX) {
             inScroll = true;
+            captureMouse();
             return;
         }
         if (pressedRegion == Region.NONE) {
@@ -228,6 +266,15 @@ public class TVScroller extends TWidget {
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Stop an in-progress thumb drag when the mouse capture is taken away (for
+     * example when this scrollbar is disabled mid-drag).
+     */
+    @Override
+    protected void onCaptureLost() {
+        inScroll = false;
+    }
 
     /**
      * Draw a vertical scroll bar.

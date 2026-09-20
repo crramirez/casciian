@@ -130,7 +130,16 @@ public class THScroller extends TWidget {
     public void onMouseUp(final TMouseEvent mouse) {
         autoRepeat.stop();
         pressedRegion = Region.NONE;
-        inScroll = false;
+        if (inScroll) {
+            // Only a left-button release ends the thumb drag.  A non-left
+            // release (mouse1 == false) is routed here while the left button
+            // is still held; consume it without dropping the capture.
+            if (mouse.isMouse1()) {
+                inScroll = false;
+                releaseMouseCapture();
+            }
+            return;
+        }
     }
 
     /**
@@ -140,25 +149,42 @@ public class THScroller extends TWidget {
      */
     @Override
     public void onMouseMotion(final TMouseEvent mouse) {
+        if (inScroll && (rightValue == leftValue)) {
+            inScroll = false;
+            releaseMouseCapture();
+            return;
+        }
 
         if (rightValue == leftValue) {
-            inScroll = false;
             return;
         }
 
         if ((mouse.isMouse1())
             && (inScroll)
-            && (mouse.getX() > 0)
-            && (mouse.getX() < getWidth() - 1)
         ) {
+            // Dragging the scroll box.  This scrollbar owns the mouse
+            // capture, so the pointer may be anywhere - including outside the
+            // scrollbar's bounds.  Clamp the box position to the track so the
+            // drag keeps working when the pointer leaves the scrollbar.
+            int boxX = mouse.getX();
+            if (boxX < 1) {
+                boxX = 1;
+            }
+            if (boxX > getWidth() - 2) {
+                boxX = getWidth() - 2;
+            }
             // Recompute value based on new box position
             value = (rightValue - leftValue)
-                * (mouse.getX()) / (getWidth() - 3) + leftValue;
+                * (boxX) / (getWidth() - 3) + leftValue;
             if (value > rightValue) {
                 value = rightValue;
             }
             if (value < leftValue) {
                 value = leftValue;
+            }
+            TWidget parent = getParent();
+            if (parent != null) {
+                parent.onScrollerChange();
             }
             return;
         }
@@ -173,8 +199,6 @@ public class THScroller extends TWidget {
             autoRepeat.stop();
             pressedRegion = Region.NONE;
         }
-
-        inScroll = false;
     }
 
     /**
@@ -185,7 +209,13 @@ public class THScroller extends TWidget {
     @Override
     public void onMouseDown(final TMouseEvent mouse) {
         if (rightValue == leftValue) {
-            inScroll = false;
+            // If the range collapsed while the thumb was held, release the
+            // capture here too; otherwise this scrollbar stays captured and
+            // swallows later events.  Only a left-button event ends the drag.
+            if (inScroll && mouse.isMouse1()) {
+                inScroll = false;
+                releaseMouseCapture();
+            }
             return;
         }
         if (!mouse.isMouse1()) {
@@ -205,6 +235,7 @@ public class THScroller extends TWidget {
 
         if (pressedRegion == Region.BOX) {
             inScroll = true;
+            captureMouse();
             return;
         }
         if (pressedRegion == Region.NONE) {
@@ -231,6 +262,15 @@ public class THScroller extends TWidget {
     // ------------------------------------------------------------------------
     // TWidget ----------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Stop an in-progress thumb drag when the mouse capture is taken away (for
+     * example when this scrollbar is disabled mid-drag).
+     */
+    @Override
+    protected void onCaptureLost() {
+        inScroll = false;
+    }
 
     /**
      * Draw a horizontal scroll bar.

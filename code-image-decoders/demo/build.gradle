@@ -1,0 +1,142 @@
+/*
+ * Casciian Image Decoders add-on - demo
+ *
+ * A small image-viewer TUI that registers every available image decoder — the
+ * BMP and XPM decoders from this add-on plus the Sixel decoder shipped in core
+ * casciian — so BMP, XPM and Sixel files can all be opened from Tool > Open
+ * image in a TImageWindow. Produces a fat JAR via the `jarDemo` task.
+ */
+plugins {
+    id 'application'
+}
+
+application {
+    mainClass = 'demo.ImageDecodersDemo'
+}
+
+dependencies {
+    implementation project(':casciian-image-decoders')
+    implementation "io.github.crramirez:casciian:${project.casciianVersion}"
+
+    // Casciian declares jline as `implementation`, so it is available at
+    // runtime via its POM. Re-declare here so the demo fat JAR explicitly
+    // includes it without relying on transitive resolution quirks.
+    implementation "org.jline:jline-terminal:${jlineVersion}"
+    implementation "org.jline:jline-terminal-jni:${jlineVersion}"
+}
+
+tasks.jar {
+    manifest {
+        attributes(
+                'Main-Class': 'demo.ImageDecodersDemo',
+                'Implementation-Version': project.version
+        )
+    }
+}
+
+// Demo fat JAR: includes the demo classes, the add-on, casciian, and all
+// runtime dependencies (jline, etc.). Not published.
+tasks.register('jarDemo', Jar) {
+    group = 'build'
+    description = 'Assembles a fat JAR containing the demo, the add-on, casciian and all runtime dependencies.'
+
+    // Place demo-only resources first so they take precedence over the
+    // per-module META-INF/services files under DuplicatesStrategy.EXCLUDE.
+    // Both casciian and casciian-image-decoders ship a service file named
+    // META-INF/services/casciian.image.decoders.ImageDecoder; without this
+    // merged copy, EXCLUDE keeps only the first jar's entry and the other
+    // decoders are silently dropped from ServiceLoader discovery. The merged
+    // file lists BMP24ImageDecoder and XPMImageDecoder alongside
+    // SixelImageDecoder so all three are discoverable from the fat JAR.
+    from('src/main/demo-resources')
+
+    from(sourceSets.main.output)
+
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    archiveBaseName.set('casciian-image-decoders-demo')
+    manifest {
+        attributes(
+                'Main-Class': 'demo.ImageDecodersDemo',
+                'Implementation-Version': project.version
+        )
+    }
+
+    // Module descriptors from multiple modules conflict in a single fat JAR
+    // (the demo runs from the classpath, not the module path).
+    exclude 'module-info.class'
+    exclude '**/module-info.class'
+}
+
+tasks.register('jarDemoJpms', Jar) {
+    group = 'build'
+    description = 'Assembles a JPMS JAR for the Image Decoders demo (without bundled dependencies).'
+
+    from(sourceSets.main.output)
+
+    archiveBaseName.set('casciian-image-decoders-demo-jpms')
+    manifest {
+        attributes(
+                'Main-Class': 'demo.ImageDecodersDemo',
+                'Implementation-Version': project.version
+        )
+    }
+}
+
+tasks.register('installDemoJpms', Sync) {
+    group = 'distribution'
+    description = 'Installs a JPMS demo app layout under build/install-jpms-demo.'
+    dependsOn tasks.named('jarDemoJpms'), configurations.runtimeClasspath
+
+    def unixLauncherText = '''#!/usr/bin/env sh
+APP_HOME=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+exec java --module-path "$APP_HOME/lib/*" --module casciian.image.decoders.demo/demo.ImageDecodersDemo "$@"
+'''
+    def windowsLauncherText = '''@echo off
+set APP_HOME=%~dp0..
+java --module-path "%APP_HOME%\\lib" --module casciian.image.decoders.demo/demo.ImageDecodersDemo %*
+'''
+    inputs.property('unixLauncherText', unixLauncherText)
+    inputs.property('windowsLauncherText', windowsLauncherText)
+
+    into(layout.buildDirectory.dir('install-jpms-demo'))
+
+    into('lib') {
+        from(tasks.named('jarDemoJpms'))
+        from(configurations.runtimeClasspath)
+    }
+
+    doLast {
+        def binDir = layout.buildDirectory.dir('install-jpms-demo/bin').get().asFile
+        binDir.mkdirs()
+
+        def unixLauncher = new File(binDir, 'casciian-image-decoders-demo-jpms')
+        unixLauncher.text = unixLauncherText
+        unixLauncher.setExecutable(true, false)
+
+        def windowsLauncher = new File(binDir, 'casciian-image-decoders-demo-jpms.bat')
+        windowsLauncher.text = windowsLauncherText
+    }
+}
+
+tasks.register('zipDemoJpms', Zip) {
+    group = 'distribution'
+    description = 'Creates a ZIP for the JPMS demo app layout.'
+    dependsOn tasks.named('installDemoJpms')
+
+    into("casciian-image-decoders-demo-jpms-app-${project.version}") {
+        from(layout.buildDirectory.dir('install-jpms-demo'))
+    }
+    archiveBaseName.set('casciian-image-decoders-demo-jpms-app')
+    archiveVersion.set(project.version.toString())
+    destinationDirectory.set(layout.buildDirectory.dir('distributions'))
+}
+
+tasks.assemble {
+    dependsOn tasks.named('jarDemo')
+}

@@ -81,9 +81,21 @@ public class TButton extends TWidget {
     private TMouseEvent mouse;
 
     /**
-     * True when the button is being pressed and held down.
+     * True while a mouse-button interaction is active: the button received a
+     * mouse-1 press and owns the mouse capture until the matching release.
+     * This is independent of whether the pointer is currently inside the
+     * button (see {@link #mouseArmed}).
      */
-    private boolean inButtonPress = false;
+    private boolean mousePressed = false;
+
+    /**
+     * True while a mouse interaction is active AND the pointer is currently
+     * inside the button.  This drives the "pushed" visual state and, at
+     * release time, whether the button's action fires.  It becomes false when
+     * the pointer is dragged outside the button while still held, and true
+     * again when the pointer is dragged back inside.
+     */
+    private boolean mouseArmed = false;
 
     /**
      * The action to perform when the button is clicked.
@@ -163,7 +175,7 @@ public class TButton extends TWidget {
      */
     private boolean mouseOnButton() {
         int rightEdge = getWidth() - 1;
-        if (inButtonPress && !isFlat()) {
+        if (mouseArmed && !isFlat()) {
             rightEdge++;
         }
         if ((mouse != null)
@@ -186,8 +198,11 @@ public class TButton extends TWidget {
         this.mouse = mouse;
 
         if ((mouseOnButton()) && (mouse.isMouse1())) {
-            // Begin button press
-            inButtonPress = true;
+            // Begin button press: own the interaction from here until the
+            // matching release, wherever the pointer travels.
+            mousePressed = true;
+            mouseArmed = true;
+            captureMouse();
         }
     }
 
@@ -200,11 +215,17 @@ public class TButton extends TWidget {
     public void onMouseUp(final TMouseEvent mouse) {
         this.mouse = mouse;
 
-        if (inButtonPress && mouse.isMouse1()) {
-            // Dispatch the event
-            dispatch();
+        if (mousePressed && mouse.isMouse1()) {
+            // The interaction is ending: release capture, and only fire the
+            // action if the pointer is inside the button at release time.
+            boolean fire = mouseOnButton();
+            mousePressed = false;
+            mouseArmed = false;
+            releaseMouseCapture();
+            if (fire) {
+                dispatch();
+            }
         }
-
     }
 
     /**
@@ -216,8 +237,10 @@ public class TButton extends TWidget {
     public void onMouseMotion(final TMouseEvent mouse) {
         this.mouse = mouse;
 
-        if (!mouseOnButton()) {
-            inButtonPress = false;
+        if (mousePressed) {
+            // While the interaction is active, track whether the pointer is
+            // currently inside the button to update the pushed visual state.
+            mouseArmed = mouseOnButton();
         }
     }
 
@@ -360,7 +383,7 @@ public class TButton extends TWidget {
         // no shadow.
         boolean flat = isFlat();
 
-        if (inButtonPress && !flat) {
+        if (mouseArmed && !flat) {
             putCharXY(1, 0, leftEdge);
             putStringXY(2, 0, mnemonic.getRawLabel(), buttonColor);
             putCharXY(getWidth() - 1, 0, rightEdge);
@@ -383,7 +406,7 @@ public class TButton extends TWidget {
             }
         }
         if (mnemonic.getScreenShortcutIdx() >= 0) {
-            if (inButtonPress && !flat) {
+            if (mouseArmed && !flat) {
                 putCharXY(2 + mnemonic.getScreenShortcutIdx(), 0,
                     mnemonic.getShortcut(), mnemonicColor);
             } else {
@@ -413,8 +436,24 @@ public class TButton extends TWidget {
     public void dispatch() {
         if (action != null) {
             action.DO(this);
-            inButtonPress = false;
         }
+        // dispatch() also fires on Enter/Space, so it can run while a mouse
+        // press still owns the application capture.  Reset the press state and
+        // release the capture unconditionally so no later motion/up event stays
+        // routed to a button that no longer considers the press active.
+        mousePressed = false;
+        mouseArmed = false;
+        releaseMouseCapture();
+    }
+
+    /**
+     * Reset the button press state when the mouse capture is taken away (for
+     * example when the button is disabled mid-press).
+     */
+    @Override
+    protected void onCaptureLost() {
+        mousePressed = false;
+        mouseArmed = false;
     }
 
     /**
