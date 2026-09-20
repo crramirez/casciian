@@ -77,7 +77,7 @@ public class TerminalJlineImpl implements Terminal {
 
             if (debugToStderr) {
                 String keyMouseCapability = jlineTerminal.getStringCapability(
-                    org.jline.utils.InfoCmp.Capability.key_mouse);
+                    InfoCmp.Capability.key_mouse);
                 System.err.println("[TerminalJlineImpl] terminal class=" + jlineTerminal.getClass().getName()
                     + " type=" + jlineTerminal.getType()
                     + " hasMouseSupport=" + (keyMouseCapability != null)

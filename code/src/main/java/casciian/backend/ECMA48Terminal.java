@@ -4706,7 +4706,7 @@ public class ECMA48Terminal extends LogicalScreen
      *
      * @return true only on Windows
      */
-    protected boolean isWindowsForMouseParsing() {
+    boolean isWindowsForMouseParsing() {
         return OsUtils.isWindows();
     }
 
