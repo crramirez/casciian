@@ -196,9 +196,9 @@ public class TVScroller extends TWidget {
         }
 
         // Motion is broadcast to every widget, so this also fires once the
-        // mouse has left the scroll bar entirely.  That is what stops the
-        // repeat when the button is released somewhere else, since onMouseUp
-        // only reaches widgets the mouse is still over.
+        // mouse leaves the pressed region or the left button is no longer
+        // held.  That is what stops the repeat before the eventual captured
+        // button-up event arrives.
         if (!mouse.isMouse1()
             || (regionAt(mouse.getX(), mouse.getY()) != pressedRegion)
         ) {
