@@ -1167,6 +1167,7 @@ public class TApplication implements Runnable {
                 if (menus.size() > 0) {
                     menus.get(0).setActive(true);
                     activeMenu = menus.get(0);
+                    clearMouseHoverForMenuOwnership();
                     return true;
                 }
             }
@@ -1435,6 +1436,7 @@ public class TApplication implements Runnable {
                 ) {
                     activeMenu = menu;
                     menu.setActive(true);
+                    clearMouseHoverForMenuOwnership();
                     return true;
                 }
             }
@@ -1966,10 +1968,36 @@ public class TApplication implements Runnable {
         }
         for (TWidget w = mouseHoverTarget; w != null; w = parentOf(w)) {
             if (w == widget) {
+                TMouseEvent mouse = new TMouseEvent(null,
+                    TMouseEvent.Type.MOUSE_MOTION, mouseX, mouseY, mouseX,
+                    mouseY, 0, 0, false, false, false, false, false, false,
+                    false, false);
+                for (TWidget exiting = mouseHoverTarget; exiting != null;
+                    exiting = parentOf(exiting)) {
+                    dispatchMouseTransition(exiting, mouse, false);
+                    if (exiting == widget) {
+                        break;
+                    }
+                }
                 mouseHoverTarget = null;
                 return;
             }
         }
+    }
+
+    /**
+     * When menus take ownership of pointer routing, clear any existing widget
+     * hover path so hover-sensitive widgets are not left visually hovered while
+     * the menu is active.
+     */
+    private void clearMouseHoverForMenuOwnership() {
+        if (mouseHoverTarget == null) {
+            return;
+        }
+        TMouseEvent mouse = new TMouseEvent(null, TMouseEvent.Type.MOUSE_MOTION,
+            mouseX, mouseY, mouseX, mouseY, 0, 0, false, false, false, false,
+            false, false, false, false);
+        updateMouseHover(mouse);
     }
 
     /**
@@ -2105,6 +2133,7 @@ public class TApplication implements Runnable {
 
         // Handle menu events
         if ((activeMenu != null) && !(event instanceof TCommandEvent)) {
+            clearMouseHoverForMenuOwnership();
             TMenu menu = activeMenu;
 
             if (event instanceof TMouseEvent) {
@@ -4615,6 +4644,7 @@ public class TApplication implements Runnable {
                     menu.setActive(true);
                     assert (menu.isContext() == false);
                     activeMenu = menu;
+                    clearMouseHoverForMenuOwnership();
                 } else {
                     menu.setActive(false);
                 }
@@ -4764,6 +4794,7 @@ public class TApplication implements Runnable {
         menu.setContext(true, x, y);
         menu.setActive(true);
         activeMenu = menu;
+        clearMouseHoverForMenuOwnership();
     }
 
 

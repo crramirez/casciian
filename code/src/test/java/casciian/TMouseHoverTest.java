@@ -18,7 +18,9 @@ package casciian;
 import org.junit.jupiter.api.Test;
 
 import casciian.backend.HeadlessBackend;
+import casciian.event.TCommandEvent;
 import casciian.event.TMouseEvent;
+import casciian.menu.TMenu;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -329,6 +331,43 @@ class TMouseHoverTest {
         app.closeWindow(window);
         assertNull(app.getMouseHoverTarget(),
             "closing the window must clear a hover target inside it");
+    }
+
+    @Test
+    void disablingHoveredHyperlinkDispatchesExit() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        THyperLink link = new THyperLink(window, "link", "http://example.com",
+            2, 2);
+
+        hoverAt(app, link.getAbsoluteX() + 1, link.getAbsoluteY());
+        assertTrue(link.isHover(), "hover starts true after entering");
+
+        link.setEnabled(false);
+
+        assertFalse(link.isHover(),
+            "disabling the hovered link must dispatch exit and clear hover");
+        assertNull(app.getMouseHoverTarget());
+    }
+
+    @Test
+    void openingMenuClearsWidgetHover() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 10);
+        THyperLink link = new THyperLink(window, "link", "http://example.com",
+            2, 2);
+        app.addMenu(new TMenu(app, 0, 0, "&File"));
+
+        hoverAt(app, link.getAbsoluteX() + 1, link.getAbsoluteY());
+        assertTrue(link.isHover(), "hover starts true after entering");
+
+        boolean consumed = app.onCommand(new TCommandEvent(null, TCommand.cmMenu));
+        assertTrue(consumed, "cmMenu should open the first top-level menu");
+
+        assertFalse(link.isHover(),
+            "opening a menu must clear previous widget hover state");
+        assertNull(app.getMouseHoverTarget(),
+            "hover target must be null while menu routing is active");
     }
 
     // ------------------------------------------------------------------------
