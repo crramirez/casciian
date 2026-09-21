@@ -61,11 +61,11 @@ public class TTimer {
     TTimer(final long duration, final boolean recurring, final TAction action) {
 
         this.recurring = recurring;
-        this.duration  = duration;
+        this.duration  = Math.max(0, duration);
         this.action    = action;
 
         Date now = new Date();
-        nextTick = new Date(now.getTime() + duration);
+        nextTick = new Date(now.getTime() + this.duration);
     }
 
     // ------------------------------------------------------------------------
@@ -94,12 +94,14 @@ public class TTimer {
     /**
      * Set the duration between ticks.  Changing this from inside the timer's
      * own action takes effect on the next tick, because tick() recomputes the
-     * next tick time after the action runs.
+     * next tick time after the action runs.  Negative values are clamped to
+     * zero to avoid scheduling ticks in the past and busy-looping the event
+     * loop.
      *
      * @param duration number of milliseconds to wait between ticks
      */
     public void setDuration(final long duration) {
-        this.duration = duration;
+        this.duration = Math.max(0, duration);
     }
 
     /**
