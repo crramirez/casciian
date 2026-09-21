@@ -578,6 +578,123 @@ class TMouseCaptureTest {
             "a collapsed vertical range on mouse-down must release capture");
     }
 
+    @Test
+    void quickClickOnArrowPerformsExactlyOneStep() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        THScroller hScroller = new THScroller(window, 1, 1, 12);
+        hScroller.setRightValue(100);
+        hScroller.setValue(50);
+        hScroller.setSmallChange(1);
+
+        // Press on the right arrow, then release right away.  The initial
+        // press fires a single immediate step; the release must not add more.
+        mouseDown(hScroller, hScroller.getWidth() - 1, 0);
+        assertEquals(51, hScroller.getValue(),
+            "the initial press must fire exactly one step");
+        mouseUp(hScroller, hScroller.getWidth() - 1, 0);
+        assertEquals(51, hScroller.getValue(),
+            "releasing must not fire an extra step");
+        assertNull(app.getMouseCapture(),
+            "releasing must drop the capture");
+    }
+
+    @Test
+    void heldArrowRepeatsWhileButtonIsDown() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        THScroller hScroller = new THScroller(window, 1, 1, 12);
+        hScroller.setRightValue(100);
+        hScroller.setValue(50);
+        hScroller.setSmallChange(1);
+
+        // Initial press: one immediate step.
+        mouseDown(hScroller, hScroller.getWidth() - 1, 0);
+        assertEquals(51, hScroller.getValue());
+
+        // The repeat timer re-dispatches auto-repeat presses.  Simulate two
+        // ticks; each performs another step on the pressed region.
+        mouseDownAutoRepeat(hScroller, hScroller.getWidth() - 1, 0);
+        mouseDownAutoRepeat(hScroller, hScroller.getWidth() - 1, 0);
+        assertEquals(53, hScroller.getValue(),
+            "each repeat tick must advance the scroll value");
+    }
+
+    @Test
+    void repeatStopsWhenPointerLeavesPressedRegion() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        THScroller hScroller = new THScroller(window, 1, 1, 12);
+        hScroller.setRightValue(100);
+        hScroller.setValue(50);
+        hScroller.setSmallChange(1);
+
+        mouseDown(hScroller, hScroller.getWidth() - 1, 0);
+        assertEquals(51, hScroller.getValue());
+
+        // Move off the pressed arrow while still holding the button.  This
+        // stops the auto-repeat and clears the pressed region, so a later
+        // repeat tick is a no-op.
+        mouseMotion(hScroller, hScroller.getWidth() / 2, 0, true);
+        mouseDownAutoRepeat(hScroller, hScroller.getWidth() - 1, 0);
+        assertEquals(51, hScroller.getValue(),
+            "moving off the pressed region must stop the repeat");
+    }
+
+    @Test
+    void nonLeftReleaseDoesNotStopHeldArrowRepeat() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        THScroller hScroller = new THScroller(window, 1, 1, 12);
+        hScroller.setRightValue(100);
+        hScroller.setValue(50);
+        hScroller.setSmallChange(1);
+
+        mouseDown(hScroller, hScroller.getWidth() - 1, 0);
+        assertEquals(51, hScroller.getValue());
+        assertTrue(app.hasMouseCapture(hScroller));
+
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            hScroller.getAbsoluteX() + hScroller.getWidth() - 1,
+            hScroller.getAbsoluteY(), false);
+        assertTrue(app.hasMouseCapture(hScroller),
+            "a non-left release must not cancel the held repeat");
+
+        mouseDownAutoRepeat(hScroller, hScroller.getWidth() - 1, 0);
+        assertEquals(52, hScroller.getValue(),
+            "repeat ticks must continue after a non-left release");
+
+        mouseUp(hScroller, hScroller.getWidth() - 1, 0);
+        assertNull(app.getMouseCapture(),
+            "the eventual left-button release must still end the interaction");
+    }
+
+    @Test
+    void nonLeftReleaseDoesNotInterruptScrollbarThumbDrag() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        TVScroller vScroller = new TVScroller(window, 20, 1, 8);
+        vScroller.setBottomValue(10);
+
+        mouseDown(vScroller, 0, 1);
+        assertTrue(app.hasMouseCapture(vScroller));
+
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            vScroller.getAbsoluteX(), vScroller.getAbsoluteY() + 1, false);
+        assertTrue(app.hasMouseCapture(vScroller),
+            "a non-left release must not end the thumb drag");
+
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            vScroller.getAbsoluteX(), vScroller.getAbsoluteY() + 4, true);
+        assertTrue(vScroller.getValue() > 0,
+            "dragging must continue after a non-left release");
+
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            vScroller.getAbsoluteX(), vScroller.getAbsoluteY() + 4, true);
+        assertNull(app.getMouseCapture(),
+            "the eventual left-button release must end the drag");
+    }
+
     // ------------------------------------------------------------------------
     // Helpers ----------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -619,6 +736,56 @@ class TMouseCaptureTest {
             x, y, widget.getAbsoluteX() + x, widget.getAbsoluteY() + y, 0, 0,
             true, false, false, false, false, false, false, false);
         widget.onMouseDown(event);
+    }
+
+    /**
+     * Send an auto-repeat MOUSE_DOWN directly to a widget, simulating a tick
+     * of the press-and-hold repeat timer.
+     *
+     * @param widget the target widget
+     * @param x relative column
+     * @param y relative row
+     */
+    private void mouseDownAutoRepeat(final TWidget widget, final int x,
+        final int y) {
+
+        TMouseEvent event = new TMouseEvent(null, TMouseEvent.Type.MOUSE_DOWN,
+            x, y, widget.getAbsoluteX() + x, widget.getAbsoluteY() + y, 0, 0,
+            true, false, false, false, false, false, false, false);
+        event.setAutoRepeat(true);
+        widget.onMouseDown(event);
+    }
+
+    /**
+     * Send a MOUSE_UP directly to a widget with coordinates relative to it.
+     *
+     * @param widget the target widget
+     * @param x relative column
+     * @param y relative row
+     */
+    private void mouseUp(final TWidget widget, final int x, final int y) {
+        TMouseEvent event = new TMouseEvent(null, TMouseEvent.Type.MOUSE_UP,
+            x, y, widget.getAbsoluteX() + x, widget.getAbsoluteY() + y, 0, 0,
+            true, false, false, false, false, false, false, false);
+        widget.onMouseUp(event);
+    }
+
+    /**
+     * Send a MOUSE_MOTION directly to a widget with coordinates relative to
+     * it.
+     *
+     * @param widget the target widget
+     * @param x relative column
+     * @param y relative row
+     * @param mouse1 whether mouse button 1 is held
+     */
+    private void mouseMotion(final TWidget widget, final int x, final int y,
+        final boolean mouse1) {
+
+        TMouseEvent event = new TMouseEvent(null, TMouseEvent.Type.MOUSE_MOTION,
+            x, y, widget.getAbsoluteX() + x, widget.getAbsoluteY() + y, 0, 0,
+            mouse1, false, false, false, false, false, false, false);
+        widget.onMouseMotion(event);
     }
 
     /**

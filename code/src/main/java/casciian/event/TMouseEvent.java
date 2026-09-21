@@ -141,6 +141,14 @@ public class TMouseEvent extends TInputEvent {
      */
     private boolean shift;
 
+    /**
+     * If true, this event was synthesized by a widget repeating a held-down
+     * mouse button rather than produced by the terminal.  Widgets that must
+     * not act twice on one physical press (buttons, checkboxes, menus) should
+     * ignore these; widgets with press-and-hold behaviour act on them.
+     */
+    private boolean autoRepeat = false;
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -446,6 +454,25 @@ public class TMouseEvent extends TInputEvent {
     }
 
     /**
+     * Returns true if this event was synthesized to repeat a held-down mouse
+     * button rather than produced by the terminal.
+     *
+     * @return true if this is an auto-repeat event
+     */
+    public boolean isAutoRepeat() {
+        return autoRepeat;
+    }
+
+    /**
+     * Mark this event as a synthesized repeat of a held-down mouse button.
+     *
+     * @param autoRepeat if true, this is an auto-repeat event
+     */
+    public void setAutoRepeat(final boolean autoRepeat) {
+        this.autoRepeat = autoRepeat;
+    }
+
+    /**
      * Create a duplicate instance.
      *
      * @return duplicate intance
@@ -457,6 +484,7 @@ public class TMouseEvent extends TInputEvent {
             mouseWheelUp, mouseWheelDown,
             mouseWheelLeft, mouseWheelRight,
             alt, ctrl, shift);
+        mouse.autoRepeat = autoRepeat;
 
         return mouse;
     }

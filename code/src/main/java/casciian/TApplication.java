@@ -5094,7 +5094,9 @@ public class TApplication implements Runnable {
         final TAction action) {
 
         TTimer timer = new TTimer(duration, recurring, action);
-        timers.add(timer);
+        synchronized (timers) {
+            timers.add(timer);
+        }
 
         return timer;
     }

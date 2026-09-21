@@ -19,6 +19,7 @@
  */
 package casciian;
 
+import casciian.backend.Backend;
 import casciian.bits.CellAttributes;
 import casciian.bits.GraphicsChars;
 import casciian.event.TMouseEvent;
@@ -62,6 +63,41 @@ public class THScroller extends TWidget {
      */
     private boolean inScroll = false;
 
+    /**
+     * Regions of the scroll bar that respond to a mouse press.
+     */
+    private enum Region {
+        NONE,
+        ARROW_LEFT,
+        ARROW_RIGHT,
+        PAGE_LEFT,
+        PAGE_RIGHT,
+        BOX,
+    }
+
+    /**
+     * The region the mouse was pressed on, used to stop auto-repeat once the
+     * mouse moves off it.
+     */
+    private Region pressedRegion = Region.NONE;
+
+    /**
+     * The column the mouse was pressed on, used to stop a page scroll once
+     * the box reaches the mouse.
+     */
+    private int pressedX = 0;
+
+    /**
+     * The backend of the press being repeated, reused for the synthesized
+     * repeat events.
+     */
+    private Backend pressedBackend = null;
+
+    /**
+     * Repeats the press action while the mouse button is held down.
+     */
+    private final MouseAutoRepeat autoRepeat = new MouseAutoRepeat();
+
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -92,7 +128,15 @@ public class THScroller extends TWidget {
      */
     @Override
     public void onMouseUp(final TMouseEvent mouse) {
-
+        if (!mouse.isMouse1()) {
+            return;
+        }
+        autoRepeat.stop();
+        pressedRegion = Region.NONE;
+        // Handle an in-progress thumb drag before the equal-range early
+        // return: if the range collapsed while the thumb was held, we still
+        // must clear inScroll and release the capture, otherwise this
+        // scrollbar stays captured and swallows later events.
         if (inScroll) {
             // Only a left-button release ends the thumb drag.  A non-left
             // release (mouse1 == false) is routed here while the left button
@@ -101,51 +145,6 @@ public class THScroller extends TWidget {
                 inScroll = false;
                 releaseMouseCapture();
             }
-            return;
-        }
-
-        if (rightValue == leftValue) {
-            return;
-        }
-
-        if ((mouse.getX() == 0)
-            && (mouse.getY() == 0)
-        ) {
-            // Clicked on the left arrow
-            decrement();
-            return;
-        }
-
-        if ((mouse.getY() == 0)
-            && (mouse.getX() == getWidth() - 1)
-        ) {
-            // Clicked on the right arrow
-            increment();
-            return;
-        }
-
-        if ((mouse.getY() == 0)
-            && (mouse.getX() > 0)
-            && (mouse.getX() < boxPosition())
-        ) {
-            // Clicked between the left arrow and the box
-            value -= bigChange;
-            if (value < leftValue) {
-                value = leftValue;
-            }
-            return;
-        }
-
-        if ((mouse.getY() == 0)
-            && (mouse.getX() > boxPosition())
-            && (mouse.getX() < getWidth() - 1)
-        ) {
-            // Clicked between the box and the right arrow
-            value += bigChange;
-            if (value > rightValue) {
-                value = rightValue;
-            }
-            return;
         }
     }
 
@@ -166,8 +165,8 @@ public class THScroller extends TWidget {
             return;
         }
 
-        if ((mouse.isMouse1())
-            && (inScroll)
+        if (mouse.isMouse1()
+            && inScroll && pressedRegion == Region.BOX
         ) {
             // Dragging the scroll box.  This scrollbar owns the mouse
             // capture, so the pointer may be anywhere - including outside the
@@ -195,6 +194,17 @@ public class THScroller extends TWidget {
             }
             return;
         }
+
+        // Motion is broadcast to every widget, so this also fires once the
+        // mouse leaves the pressed region or the left button is no longer
+        // held.  That is what stops the repeat before the eventual captured
+        // button-up event arrives.
+        if (!mouse.isMouse1()
+            || (regionAt(mouse.getX(), mouse.getY()) != pressedRegion)
+        ) {
+            autoRepeat.stop();
+            pressedRegion = Region.NONE;
+        }
     }
 
     /**
@@ -214,16 +224,45 @@ public class THScroller extends TWidget {
             }
             return;
         }
-
-        if ((mouse.isMouse1())
-            && (mouse.getY() == 0)
-            && (mouse.getX() == boxPosition())
-        ) {
-            inScroll = true;
-            captureMouse();
+        if (!mouse.isMouse1()) {
             return;
         }
 
+        if (mouse.isAutoRepeat()) {
+            // Re-dispatched by our own repeat timer; the pressed region is
+            // already known and the timer is already running.
+            performStep();
+            return;
+        }
+
+        pressedRegion = regionAt(mouse.getX(), mouse.getY());
+        pressedX = mouse.getX();
+        pressedBackend = mouse.getBackend();
+
+        if (pressedRegion == Region.NONE) {
+            return;
+        }
+
+        if (pressedRegion != Region.BOX) {
+            autoRepeat.start(this, new TAction() {
+                @Override
+                public void DO() {
+                    repeatStep();
+                }
+            });
+        }
+
+        inScroll = true;
+        captureMouse();
+    }
+
+    /**
+     * Release the repeat timer when this widget goes away.
+     */
+    @Override
+    public void close() {
+        autoRepeat.stop();
+        super.close();
     }
 
     // ------------------------------------------------------------------------
@@ -357,6 +396,119 @@ public class THScroller extends TWidget {
      */
     public void setBigChange(final int bigChange) {
         this.bigChange = bigChange;
+    }
+
+    /**
+     * Determine which region of the scroll bar a point is on.
+     *
+     * @param x column relative to this widget
+     * @param y row relative to this widget
+     * @return the region, or NONE if the point is off the bar
+     */
+    private Region regionAt(final int x, final int y) {
+        if ((y != 0) || (rightValue == leftValue)) {
+            return Region.NONE;
+        }
+        if (x == 0) {
+            return Region.ARROW_LEFT;
+        }
+        if (x == getWidth() - 1) {
+            return Region.ARROW_RIGHT;
+        }
+        if ((x < 0) || (x > getWidth() - 1)) {
+            return Region.NONE;
+        }
+        int box = boxPosition();
+        if (x == box) {
+            return Region.BOX;
+        }
+        return (x < box ? Region.PAGE_LEFT : Region.PAGE_RIGHT);
+    }
+
+    /**
+     * Apply one scroll step for the region the mouse was pressed on.
+     */
+    private void performStep() {
+        switch (pressedRegion) {
+            case ARROW_LEFT:
+                stepBy(-smallChange);
+                break;
+            case ARROW_RIGHT:
+                stepBy(smallChange);
+                break;
+            case PAGE_LEFT:
+                pageBy(-bigChange);
+                break;
+            case PAGE_RIGHT:
+                pageBy(bigChange);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Perform one repeat by re-dispatching the press through the parent,
+     * rather than scrolling directly.
+     *
+     * <p>Containers such as TTreeViewScrollable and TText copy the scroll bar
+     * value into their view and reflow only inside their own mouse handlers.
+     * Going back through the parent runs those handlers, so the content
+     * scrolls with the scroll bar instead of lagging until the next real
+     * mouse event.</p>
+     */
+    private void repeatStep() {
+        TWidget parent = getParent();
+        if (parent == null) {
+            performStep();
+            return;
+        }
+
+        int absoluteX = getAbsoluteX() + pressedX;
+        int absoluteY = getAbsoluteY();
+        TMouseEvent event = new TMouseEvent(pressedBackend,
+            TMouseEvent.Type.MOUSE_DOWN, absoluteX, absoluteY,
+            absoluteX, absoluteY, 0, 0,
+            true, false, false, false, false, false, false, false);
+        event.setAutoRepeat(true);
+        parent.onMouseDown(event);
+    }
+
+    /**
+     * Change value by delta, stopping the auto-repeat once it can go no
+     * further.
+     *
+     * @param delta amount to add to value
+     */
+    private void stepBy(final int delta) {
+        if (rightValue == leftValue) {
+            autoRepeat.stop();
+            return;
+        }
+        int oldValue = value;
+        value = Math.clamp((long) value + delta, leftValue, rightValue);
+        if (value == oldValue) {
+            // Already against the end, nothing left to repeat.
+            autoRepeat.stop();
+        }
+    }
+
+    /**
+     * Change value by delta, stopping the auto-repeat once it can go no
+     * further or the box has reached the mouse.
+     *
+     * @param delta amount to add to value
+     */
+    private void pageBy(final int delta) {
+        stepBy(delta);
+        if (rightValue == leftValue) {
+            return;
+        }
+        // Stop before the box jumps past the mouse, the way Swing does.
+        int box = boxPosition();
+        if ((delta < 0 && box <= pressedX) || (delta > 0 && box >= pressedX)) {
+            autoRepeat.stop();
+        }
     }
 
     /**

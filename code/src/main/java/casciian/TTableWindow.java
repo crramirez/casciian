@@ -365,6 +365,16 @@ public class TTableWindow extends TScrollableWindow {
             setVerticalValue(tableField.getSelectedRowNumber());
             setRightValue(tableField.getColumnCount() - 1);
             setHorizontalValue(tableField.getSelectedColumnNumber());
+        } else {
+            // The scroll bars scroll on press, so follow them here as well as
+            // in onMouseUp, otherwise a held arrow moves the bar but not the
+            // table.
+            if (mouse.isMouse1() && mouseOnVerticalScroller(mouse)) {
+                tableField.setSelectedRowNumber(getVerticalValue());
+            }
+            if (mouse.isMouse1() && mouseOnHorizontalScroller(mouse)) {
+                tableField.setSelectedColumnNumber(getHorizontalValue());
+            }
         }
     }
 

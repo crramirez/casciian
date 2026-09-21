@@ -122,6 +122,8 @@ public class THelpText extends TScrollable {
      */
     @Override
     public void onMouseDown(final TMouseEvent mouse) {
+        int oldVerticalValue = getVerticalValue();
+
         // Pass to children
         super.onMouseDown(mouse);
 
@@ -150,6 +152,13 @@ public class THelpText extends TScrollable {
             for (int i = 0; i < wheelScrollSize; i++) {
                 hScroller.decrement();
             }
+            reflowData();
+            return;
+        }
+
+        if (getVerticalValue() != oldVerticalValue) {
+            // A scroll bar moved us, which it now does on press.  Keep its
+            // position instead of snapping back to the active paragraph.
             reflowData();
             return;
         }
