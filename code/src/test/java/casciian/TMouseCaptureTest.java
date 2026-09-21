@@ -641,6 +641,60 @@ class TMouseCaptureTest {
             "moving off the pressed region must stop the repeat");
     }
 
+    @Test
+    void nonLeftReleaseDoesNotStopHeldArrowRepeat() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        THScroller hScroller = new THScroller(window, 1, 1, 12);
+        hScroller.setRightValue(100);
+        hScroller.setValue(50);
+        hScroller.setSmallChange(1);
+
+        mouseDown(hScroller, hScroller.getWidth() - 1, 0);
+        assertEquals(51, hScroller.getValue());
+        assertTrue(app.hasMouseCapture(hScroller));
+
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            hScroller.getAbsoluteX() + hScroller.getWidth() - 1,
+            hScroller.getAbsoluteY(), false);
+        assertTrue(app.hasMouseCapture(hScroller),
+            "a non-left release must not cancel the held repeat");
+
+        mouseDownAutoRepeat(hScroller, hScroller.getWidth() - 1, 0);
+        assertEquals(52, hScroller.getValue(),
+            "repeat ticks must continue after a non-left release");
+
+        mouseUp(hScroller, hScroller.getWidth() - 1, 0);
+        assertNull(app.getMouseCapture(),
+            "the eventual left-button release must still end the interaction");
+    }
+
+    @Test
+    void nonLeftReleaseDoesNotInterruptScrollbarThumbDrag() {
+        TApplication app = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(app, "test", 0, 0, 40, 14);
+        TVScroller vScroller = new TVScroller(window, 20, 1, 8);
+        vScroller.setBottomValue(10);
+
+        mouseDown(vScroller, 0, 1);
+        assertTrue(app.hasMouseCapture(vScroller));
+
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            vScroller.getAbsoluteX(), vScroller.getAbsoluteY() + 1, false);
+        assertTrue(app.hasMouseCapture(vScroller),
+            "a non-left release must not end the thumb drag");
+
+        route(app, TMouseEvent.Type.MOUSE_MOTION,
+            vScroller.getAbsoluteX(), vScroller.getAbsoluteY() + 4, true);
+        assertTrue(vScroller.getValue() > 0,
+            "dragging must continue after a non-left release");
+
+        route(app, TMouseEvent.Type.MOUSE_UP,
+            vScroller.getAbsoluteX(), vScroller.getAbsoluteY() + 4, true);
+        assertNull(app.getMouseCapture(),
+            "the eventual left-button release must end the drag");
+    }
+
     // ------------------------------------------------------------------------
     // Helpers ----------------------------------------------------------------
     // ------------------------------------------------------------------------

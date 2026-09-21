@@ -128,6 +128,9 @@ public class TVScroller extends TWidget {
      */
     @Override
     public void onMouseUp(final TMouseEvent mouse) {
+        if (!mouse.isMouse1()) {
+            return;
+        }
         autoRepeat.stop();
         pressedRegion = Region.NONE;
         // Handle an in-progress thumb drag before the equal-range early
