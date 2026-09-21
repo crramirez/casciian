@@ -75,26 +75,32 @@ public class THyperLink extends TLabel<TWidget> {
     // ------------------------------------------------------------------------
 
     /**
-     * Returns true if the mouse is currently on the link.
+     * Handle the mouse pointer entering the link: show the hover style.
      *
      * @param mouse mouse event
-     * @return true if the mouse is over this link
      */
-    private boolean mouseOnLink(final TMouseEvent mouse) {
-        return (mouse.getY() == 0)
-            && (mouse.getX() >= 0)
-            && (mouse.getX() < getWidth());
+    @Override
+    public void onMouseEnter(final TMouseEvent mouse) {
+        hover = true;
     }
 
     /**
-     * Handle mouse movements to track the hover state.
+     * Handle the mouse pointer leaving the link: drop the hover style.
      *
-     * @param mouse mouse motion event
+     * @param mouse mouse event
      */
     @Override
-    public void onMouseMotion(final TMouseEvent mouse) {
-        hover = mouseOnLink(mouse);
-        super.onMouseMotion(mouse);
+    public void onMouseExit(final TMouseEvent mouse) {
+        hover = false;
+    }
+
+    /**
+     * Returns true if the mouse pointer is currently hovering over this link.
+     *
+     * @return true if hovered
+     */
+    public boolean isHover() {
+        return hover;
     }
 
     // ------------------------------------------------------------------------
