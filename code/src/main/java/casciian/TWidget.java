@@ -1321,8 +1321,7 @@ public abstract class TWidget implements Comparable<TWidget> {
             if (parent != null) {
                 for (TWidget w: parent.children) {
                     if ((w.enabled)
-                        && !(this instanceof THScroller)
-                        && !(this instanceof TVScroller)
+                        && !(w instanceof TScroller)
                     ) {
                         parent.activate(w);
                         foundSibling = true;
@@ -1837,6 +1836,32 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
+     * See if a widget is a scroller with the specified orientation.
+     *
+     * @param widget the widget to inspect
+     * @param orientation the scroller orientation to check
+     * @return true if widget is a scroller of that orientation
+     */
+    private static boolean isScrollerWithOrientation(final TWidget widget,
+        final TScroller.Orientation orientation) {
+
+        return (widget instanceof TScroller scroller)
+            && (scroller.getOrientation() == orientation);
+    }
+
+    /**
+     * See if a widget is a scroller.
+     *
+     * @param widget the widget to inspect
+     * @return true if widget is a scroller
+     */
+    private static boolean isScroller(final TWidget widget) {
+        return isScrollerWithOrientation(widget, TScroller.Orientation.VERTICAL)
+            || isScrollerWithOrientation(widget,
+                TScroller.Orientation.HORIZONTAL);
+    }
+
+    /**
      * Called by parent to render to TWindow.
      */
     public final void drawChildren() {
@@ -1861,13 +1886,14 @@ public abstract class TWidget implements Comparable<TWidget> {
         int absoluteRightEdge = window.getAbsoluteX() + window.getWidth();
         int absoluteBottomEdge = window.getAbsoluteY() + window.getHeight();
         if (!(this instanceof TWindow)
-            && !(this instanceof TVScroller)
+            && !isScrollerWithOrientation(this, TScroller.Orientation.VERTICAL)
             && !(window instanceof TDesktop)
         ) {
             absoluteRightEdge -= 1;
         }
         if (!(this instanceof TWindow)
-            && !(this instanceof THScroller)
+            && !isScrollerWithOrientation(this,
+                TScroller.Orientation.HORIZONTAL)
             && !(window instanceof TDesktop)
         ) {
             absoluteBottomEdge -= 1;
@@ -1964,8 +1990,7 @@ public abstract class TWidget implements Comparable<TWidget> {
         children.add(child);
 
         if ((child.enabled)
-            && !(child instanceof THScroller)
-            && !(child instanceof TVScroller)
+            && !(child instanceof TScroller)
         ) {
             for (TWidget widget: children) {
                 widget.setActiveFlag(false);
@@ -1996,9 +2021,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      */
     public final void activate(final TWidget child) {
         assert (child.enabled);
-        if ((child instanceof THScroller)
-            || (child instanceof TVScroller)
-        ) {
+        if (child instanceof TScroller) {
             return;
         }
 
@@ -2036,8 +2059,7 @@ public abstract class TWidget implements Comparable<TWidget> {
         TWidget child = null;
         for (TWidget widget: children) {
             if ((widget.enabled)
-                && !(widget instanceof THScroller)
-                && !(widget instanceof TVScroller)
+                && !isScroller(widget)
                 && (widget.tabOrder >= tabOrder)
             ) {
                 child = widget;
@@ -2148,8 +2170,7 @@ public abstract class TWidget implements Comparable<TWidget> {
                 break;
             }
         } while ((!children.get(tabOrder).enabled)
-            && !(children.get(tabOrder) instanceof THScroller)
-            && !(children.get(tabOrder) instanceof TVScroller));
+            || (children.get(tabOrder) instanceof TScroller));
 
         if (activeChild != null) {
             assert (children.get(tabOrder).enabled);
@@ -2168,9 +2189,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @return widget that is active, or this if no children
      */
     public TWidget getActiveChild() {
-        if ((this instanceof THScroller)
-            || (this instanceof TVScroller)
-        ) {
+        if (this instanceof TScroller) {
             return parent;
         }
 
