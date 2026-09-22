@@ -197,11 +197,15 @@ public class PNGImageDecoder implements ImageDecoder {
         int channels = channelCount(colorType);
         int bitsPerPixel = channels * bitDepth;
         int bytesPerPixel = Math.max(1, bitsPerPixel / 8);
-        int stride = (width * bitsPerPixel + 7) / 8;
+        int stride = checkedArrayLength(
+            (((long) width * bitsPerPixel) + 7L) / 8L);
+        int pixelCount = checkedArrayLength((long) width * height);
+        int rawSize = checkedArrayLength((long) height * (stride + 1L));
 
-        byte[] raw = inflate(idat.toByteArray(), height * (stride + 1));
+        byte[] raw = inflate(idat.toByteArray(), rawSize);
 
-        int[] rgba = expandImage(raw, width, height, stride, bytesPerPixel,
+        int[] rgba = expandImage(raw, width, height, stride, pixelCount,
+            bytesPerPixel,
             bitDepth, colorType, palette, transparency);
 
         ImageRGB image = new ArrayImageRGB(width, height);
@@ -258,6 +262,16 @@ public class PNGImageDecoder implements ImageDecoder {
     }
 
     /**
+     * Validate that an array-backed PNG buffer size fits in a Java array.
+     */
+    private static int checkedArrayLength(final long length) throws IOException {
+        if (length < 0 || length > Integer.MAX_VALUE) {
+            throw new IOException("Unsupported PNG: image too large");
+        }
+        return (int) length;
+    }
+
+    /**
      * PNG critical chunks have an uppercase first type byte.
      */
     private static boolean isCriticalChunk(final int type) {
@@ -308,11 +322,11 @@ public class PNGImageDecoder implements ImageDecoder {
      * the per-row and per-pixel loops.
      */
     private static int[] expandImage(final byte[] raw, final int width,
-        final int height, final int stride, final int bpp, final int bitDepth,
-        final int colorType, final byte[] palette, final byte[] transparency)
-        throws IOException {
+        final int height, final int stride, final int pixelCount,
+        final int bpp, final int bitDepth, final int colorType,
+        final byte[] palette, final byte[] transparency) throws IOException {
 
-        int[] rgba = new int[width * height];
+        int[] rgba = new int[pixelCount];
         byte[] curr = new byte[stride];
         byte[] prev = new byte[stride];
 

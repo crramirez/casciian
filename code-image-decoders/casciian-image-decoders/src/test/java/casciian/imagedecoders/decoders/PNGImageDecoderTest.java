@@ -284,6 +284,25 @@ class PNGImageDecoderTest {
     }
 
     @Test
+    void rejectsImagesWhoseScanlineBuffersOverflowJavaArrays() throws IOException {
+        byte[] png = buildPng(Integer.MAX_VALUE, 1, 8, 2, null, null,
+            new byte[0]);
+
+        assertThatThrownBy(() -> decode(png))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("image too large");
+    }
+
+    @Test
+    void rejectsImagesWhosePixelCountOverflowsJavaArrays() throws IOException {
+        byte[] png = buildPng(1_000_000, 3_000, 1, 0, null, null, new byte[0]);
+
+        assertThatThrownBy(() -> decode(png))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("image too large");
+    }
+
+    @Test
     void extensionPatternAndMetadata() {
         ImageDecoder decoder = new PNGImageDecoder();
 
