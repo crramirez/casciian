@@ -349,6 +349,18 @@ public class TApplication implements Runnable {
     private TWidget mouseCapture = null;
 
     /**
+     * The widget currently under the mouse pointer (the hover target), or null
+     * if the pointer is not over any eligible widget.  This tracks pointer
+     * location and is a distinct concept from {@link #mouseCapture}: while a
+     * captured drag is in progress the pointer may be outside the capturing
+     * widget, so {@code mouseHoverTarget != mouseCapture} is valid.  It is used
+     * to synthesize {@link TWidget#onMouseEnter} / {@link TWidget#onMouseExit}
+     * transitions from ordinary mouse-motion coordinates, without depending on
+     * any native enter/exit events from the backend.
+     */
+    private TWidget mouseHoverTarget = null;
+
+    /**
      * If true, the mouse should not be displayed because a keystroke was
      * typed.
      */
@@ -1155,6 +1167,7 @@ public class TApplication implements Runnable {
                 if (menus.size() > 0) {
                     menus.get(0).setActive(true);
                     activeMenu = menus.get(0);
+                    clearMouseHoverForMenuOwnership();
                     return true;
                 }
             }
@@ -1423,6 +1436,7 @@ public class TApplication implements Runnable {
                 ) {
                     activeMenu = menu;
                     menu.setActive(true);
+                    clearMouseHoverForMenuOwnership();
                     return true;
                 }
             }
@@ -1816,6 +1830,195 @@ public class TApplication implements Runnable {
     }
 
     /**
+     * Resolve the widget that is logically under the mouse pointer for hover
+     * purposes, respecting window Z-order and modal state.  This mirrors where
+     * ordinary (non-captured) mouse motion is actually delivered: the active
+     * window when the pointer is over it, otherwise the desktop.  Background
+     * windows covered by the active window are never hover targets.  While a
+     * menu is active, menus own pointer routing and there is no widget hover
+     * target.
+     *
+     * @param mouse the mouse event, carrying an absolute position
+     * @return the deepest eligible widget under the pointer, or null
+     */
+    private TWidget findMouseTarget(final TMouseEvent mouse) {
+        if (activeMenu != null) {
+            return null;
+        }
+        TWindow window = getActiveWindow();
+        if (window != null) {
+            TWidget target = window.getMouseTarget(mouse);
+            if (target != null) {
+                return target;
+            }
+            if (window.isModal()) {
+                return null;
+            }
+        }
+        if (desktop != null) {
+            return desktop.getMouseTarget(mouse);
+        }
+        return null;
+    }
+
+    /**
+     * Deliver a single enter or exit transition to a widget, converting the
+     * event coordinates to be relative to that widget.
+     *
+     * @param widget the widget receiving the transition
+     * @param mouse the mouse event, carrying an absolute position
+     * @param enter true to deliver onMouseEnter(), false for onMouseExit()
+     */
+    private void dispatchMouseTransition(final TWidget widget,
+        final TMouseEvent mouse, final boolean enter) {
+
+        mouse.setX(mouse.getAbsoluteX() - widget.getAbsoluteX());
+        mouse.setY(mouse.getAbsoluteY() - widget.getAbsoluteY());
+        if (enter) {
+            widget.onMouseEnter(mouse);
+        } else {
+            widget.onMouseExit(mouse);
+        }
+    }
+
+    /**
+     * Recompute the hover target for the current pointer position and
+     * synthesize the appropriate {@link TWidget#onMouseExit} /
+     * {@link TWidget#onMouseEnter} transitions.  Only the branches of the
+     * widget hierarchy that were actually left or entered receive transitions:
+     * the shared ancestors of the old and new hover targets are not disturbed.
+     *
+     * <p>This does not deliver ordinary motion; that is dispatched separately
+     * through the normal widget tree so that container widgets keep their
+     * existing behavior.  On return the event's relative coordinates are reset
+     * to its absolute coordinates so downstream dispatch is unaffected.</p>
+     *
+     * @param mouse the mouse event, carrying an absolute position
+     */
+    void updateMouseHover(final TMouseEvent mouse) {
+        TWidget newTarget = findMouseTarget(mouse);
+        TWidget oldTarget = mouseHoverTarget;
+        if (newTarget == oldTarget) {
+            mouse.setX(mouse.getAbsoluteX());
+            mouse.setY(mouse.getAbsoluteY());
+            return;
+        }
+
+        // Ancestor set of the new target, used to find the common ancestor.
+        // Top-level widgets (windows, desktop) are self-parented, so stop the
+        // walk when a node is its own parent.
+        java.util.Set<TWidget> newAncestors = new java.util.HashSet<TWidget>();
+        for (TWidget w = newTarget; w != null; w = parentOf(w)) {
+            newAncestors.add(w);
+        }
+
+        // Exit the old path from the leaf up, stopping at the common ancestor.
+        for (TWidget w = oldTarget;
+             (w != null) && !newAncestors.contains(w);
+             w = parentOf(w)
+        ) {
+            dispatchMouseTransition(w, mouse, false);
+        }
+
+        // Find the common ancestor of the old and new paths.
+        TWidget common = null;
+        for (TWidget w = oldTarget; w != null; w = parentOf(w)) {
+            if (newAncestors.contains(w)) {
+                common = w;
+                break;
+            }
+        }
+
+        // Enter the new path from just below the common ancestor down to the
+        // new target (top-down), so ancestors are entered before descendants.
+        java.util.List<TWidget> enters = new java.util.ArrayList<TWidget>();
+        for (TWidget w = newTarget; (w != null) && (w != common);
+             w = parentOf(w)
+        ) {
+            enters.add(w);
+        }
+        for (int i = enters.size() - 1; i >= 0; i--) {
+            dispatchMouseTransition(enters.get(i), mouse, true);
+        }
+
+        mouseHoverTarget = newTarget;
+
+        // Restore absolute coordinates so downstream dispatch (which expects
+        // getX() == getAbsoluteX() at this stage) is unaffected.
+        mouse.setX(mouse.getAbsoluteX());
+        mouse.setY(mouse.getAbsoluteY());
+    }
+
+    /**
+     * Get the widget currently under the mouse pointer (the hover target).
+     *
+     * @return the hover target, or null if the pointer is not over an eligible
+     * widget
+     */
+    TWidget getMouseHoverTarget() {
+        return mouseHoverTarget;
+    }
+
+    /**
+     * Clear the hover target if it is the given widget or one of its
+     * descendants, so a removed, hidden, or closed widget is not retained as a
+     * stale hover reference.  The hover target is recomputed on the next mouse
+     * movement.
+     *
+     * @param widget the widget subtree being removed or invalidated
+     */
+    void clearMouseHoverWithin(final TWidget widget) {
+        if ((widget == null) || (mouseHoverTarget == null)) {
+            return;
+        }
+        for (TWidget w = mouseHoverTarget; w != null; w = parentOf(w)) {
+            if (w == widget) {
+                TMouseEvent mouse = new TMouseEvent(null,
+                    TMouseEvent.Type.MOUSE_MOTION, mouseX, mouseY, mouseX,
+                    mouseY, 0, 0, false, false, false, false, false, false,
+                    false, false);
+                for (TWidget exiting = mouseHoverTarget; exiting != null;
+                    exiting = parentOf(exiting)) {
+                    dispatchMouseTransition(exiting, mouse, false);
+                    if (exiting == widget) {
+                        break;
+                    }
+                }
+                mouseHoverTarget = null;
+                return;
+            }
+        }
+    }
+
+    /**
+     * When menus take ownership of pointer routing, clear any existing widget
+     * hover path so hover-sensitive widgets are not left visually hovered while
+     * the menu is active.
+     */
+    private void clearMouseHoverForMenuOwnership() {
+        if (mouseHoverTarget == null) {
+            return;
+        }
+        TMouseEvent mouse = new TMouseEvent(null, TMouseEvent.Type.MOUSE_MOTION,
+            mouseX, mouseY, mouseX, mouseY, 0, 0, false, false, false, false,
+            false, false, false, false);
+        updateMouseHover(mouse);
+    }
+
+    /**
+     * Return the parent of a widget for the purpose of walking the hover
+     * hierarchy, treating a top-level (self-parented) widget as having no
+     * parent so that upward walks terminate.
+     *
+     * @param widget the widget
+     * @return the parent, or null if the widget is a top-level widget
+     */
+    private static TWidget parentOf(final TWidget widget) {
+        TWidget parent = widget.getParent();
+        return (parent == widget) ? null : parent;
+    }
+
+    /**
      * Update the application-wide screen-selection bookkeeping for a mouse
      * event.  This runs before any mouse-capture routing so that a screen
      * selection that begins on a widget which captures the drag is still
@@ -1874,6 +2077,13 @@ public class TApplication implements Runnable {
         if (event instanceof TMouseEvent) {
             updateScreenSelection((TMouseEvent) event);
             if (handleMouseCapture((TMouseEvent) event)) {
+                // The captured widget consumed the event.  If that ended the
+                // capture (for example a drag release), reconcile the hover
+                // target with the widget now under the pointer so enter/exit
+                // state is coherent afterwards.
+                if (mouseCapture == null) {
+                    updateMouseHover((TMouseEvent) event);
+                }
                 return;
             }
         }
@@ -1928,6 +2138,7 @@ public class TApplication implements Runnable {
 
         // Handle menu events
         if ((activeMenu != null) && !(event instanceof TCommandEvent)) {
+            clearMouseHoverForMenuOwnership();
             TMenu menu = activeMenu;
 
             if (event instanceof TMouseEvent) {
@@ -2025,6 +2236,14 @@ public class TApplication implements Runnable {
             if (onMenu((TMenuEvent) event)) {
                 return;
             }
+        }
+
+        // Reconcile the hover target (and synthesize enter/exit transitions)
+        // for ordinary, non-captured mouse events before they are dispatched
+        // through the widget tree.  This runs only after the menu/keyboard
+        // short-circuits above, so it never fires while a menu owns routing.
+        if (event instanceof TMouseEvent) {
+            updateMouseHover((TMouseEvent) event);
         }
 
         // Dispatch events to the active window -------------------------------
@@ -2126,6 +2345,9 @@ public class TApplication implements Runnable {
                 }
             }
             if (handleMouseCapture((TMouseEvent) event)) {
+                if (mouseCapture == null) {
+                    updateMouseHover((TMouseEvent) event);
+                }
                 return;
             }
         }
@@ -2167,6 +2389,17 @@ public class TApplication implements Runnable {
                     }
                 }
             }
+        }
+
+        // Reconcile the hover target within the modal receiver before
+        // dispatch, so enter/exit transitions are synthesized for modal
+        // dialogs the same way as for the primary handler.
+        if ((event instanceof TMouseEvent mouse)
+            && (mouse.getType() == TMouseEvent.Type.MOUSE_MOTION)
+            && (secondaryEventReceiver instanceof TWindow modalWindow)
+            && modalWindow.isModal()
+        ) {
+            updateMouseHover(mouse);
         }
 
         secondaryEventReceiver.handleEvent(event);
@@ -3763,6 +3996,8 @@ public class TApplication implements Runnable {
                 mouseCapture = null;
             }
         }
+        // Likewise clear any hover target inside this window.
+        clearMouseHoverWithin(window);
 
         // If the window has a close effect, kick that off.
         if (!window.disableCloseEffect() && SystemProperties.isAnimations()) {
@@ -4418,6 +4653,7 @@ public class TApplication implements Runnable {
                     menu.setActive(true);
                     assert (menu.isContext() == false);
                     activeMenu = menu;
+                    clearMouseHoverForMenuOwnership();
                 } else {
                     menu.setActive(false);
                 }
@@ -4567,6 +4803,7 @@ public class TApplication implements Runnable {
         menu.setContext(true, x, y);
         menu.setActive(true);
         activeMenu = menu;
+        clearMouseHoverForMenuOwnership();
     }
 
 

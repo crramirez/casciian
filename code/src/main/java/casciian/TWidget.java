@@ -295,8 +295,19 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @return whether or not a mouse click would be sent to this widget
      */
     public final boolean mouseWouldHit(final TMouseEvent mouse) {
+        if (!visible) {
+            return false;
+        }
 
-        if (!enabled && !(this instanceof TLabel<?> label && label.getLabelFor() != null)) {
+        // A disabled widget is normally not a mouse target.  Two intentional
+        // exceptions participate in hit-testing while disabled: a label that
+        // is a label-for another widget (clicking it activates its target),
+        // and a hyperlink (which is not focusable but still needs to know when
+        // the pointer enters/leaves it to update its hover appearance).
+        if (!enabled
+            && !(this instanceof TLabel<?> label && label.getLabelFor() != null)
+            && !(this instanceof THyperLink)
+        ) {
             return false;
         }
 
@@ -624,13 +635,98 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @param mouse mouse motion event
      */
     public void onMouseMotion(final TMouseEvent mouse) {
-        // Default: do nothing, pass it on to ALL of my children.  This way
-        // the children can see the mouse "leaving" their area.
-        for (TWidget widget: children) {
+        // Default: route the motion only to the single child under the
+        // pointer.  Motion is no longer broadcast to every child: a widget
+        // learns that the pointer has left its area from onMouseExit()
+        // (synthesized by TApplication's hover tracking), not by receiving
+        // motion events that occur over an unrelated sibling.  Drag
+        // interactions that must keep following the pointer outside a widget's
+        // bounds are handled by the mouse-capture mechanism, not by this
+        // broadcast.
+        TWidget child = mouseChildTarget(mouse);
+        if (child != null) {
             // Set x and y relative to the child's coordinates
-            mouse.setX(mouse.getAbsoluteX() - widget.getAbsoluteX());
-            mouse.setY(mouse.getAbsoluteY() - widget.getAbsoluteY());
-            widget.onMouseMotion(mouse);
+            mouse.setX(mouse.getAbsoluteX() - child.getAbsoluteX());
+            mouse.setY(mouse.getAbsoluteY() - child.getAbsoluteY());
+            child.onMouseMotion(mouse);
+        }
+    }
+
+    /**
+     * Method that subclasses can override to be notified when the mouse
+     * pointer enters this widget's area.  This is a transition event: it is
+     * delivered once when the pointer moves onto the widget, not repeatedly
+     * while the pointer stays inside (use {@link #onMouseMotion} for that).
+     *
+     * <p>The default implementation does nothing.</p>
+     *
+     * @param mouse mouse event describing the pointer position at the moment
+     * it entered
+     */
+    public void onMouseEnter(final TMouseEvent mouse) {
+        // Default: do nothing.
+    }
+
+    /**
+     * Method that subclasses can override to be notified when the mouse
+     * pointer leaves this widget's area.  This is a transition event: it is
+     * delivered once when the pointer moves off the widget.  Widgets that
+     * track a hover state should clear it here instead of relying on receiving
+     * motion events that occur over other widgets.
+     *
+     * <p>The default implementation does nothing.</p>
+     *
+     * @param mouse mouse event describing the pointer position at the moment
+     * it left
+     */
+    public void onMouseExit(final TMouseEvent mouse) {
+        // Default: do nothing.
+    }
+
+    /**
+     * Resolve which direct child a mouse event at the given position would be
+     * routed to, mirroring the child-selection used by {@link #onMouseDown}
+     * and {@link #onMouseMotion}: the active child is preferred, otherwise the
+     * topmost sibling in reverse Z-order.  Coordinates are read from the
+     * event's absolute position, so this method does not mutate the event.
+     *
+     * @param mouse a mouse event carrying an absolute position
+     * @return the child under the pointer, or null if none
+     */
+    private TWidget mouseChildTarget(final TMouseEvent mouse) {
+        if ((activeChild != null) && activeChild.mouseWouldHit(mouse)) {
+            return activeChild;
+        }
+        for (int i = children.size() - 1; i >= 0; i--) {
+            TWidget widget = children.get(i);
+            if (widget.mouseWouldHit(mouse)) {
+                return widget;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Resolve the deepest widget that a mouse event at the given position
+     * would be routed to, descending through children the same way
+     * {@link #onMouseMotion} does.  Coordinates are read from the event's
+     * absolute position, so this method does not mutate the event.
+     *
+     * @param mouse a mouse event carrying an absolute position
+     * @return the deepest routing target under the pointer, or null if the
+     * pointer is not over this widget
+     */
+    final TWidget getMouseTarget(final TMouseEvent mouse) {
+        if (!mouseWouldHit(mouse)) {
+            return null;
+        }
+        TWidget current = this;
+        while (true) {
+            TWidget child = current.mouseChildTarget(mouse);
+            if (child == null) {
+                return current;
+            }
+            current = child;
         }
     }
 
@@ -864,6 +960,8 @@ public abstract class TWidget implements Comparable<TWidget> {
                 capture.onCaptureLost();
                 application.releaseMouseCapture(capture);
             }
+            // Do not leave a stale hover reference to a widget being removed.
+            application.clearMouseHoverWithin(child);
         }
         if ((window != null) && child.containsWidget(window.getDefaultButton())) {
             window.setDefaultButton(null);
@@ -1214,6 +1312,8 @@ public abstract class TWidget implements Comparable<TWidget> {
                     capture.onCaptureLost();
                     application.releaseMouseCapture(capture);
                 }
+                // A disabled widget must not remain the hover target.
+                application.clearMouseHoverWithin(this);
             }
             setActiveFlag(false);
             // See if there are any active siblings to switch to
@@ -1243,6 +1343,12 @@ public abstract class TWidget implements Comparable<TWidget> {
      */
     public final void setVisible(final boolean visible) {
         this.visible = visible;
+        if (!visible) {
+            TApplication application = getApplication();
+            if (application != null) {
+                application.clearMouseHoverWithin(this);
+            }
+        }
     }
 
     /**
