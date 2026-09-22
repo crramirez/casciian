@@ -2394,11 +2394,12 @@ public class TApplication implements Runnable {
         // Reconcile the hover target within the modal receiver before
         // dispatch, so enter/exit transitions are synthesized for modal
         // dialogs the same way as for the primary handler.
-        if ((event instanceof TMouseEvent)
+        if ((event instanceof TMouseEvent mouse)
+            && (mouse.getType() == TMouseEvent.Type.MOUSE_MOTION)
             && (secondaryEventReceiver instanceof TWindow modalWindow)
             && modalWindow.isModal()
         ) {
-            updateMouseHover((TMouseEvent) event);
+            updateMouseHover(mouse);
         }
 
         secondaryEventReceiver.handleEvent(event);

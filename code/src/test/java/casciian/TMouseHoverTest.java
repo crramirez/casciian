@@ -270,7 +270,11 @@ class TMouseHoverTest {
             CountingButton a = new CountingButton(window, "A", 1, 1);
             CountingButton b = new CountingButton(window, "B", 1, 1);
 
-            hoverAt(running, b.getAbsoluteX() + 1, b.getAbsoluteY());
+            running.app.postEvent(mouseEvent(running.backend,
+                TMouseEvent.Type.MOUSE_MOTION, b.getAbsoluteX() + 1,
+                b.getAbsoluteY(), false));
+            waitFor(() -> app.getMouseHoverTarget() == b,
+                "the topmost overlapping widget should receive hover");
             assertSame(b, app.getMouseHoverTarget(),
                 "only the topmost overlapping widget should be the hover target");
             assertEquals(1, b.enters);
