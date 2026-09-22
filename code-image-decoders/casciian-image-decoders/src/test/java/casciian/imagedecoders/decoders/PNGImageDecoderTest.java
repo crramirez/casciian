@@ -250,6 +250,40 @@ class PNGImageDecoderTest {
     }
 
     @Test
+    void rejectsUnknownCriticalChunks() throws IOException {
+        byte[] png = buildPngWithExtraChunk(1, 1, 8, 2, "ABCD", new byte[] {0x00},
+            rgbScanlines(new int[][]{{0x000000}}, NONE));
+
+        assertThatThrownBy(() -> decode(png))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("unknown critical chunk");
+    }
+
+    @Test
+    void rejectsMissingIendChunk() throws IOException {
+        byte[] png = buildPng(1, 1, 8, 2, null, null,
+            rgbScanlines(new int[][]{{0x000000}}, NONE));
+        byte[] truncated = new byte[png.length - 12];
+        System.arraycopy(png, 0, truncated, 0, truncated.length);
+
+        assertThatThrownBy(() -> decode(truncated))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("missing IEND");
+    }
+
+    @Test
+    void rejectsChunkLengthThatWouldRunPastTypeAndCrc() throws IOException {
+        byte[] png = buildPng(1, 1, 8, 2, null, null,
+            rgbScanlines(new int[][]{{0x000000}}, NONE));
+        ByteBuffer.wrap(png).order(ByteOrder.BIG_ENDIAN)
+            .putInt(33, png.length);
+
+        assertThatThrownBy(() -> decode(png))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("chunk length out of bounds");
+    }
+
+    @Test
     void extensionPatternAndMetadata() {
         ImageDecoder decoder = new PNGImageDecoder();
 
@@ -362,6 +396,21 @@ class PNGImageDecoderTest {
     private static byte[] buildPngWithInterlace(int width, int height,
         int bitDepth, int colorType, int interlace, byte[] palette,
         byte[] trns, byte[] rawScanlines) throws IOException {
+        return buildPngWithExtraChunk(width, height, bitDepth, colorType,
+            interlace, palette, trns, null, null, rawScanlines);
+    }
+
+    private static byte[] buildPngWithExtraChunk(int width, int height,
+        int bitDepth, int colorType, String extraChunkType,
+        byte[] extraChunkData, byte[] rawScanlines) throws IOException {
+        return buildPngWithExtraChunk(width, height, bitDepth, colorType, 0,
+            null, null, extraChunkType, extraChunkData, rawScanlines);
+    }
+
+    private static byte[] buildPngWithExtraChunk(int width, int height,
+        int bitDepth, int colorType, int interlace, byte[] palette,
+        byte[] trns, String extraChunkType, byte[] extraChunkData,
+        byte[] rawScanlines) throws IOException {
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         out.write(new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A});
@@ -381,6 +430,9 @@ class PNGImageDecoderTest {
         }
         if (trns != null) {
             writeChunk(out, "tRNS", trns);
+        }
+        if (extraChunkType != null) {
+            writeChunk(out, extraChunkType, extraChunkData);
         }
 
         Deflater deflater = new Deflater();

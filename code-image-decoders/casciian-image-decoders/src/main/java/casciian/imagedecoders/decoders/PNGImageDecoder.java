@@ -108,7 +108,8 @@ public class PNGImageDecoder implements ImageDecoder {
         boolean sawIend = false;
         while (buffer.remaining() >= 8 && !sawIend) {
             int length = buffer.getInt();
-            if (length < 0 || length > buffer.remaining() - 4) {
+            if (length < 0 || buffer.remaining() < 8
+                || length > buffer.remaining() - 8) {
                 throw new IOException("Corrupt PNG: chunk length out of bounds");
             }
             int type = buffer.getInt();
@@ -174,7 +175,9 @@ public class PNGImageDecoder implements ImageDecoder {
                 break;
 
             default:
-                // Ancillary or unrecognized chunk: skip silently.
+                if (isCriticalChunk(type)) {
+                    throw new IOException("Unsupported PNG: unknown critical chunk");
+                }
                 break;
             }
 
@@ -184,6 +187,9 @@ public class PNGImageDecoder implements ImageDecoder {
 
         if (!sawIhdr) {
             throw new IOException("Corrupt PNG: missing IHDR chunk");
+        }
+        if (!sawIend) {
+            throw new IOException("Corrupt PNG: missing IEND chunk");
         }
         if (colorType == 3 && palette == null) {
             throw new IOException("Corrupt PNG: indexed image without PLTE");
@@ -250,6 +256,13 @@ public class PNGImageDecoder implements ImageDecoder {
             default -> throw new IOException(
                 "Unsupported PNG: color type " + colorType);
         };
+    }
+
+    /**
+     * PNG critical chunks have an uppercase first type byte.
+     */
+    private static boolean isCriticalChunk(final int type) {
+        return (type & 0x20000000) == 0;
     }
 
     /**

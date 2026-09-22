@@ -23,9 +23,9 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Verifies that {@link BMP24ImageDecoder} and {@link XPMImageDecoder} are wired
- * up as {@link java.util.ServiceLoader} providers so they are discoverable
- * through {@link ImageDecoderRegistry#loadDecoders()} when the add-on is on the
+ * Verifies that the add-on decoders are wired up as
+ * {@link java.util.ServiceLoader} providers so they are discoverable through
+ * {@link ImageDecoderRegistry#loadDecoders()} when the add-on is on the
  * classpath or module path.
  */
 class ImageDecodersServiceLoaderTest {
@@ -44,14 +44,15 @@ class ImageDecodersServiceLoaderTest {
     }
 
     @Test
-    void loadDecodersDiscoversBmpAndXpmDecoders() {
+    void loadDecodersDiscoversAddOnDecoders() {
         int count = registry.loadDecoders();
 
-        assertThat(count).isGreaterThanOrEqualTo(2);
+        assertThat(count).isGreaterThanOrEqualTo(3);
         assertThat(registry.getDecoders())
             .extracting(d -> d.getClass().getName())
             .contains(
                 BMP24ImageDecoder.class.getName(),
-                XPMImageDecoder.class.getName());
+                XPMImageDecoder.class.getName(),
+                PNGImageDecoder.class.getName());
     }
 }
