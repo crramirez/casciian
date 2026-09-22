@@ -170,6 +170,9 @@ public class PNGImageDecoder implements ImageDecoder {
                 break;
 
             case IEND:
+                if (length != 0) {
+                    throw new IOException("Corrupt PNG: non-empty IEND chunk");
+                }
                 sawIend = true;
                 break;
 

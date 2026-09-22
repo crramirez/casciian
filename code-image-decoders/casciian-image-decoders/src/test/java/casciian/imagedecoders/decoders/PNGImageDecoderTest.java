@@ -272,6 +272,21 @@ class PNGImageDecoderTest {
     }
 
     @Test
+    void rejectsNonEmptyIendChunk() throws IOException {
+        byte[] png = buildPng(1, 1, 8, 2, null, null,
+            rgbScanlines(new int[][]{{0x000000}}, NONE));
+        // Drop the trailing empty IEND chunk (12 bytes) and append a
+        // corrupt IEND that carries a one-byte payload.
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.write(png, 0, png.length - 12);
+        writeChunk(out, "IEND", new byte[]{0x00});
+
+        assertThatThrownBy(() -> decode(out.toByteArray()))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("non-empty IEND");
+    }
+
+    @Test
     void rejectsChunkLengthThatWouldRunPastTypeAndCrc() throws IOException {
         byte[] png = buildPng(1, 1, 8, 2, null, null,
             rgbScanlines(new int[][]{{0x000000}}, NONE));
