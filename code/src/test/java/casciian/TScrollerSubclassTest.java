@@ -83,6 +83,10 @@ class TScrollerSubclassTest {
         window.activate(scroller);
         assertSame(first, window.getActiveChild());
 
+        window.switchWidget(true);
+        assertSame(second, window.getActiveChild());
+
+        window.activate(first);
         first.setEnabled(false);
         assertSame(second, window.getActiveChild());
     }

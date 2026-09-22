@@ -2143,7 +2143,7 @@ public abstract class TWidget implements Comparable<TWidget> {
                 break;
             }
         } while ((!children.get(tabOrder).enabled)
-            && !(children.get(tabOrder) instanceof TScroller));
+            || (children.get(tabOrder) instanceof TScroller));
 
         if (activeChild != null) {
             assert (children.get(tabOrder).enabled);
