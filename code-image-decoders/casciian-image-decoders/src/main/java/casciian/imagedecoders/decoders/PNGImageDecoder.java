@@ -108,8 +108,7 @@ public class PNGImageDecoder implements ImageDecoder {
         boolean sawIend = false;
         while (buffer.remaining() >= 8 && !sawIend) {
             int length = buffer.getInt();
-            if (length < 0 || buffer.remaining() < 8
-                || length > buffer.remaining() - 8) {
+            if (length < 0 || (long) buffer.remaining() < (long) length + 8L) {
                 throw new IOException("Corrupt PNG: chunk length out of bounds");
             }
             int type = buffer.getInt();
