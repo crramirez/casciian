@@ -151,7 +151,7 @@ public class PNGImageDecoder implements ImageDecoder {
                 break;
 
             case PLTE:
-                if (length % 3 != 0) {
+                if (length < 3 || length > 768 || length % 3 != 0) {
                     throw new IOException("Corrupt PNG: invalid PLTE length");
                 }
                 palette = new byte[length];
@@ -307,6 +307,10 @@ public class PNGImageDecoder implements ImageDecoder {
                 throw new IOException(
                     "Corrupt PNG: decompressed size mismatch (expected "
                         + expectedSize + ", got " + offset + ")");
+            }
+            byte[] probe = new byte[1];
+            if (inflater.inflate(probe, 0, 1) > 0 || !inflater.finished()) {
+                throw new IOException("Corrupt PNG: invalid zlib stream size");
             }
             return raw;
         } catch (DataFormatException e) {

@@ -284,6 +284,31 @@ class PNGImageDecoderTest {
     }
 
     @Test
+    void rejectsPlteChunkLengthsOutsideSpecRange() throws IOException {
+        byte[] zeroLengthPlte = buildPng(1, 1, 8, 2, new byte[0], null,
+            rgbScanlines(new int[][]{{0x000000}}, NONE));
+        byte[] oversizedPlte = buildPng(1, 1, 8, 2, new byte[771], null,
+            rgbScanlines(new int[][]{{0x000000}}, NONE));
+
+        assertThatThrownBy(() -> decode(zeroLengthPlte))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("invalid PLTE length");
+        assertThatThrownBy(() -> decode(oversizedPlte))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("invalid PLTE length");
+    }
+
+    @Test
+    void rejectsZlibStreamsWithTrailingDecompressedBytes() throws IOException {
+        byte[] png = buildPng(1, 1, 8, 2, null, null,
+            new byte[] {0x00, 0x00, 0x00, 0x00, 0x00});
+
+        assertThatThrownBy(() -> decode(png))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("invalid zlib stream size");
+    }
+
+    @Test
     void rejectsImagesWhoseScanlineBuffersOverflowJavaArrays() throws IOException {
         byte[] png = buildPng(Integer.MAX_VALUE, 1, 8, 2, null, null,
             new byte[0]);
