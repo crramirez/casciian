@@ -295,6 +295,9 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @return whether or not a mouse click would be sent to this widget
      */
     public final boolean mouseWouldHit(final TMouseEvent mouse) {
+        if (!visible) {
+            return false;
+        }
 
         // A disabled widget is normally not a mouse target.  Two intentional
         // exceptions participate in hit-testing while disabled: a label that
@@ -1340,6 +1343,12 @@ public abstract class TWidget implements Comparable<TWidget> {
      */
     public final void setVisible(final boolean visible) {
         this.visible = visible;
+        if (!visible) {
+            TApplication application = getApplication();
+            if (application != null) {
+                application.clearMouseHoverWithin(this);
+            }
+        }
     }
 
     /**

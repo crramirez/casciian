@@ -1851,6 +1851,9 @@ public class TApplication implements Runnable {
             if (target != null) {
                 return target;
             }
+            if (window.isModal()) {
+                return null;
+            }
         }
         if (desktop != null) {
             return desktop.getMouseTarget(mouse);
