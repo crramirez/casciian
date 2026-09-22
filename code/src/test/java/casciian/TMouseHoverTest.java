@@ -389,7 +389,11 @@ class TMouseHoverTest {
             CountingButton hidden = new CountingButton(window, "B", 1, 1);
             hidden.setVisible(false);
 
-            hoverAt(running, hidden.getAbsoluteX() + 1, hidden.getAbsoluteY());
+            running.app.postEvent(mouseEvent(running.backend,
+                TMouseEvent.Type.MOUSE_MOTION, hidden.getAbsoluteX() + 1,
+                hidden.getAbsoluteY(), false));
+            waitFor(() -> app.getMouseHoverTarget() == visible,
+                "the visible widget should receive hover through the public path");
 
             assertSame(visible, app.getMouseHoverTarget());
             assertEquals(1, visible.enters);

@@ -1899,6 +1899,8 @@ public class TApplication implements Runnable {
         TWidget newTarget = findMouseTarget(mouse);
         TWidget oldTarget = mouseHoverTarget;
         if (newTarget == oldTarget) {
+            mouse.setX(mouse.getAbsoluteX());
+            mouse.setY(mouse.getAbsoluteY());
             return;
         }
 
@@ -2392,7 +2394,10 @@ public class TApplication implements Runnable {
         // Reconcile the hover target within the modal receiver before
         // dispatch, so enter/exit transitions are synthesized for modal
         // dialogs the same way as for the primary handler.
-        if (event instanceof TMouseEvent) {
+        if ((event instanceof TMouseEvent)
+            && (secondaryEventReceiver instanceof TWindow modalWindow)
+            && modalWindow.isModal()
+        ) {
             updateMouseHover((TMouseEvent) event);
         }
 
