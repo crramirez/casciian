@@ -27,6 +27,8 @@
  *       uncompressed Windows Bitmap (BMP) files.</li>
  *   <li>{@link casciian.imagedecoders.decoders.XPMImageDecoder} — X PixMap
  *       (XPM) ASCII image files.</li>
+ *   <li>{@link casciian.imagedecoders.decoders.PNGImageDecoder} — baseline
+ *       (non-interlaced) PNG files.</li>
  * </ul>
  *
  * <p>Because the decoders are implemented in pure Java (no {@code java.desktop}
@@ -39,5 +41,6 @@ module casciian.image.decoders {
 
     provides casciian.image.decoders.ImageDecoder
         with casciian.imagedecoders.decoders.BMP24ImageDecoder,
-             casciian.imagedecoders.decoders.XPMImageDecoder;
+             casciian.imagedecoders.decoders.XPMImageDecoder,
+             casciian.imagedecoders.decoders.PNGImageDecoder;
 }

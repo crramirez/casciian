@@ -1,3 +1,4 @@
 casciian.imagedecoders.decoders.BMP24ImageDecoder
 casciian.imagedecoders.decoders.XPMImageDecoder
+casciian.imagedecoders.decoders.PNGImageDecoder
 casciian.image.decoders.SixelImageDecoder
