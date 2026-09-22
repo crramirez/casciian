@@ -1836,6 +1836,32 @@ public abstract class TWidget implements Comparable<TWidget> {
     }
 
     /**
+     * See if a widget is a scroller with the specified orientation.
+     *
+     * @param widget the widget to inspect
+     * @param orientation the scroller orientation to check
+     * @return true if widget is a scroller of that orientation
+     */
+    private static boolean isScrollerWithOrientation(final TWidget widget,
+        final TScroller.Orientation orientation) {
+
+        return (widget instanceof TScroller scroller)
+            && (scroller.getOrientation() == orientation);
+    }
+
+    /**
+     * See if a widget is a scroller.
+     *
+     * @param widget the widget to inspect
+     * @return true if widget is a scroller
+     */
+    private static boolean isScroller(final TWidget widget) {
+        return isScrollerWithOrientation(widget, TScroller.Orientation.VERTICAL)
+            || isScrollerWithOrientation(widget,
+                TScroller.Orientation.HORIZONTAL);
+    }
+
+    /**
      * Called by parent to render to TWindow.
      */
     public final void drawChildren() {
@@ -1860,13 +1886,14 @@ public abstract class TWidget implements Comparable<TWidget> {
         int absoluteRightEdge = window.getAbsoluteX() + window.getWidth();
         int absoluteBottomEdge = window.getAbsoluteY() + window.getHeight();
         if (!(this instanceof TWindow)
-            && !(this instanceof TScroller)
+            && !isScrollerWithOrientation(this, TScroller.Orientation.VERTICAL)
             && !(window instanceof TDesktop)
         ) {
             absoluteRightEdge -= 1;
         }
         if (!(this instanceof TWindow)
-            && !(this instanceof TScroller)
+            && !isScrollerWithOrientation(this,
+                TScroller.Orientation.HORIZONTAL)
             && !(window instanceof TDesktop)
         ) {
             absoluteBottomEdge -= 1;
@@ -2032,7 +2059,7 @@ public abstract class TWidget implements Comparable<TWidget> {
         TWidget child = null;
         for (TWidget widget: children) {
             if ((widget.enabled)
-                && !(widget instanceof TScroller)
+                && !isScroller(widget)
                 && (widget.tabOrder >= tabOrder)
             ) {
                 child = widget;
