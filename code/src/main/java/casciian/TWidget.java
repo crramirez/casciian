@@ -1321,8 +1321,7 @@ public abstract class TWidget implements Comparable<TWidget> {
             if (parent != null) {
                 for (TWidget w: parent.children) {
                     if ((w.enabled)
-                        && !(this instanceof THScroller)
-                        && !(this instanceof TVScroller)
+                        && !(w instanceof TScroller)
                     ) {
                         parent.activate(w);
                         foundSibling = true;
@@ -1861,13 +1860,13 @@ public abstract class TWidget implements Comparable<TWidget> {
         int absoluteRightEdge = window.getAbsoluteX() + window.getWidth();
         int absoluteBottomEdge = window.getAbsoluteY() + window.getHeight();
         if (!(this instanceof TWindow)
-            && !(this instanceof TVScroller)
+            && !(this instanceof TScroller)
             && !(window instanceof TDesktop)
         ) {
             absoluteRightEdge -= 1;
         }
         if (!(this instanceof TWindow)
-            && !(this instanceof THScroller)
+            && !(this instanceof TScroller)
             && !(window instanceof TDesktop)
         ) {
             absoluteBottomEdge -= 1;
@@ -1964,8 +1963,7 @@ public abstract class TWidget implements Comparable<TWidget> {
         children.add(child);
 
         if ((child.enabled)
-            && !(child instanceof THScroller)
-            && !(child instanceof TVScroller)
+            && !(child instanceof TScroller)
         ) {
             for (TWidget widget: children) {
                 widget.setActiveFlag(false);
@@ -1996,9 +1994,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      */
     public final void activate(final TWidget child) {
         assert (child.enabled);
-        if ((child instanceof THScroller)
-            || (child instanceof TVScroller)
-        ) {
+        if (child instanceof TScroller) {
             return;
         }
 
@@ -2036,8 +2032,7 @@ public abstract class TWidget implements Comparable<TWidget> {
         TWidget child = null;
         for (TWidget widget: children) {
             if ((widget.enabled)
-                && !(widget instanceof THScroller)
-                && !(widget instanceof TVScroller)
+                && !(widget instanceof TScroller)
                 && (widget.tabOrder >= tabOrder)
             ) {
                 child = widget;
@@ -2148,8 +2143,7 @@ public abstract class TWidget implements Comparable<TWidget> {
                 break;
             }
         } while ((!children.get(tabOrder).enabled)
-            && !(children.get(tabOrder) instanceof THScroller)
-            && !(children.get(tabOrder) instanceof TVScroller));
+            && !(children.get(tabOrder) instanceof TScroller));
 
         if (activeChild != null) {
             assert (children.get(tabOrder).enabled);
@@ -2168,9 +2162,7 @@ public abstract class TWidget implements Comparable<TWidget> {
      * @return widget that is active, or this if no children
      */
     public TWidget getActiveChild() {
-        if ((this instanceof THScroller)
-            || (this instanceof TVScroller)
-        ) {
+        if (this instanceof TScroller) {
             return parent;
         }
 
