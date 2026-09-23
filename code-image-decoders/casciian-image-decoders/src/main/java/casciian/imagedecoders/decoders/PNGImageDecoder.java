@@ -342,6 +342,7 @@ public class PNGImageDecoder implements ImageDecoder {
             ? buildGrayTable(bitDepth, transparency) : null;
         int[] paletteTable = (colorType == 3)
             ? buildPaletteTable(palette, transparency) : null;
+        int paletteEntries = (colorType == 3) ? (palette.length / 3) : 0;
         int[] sampleRow = (colorType == 0 || colorType == 3)
             ? new int[width] : null;
 
@@ -371,7 +372,12 @@ public class PNGImageDecoder implements ImageDecoder {
             case 3:
                 unpackSamples(curr, sampleRow, width, bitDepth);
                 for (int x = 0; x < width; x++) {
-                    rgba[off + x] = paletteTable[sampleRow[x]];
+                    int index = sampleRow[x];
+                    if (index >= paletteEntries) {
+                        throw new IOException(
+                            "Corrupt PNG: palette index out of bounds");
+                    }
+                    rgba[off + x] = paletteTable[index];
                 }
                 break;
             case 2:

@@ -314,6 +314,17 @@ class PNGImageDecoderTest {
     }
 
     @Test
+    void rejectsIndexedPixelsOutsidePaletteBounds() throws IOException {
+        byte[] palette = {(byte) 0xFF, 0x00, 0x00};
+        byte[] png = buildPng(1, 1, 8, 3, palette, null,
+            filterRows(new byte[][]{{0x01}}, NONE, 1));
+
+        assertThatThrownBy(() -> decode(png))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("palette index out of bounds");
+    }
+
+    @Test
     void rejectsZlibStreamsWithTrailingDecompressedBytes() throws IOException {
         byte[] png = buildPng(1, 1, 8, 2, null, null,
             new byte[] {0x00, 0x00, 0x00, 0x00, 0x00});
