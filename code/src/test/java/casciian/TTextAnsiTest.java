@@ -96,6 +96,29 @@ class TTextAnsiTest {
             .isBold());
     }
 
+    @Test
+    void testAppendTextInheritsActiveAnsiState() {
+        TTextAnsi widget = new TTextAnsi(null, "", 0, 0, 40, 10);
+
+        widget.setText("\033[1mA");
+        widget.appendText("B");
+
+        RichText richText = widget.getRichText();
+        String plain = richText.getPlainText();
+        int index = plain.indexOf('B');
+        assertTrue(index >= 0);
+        int offset = 0;
+        for (RichText.Run run : richText.getRuns()) {
+            int end = offset + run.getText().length();
+            if (index < end) {
+                assertTrue(run.getAttributes().isBold());
+                return;
+            }
+            offset = end;
+        }
+        fail("Appended text not found in runs");
+    }
+
     // -----------------------------------------------------------------------
     // Widget dimensions
     // -----------------------------------------------------------------------

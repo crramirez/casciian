@@ -142,14 +142,40 @@ public final class AnsiParser {
      * @return the parsed RichText (never null; empty when text is null)
      */
     public static RichText toRichText(final String text) {
+        CellAttributes initialAttr = new CellAttributes();
+        initialAttr.setDefaultColor(true, true);
+        initialAttr.setDefaultColor(false, true);
+        return toRichText(text, initialAttr);
+    }
+
+    /**
+     * Parse a string containing ANSI escape sequences into a width-independent
+     * {@link RichText} model, starting from a given SGR/hyperlink state.  This
+     * allows an appended fragment to inherit the attributes that were active at
+     * the end of a previously parsed source, so that parsing the fragment is
+     * equivalent to concatenating it onto that source.
+     *
+     * @param text the input text (may contain ANSI escape sequences)
+     * @param initialAttr the attributes active at the start of the text; a copy
+     * is taken so the caller's instance is not modified (null uses the default
+     * attributes)
+     * @return the parsed RichText (never null; empty when text is null)
+     */
+    public static RichText toRichText(final String text,
+        final CellAttributes initialAttr) {
+
         RichText.Builder builder = RichText.builder();
         if (text == null) {
             return builder.build();
         }
 
         CellAttributes currentAttr = new CellAttributes();
-        currentAttr.setDefaultColor(true, true);
-        currentAttr.setDefaultColor(false, true);
+        if (initialAttr == null) {
+            currentAttr.setDefaultColor(true, true);
+            currentAttr.setDefaultColor(false, true);
+        } else {
+            currentAttr.setTo(initialAttr);
+        }
 
         StringBuilder buffer = new StringBuilder();
         State state = State.GROUND;

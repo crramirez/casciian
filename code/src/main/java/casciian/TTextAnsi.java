@@ -462,10 +462,13 @@ public class TTextAnsi extends TScrollable {
             appendedText = String.valueOf(newText);
         }
         RichText.Builder builder = RichText.builder();
+        CellAttributes activeAttr = null;
         for (RichText.Run run : richText.getRuns()) {
             builder.append(run.getText(), run.getAttributes());
+            activeAttr = run.getAttributes();
         }
-        for (RichText.Run run : AnsiParser.toRichText(appendedText).getRuns()) {
+        for (RichText.Run run
+                : AnsiParser.toRichText(appendedText, activeAttr).getRuns()) {
             builder.append(run.getText(), run.getAttributes());
         }
         richText = builder.build();
