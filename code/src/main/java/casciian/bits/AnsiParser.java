@@ -110,6 +110,13 @@ public final class AnsiParser {
      * given width, simulating the behavior of {@code cat} in a terminal
      * of the specified width.
      *
+     * <p>
+     * This is a convenience method equivalent to
+     * {@code layout(toRichText(text), width)}: the ANSI text is first parsed
+     * into a width-independent {@link RichText} model, which is then laid out
+     * (wrapped) for the given width.
+     * </p>
+     *
      * @param text the input text (may contain ANSI escape sequences)
      * @param width the display width for wrapping (columns)
      * @return list of parsed lines
@@ -118,14 +125,33 @@ public final class AnsiParser {
         if (text == null || width <= 0) {
             return Collections.emptyList();
         }
+        return layout(toRichText(text), width);
+    }
 
-        List<Line> lines = new ArrayList<>();
-        List<Cell> currentLine = new ArrayList<>();
+    /**
+     * Parse a string containing ANSI escape sequences into a width-independent
+     * {@link RichText} model.  SGR sequences (colors and attributes) and OSC 8
+     * hyperlinks are interpreted; all other escape sequences are ignored.
+     *
+     * <p>
+     * Control characters that affect layout (LF, CR, HT, BS) are preserved in
+     * the run text and interpreted later by {@link #layout(RichText, int)}.
+     * </p>
+     *
+     * @param text the input text (may contain ANSI escape sequences)
+     * @return the parsed RichText (never null; empty when text is null)
+     */
+    public static RichText toRichText(final String text) {
+        RichText.Builder builder = RichText.builder();
+        if (text == null) {
+            return builder.build();
+        }
+
         CellAttributes currentAttr = new CellAttributes();
         currentAttr.setDefaultColor(true, true);
         currentAttr.setDefaultColor(false, true);
-        int col = 0;
 
+        StringBuilder buffer = new StringBuilder();
         State state = State.GROUND;
         StringBuilder csiParams = new StringBuilder();
 
@@ -139,47 +165,12 @@ public final class AnsiParser {
                 if (ch == 0x1B) {
                     // ESC
                     state = State.ESCAPE;
-                } else if (ch == '\n') {
-                    // Line feed: finish current line, start new one
-                    lines.add(new Line(currentLine));
-                    currentLine = new ArrayList<>();
-                    col = 0;
-                } else if (ch == '\r') {
-                    // Carriage return: move cursor to beginning of line
-                    col = 0;
-                } else if (ch == '\t') {
-                    // Tab: advance to next tab stop (every 8 columns)
-                    int nextTab = ((col / 8) + 1) * 8;
-                    while (col < nextTab && col < width) {
-                        putCell(currentLine, col, ' ', currentAttr);
-                        col++;
-                    }
-                    // Delayed wrap: leave the cursor at column==width and
-                    // only wrap when the next printable character arrives.
-                } else if (ch == '\b') {
-                    // Backspace: move cursor back one column
-                    if (col > 0) {
-                        col--;
-                    }
-                } else if (ch >= 0x20) {
-                    // Printable character
-                    int charWidth = StringUtils.width(ch);
-                    if (col > 0 && col + charWidth > width) {
-                        // Delayed wrap: the previous character filled the
-                        // line, so wrap now that another character arrives.
-                        lines.add(new Line(currentLine));
-                        currentLine = new ArrayList<>();
-                        col = 0;
-                    }
-                    putCell(currentLine, col, ch, currentAttr);
-                    col++;
-                    if (charWidth == 2 && col < width) {
-                        // Wide character takes two columns; put a padding
-                        // space for the right half (unless it would overflow
-                        // the configured width, e.g. width == 1).
-                        putCell(currentLine, col, ' ', currentAttr);
-                        col++;
-                    }
+                } else if (ch == '\n' || ch == '\r' || ch == '\t'
+                        || ch == '\b' || ch >= 0x20) {
+                    // Printable characters and layout-affecting control
+                    // characters are buffered verbatim; the layout stage
+                    // interprets them.
+                    buffer.appendCodePoint(ch);
                 }
                 // else: ignore other control characters
                 break;
@@ -206,6 +197,8 @@ public final class AnsiParser {
                         osc.appendCodePoint(oscCh);
                         i += Character.charCount(oscCh);
                     }
+                    // The buffered text used the pre-change attributes.
+                    flush(builder, buffer, currentAttr);
                     applyOsc(osc.toString(), currentAttr);
                     state = State.GROUND;
                 } else {
@@ -225,7 +218,9 @@ public final class AnsiParser {
                 } else if (ch >= 0x40 && ch <= 0x7E) {
                     // Final byte
                     if (ch == 'm') {
-                        // SGR sequence
+                        // SGR sequence: flush text styled with the old attrs
+                        // before mutating them.
+                        flush(builder, buffer, currentAttr);
                         applySgr(csiParams.toString(), currentAttr);
                     }
                     // All other CSI sequences are ignored
@@ -240,6 +235,90 @@ public final class AnsiParser {
             i += charCount;
         }
 
+        flush(builder, buffer, currentAttr);
+        return builder.build();
+    }
+
+    /**
+     * Lay out a {@link RichText} into a list of display lines with attributed
+     * cells, wrapping at the given width and simulating the behavior of
+     * {@code cat} in a terminal of the specified width.
+     *
+     * <p>
+     * Run text is interpreted character by character, honoring newline (LF),
+     * carriage return (CR), tab (HT), backspace (BS), wide (double-width)
+     * characters, and delayed wrapping at the width boundary.
+     * </p>
+     *
+     * @param richText the styled text to lay out
+     * @param width the display width for wrapping (columns)
+     * @return list of laid-out lines
+     */
+    public static List<Line> layout(final RichText richText, final int width) {
+        if (richText == null || width <= 0) {
+            return Collections.emptyList();
+        }
+
+        List<Line> lines = new ArrayList<>();
+        List<Cell> currentLine = new ArrayList<>();
+        int col = 0;
+
+        for (RichText.Run run : richText.getRuns()) {
+            CellAttributes attr = run.attributes();
+            String runText = run.getText();
+            int i = 0;
+            while (i < runText.length()) {
+                int ch = runText.codePointAt(i);
+                int charCount = Character.charCount(ch);
+
+                if (ch == '\n') {
+                    // Line feed: finish current line, start new one
+                    lines.add(new Line(currentLine));
+                    currentLine = new ArrayList<>();
+                    col = 0;
+                } else if (ch == '\r') {
+                    // Carriage return: move cursor to beginning of line
+                    col = 0;
+                } else if (ch == '\t') {
+                    // Tab: advance to next tab stop (every 8 columns)
+                    int nextTab = ((col / 8) + 1) * 8;
+                    while (col < nextTab && col < width) {
+                        putCell(currentLine, col, ' ', attr);
+                        col++;
+                    }
+                    // Delayed wrap: leave the cursor at column==width and
+                    // only wrap when the next printable character arrives.
+                } else if (ch == '\b') {
+                    // Backspace: move cursor back one column
+                    if (col > 0) {
+                        col--;
+                    }
+                } else if (ch >= 0x20) {
+                    // Printable character
+                    int charWidth = StringUtils.width(ch);
+                    if (col > 0 && col + charWidth > width) {
+                        // Delayed wrap: the previous character filled the
+                        // line, so wrap now that another character arrives.
+                        lines.add(new Line(currentLine));
+                        currentLine = new ArrayList<>();
+                        col = 0;
+                    }
+                    putCell(currentLine, col, ch, attr);
+                    col++;
+                    if (charWidth == 2 && col < width) {
+                        // Wide character takes two columns; put a padding
+                        // space for the right half (unless it would overflow
+                        // the configured width, e.g. width == 1).
+                        putCell(currentLine, col, ' ', attr);
+                        col++;
+                    }
+                }
+                // else: ignore other control characters
+
+                i += charCount;
+            }
+        }
+
         // Add the last line if it still has buffered content, or if the
         // cursor is at column 0 with nothing buffered (empty input or a
         // trailing newline) so a final empty line is emitted.
@@ -248,6 +327,23 @@ public final class AnsiParser {
         }
 
         return lines;
+    }
+
+    /**
+     * Flush the buffered text into the builder with the given attributes, then
+     * clear the buffer.
+     *
+     * @param builder the target builder
+     * @param buffer the text buffer (cleared afterwards)
+     * @param attr the attributes for the buffered text
+     */
+    private static void flush(final RichText.Builder builder,
+            final StringBuilder buffer, final CellAttributes attr) {
+
+        if (buffer.length() > 0) {
+            builder.append(buffer.toString(), attr);
+            buffer.setLength(0);
+        }
     }
 
     // ------------------------------------------------------------------------
