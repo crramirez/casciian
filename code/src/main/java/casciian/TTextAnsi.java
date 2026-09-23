@@ -454,12 +454,21 @@ public class TTextAnsi extends TScrollable {
      * @param newText text to append
      */
     public void appendText(final String newText) {
+        String appendedText = newText;
         if (text == null || text.isEmpty()) {
             text = newText;
         } else {
             text += newText;
+            appendedText = String.valueOf(newText);
         }
-        richText = AnsiParser.toRichText(text);
+        RichText.Builder builder = RichText.builder();
+        for (RichText.Run run : richText.getRuns()) {
+            builder.append(run.getText(), run.getAttributes());
+        }
+        for (RichText.Run run : AnsiParser.toRichText(appendedText).getRuns()) {
+            builder.append(run.getText(), run.getAttributes());
+        }
+        richText = builder.build();
         reflowData();
     }
 

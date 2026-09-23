@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import casciian.bits.CellAttributes;
 import casciian.bits.Color;
+import casciian.bits.RichText;
 
 /**
  * Tests for {@link TTextAnsi}.
@@ -68,6 +69,31 @@ class TTextAnsiTest {
         TTextAnsi widget = new TTextAnsi(null, null, 0, 0, 40, 10);
         widget.appendText("Content");
         assertEquals("Content", widget.getText());
+    }
+
+    @Test
+    void testAppendTextPreservesStylesAfterSetRichText() {
+        TTextAnsi widget = new TTextAnsi(null, "", 0, 0, 40, 10);
+        RichText richText = RichText.builder()
+            .append("Hello", CellAttributes.builder().bold(true).build())
+            .build();
+
+        widget.setRichText(richText);
+        widget.appendText(" World");
+
+        assertTrue(widget.getRichText().getRuns().get(0).getAttributes()
+            .isBold());
+    }
+
+    @Test
+    void testAppendTextPreservesStylesAfterSetMarkup() {
+        TTextAnsi widget = new TTextAnsi(null, "", 0, 0, 40, 10);
+
+        widget.setMarkup("[bold]Hello[/]");
+        widget.appendText(" World");
+
+        assertTrue(widget.getRichText().getRuns().get(0).getAttributes()
+            .isBold());
     }
 
     // -----------------------------------------------------------------------

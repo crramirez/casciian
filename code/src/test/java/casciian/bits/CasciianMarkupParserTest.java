@@ -134,6 +134,20 @@ class CasciianMarkupParserTest {
         // Second run resets foreground to default.
         CellAttributes b = text.getRuns().get(1).getAttributes();
         assertTrue(b.isDefaultColor(true));
+        assertEquals(Color.WHITE, b.getForeColor());
+        assertEquals(-1, b.getForeColorRGB());
+        assertEquals(-1, b.getForeColorPalette());
+    }
+
+    @Test
+    void testDefaultBackgroundColorKeyword() {
+        RichText text = CasciianMarkupParser.parse(
+            "[bg=#123456]a[bg=default]b[/][/]");
+        CellAttributes b = text.getRuns().get(1).getAttributes();
+        assertTrue(b.isDefaultColor(false));
+        assertEquals(Color.BLACK, b.getBackColor());
+        assertEquals(-1, b.getBackColorRGB());
+        assertEquals(-1, b.getBackColorPalette());
     }
 
     @Test

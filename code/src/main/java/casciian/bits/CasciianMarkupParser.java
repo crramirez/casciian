@@ -332,6 +332,11 @@ public final class CasciianMarkupParser {
         String v = value.toLowerCase(Locale.ROOT);
 
         if (v.equals("default")) {
+            if (foreground) {
+                attr.setForeColor(Color.WHITE);
+            } else {
+                attr.setBackColor(Color.BLACK);
+            }
             attr.setDefaultColor(foreground, true);
             return;
         }
