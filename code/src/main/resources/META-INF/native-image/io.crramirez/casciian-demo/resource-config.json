@@ -105,6 +105,13 @@
             ]
         },
         {
+            "name": "demo.DemoVectorPerformanceWindowBundle",
+            "locales": [
+                "",
+                "es"
+            ]
+        },
+        {
             "name": "demo.DemoTreeViewWindowBundle",
             "locales": [
                 "",
