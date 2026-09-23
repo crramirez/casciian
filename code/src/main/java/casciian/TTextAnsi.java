@@ -18,9 +18,11 @@ package casciian;
 import java.util.List;
 
 import casciian.bits.AnsiParser;
+import casciian.bits.CasciianMarkupParser;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.ColorTheme;
+import casciian.bits.RichText;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import static casciian.TKeypress.*;
@@ -44,9 +46,22 @@ public class TTextAnsi extends TScrollable {
     // ------------------------------------------------------------------------
 
     /**
-     * The raw text (may contain ANSI escape sequences).
+     * The raw text (may contain ANSI escape sequences).  Kept so
+     * {@link #getText()} can return the source verbatim.
      */
     private String text;
+
+    /**
+     * The canonical styled-text model.  Parsed once from the source text (or
+     * supplied directly) and laid out for the current width on each reflow, so
+     * changing the widget width no longer requires re-parsing ANSI.
+     */
+    private RichText richText;
+
+    /**
+     * The ANSI parser state that should apply to the next appended fragment.
+     */
+    private CellAttributes appendState;
 
     /**
      * Parsed lines of cells.
@@ -80,6 +95,7 @@ public class TTextAnsi extends TScrollable {
         super(parent, x, y, width, height);
 
         this.text = text;
+        setAnsiSource(text);
 
         vScroller = new TVScroller(this, getWidth() - 1, 0,
             Math.max(1, getHeight() - 1));
@@ -370,12 +386,13 @@ public class TTextAnsi extends TScrollable {
      */
     @Override
     public void reflowData() {
-        // Re-parse with the current width
+        // Lay out the styled-text model at the current width.  The RichText
+        // model is width-independent, so no ANSI re-parsing is required here.
         int displayWidth = getWidth() - 1;
         if (displayWidth < 1) {
             displayWidth = 1;
         }
-        lines = AnsiParser.parse(text, displayWidth);
+        lines = AnsiParser.layout(richText, displayWidth);
         computeBounds();
     }
 
@@ -389,7 +406,7 @@ public class TTextAnsi extends TScrollable {
      * @param text new text to display (may contain ANSI escape sequences)
      */
     public void setText(final String text) {
-        this.text = text;
+        setAnsiSource(text);
         reflowData();
     }
 
@@ -403,6 +420,40 @@ public class TTextAnsi extends TScrollable {
     }
 
     /**
+     * Set the styled text directly from a {@link RichText} model.  This makes
+     * the given model canonical; {@link #getText()} will then return its plain
+     * text.
+     *
+     * @param richText the styled text to display
+     */
+    public void setRichText(final RichText richText) {
+        this.richText = (richText == null)
+            ? RichText.builder().build() : richText;
+        this.text = this.richText.getPlainText();
+        resetAppendState();
+        reflowData();
+    }
+
+    /**
+     * Get the canonical styled-text model currently displayed.
+     *
+     * @return the RichText model
+     */
+    public RichText getRichText() {
+        return richText;
+    }
+
+    /**
+     * Set the styled text from Casciian markup.
+     *
+     * @param markup the markup text
+     * @see CasciianMarkupParser
+     */
+    public void setMarkup(final String markup) {
+        setRichText(CasciianMarkupParser.parse(markup));
+    }
+
+    /**
      * Append text.
      *
      * @param newText text to append
@@ -413,7 +464,43 @@ public class TTextAnsi extends TScrollable {
         } else {
             text += newText;
         }
+        RichText.Builder builder = RichText.builder();
+        CellAttributes activeAttr = null;
+        for (RichText.Run run : richText.getRuns()) {
+            builder.append(run.getText(), run.getAttributes());
+            activeAttr = run.getAttributes();
+        }
+        AnsiParser.RichTextParseResult appended = AnsiParser.parseRichText(
+            newText, appendState == null ? activeAttr : appendState);
+        for (RichText.Run run : appended.getRichText().getRuns()) {
+            builder.append(run.getText(), run.getAttributes());
+        }
+        richText = builder.build();
+        appendState = appended.getFinalAttributes();
         reflowData();
+    }
+
+    /**
+     * Parse ANSI source text into the canonical rich-text model and store the
+     * trailing parser state for later append operations.
+     *
+     * @param source the raw ANSI source
+     */
+    private void setAnsiSource(final String source) {
+        text = source;
+        AnsiParser.RichTextParseResult parsed = AnsiParser.parseRichText(
+            source, null);
+        richText = parsed.getRichText();
+        appendState = parsed.getFinalAttributes();
+    }
+
+    /**
+     * Reset the append parser state to default terminal attributes.
+     */
+    private void resetAppendState() {
+        appendState = new CellAttributes();
+        appendState.setDefaultColor(true, true);
+        appendState.setDefaultColor(false, true);
     }
 
     /**

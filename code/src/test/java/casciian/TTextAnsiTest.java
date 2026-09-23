@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import casciian.bits.CellAttributes;
 import casciian.bits.Color;
+import casciian.bits.RichText;
 
 /**
  * Tests for {@link TTextAnsi}.
@@ -70,6 +71,62 @@ class TTextAnsiTest {
         assertEquals("Content", widget.getText());
     }
 
+    @Test
+    void testAppendTextPreservesStylesAfterSetRichText() {
+        TTextAnsi widget = new TTextAnsi(null, "", 0, 0, 40, 10);
+        RichText richText = RichText.builder()
+            .append("Hello", CellAttributes.builder().bold(true).build())
+            .build();
+
+        widget.setRichText(richText);
+        widget.appendText(" World");
+
+        assertTrue(widget.getRichText().getRuns().get(0).getAttributes()
+            .isBold());
+    }
+
+    @Test
+    void testAppendTextPreservesStylesAfterSetMarkup() {
+        TTextAnsi widget = new TTextAnsi(null, "", 0, 0, 40, 10);
+
+        widget.setMarkup("[bold]Hello[/]");
+        widget.appendText(" World");
+
+        assertTrue(widget.getRichText().getRuns().get(0).getAttributes()
+            .isBold());
+    }
+
+    @Test
+    void testAppendTextInheritsActiveAnsiState() {
+        TTextAnsi widget = new TTextAnsi(null, "", 0, 0, 40, 10);
+
+        widget.setText("\033[1mA");
+        widget.appendText("B");
+
+        assertTrue(attributesForChar(widget.getRichText(), 'B').isBold());
+    }
+
+    @Test
+    void testAppendTextUsesTrailingAnsiResetState() {
+        TTextAnsi widget = new TTextAnsi(null, "", 0, 0, 40, 10);
+
+        widget.setText("\033[1mA\033[0m");
+        widget.appendText("B");
+
+        assertFalse(attributesForChar(widget.getRichText(), 'B').isBold());
+    }
+
+    @Test
+    void testAppendTextUsesTrailingHyperlinkState() {
+        TTextAnsi widget = new TTextAnsi(null, "", 0, 0, 40, 10);
+
+        widget.setText("A\033]8;;https://example.com\007");
+        widget.appendText("B");
+
+        assertEquals("https://example.com",
+            attributesForChar(widget.getRichText(), 'B').getHyperlink());
+    }
+
     // -----------------------------------------------------------------------
     // Widget dimensions
     // -----------------------------------------------------------------------
@@ -102,6 +159,22 @@ class TTextAnsiTest {
             + "trigger wrapping at the widget width boundary";
         widget.setText(longText);
         assertEquals(longText, widget.getText());
+    }
+
+    private static CellAttributes attributesForChar(final RichText richText,
+            final char target) {
+        int index = richText.getPlainText().indexOf(target);
+        assertTrue(index >= 0);
+        int offset = 0;
+        for (RichText.Run run : richText.getRuns()) {
+            int end = offset + run.getText().length();
+            if (index < end) {
+                return run.getAttributes();
+            }
+            offset = end;
+        }
+        fail("Character not found in runs");
+        return null;
     }
 
     // -----------------------------------------------------------------------
