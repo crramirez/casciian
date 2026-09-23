@@ -315,6 +315,10 @@ public class PNGImageDecoder implements ImageDecoder {
             if (inflater.inflate(probe, 0, 1) > 0 || !inflater.finished()) {
                 throw new IOException("Corrupt PNG: invalid zlib stream size");
             }
+            if (inflater.getRemaining() != 0) {
+                throw new IOException(
+                    "Corrupt PNG: trailing bytes after zlib stream");
+            }
             return raw;
         } catch (DataFormatException e) {
             throw new IOException("Corrupt PNG: invalid zlib stream", e);

@@ -335,6 +335,20 @@ class PNGImageDecoderTest {
     }
 
     @Test
+    void rejectsTrailingBytesAfterPngZlibStream() throws IOException {
+        byte[] png = buildPng(1, 1, 8, 2, null, null,
+            rgbScanlines(new int[][]{{0x000000}}, NONE));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.write(png, 0, png.length - 12);
+        writeChunk(out, "IDAT", new byte[] {0x01, 0x02, 0x03});
+        writeChunk(out, "IEND", new byte[0]);
+
+        assertThatThrownBy(() -> decode(out.toByteArray()))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("trailing bytes after zlib stream");
+    }
+
+    @Test
     void rejectsImagesWhoseScanlineBuffersOverflowJavaArrays() throws IOException {
         byte[] png = buildPng(Integer.MAX_VALUE, 1, 8, 2, null, null,
             new byte[0]);
