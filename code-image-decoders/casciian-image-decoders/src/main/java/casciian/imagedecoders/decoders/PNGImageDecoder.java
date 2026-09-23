@@ -185,6 +185,9 @@ public class PNGImageDecoder implements ImageDecoder {
 
             // Reposition to the chunk end and skip the 4-byte CRC.
             buffer.position(dataStart + length + 4);
+            if (sawIend && buffer.hasRemaining()) {
+                throw new IOException("Corrupt PNG: trailing data after IEND");
+            }
         }
 
         if (!sawIhdr) {

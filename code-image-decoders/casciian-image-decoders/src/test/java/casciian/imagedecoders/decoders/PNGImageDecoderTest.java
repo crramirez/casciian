@@ -287,6 +287,19 @@ class PNGImageDecoderTest {
     }
 
     @Test
+    void rejectsTrailingBytesAfterIend() throws IOException {
+        byte[] png = buildPng(1, 1, 8, 2, null, null,
+            rgbScanlines(new int[][]{{0x000000}}, NONE));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.write(png);
+        out.write(0x00);
+
+        assertThatThrownBy(() -> decode(out.toByteArray()))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("trailing data after IEND");
+    }
+
+    @Test
     void rejectsChunkLengthThatWouldRunPastTypeAndCrc() throws IOException {
         byte[] png = buildPng(1, 1, 8, 2, null, null,
             rgbScanlines(new int[][]{{0x000000}}, NONE));
