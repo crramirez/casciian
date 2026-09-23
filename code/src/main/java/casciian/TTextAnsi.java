@@ -59,6 +59,11 @@ public class TTextAnsi extends TScrollable {
     private RichText richText;
 
     /**
+     * The ANSI parser state that should apply to the next appended fragment.
+     */
+    private CellAttributes appendState;
+
+    /**
      * Parsed lines of cells.
      */
     private List<AnsiParser.Line> lines;
@@ -90,7 +95,7 @@ public class TTextAnsi extends TScrollable {
         super(parent, x, y, width, height);
 
         this.text = text;
-        this.richText = AnsiParser.toRichText(text);
+        setAnsiSource(text);
 
         vScroller = new TVScroller(this, getWidth() - 1, 0,
             Math.max(1, getHeight() - 1));
@@ -401,8 +406,7 @@ public class TTextAnsi extends TScrollable {
      * @param text new text to display (may contain ANSI escape sequences)
      */
     public void setText(final String text) {
-        this.text = text;
-        this.richText = AnsiParser.toRichText(text);
+        setAnsiSource(text);
         reflowData();
     }
 
@@ -426,6 +430,7 @@ public class TTextAnsi extends TScrollable {
         this.richText = (richText == null)
             ? RichText.builder().build() : richText;
         this.text = this.richText.getPlainText();
+        resetAppendState();
         reflowData();
     }
 
@@ -454,12 +459,10 @@ public class TTextAnsi extends TScrollable {
      * @param newText text to append
      */
     public void appendText(final String newText) {
-        String appendedText = newText;
         if (text == null || text.isEmpty()) {
             text = newText;
         } else {
             text += newText;
-            appendedText = String.valueOf(newText);
         }
         RichText.Builder builder = RichText.builder();
         CellAttributes activeAttr = null;
@@ -467,12 +470,37 @@ public class TTextAnsi extends TScrollable {
             builder.append(run.getText(), run.getAttributes());
             activeAttr = run.getAttributes();
         }
-        for (RichText.Run run
-                : AnsiParser.toRichText(appendedText, activeAttr).getRuns()) {
+        AnsiParser.RichTextParseResult appended = AnsiParser.parseRichText(
+            newText, appendState == null ? activeAttr : appendState);
+        for (RichText.Run run : appended.getRichText().getRuns()) {
             builder.append(run.getText(), run.getAttributes());
         }
         richText = builder.build();
+        appendState = appended.getFinalAttributes();
         reflowData();
+    }
+
+    /**
+     * Parse ANSI source text into the canonical rich-text model and store the
+     * trailing parser state for later append operations.
+     *
+     * @param source the raw ANSI source
+     */
+    private void setAnsiSource(final String source) {
+        text = source;
+        AnsiParser.RichTextParseResult parsed = AnsiParser.parseRichText(
+            source, null);
+        richText = parsed.getRichText();
+        appendState = parsed.getFinalAttributes();
+    }
+
+    /**
+     * Reset the append parser state to default terminal attributes.
+     */
+    private void resetAppendState() {
+        appendState = new CellAttributes();
+        appendState.setDefaultColor(true, true);
+        appendState.setDefaultColor(false, true);
     }
 
     /**

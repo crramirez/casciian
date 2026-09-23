@@ -41,6 +41,53 @@ import java.util.function.IntUnaryOperator;
  */
 public final class AnsiParser {
 
+    /**
+     * Result of parsing ANSI text into a RichText model plus the final parser
+     * attributes after all escape sequences have been applied.
+     */
+    public static final class RichTextParseResult {
+        /**
+         * Parsed styled text.
+         */
+        private final RichText richText;
+
+        /**
+         * Final parser state after the text has been consumed.
+         */
+        private final CellAttributes finalAttributes;
+
+        /**
+         * Public constructor.
+         *
+         * @param richText the parsed rich text
+         * @param finalAttributes the final parser attributes
+         */
+        public RichTextParseResult(final RichText richText,
+                final CellAttributes finalAttributes) {
+
+            this.richText = richText;
+            this.finalAttributes = new CellAttributes(finalAttributes);
+        }
+
+        /**
+         * Get the parsed rich text.
+         *
+         * @return the parsed rich text
+         */
+        public RichText getRichText() {
+            return richText;
+        }
+
+        /**
+         * Get the final parser attributes.
+         *
+         * @return a copy of the final parser attributes
+         */
+        public CellAttributes getFinalAttributes() {
+            return new CellAttributes(finalAttributes);
+        }
+    }
+
     // ------------------------------------------------------------------------
     // Constants --------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -145,7 +192,7 @@ public final class AnsiParser {
         CellAttributes initialAttr = new CellAttributes();
         initialAttr.setDefaultColor(true, true);
         initialAttr.setDefaultColor(false, true);
-        return toRichText(text, initialAttr);
+        return parseRichText(text, initialAttr).getRichText();
     }
 
     /**
@@ -164,9 +211,30 @@ public final class AnsiParser {
     public static RichText toRichText(final String text,
         final CellAttributes initialAttr) {
 
+        return parseRichText(text, initialAttr).getRichText();
+    }
+
+    /**
+     * Parse a string containing ANSI escape sequences into a width-independent
+     * {@link RichText} model and return the final parser attributes after all
+     * escape sequences have been applied.
+     *
+     * @param text the input text (may contain ANSI escape sequences)
+     * @param initialAttr the attributes active at the start of the text; a copy
+     * is taken so the caller's instance is not modified (null uses the default
+     * attributes)
+     * @return the parsed RichText plus the final parser attributes
+     */
+    public static RichTextParseResult parseRichText(final String text,
+            final CellAttributes initialAttr) {
+
         RichText.Builder builder = RichText.builder();
         if (text == null) {
-            return builder.build();
+            CellAttributes defaultAttr = new CellAttributes();
+            defaultAttr.setDefaultColor(true, true);
+            defaultAttr.setDefaultColor(false, true);
+            return new RichTextParseResult(builder.build(),
+                initialAttr == null ? defaultAttr : initialAttr);
         }
 
         CellAttributes currentAttr = new CellAttributes();
@@ -262,7 +330,7 @@ public final class AnsiParser {
         }
 
         flush(builder, buffer, currentAttr);
-        return builder.build();
+        return new RichTextParseResult(builder.build(), currentAttr);
     }
 
     /**
