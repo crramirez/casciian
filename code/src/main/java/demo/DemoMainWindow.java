@@ -35,7 +35,6 @@ import casciian.TEditorWindow;
 import casciian.TLabel;
 import casciian.TProgressBar;
 import casciian.TTableWindow;
-import casciian.TTextAnsiWindow;
 import casciian.TTimer;
 import casciian.TWindow;
 import casciian.backend.SystemProperties;
@@ -414,7 +413,7 @@ public class DemoMainWindow extends TWindow {
             }
             String content = new String(inputStream.readAllBytes(),
                 StandardCharsets.UTF_8);
-            new TTextAnsiWindow(getApplication(),
+            new DemoAnsiMarkupWindow(getApplication(),
                 i18n.getString("textAreaAnsiTitle"), content);
         } catch (IOException e) {
             messageBox(i18n.getString("errorTitle"),

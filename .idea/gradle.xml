@@ -23,6 +23,28 @@
             </builds>
           </compositeBuild>
         </compositeConfiguration>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/code-image-decoders" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/code" />
+            <option value="$PROJECT_DIR$/code-image-decoders" />
+            <option value="$PROJECT_DIR$/code-image-decoders/casciian-image-decoders" />
+            <option value="$PROJECT_DIR$/code-image-decoders/demo" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/code" name="casciian">
+                <projects>
+                  <project path="$PROJECT_DIR$/code" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
         <option name="externalProjectPath" value="$PROJECT_DIR$/code-java-desktop" />
         <option name="modules">
           <set>
