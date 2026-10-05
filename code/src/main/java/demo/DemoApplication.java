@@ -230,6 +230,11 @@ public class DemoApplication extends TApplication {
             return true;
         }
 
+        if (menu.getId() == 10018) {
+            new DemoVectorPerformanceWindow(this);
+            return true;
+        }
+
         if (menu.getId() == 10000) {
             DemoMainWindow window = new DemoMainWindow(this);
             TMenuItem menuItem = getMenuItem(10010);
@@ -793,6 +798,7 @@ public class DemoApplication extends TApplication {
         backgroundImage.setChecked(false);
         demoMenu.addItem(10012, i18n.getString("shadowOpacity"));
         demoMenu.addItem(10017, i18n.getString("keyboardProbe"), kbCtrlK);
+        demoMenu.addItem(10018, i18n.getString("vectorPerformance"));
         TSubMenu languageMenu = demoMenu.addSubMenu(i18n.getString("selectLanguage"));
         languageMenu.addItem(10005, i18n.getString("english"));
         languageMenu.addItem(10006, i18n.getString("espanol"));

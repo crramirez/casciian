@@ -9,7 +9,7 @@
       <module name="casciian" options="-Xlint -Xdiags:verbose" />
       <module name="casciian.main" options="-Xlint -Xdiags:verbose" />
       <module name="casciian.test" options="-Xlint -Xdiags:verbose" />
-      <module name="code" options="-Xlint -Xdiags:verbose" />
+      <module name="code" options="-Xlint -Xdiags:verbose" --add-modules jdk.incubator.vector" />
       <module name="code-java-desktop" options="" />
       <module name="code-java-desktop.casciian-java-desktop" options="-Xlint -Xdiags:verbose" />
       <module name="code-java-desktop.casciian-java-desktop.main" options="-Xlint -Xdiags:verbose" />
@@ -28,11 +28,11 @@
       <module name="code-terminal-component.demo.main~1" options="-Xlint -Xdiags:verbose" />
       <module name="code-terminal-component.demo.test" options="-Xlint -Xdiags:verbose" />
       <module name="code-terminal-component.demo.test~1" options="-Xlint -Xdiags:verbose" />
-      <module name="code.main" options="-Xlint -Xdiags:verbose" />
-      <module name="code.test" options="-Xlint -Xdiags:verbose" />
-      <module name="io.github.crramirez.casciian" options="-Xlint -Xdiags:verbose" />
-      <module name="io.github.crramirez.casciian.main" options="-Xlint -Xdiags:verbose" />
-      <module name="io.github.crramirez.casciian.test" options="-Xlint -Xdiags:verbose" />
+      <module name="code.main" options="-Xlint -Xdiags:verbose" --add-modules jdk.incubator.vector" />
+      <module name="code.test" options="-Xlint -Xdiags:verbose" --add-modules jdk.incubator.vector" />
+      <module name="io.github.crramirez.casciian" options="-Xlint -Xdiags:verbose" --add-modules jdk.incubator.vector" />
+      <module name="io.github.crramirez.casciian.main" options="-Xlint -Xdiags:verbose" --add-modules jdk.incubator.vector" />
+      <module name="io.github.crramirez.casciian.test" options="-Xlint -Xdiags:verbose" --add-modules jdk.incubator.vector" />
     </option>
   </component>
 </project>
