@@ -278,6 +278,178 @@ class CasciianMarkupParserTest {
     }
 
     // -----------------------------------------------------------------------
+    // Serialization
+    // -----------------------------------------------------------------------
+
+    @Test
+    void testToMarkupEmptyAndPlainText() {
+        assertEquals("", CasciianMarkupParser.toMarkup(null));
+        assertEquals("", CasciianMarkupParser.toMarkup(RichText.builder().build()));
+        String plain = "literal [bold] [/], [[, ] \"quotes\" \\ path\n日本語 😀";
+        RichText text = RichText.builder().append(plain).build();
+        assertEquals(plain.replace("[", "[["),
+            CasciianMarkupParser.toMarkup(text));
+        assertMarkupRoundTrip(text);
+    }
+
+    @Test
+    void testToMarkupBooleanStyles() {
+        for (String token : new String[] {
+                "bold", "faint", "italic", "blink", "reverse", "hidden",
+                "strike", "dim", "strikethrough"}) {
+            assertMarkupRoundTrip(CasciianMarkupParser.parse(
+                "[" + token + "]styled[/]plain"));
+        }
+        CellAttributes attr = CellAttributes.builder()
+            .bold(true).faint(true).italic(true).blink(true)
+            .reverse(true).hidden(true).strikethrough(true).build();
+        RichText text = RichText.builder().append("all", attr).append("plain")
+            .build();
+        assertMarkupRoundTrip(text);
+        assertEquals("[bold faint italic blink reverse hidden strike "
+            + "fg=white bg=black]all[/]plain",
+            CasciianMarkupParser.toMarkup(text));
+    }
+
+    @Test
+    void testToMarkupUnderlineStylesWithAndWithoutLinks() {
+        for (String style : new String[] {
+                "none", "single", "double", "curly", "dotted", "dashed"}) {
+            for (String link : new String[] {"", "link=\"https://example.com\" "}) {
+                RichText text = CasciianMarkupParser.parse(
+                    "[" + link + "u=" + style + "]x[/]plain");
+                assertMarkupRoundTrip(text);
+            }
+        }
+        RichText text = RichText.builder()
+            .link("unadorned", "https://example.com", new CellAttributes())
+            .link("underlined", "https://example.org")
+            .append("plain").build();
+        assertMarkupRoundTrip(text);
+        assertTrue(CasciianMarkupParser.toMarkup(text)
+            .contains("link=\"https://example.com\" u=none"));
+    }
+
+    @Test
+    void testToMarkupColorChannels() {
+        String[] colors = {
+            "default", "black", "red", "green", "yellow", "blue", "magenta",
+            "cyan", "white", "brightblack", "brightred", "brightgreen",
+            "brightyellow", "brightblue", "brightmagenta", "brightcyan",
+            "brightwhite", "gray", "grey", "#000000", "#00000f", "#abcdef",
+            "#ffffff", "palette:0", "palette:17", "palette:255"
+        };
+        for (String foreground : colors) {
+            for (String background : colors) {
+                assertMarkupRoundTrip(CasciianMarkupParser.parse(
+                    "[fg=" + foreground + " bg=" + background + "]x[/]plain"));
+            }
+        }
+        RichText explicit = RichText.builder()
+            .append("explicit", new CellAttributes()).append("default").build();
+        assertEquals("[fg=white bg=black]explicit[/]default",
+            CasciianMarkupParser.toMarkup(explicit));
+        assertMarkupRoundTrip(explicit);
+        RichText rgbPalette = RichText.builder().append("colors",
+            CellAttributes.builder().foreColorRGB(0x001234)
+                .backColorPalette(255).build()).build();
+        assertMarkupRoundTrip(rgbPalette);
+        RichText paletteRgb = RichText.builder().append("colors",
+            CellAttributes.builder().foreColorPalette(0)
+                .backColorRGB(0x00000f).build()).build();
+        assertMarkupRoundTrip(paletteRgb);
+    }
+
+    @Test
+    void testToMarkupFlattensNestedScopesWithoutStyleLeakage() {
+        RichText text = CasciianMarkupParser.parse(
+            "plain [bold fg=brightred]outer [italic bg=palette:17]"
+            + "inner [fg=default bg=#012345 u=dotted]default fg[/]"
+            + " inner[/] outer[/] plain");
+        assertMarkupRoundTrip(text);
+        assertEquals("plain [bold]a[/][bold italic]b[/][bold]c[/] plain",
+            CasciianMarkupParser.toMarkup(CasciianMarkupParser.parse(
+                "plain [bold]a[italic]b[/]c[/] plain")));
+        assertMarkupRoundTrip(CasciianMarkupParser.parse(
+            "[fg=red bg=blue]a[fg=default bg=default]b[/]c[/]d"));
+    }
+
+    @Test
+    void testToMarkupHyperlinksWithQuotedCharacters() {
+        String[] links = {
+            "https://example.com/a b?q=[bold]&x=\"quoted\"",
+            "C:\\folder\\file", "\\\\server\\share", "trailing\\",
+            "quote\\\" followed by ] and spaces",
+            "\"", "\\", "[]", "spaces\tand\nnewlines"
+        };
+        for (String link : links) {
+            RichText text = RichText.builder()
+                .link("literal [link] \"text\"\\", link)
+                .append("plain").build();
+            assertMarkupRoundTrip(text);
+        }
+        RichText text = RichText.builder()
+            .link("x", "a\"b\\c] d", CellAttributes.builder()
+                .defaultColor(true, true).defaultColor(false, true).build())
+            .build();
+        assertEquals("[link=\"a\\\"b\\\\c] d\" u=none]x[/]",
+            CasciianMarkupParser.toMarkup(text));
+        assertMarkupRoundTrip(text);
+    }
+
+    @Test
+    void testQuotedEscapesAndOrdinaryBackslashes() {
+        RichText escaped = CasciianMarkupParser.parse(
+            "[link=\"a\\\"b\\\\c] d\" bold u=none]x[/]plain");
+        CellAttributes attr = escaped.getRuns().get(0).getAttributes();
+        assertEquals("a\"b\\c] d", attr.getHyperlink());
+        assertTrue(attr.isBold());
+        assertEquals(CellAttributes.UNDERLINE_STYLE_NONE, attr.getUnderlineStyle());
+        assertEquals("xplain", escaped.getPlainText());
+        assertMarkupRoundTrip(escaped);
+
+        RichText quoted = CasciianMarkupParser.parse(
+            "[link=\"C:\\folder\\file name\\n\\t\" italic]x[/]");
+        assertEquals("C:\\folder\\file name\\n\\t",
+            quoted.getRuns().get(0).getAttributes().getHyperlink());
+        assertTrue(quoted.getRuns().get(0).getAttributes().isItalic());
+        assertMarkupRoundTrip(quoted);
+
+        RichText unquoted = CasciianMarkupParser.parse(
+            "[link=C:\\folder\\\\file bold]x[/]");
+        assertEquals("C:\\folder\\\\file",
+            unquoted.getRuns().get(0).getAttributes().getHyperlink());
+        assertTrue(unquoted.getRuns().get(0).getAttributes().isBold());
+        assertMarkupRoundTrip(unquoted);
+    }
+
+    @Test
+    void testToMarkupIgnoresUnsupportedAttributes() {
+        CellAttributes attr = new CellAttributes();
+        attr.setBold(true);
+        attr.setBoldTransparent(true);
+        attr.setProtect(true);
+        attr.setPulse(true, false, 0);
+        RichText text = RichText.builder().append("supported [text]", attr).build();
+        String markup = CasciianMarkupParser.toMarkup(text);
+        assertEquals("[bold fg=white bg=black]supported [[text][/]", markup);
+        RichText parsed = CasciianMarkupParser.parse(markup);
+        assertEquals(text.getPlainText(), parsed.getPlainText());
+        CellAttributes parsedAttr = parsed.getRuns().get(0).getAttributes();
+        assertTrue(parsedAttr.isBold());
+        assertFalse(parsedAttr.isBoldTransparent());
+        assertFalse(parsedAttr.isProtect());
+        assertEquals(0, parsedAttr.getAnimations());
+    }
+
+    private static void assertMarkupRoundTrip(final RichText text) {
+        String markup = CasciianMarkupParser.toMarkup(text);
+        assertEquals(text, CasciianMarkupParser.parse(markup), markup);
+        assertEquals(markup, CasciianMarkupParser.toMarkup(
+            CasciianMarkupParser.parse(markup)));
+    }
+
+    // -----------------------------------------------------------------------
     // Layout integration
     // -----------------------------------------------------------------------
 
