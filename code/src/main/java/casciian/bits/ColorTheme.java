@@ -1756,7 +1756,7 @@ public class ColorTheme {
 
         // TSplitPane
         colors.put(TSPLITPANE, attr(WHITE, BLUE));
-        colors.put(TSPLITPANE_MODAL, attr(WHITE, BLUE));
+        colors.put(TSPLITPANE_MODAL, attr(BLACK, WHITE));
 
         // THelpWindow border - during window movement
         colors.put(THELPWINDOW_WINDOWMOVE, attr(BRIGHT_GREEN, CYAN));
@@ -1869,6 +1869,14 @@ public class ColorTheme {
         colors.put(TLABEL, color);
         colors.put(TLABEL_MODAL, color);
         colors.put(TLABEL_ACTIVE_MODAL, color);
+
+        // TSplitPane
+        color = new CellAttributes();
+        color.setForeColor(BRIGHT_WHITE);
+        color.setBackColorRGB(pink2);
+        color.setBold(true);
+        colors.put(TSPLITPANE, color);
+        colors.put(TSPLITPANE_MODAL, color);
 
         color = new CellAttributes();
         color.setForeColor(BRIGHT_MAGENTA);
@@ -2663,11 +2671,11 @@ public class ColorTheme {
 
         // TSplitPane
         color = new CellAttributes();
-        color.setForeColor(WHITE);
+        color.setForeColor(BRIGHT_WHITE);
         color.setBackColor(BLUE);
         colors.put(TSPLITPANE, color);
         color = new CellAttributes();
-        color.setForeColor(WHITE);
+        color.setForeColor(BRIGHT_WHITE);
         color.setBackColor(BLUE);
         colors.put(TSPLITPANE_MODAL, color);
 
@@ -2929,8 +2937,8 @@ public class ColorTheme {
         colors.put(TTABLE_LABEL_SELECTED_MODAL, rgbToPalette(fgYellow, bgWindow));
         colors.put(TTABLE_BORDER, rgbToPalette(fgWhite, bgWindow));
         colors.put(TTABLE_BORDER_MODAL, rgbToPalette(fgWhite, bgWindow));
-        colors.put(TSPLITPANE, rgbToPalette(fgText, bgWindow));
-        colors.put(TSPLITPANE_MODAL, rgbToPalette(fgText, bgWindow));
+        colors.put(TSPLITPANE, rgbToPalette(fgInactiveText, bgWindow));
+        colors.put(TSPLITPANE_MODAL, rgbToPalette(fgInactiveText, bgModal));
 
         // Calendar
         colors.put(TCALENDAR_BACKGROUND, rgbToPalette(fgText, bgWindow));
@@ -3020,6 +3028,11 @@ public class ColorTheme {
         colors.put(TLABEL_MNEMONIC_MODAL, attr(BLUE, WHITE));
         colors.put(TLABEL_ACTIVE_MNEMONIC_MODAL, attr(BLUE, WHITE));
         colors.put(TLABEL_DISABLED_MNEMONIC_MODAL, attr(BRIGHT_BLACK, WHITE));
+
+        // TSplitPane
+        colors.put(TSPLITPANE, attr(BRIGHT_WHITE, BLUE));
+        colors.put(TSPLITPANE_MODAL, attr(BLACK, WHITE));
+
         colors.put(TTEXT, attr(WHITE, BLUE));
         colors.put(TTEXT_MODAL, attr(BLACK, WHITE));
         colors.put(TTEXT_BOLD, attr(BRIGHT_WHITE, BLUE));
@@ -3586,7 +3599,7 @@ public class ColorTheme {
 
         // Split pane
         colors.put(TSPLITPANE, rgb(fgText, bgPanel));
-        colors.put(TSPLITPANE_MODAL, rgb(fgText, bgPanel));
+        colors.put(TSPLITPANE_MODAL, rgb(fgText, bgChrome));
 
         // Progress bar
         colors.put(TPROGRESSBAR_COMPLETE, rgb(accent, accent));
@@ -3807,8 +3820,8 @@ public class ColorTheme {
         colors.put(TPANEL_BORDER_MODAL, rgb(borderDim, bgPanel));
 
         // Split pane
-        colors.put(TSPLITPANE, rgb(fgText, bgPanel));
-        colors.put(TSPLITPANE_MODAL, rgb(fgText, bgPanel));
+        colors.put(TSPLITPANE, rgb(fgChrome, bgPanel));
+        colors.put(TSPLITPANE_MODAL, rgb(fgChrome, bgEditor));
 
         // Progress bar
         colors.put(TPROGRESSBAR_COMPLETE, rgb(accent, accent));

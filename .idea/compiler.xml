@@ -10,6 +10,13 @@
       <module name="casciian.main" options="-Xlint -Xdiags:verbose" />
       <module name="casciian.test" options="-Xlint -Xdiags:verbose" />
       <module name="code" options="-Xlint -Xdiags:verbose" />
+      <module name="code-image-decoders" options="" />
+      <module name="code-image-decoders.casciian-image-decoders" options="-Xlint -Xdiags:verbose" />
+      <module name="code-image-decoders.casciian-image-decoders.main" options="-Xlint -Xdiags:verbose" />
+      <module name="code-image-decoders.casciian-image-decoders.test" options="-Xlint -Xdiags:verbose" />
+      <module name="code-image-decoders.demo" options="-Xlint -Xdiags:verbose" />
+      <module name="code-image-decoders.demo.main" options="-Xlint -Xdiags:verbose" />
+      <module name="code-image-decoders.demo.test" options="-Xlint -Xdiags:verbose" />
       <module name="code-java-desktop" options="" />
       <module name="code-java-desktop.casciian-java-desktop" options="-Xlint -Xdiags:verbose" />
       <module name="code-java-desktop.casciian-java-desktop.main" options="-Xlint -Xdiags:verbose" />

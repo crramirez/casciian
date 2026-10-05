@@ -391,6 +391,8 @@ public class DemoAnsiMarkupWindow extends TWindow {
          */
         MarkupEditor(final TWidget parent, final String text) {
             super(parent, text, 0, 0, 1, 1);
+
+            setHighlighting(false);
         }
 
         @Override
