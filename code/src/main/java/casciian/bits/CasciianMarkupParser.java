@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * CasciianMarkupParser parses a lightweight, human-readable markup language
- * into a {@link RichText} model, so styled text can be authored without
+ * CasciianMarkupParser converts between a lightweight, human-readable markup
+ * language and a {@link RichText} model, so styled text can be authored without
  * hand-writing ANSI escape sequences.
  *
  * <p>Supported syntax:</p>
@@ -65,7 +65,10 @@ import java.util.Locale;
  *       color ({@code black}, {@code red}, {@code green}, {@code yellow},
  *       {@code blue}, {@code magenta}, {@code cyan}, {@code white}, their
  *       {@code bright*} variants, and {@code gray} / {@code grey})</li>
- *   <li>{@code link="<uri>"} (quotes optional) to set an OSC 8 hyperlink</li>
+ *   <li>{@code link="<uri>"} (quotes optional) to set an OSC 8 hyperlink.
+ *       Inside quoted values, {@code \"} escapes a double quote and
+ *       {@code \\} escapes a backslash; other backslashes are literal.
+ *       Unquoted values do not interpret backslash escapes.</li>
  * </ul>
  */
 public final class CasciianMarkupParser {
@@ -131,9 +134,116 @@ public final class CasciianMarkupParser {
         return builder.build();
     }
 
+    /**
+     * Serialize rich text as canonical markup accepted by {@link #parse(String)}.
+     * Each styled run has an independent scope; default-styled text has no
+     * tags.  Literal opening brackets are doubled.  The original tag nesting,
+     * aliases, and spelling are not retained.
+     *
+     * <p>Only markup-supported attributes are represented: bold, faint,
+     * italic, blink, reverse, hidden, strikethrough, underline style, foreground
+     * and background colors, and hyperlinks.  Other CellAttributes state
+     * (such as protection, bold transparency, and animations), inactive color
+     * fields behind terminal-default colors, and empty hyperlink URIs are not
+     * represented.</p>
+     *
+     * @param text the rich text (may be null)
+     * @return the markup (never null; empty when text is null/empty)
+     */
+    public static String toMarkup(final RichText text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        StringBuilder markup = new StringBuilder();
+        for (RichText.Run run : text.getRuns()) {
+            if (run.getText().isEmpty()) {
+                continue;
+            }
+            CellAttributes attr = run.getAttributes();
+            List<String> tokens = new ArrayList<>();
+            if (attr.isBold()) {
+                tokens.add("bold");
+            }
+            if (attr.isFaint()) {
+                tokens.add("faint");
+            }
+            if (attr.isItalic()) {
+                tokens.add("italic");
+            }
+            if (attr.isBlink()) {
+                tokens.add("blink");
+            }
+            if (attr.isReverse()) {
+                tokens.add("reverse");
+            }
+            if (attr.isHidden()) {
+                tokens.add("hidden");
+            }
+            if (attr.isStrikethrough()) {
+                tokens.add("strike");
+            }
+            String link = attr.getHyperlink();
+            boolean hasLink = link != null && !link.isEmpty();
+            if (hasLink) {
+                tokens.add("link=\"" + link.replace("\\", "\\\\")
+                    .replace("\"", "\\\"") + "\"");
+            }
+            // A link token enables underlining, so restore the actual style last.
+            if (hasLink || attr.getUnderlineStyle()
+                    != CellAttributes.UNDERLINE_STYLE_NONE) {
+                String style = switch (attr.getUnderlineStyle()) {
+                case CellAttributes.UNDERLINE_STYLE_SINGLE -> "single";
+                case CellAttributes.UNDERLINE_STYLE_DOUBLE -> "double";
+                case CellAttributes.UNDERLINE_STYLE_CURLY -> "curly";
+                case CellAttributes.UNDERLINE_STYLE_DOTTED -> "dotted";
+                case CellAttributes.UNDERLINE_STYLE_DASHED -> "dashed";
+                default -> "none";
+                };
+                tokens.add("u=" + style);
+            }
+            if (!attr.isDefaultColor(true)) {
+                tokens.add("fg=" + markupColor(attr, true));
+            }
+            if (!attr.isDefaultColor(false)) {
+                tokens.add("bg=" + markupColor(attr, false));
+            }
+            if (!tokens.isEmpty()) {
+                markup.append('[').append(String.join(" ", tokens)).append(']');
+            }
+            markup.append(run.getText().replace("[", "[["));
+            if (!tokens.isEmpty()) {
+                markup.append("[/]");
+            }
+        }
+        return markup.toString();
+    }
+
     // ------------------------------------------------------------------------
     // Private helpers --------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Format the active explicit color of a channel.
+     *
+     * @param attr the attributes
+     * @param foreground true for foreground, false for background
+     * @return a markup color value
+     */
+    private static String markupColor(final CellAttributes attr,
+        final boolean foreground) {
+
+        int palette = foreground
+            ? attr.getForeColorPalette() : attr.getBackColorPalette();
+        if (palette >= 0) {
+            return "palette:" + palette;
+        }
+        int rgb = foreground ? attr.getForeColorRGB() : attr.getBackColorRGB();
+        if (rgb >= 0) {
+            return String.format(Locale.ROOT, "#%06x", rgb);
+        }
+        Color color = foreground ? attr.getForeColor() : attr.getBackColor();
+        return color.toString().replace(" ", "");
+    }
 
     /**
      * Flush the buffered run text into the builder with the given attributes,
@@ -165,7 +275,9 @@ public final class CasciianMarkupParser {
         boolean inQuote = false;
         for (int i = start; i < s.length(); i++) {
             char c = s.charAt(i);
-            if (c == '"') {
+            if (inQuote && isQuotedEscape(s, i)) {
+                i++;
+            } else if (c == '"') {
                 inQuote = !inQuote;
             } else if (c == ']' && !inQuote) {
                 return i;
@@ -206,7 +318,9 @@ public final class CasciianMarkupParser {
         boolean inQuote = false;
         for (int i = 0; i < body.length(); i++) {
             char c = body.charAt(i);
-            if (c == '"') {
+            if (inQuote && isQuotedEscape(body, i)) {
+                token.append(c).append(body.charAt(++i));
+            } else if (c == '"') {
                 inQuote = !inQuote;
                 token.append(c);
             } else if (Character.isWhitespace(c) && !inQuote) {
@@ -424,17 +538,39 @@ public final class CasciianMarkupParser {
     }
 
     /**
-     * Remove a single pair of surrounding double quotes from a value.
+     * Remove surrounding double quotes and decode quote/backslash escapes.
+     * Other backslashes, and all unquoted values, remain literal.
      *
      * @param value the raw value
-     * @return the value without surrounding quotes
+     * @return the decoded value
      */
     private static String unquote(final String value) {
         if (value.length() >= 2 && value.charAt(0) == '"'
                 && value.charAt(value.length() - 1) == '"') {
-            return value.substring(1, value.length() - 1);
+            String quoted = value.substring(1, value.length() - 1);
+            StringBuilder decoded = new StringBuilder();
+            for (int i = 0; i < quoted.length(); i++) {
+                if (isQuotedEscape(quoted, i)) {
+                    i++;
+                }
+                decoded.append(quoted.charAt(i));
+            }
+            return decoded.toString();
         }
         return value;
+    }
+
+    /**
+     * Check for one of the two escapes supported inside a quoted value.
+     *
+     * @param value the source value
+     * @param index the possible escape's start
+     * @return true for an escaped quote or backslash
+     */
+    private static boolean isQuotedEscape(final String value, final int index) {
+        return value.charAt(index) == '\\' && index + 1 < value.length()
+            && (value.charAt(index + 1) == '"'
+                || value.charAt(index + 1) == '\\');
     }
 
     /**
