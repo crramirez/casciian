@@ -21,6 +21,7 @@ import casciian.bits.Color;
 import casciian.event.TInputEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
+import casciian.event.TPasteEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1990,15 +1991,70 @@ class ECMA48TerminalTest {
     @DisplayName("Malformed UTF-8 keyboard input becomes U+FFFD without losing other keys")
     void testMalformedUtf8Input() throws Exception {
         terminal = createByteTerminal(80, 25,
-            bytes(0xC3, 'a', 0xFF, 'b', 0xE6, 0xBC));
-        List<TInputEvent> events = collectInputEvents(terminal, 5);
-        assertEquals(5, events.size(), events.toString());
+            bytes(0xC3, 'a', 0xFF, 'b', 0xE6, 0xBC, 'c'));
+        List<TInputEvent> events = collectInputEvents(terminal, 6);
+        assertEquals(6, events.size(), events.toString());
         assertKeyChar(events.get(0), 0xFFFD);
         assertKeyChar(events.get(1), 'a');
         assertKeyChar(events.get(2), 0xFFFD);
         assertKeyChar(events.get(3), 'b');
-        // The unfinished trailing character is flushed after a timeout.
+        // The unfinished character is replaced when 'c' interrupts it.
         assertKeyChar(events.get(4), 0xFFFD);
+        assertKeyChar(events.get(5), 'c');
+    }
+
+    @Test
+    @DisplayName("UTF-8 character split by a long pause is reassembled, not replaced")
+    void testUtf8CharacterSplitByPause() throws Exception {
+        ChunkedSessionInput input = new ChunkedSessionInput(80, 25,
+            bytes('a', 0xE6, 0xBC), bytes(0xA2, 'b'));
+        input.holdFrom(1);
+        terminal = new ECMA48Terminal(mockBackend, null, input, outputStream);
+
+        List<TInputEvent> events = collectInputEvents(terminal, 1);
+        assertEquals(1, events.size(), events.toString());
+        assertKeyChar(events.get(0), 'a');
+
+        // Much longer than the ESC and mouse report timeouts.
+        Thread.sleep(400L);
+        assertTrue(collectInputEventsFor(terminal, 0L).isEmpty(),
+            "incomplete character must not be flushed early");
+
+        input.releaseAll();
+        events = collectInputEvents(terminal, 2);
+        assertEquals(2, events.size(), events.toString());
+        assertKeyChar(events.get(0), '漢');
+        assertKeyChar(events.get(1), 'b');
+    }
+
+    @Test
+    @DisplayName("Bracketed paste keeps a UTF-8 character split by a long pause")
+    void testBracketedPasteUtf8CharacterSplitByPause() throws Exception {
+        byte[] start = concat("\033[200~x".getBytes(StandardCharsets.US_ASCII),
+            bytes(0xE6, 0xBC));
+        byte[] end = concat(bytes(0xA2),
+            "y\033[201~".getBytes(StandardCharsets.US_ASCII));
+        ChunkedSessionInput input = new ChunkedSessionInput(80, 25, start, end);
+        input.holdFrom(1);
+        terminal = new ECMA48Terminal(mockBackend, null, input, outputStream);
+
+        Thread.sleep(400L);
+        input.releaseAll();
+
+        String pasted = null;
+        long deadline = System.currentTimeMillis() + 1000L;
+        List<TInputEvent> events = new ArrayList<>();
+        while ((pasted == null) && (System.currentTimeMillis() < deadline)) {
+            events.clear();
+            terminal.getEvents(events);
+            for (TInputEvent event : events) {
+                if (event instanceof TPasteEvent paste) {
+                    pasted = paste.getText();
+                }
+            }
+            Thread.sleep(10L);
+        }
+        assertEquals("x漢y", pasted);
     }
 
     @Test
@@ -2127,6 +2183,7 @@ class ECMA48TerminalTest {
         private final TSessionInfo sessionInfo;
         private int chunkIndex = 0;
         private int chunkOffset = 0;
+        private int releasedChunks = Integer.MAX_VALUE;
 
         ChunkedSessionInput(final int width, final int height,
             final byte[]... data) {
@@ -2134,9 +2191,20 @@ class ECMA48TerminalTest {
             chunks.addAll(List.of(data));
         }
 
+        /**
+         * Make chunks from index onwards unavailable until releaseAll().
+         */
+        synchronized void holdFrom(final int index) {
+            releasedChunks = index;
+        }
+
+        synchronized void releaseAll() {
+            releasedChunks = Integer.MAX_VALUE;
+        }
+
         @Override
         public synchronized int available() {
-            if (chunkIndex >= chunks.size()) {
+            if ((chunkIndex >= chunks.size()) || (chunkIndex >= releasedChunks)) {
                 return 0;
             }
             return chunks.get(chunkIndex).length - chunkOffset;
@@ -2153,6 +2221,9 @@ class ECMA48TerminalTest {
             final int len) {
             if (chunkIndex >= chunks.size()) {
                 return -1;
+            }
+            if (chunkIndex >= releasedChunks) {
+                return 0;
             }
             byte[] chunk = chunks.get(chunkIndex);
             int n = Math.min(len, chunk.length - chunkOffset);
@@ -2265,6 +2336,31 @@ class ECMA48TerminalTest {
                 Thread.sleep(10L);
             }
         }
+        return result;
+    }
+
+    /**
+     * Collect keypress and mouse events that are already queued, waiting
+     * at most the given time for more.
+     */
+    private List<TInputEvent> collectInputEventsFor(final ECMA48Terminal t,
+        final long millis) throws InterruptedException {
+        List<TInputEvent> result = new ArrayList<>();
+        List<TInputEvent> events = new ArrayList<>();
+        long deadline = System.currentTimeMillis() + millis;
+        do {
+            events.clear();
+            t.getEvents(events);
+            for (TInputEvent event : events) {
+                if ((event instanceof TMouseEvent)
+                    || (event instanceof TKeypressEvent)) {
+                    result.add(event);
+                }
+            }
+            if (System.currentTimeMillis() < deadline) {
+                Thread.sleep(10L);
+            }
+        } while (System.currentTimeMillis() < deadline);
         return result;
     }
 

@@ -279,8 +279,10 @@ public class ECMA48Terminal extends LogicalScreen
     private long escapeTime;
 
     /**
-     * How long to wait for the rest of an ESC [ M mouse report, or for the
-     * remaining bytes of a UTF-8 character, before giving up on it.
+     * How long to wait for the rest of an ESC [ M mouse report before
+     * giving up on it.  (An incomplete UTF-8 character has no timeout: like
+     * InputStreamReader, the decoder waits for the rest of it, or replaces
+     * it with U+FFFD as soon as a byte arrives that cannot continue it.)
      */
     private static final long INCOMPLETE_INPUT_TIMEOUT_MILLIS = 100;
 
@@ -309,11 +311,6 @@ public class ECMA48Terminal extends LogicalScreen
      * The time we entered MOUSE.
      */
     private long mouseTime;
-
-    /**
-     * The time the last raw input byte was received.
-     */
-    private long lastByteTime;
 
     /**
      * The time we last checked the window size.  We try not to spawn stty
@@ -1887,9 +1884,6 @@ public class ECMA48Terminal extends LogicalScreen
                             System.err.println(sb);
                         }
                         if (byteInput) {
-                            if (rc > 0) {
-                                lastByteTime = System.currentTimeMillis();
-                            }
                             for (int i = 0; i < rc; i++) {
                                 processByte(events, byteBuffer[i] & 0xFF);
                             }
@@ -3519,15 +3513,6 @@ public class ECMA48Terminal extends LogicalScreen
                     processChar(queue, partial.charAt(i));
                 }
             }
-        }
-
-        // Incomplete UTF-8 character that was never finished.
-        if (byteInput
-            && utf8Decoder.hasPending()
-            && (nowTime - lastByteTime > INCOMPLETE_INPUT_TIMEOUT_MILLIS)
-        ) {
-            utf8Decoder.reset();
-            processCodePoint(queue, Utf8InputDecoder.REPLACEMENT);
         }
     }
 
