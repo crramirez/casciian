@@ -26,6 +26,7 @@ import java.io.ByteArrayOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -165,5 +166,30 @@ class TerminalShImplTest {
         // Without stty, defaults should be 80x24
         assertEquals(80, terminal.getWindowWidth());
         assertEquals(24, terminal.getWindowHeight());
+    }
+
+    @Test
+    @DisplayName("stream constructor reads raw bytes above 0x7F unchanged")
+    void testReadBytesPreservesRawBytes() throws Exception {
+        byte[] report = {0x1B, '[', 'M', 0x20, (byte) 0x80, (byte) 0xFF};
+        TerminalShImpl customTerminal = new TerminalShImpl(
+            new ByteArrayInputStream(report), new ByteArrayOutputStream(), false);
+        assertTrue(customTerminal.isByteInputSupported());
+        byte[] buffer = new byte[16];
+        assertEquals(report.length, customTerminal.readBytes(buffer, 0, buffer.length));
+        for (int i = 0; i < report.length; i++) {
+            assertEquals(report[i], buffer[i], "byte " + i);
+        }
+        customTerminal.close();
+    }
+
+    @Test
+    @DisplayName("pre-wired Reader constructor keeps character input")
+    void testPreWiredReaderDoesNotUseByteInput() {
+        TerminalShImpl customTerminal = new TerminalShImpl(
+            new ByteArrayInputStream(new byte[0]), new java.io.StringReader(""),
+            new java.io.PrintWriter(new ByteArrayOutputStream()), false);
+        assertFalse(customTerminal.isByteInputSupported());
+        customTerminal.close();
     }
 }

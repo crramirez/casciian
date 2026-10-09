@@ -781,8 +781,9 @@ public class ECMA48Terminal extends LogicalScreen
      * @param input        an InputStream connected to the remote user, or null for
      *                     System.in.  If System.in is used, then on non-Windows systems it will
      *                     be put in raw mode; closeTerminal() will (blindly!) put System.in in
-     *                     cooked mode.  input is always converted to a Reader with UTF-8
-     *                     encoding.
+     *                     cooked mode.  input is read as raw bytes where the terminal
+     *                     allows it and decoded as UTF-8 (legacy X10 mouse
+     *                     coordinates are decoded from the raw bytes).
      * @param output       an OutputStream connected to the remote user, or null
      *                     for System.out.  output is always converted to a Writer with UTF-8
      *                     encoding.
@@ -825,8 +826,9 @@ public class ECMA48Terminal extends LogicalScreen
      * @param input    an InputStream connected to the remote user, or null for
      *                 System.in.  If System.in is used, then on non-Windows systems it will
      *                 be put in raw mode; closeTerminal() will (blindly!) put System.in in
-     *                 cooked mode.  input is always converted to a Reader with UTF-8
-     *                 encoding.
+     *                 cooked mode.  input is read as raw bytes where the terminal
+     *                 allows it and decoded as UTF-8 (legacy X10 mouse
+     *                 coordinates are decoded from the raw bytes).
      * @param output   an OutputStream connected to the remote user, or null
      *                 for System.out.  output is always converted to a Writer with UTF-8
      *                 encoding.

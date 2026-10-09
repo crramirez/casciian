@@ -121,6 +121,23 @@ public class TerminalJlineImpl implements Terminal {
     }
 
     /**
+     * Wrap an already constructed JLine terminal.  Used by tests to drive
+     * the implementation with deterministic streams.
+     *
+     * @param jlineTerminal the JLine terminal to wrap
+     * @param debugToStderr if true, print debug output to stderr
+     */
+    TerminalJlineImpl(final org.jline.terminal.Terminal jlineTerminal,
+        final boolean debugToStderr) {
+
+        this.debugToStderr = debugToStderr;
+        this.jlineTerminal = jlineTerminal;
+        this.originalAttributes = new Attributes(jlineTerminal.getAttributes());
+        this.byteInput = !(jlineTerminal instanceof AbstractWindowsTerminal)
+            && (jlineTerminal.input() instanceof NonBlockingInputStream);
+    }
+
+    /**
      * Set the terminal to raw mode.
      * In raw mode, input is available character-by-character, echoing is disabled,
      * and special processing of input and output is disabled.

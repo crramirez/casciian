@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -134,5 +135,44 @@ class TerminalJlineImplTest {
         // JLine may return 0 in non-interactive environments, but never negative
         assertTrue(width >= 0 && width <= 10000, "Width should be between 0 and 10000");
         assertTrue(height >= 0 && height <= 10000, "Height should be between 0 and 10000");
+    }
+
+    @Test
+    @org.junit.jupiter.api.Timeout(10)
+    @DisplayName("readBytes delivers raw bytes above 0x7F from a POSIX-style JLine terminal")
+    void testReadBytesPreservesRawLegacyMouseBytes() throws Exception {
+        // ESC [ M with X10 coordinate bytes 0x80 (column 96) and 0xFF
+        // (row 223): neither is valid standalone UTF-8.
+        byte[] report = {0x1B, '[', 'M', 0x20, (byte) 0x80, (byte) 0xFF};
+        // Keep the input open: JLine treats end-of-stream as a closed tty.
+        java.io.PipedOutputStream feed = new java.io.PipedOutputStream();
+        java.io.PipedInputStream pipe = new java.io.PipedInputStream(feed);
+        feed.write(report);
+        feed.flush();
+        org.jline.terminal.Terminal jline = new org.jline.terminal.impl.ExternalTerminal(
+            "test", "xterm", pipe, new java.io.ByteArrayOutputStream(),
+            java.nio.charset.StandardCharsets.UTF_8);
+        TerminalJlineImpl jlineImpl = new TerminalJlineImpl(jline, false);
+        try {
+            jlineImpl.setRawMode();
+            assertTrue(jlineImpl.isByteInputSupported());
+            byte[] buffer = new byte[16];
+            int total = 0;
+            long deadline = System.currentTimeMillis() + 2000;
+            while (total < report.length && System.currentTimeMillis() < deadline) {
+                int rc = jlineImpl.readBytes(buffer, total, buffer.length - total);
+                if (rc < 0) {
+                    break;
+                }
+                total += rc;
+            }
+            assertEquals(report.length, total);
+            for (int i = 0; i < report.length; i++) {
+                assertEquals(report[i], buffer[i], "byte " + i);
+            }
+        } finally {
+            feed.close();
+            jlineImpl.close();
+        }
     }
 }
