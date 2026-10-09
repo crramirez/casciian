@@ -1100,6 +1100,7 @@ public class TMenu extends TWindow {
             break;
         case MID_WINDOW_LIST:
             label = i18n.getString("menuWindowList");
+            key = kbAlt0;
             break;
 
         case MID_HELP_CONTENTS:
