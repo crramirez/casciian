@@ -760,10 +760,11 @@ public class TWindow extends TWidget {
     }
 
     /**
-     * Consume event.  While the window is being moved or resized, keystrokes
-     * are handled here by the window itself and are never dispatched to
-     * onKeypress(), so subclass overrides and children cannot intercept
-     * them.
+     * Route movement-mode keystrokes before subclass handlers.  In keyboard
+     * move/size mode, keystrokes are handled here and are never dispatched to
+     * onKeypress().  During mouse-driven movement or resizing, only Escape and
+     * Enter are handled here; other keystrokes continue through normal
+     * dispatch.
      *
      * @param event keyboard, mouse, resize, command, or menu event
      */

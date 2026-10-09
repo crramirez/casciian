@@ -153,6 +153,20 @@ class TWindowKeyboardMoveTest {
     }
 
     @Test
+    void directTreeViewOnKeypressPreservesKeyboardResize() {
+        TTreeViewWindow window = new TTreeViewWindow(
+            new TApplication(new HeadlessBackend()), "tree", 10, 5, 30, 10,
+            TWindow.RESIZABLE);
+        window.setTreeRoot(new TTreeItem(window.getTreeView(), "root", true));
+        int originalWidth = window.getWidth();
+
+        window.onCommand(new TCommandEvent(null, cmWindowMove));
+        window.onKeypress(new TKeypressEvent(null, kbShiftRight));
+
+        assertEquals(originalWidth + 1, window.getWidth());
+    }
+
+    @Test
     void subclassOnKeypressDoesNotStealKeysDuringKeyboardMove() {
         KeyStealingWindow window = new KeyStealingWindow(
             new TApplication(new HeadlessBackend()));
