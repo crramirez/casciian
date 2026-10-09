@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 
 import casciian.backend.HeadlessBackend;
 import casciian.event.TKeypressEvent;
+import casciian.menu.TMenu;
+import casciian.menu.TMenuItem;
 
 import static casciian.TKeypress.kbEnter;
 import static casciian.TKeypress.kbEsc;
@@ -63,6 +65,31 @@ class TWindowListTest {
         int numberX = window.getWidth() - 7;
         assertEquals('1', window.getScreen().getCharXY(numberX,
                 0).getChar());
+    }
+
+    @Test
+    void windowMenuListUsesAltZeroAccelerator() {
+        TApplication application = app();
+        TMenu menu = application.addWindowMenu();
+        TMenuItem item = menu.getChildren().stream()
+            .filter(TMenuItem.class::isInstance)
+            .map(TMenuItem.class::cast)
+            .filter(menuItem -> menuItem.getId() == TMenu.MID_WINDOW_LIST)
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals(TKeypress.kbAlt0, item.getKey());
+        assertEquals("Alt+0", item.getKey().toString());
+
+        menu.setActive(true);
+        menu.draw();
+        menu.drawChildren();
+        StringBuilder row = new StringBuilder();
+        for (int x = 0; x < item.getWidth(); x++) {
+            row.appendCodePoint(item.getScreen().getCharXY(
+                item.getAbsoluteX() + x, item.getAbsoluteY()).getChar());
+        }
+        assertTrue(row.toString().contains("Alt+0"));
     }
 
     @Test
