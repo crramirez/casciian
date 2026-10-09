@@ -82,6 +82,41 @@ public interface Terminal {
     int read(char[] buffer, int off, int len) throws IOException;
 
     /**
+     * Whether this terminal can deliver its input as raw, undecoded bytes
+     * via {@link #readBytes(byte[], int, int)}.
+     *
+     * <p>Raw bytes are required to decode legacy X10 mouse reports
+     * ({@code ESC [ M Cb Cx Cy}), whose coordinate bytes 0x80-0xFF are not
+     * valid standalone UTF-8 and would be replaced by U+FFFD if the input
+     * were decoded by a UTF-8 {@link Reader} first.  When this returns true
+     * the caller is expected to read <em>only</em> through
+     * {@link #readBytes(byte[], int, int)} and to do its own UTF-8 decoding;
+     * it must not also read from {@link #getReader()}, since both views are
+     * backed by the same underlying stream.
+     *
+     * @return true if {@link #readBytes(byte[], int, int)} is supported
+     */
+    default boolean isByteInputSupported() {
+        return false;
+    }
+
+    /**
+     * Read raw, undecoded bytes from the terminal input.
+     *
+     * @param buffer the buffer to read bytes into
+     * @param off the offset in the buffer to start writing bytes
+     * @param len the maximum number of bytes to read
+     * @return the number of bytes read (possibly 0 if a read timed out), or
+     * -1 if end of stream is reached
+     * @throws IOException if an I/O error occurs while reading
+     * @throws UnsupportedOperationException if
+     * {@link #isByteInputSupported()} returns false
+     */
+    default int readBytes(byte[] buffer, int off, int len) throws IOException {
+        throw new UnsupportedOperationException("Raw byte input is not supported");
+    }
+
+    /**
      * Query the terminal window size.
      * This method updates the internal width and height values.
      */

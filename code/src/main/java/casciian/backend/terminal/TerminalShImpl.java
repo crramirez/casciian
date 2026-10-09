@@ -63,6 +63,14 @@ public class TerminalShImpl implements Terminal {
     private final Reader reader;
 
     /**
+     * If true, this terminal owns the input stream and can hand out its raw
+     * bytes (see {@link #isByteInputSupported()}).  False when the caller
+     * supplied its own Reader, which must remain the only consumer of the
+     * underlying stream.
+     */
+    private final boolean byteInput;
+
+    /**
      * The writer for this terminal.
      */
     private final PrintWriter writer;
@@ -93,7 +101,12 @@ public class TerminalShImpl implements Terminal {
         } else {
             this.inputStream = input;
         }
+        // The reader is only a convenience view for callers of getReader().
+        // ECMA48Terminal reads raw bytes through readBytes() instead (and
+        // never touches this reader), so legacy X10 mouse coordinate bytes
+        // >= 0x80 reach the mouse parser intact.
         this.reader = new InputStreamReader(this.inputStream, StandardCharsets.UTF_8);
+        this.byteInput = true;
 
         // Set up output writer
         if (output == null) {
@@ -119,6 +132,8 @@ public class TerminalShImpl implements Terminal {
         this.inputStream = input;
         this.reader = reader;
         this.writer = writer;
+        // The supplied Reader may buffer the stream, so never bypass it.
+        this.byteInput = false;
     }
 
     /**
@@ -235,6 +250,37 @@ public class TerminalShImpl implements Terminal {
     @Override
     public int read(char[] buffer, int off, int len) throws IOException {
         return reader.read(buffer, off, len);
+    }
+
+    /**
+     * Raw byte input is available only when this terminal created its own
+     * reader, i.e. it was not constructed with a caller-supplied Reader.
+     *
+     * @return true if {@link #readBytes(byte[], int, int)} is supported
+     */
+    @Override
+    public boolean isByteInputSupported() {
+        return byteInput;
+    }
+
+    /**
+     * Read raw bytes directly from the terminal input stream.
+     *
+     * @param buffer the byte array to read data into
+     * @param off the starting offset in the buffer
+     * @param len the maximum number of bytes to read
+     * @return the number of bytes read, or -1 if end of stream is reached
+     * @throws IOException if an I/O error occurs
+     * @throws UnsupportedOperationException if this terminal was created with
+     * a caller-supplied Reader
+     */
+    @Override
+    public int readBytes(byte[] buffer, int off, int len) throws IOException {
+        if (!byteInput) {
+            throw new UnsupportedOperationException(
+                "Raw byte input is not available with a caller-supplied Reader");
+        }
+        return inputStream.read(buffer, off, len);
     }
 
     /**

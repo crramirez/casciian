@@ -18,17 +18,25 @@ package casciian.backend;
 
 import casciian.bits.CellAttributes;
 import casciian.bits.Color;
+import casciian.event.TInputEvent;
+import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
+import casciian.event.TPasteEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -1754,6 +1762,364 @@ class ECMA48TerminalTest {
             + escapeForDisplay(output));
     }
 
+
+    // ------------------------------------------------------------------------
+    // Raw byte input: legacy X10, UTF-8 (1005) and SGR (1006) mouse reports,
+    // and UTF-8 keyboard input
+    // ------------------------------------------------------------------------
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 95, 96, 127, 128, 160, 200, 223})
+    @DisplayName("Legacy X10 report decodes raw column byte for every position 1-223")
+    void testX10ColumnFromRawByte(final int column) throws Exception {
+        terminal = createByteTerminal(250, 250,
+            bytes(0x1B, '[', 'M', 32, column + 32, 33));
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 1);
+        assertEquals(1, mouseEvents.size(), "column " + column);
+        TMouseEvent event = mouseEvents.get(0);
+        assertEquals(TMouseEvent.Type.MOUSE_DOWN, event.getType());
+        assertTrue(event.isMouse1());
+        assertEquals(column - 1, event.getX());
+        assertEquals(0, event.getY());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 95, 96, 127, 128, 160, 200, 223})
+    @DisplayName("Legacy X10 report decodes raw row byte for every position 1-223")
+    void testX10RowFromRawByte(final int row) throws Exception {
+        terminal = createByteTerminal(250, 250,
+            bytes(0x1B, '[', 'M', 32, 33, row + 32));
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 1);
+        assertEquals(1, mouseEvents.size(), "row " + row);
+        TMouseEvent event = mouseEvents.get(0);
+        assertEquals(TMouseEvent.Type.MOUSE_DOWN, event.getType());
+        assertEquals(0, event.getX());
+        assertEquals(row - 1, event.getY());
+    }
+
+    @Test
+    @DisplayName("Legacy X10 report with both coordinates in the ambiguous lead-byte range")
+    void testX10AmbiguousReportResolvedAsX10() throws Exception {
+        // Column 163 (0xC3) and row 128 (0xA0) also form the UTF-8 character
+        // U+00E0.  With no DECRQM answer and nothing following, the report
+        // must still be decoded as X10.
+        terminal = createByteTerminal(250, 250,
+            bytes(0x1B, '[', 'M', 32, 0xC3, 0xA0));
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 1);
+        assertEquals(1, mouseEvents.size());
+        assertEquals(162, mouseEvents.get(0).getX());
+        assertEquals(127, mouseEvents.get(0).getY());
+    }
+
+    @Test
+    @DisplayName("Legacy X10 press, drag and release at high coordinates keep their semantics")
+    void testX10DragAndReleaseAtHighCoordinates() throws Exception {
+        terminal = createByteTerminal(250, 250, bytes(
+            0x1B, '[', 'M', 32, 200 + 32, 150 + 32,       // press button 1
+            0x1B, '[', 'M', 32 + 32, 210 + 32, 160 + 32,  // drag
+            0x1B, '[', 'M', 32 + 32, 223 + 32, 223 + 32,  // drag to the limit
+            0x1B, '[', 'M', 3 + 32, 223 + 32, 223 + 32)); // release
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 4);
+        assertEquals(4, mouseEvents.size());
+
+        assertEquals(TMouseEvent.Type.MOUSE_DOWN, mouseEvents.get(0).getType());
+        assertTrue(mouseEvents.get(0).isMouse1());
+        assertEquals(199, mouseEvents.get(0).getX());
+        assertEquals(149, mouseEvents.get(0).getY());
+
+        assertEquals(TMouseEvent.Type.MOUSE_MOTION, mouseEvents.get(1).getType());
+        assertTrue(mouseEvents.get(1).isMouse1());
+        assertEquals(209, mouseEvents.get(1).getX());
+        assertEquals(159, mouseEvents.get(1).getY());
+
+        assertEquals(TMouseEvent.Type.MOUSE_MOTION, mouseEvents.get(2).getType());
+        assertEquals(222, mouseEvents.get(2).getX());
+        assertEquals(222, mouseEvents.get(2).getY());
+
+        assertEquals(TMouseEvent.Type.MOUSE_UP, mouseEvents.get(3).getType());
+        assertTrue(mouseEvents.get(3).isMouse1());
+        assertEquals(222, mouseEvents.get(3).getX());
+        assertEquals(222, mouseEvents.get(3).getY());
+    }
+
+    @Test
+    @DisplayName("Legacy X10 repeated press without motion bit is treated as drag")
+    void testX10RepeatedPressIsDrag() throws Exception {
+        terminal = createByteTerminal(250, 250, bytes(
+            0x1B, '[', 'M', 32, 100 + 32, 100 + 32,
+            0x1B, '[', 'M', 32, 101 + 32, 100 + 32));
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 2);
+        assertEquals(2, mouseEvents.size());
+        assertEquals(TMouseEvent.Type.MOUSE_DOWN, mouseEvents.get(0).getType());
+        assertEquals(TMouseEvent.Type.MOUSE_MOTION, mouseEvents.get(1).getType());
+        assertTrue(mouseEvents.get(1).isMouse1());
+        assertEquals(100, mouseEvents.get(1).getX());
+    }
+
+    @Test
+    @DisplayName("Legacy X10 coordinates are clamped to the screen")
+    void testX10CoordinatesClampedToScreen() throws Exception {
+        // NUL means "beyond the encodable range" in xterm.
+        terminal = createByteTerminal(100, 50, bytes(
+            0x1B, '[', 'M', 32, 200 + 32, 0));
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 1);
+        assertEquals(1, mouseEvents.size());
+        assertEquals(99, mouseEvents.get(0).getX());
+        assertEquals(49, mouseEvents.get(0).getY());
+    }
+
+    @Test
+    @DisplayName("Legacy X10 reports split across reads at every byte")
+    void testX10ReportSplitAcrossReads() throws Exception {
+        terminal = createByteTerminal(250, 250,
+            bytes(0x1B), bytes('['), bytes('M'), bytes(32), bytes(0xE8),
+            bytes(0xC8),
+            bytes(0x1B, '[', 'M', 32 + 32), bytes(0xFF, 0xFF));
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 2);
+        assertEquals(2, mouseEvents.size());
+        assertEquals(TMouseEvent.Type.MOUSE_DOWN, mouseEvents.get(0).getType());
+        assertEquals(199, mouseEvents.get(0).getX());
+        assertEquals(167, mouseEvents.get(0).getY());
+        assertEquals(TMouseEvent.Type.MOUSE_MOTION, mouseEvents.get(1).getType());
+        assertEquals(222, mouseEvents.get(1).getX());
+        assertEquals(222, mouseEvents.get(1).getY());
+    }
+
+    @Test
+    @DisplayName("UTF-8 (1005) report with multibyte coordinates, as confirmed by DECRPM")
+    void testUtf8MouseReportAfterDecrpm() throws Exception {
+        // Column 300 = 332 = U+014C, row 250 = 282 = U+011A.
+        byte[] report = concat(bytes(0x1B, '[', 'M', 32),
+            "\u014C\u011A".getBytes(StandardCharsets.UTF_8));
+        terminal = createByteTerminal(400, 300,
+            "\033[?1005;1$y".getBytes(StandardCharsets.US_ASCII),
+            report,
+            // Same report split inside the multibyte coordinates.
+            java.util.Arrays.copyOfRange(report, 0, 5),
+            java.util.Arrays.copyOfRange(report, 5, report.length));
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 2);
+        assertEquals(2, mouseEvents.size());
+        for (TMouseEvent event : mouseEvents) {
+            assertEquals(299, event.getX());
+            assertEquals(249, event.getY());
+        }
+        assertEquals(TMouseEvent.Type.MOUSE_DOWN, mouseEvents.get(0).getType());
+    }
+
+    @Test
+    @DisplayName("UTF-8 (1005) report without DECRPM is recognized from its structure")
+    void testUtf8MouseReportWithoutDecrpm() throws Exception {
+        // Column 96 = 128 = C2 80, row 200 = 232 = C3 A8.
+        terminal = createByteTerminal(250, 250,
+            bytes(0x1B, '[', 'M', 32, 0xC2, 0x80, 0xC3, 0xA8),
+            bytes(0x1B, '[', 'M', 3 + 32, 0xC2, 0x80, 0xC3, 0xA8));
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 2);
+        assertEquals(2, mouseEvents.size());
+        assertEquals(TMouseEvent.Type.MOUSE_DOWN, mouseEvents.get(0).getType());
+        assertEquals(95, mouseEvents.get(0).getX());
+        assertEquals(199, mouseEvents.get(0).getY());
+        assertEquals(TMouseEvent.Type.MOUSE_UP, mouseEvents.get(1).getType());
+        assertEquals(95, mouseEvents.get(1).getX());
+        assertEquals(199, mouseEvents.get(1).getY());
+    }
+
+    @Test
+    @DisplayName("DECRPM reporting 1005 reset makes ESC [ M reports X10")
+    void testX10AfterDecrpmReset() throws Exception {
+        terminal = createByteTerminal(250, 250,
+            "\033[?1005;2$y".getBytes(StandardCharsets.US_ASCII),
+            bytes(0x1B, '[', 'M', 32, 0xC3, 0xA8, 'x'));
+        List<TInputEvent> events = collectInputEvents(terminal, 2);
+        assertEquals(2, events.size());
+        TMouseEvent mouse = (TMouseEvent) events.get(0);
+        assertEquals(162, mouse.getX());
+        assertEquals(135, mouse.getY());
+        assertKeyChar(events.get(1), 'x');
+    }
+
+    @Test
+    @DisplayName("SGR (1006) reports beyond 223 are unchanged")
+    void testSgrLargeCoordinates() throws Exception {
+        terminal = createByteTerminal(400, 300,
+            "\033[<0;300;250M\033[<0;301;250M\033[<0;301;250m"
+                .getBytes(StandardCharsets.US_ASCII));
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 3);
+        assertEquals(3, mouseEvents.size());
+        assertEquals(TMouseEvent.Type.MOUSE_DOWN, mouseEvents.get(0).getType());
+        assertEquals(299, mouseEvents.get(0).getX());
+        assertEquals(249, mouseEvents.get(0).getY());
+        assertEquals(300, mouseEvents.get(1).getX());
+        assertEquals(TMouseEvent.Type.MOUSE_UP, mouseEvents.get(2).getType());
+        assertTrue(mouseEvents.get(2).isMouse1());
+    }
+
+    @Test
+    @DisplayName("Unicode keys before, between and after mouse reports")
+    void testUnicodeKeysInterleavedWithMouse() throws Exception {
+        byte[] input = concat(
+            "aé".getBytes(StandardCharsets.UTF_8),
+            bytes(0x1B, '[', 'M', 32, 200 + 32, 0x80),  // X10, raw bytes
+            "漢".getBytes(StandardCharsets.UTF_8),
+            "\033[<0;300;5M".getBytes(StandardCharsets.US_ASCII),
+            "😀ñ".getBytes(StandardCharsets.UTF_8));
+        // Split the input in the middle of the CJK character and the emoji.
+        int cjk = 2 + 1 + 6 + 1;
+        int emoji = cjk + 2 + 12 + 2;
+        terminal = createByteTerminal(400, 300,
+            java.util.Arrays.copyOfRange(input, 0, cjk),
+            java.util.Arrays.copyOfRange(input, cjk, emoji),
+            java.util.Arrays.copyOfRange(input, emoji, input.length));
+        List<TInputEvent> events = collectInputEvents(terminal, 8);
+        assertEquals(8, events.size(), events.toString());
+        assertKeyChar(events.get(0), 'a');
+        assertKeyChar(events.get(1), 'é');
+        TMouseEvent x10 = (TMouseEvent) events.get(2);
+        assertEquals(199, x10.getX());
+        assertEquals(95, x10.getY());
+        assertKeyChar(events.get(3), '漢');
+        TMouseEvent sgr = (TMouseEvent) events.get(4);
+        assertEquals(299, sgr.getX());
+        assertEquals(4, sgr.getY());
+        // Supplementary characters arrive as a surrogate pair, exactly as
+        // from a UTF-8 Reader.
+        assertKeyChar(events.get(5), "😀".charAt(0));
+        assertKeyChar(events.get(6), "😀".charAt(1));
+        assertKeyChar(events.get(7), 'ñ');
+    }
+
+    @Test
+    @DisplayName("Malformed UTF-8 keyboard input becomes U+FFFD without losing other keys")
+    void testMalformedUtf8Input() throws Exception {
+        terminal = createByteTerminal(80, 25,
+            bytes(0xC3, 'a', 0xFF, 'b', 0xE6, 0xBC, 'c'));
+        List<TInputEvent> events = collectInputEvents(terminal, 6);
+        assertEquals(6, events.size(), events.toString());
+        assertKeyChar(events.get(0), 0xFFFD);
+        assertKeyChar(events.get(1), 'a');
+        assertKeyChar(events.get(2), 0xFFFD);
+        assertKeyChar(events.get(3), 'b');
+        // The unfinished character is replaced when 'c' interrupts it.
+        assertKeyChar(events.get(4), 0xFFFD);
+        assertKeyChar(events.get(5), 'c');
+    }
+
+    @Test
+    @DisplayName("UTF-8 character split by a long pause is reassembled, not replaced")
+    void testUtf8CharacterSplitByPause() throws Exception {
+        ChunkedSessionInput input = new ChunkedSessionInput(80, 25,
+            bytes('a', 0xE6, 0xBC), bytes(0xA2, 'b'));
+        input.holdFrom(1);
+        terminal = new ECMA48Terminal(mockBackend, null, input, outputStream);
+
+        List<TInputEvent> events = collectInputEvents(terminal, 1);
+        assertEquals(1, events.size(), events.toString());
+        assertKeyChar(events.get(0), 'a');
+
+        // Much longer than the ESC and mouse report timeouts.
+        Thread.sleep(400L);
+        assertTrue(collectInputEventsFor(terminal, 0L).isEmpty(),
+            "incomplete character must not be flushed early");
+
+        input.releaseAll();
+        events = collectInputEvents(terminal, 2);
+        assertEquals(2, events.size(), events.toString());
+        assertKeyChar(events.get(0), '漢');
+        assertKeyChar(events.get(1), 'b');
+    }
+
+    @Test
+    @DisplayName("Bracketed paste keeps a UTF-8 character split by a long pause")
+    void testBracketedPasteUtf8CharacterSplitByPause() throws Exception {
+        byte[] start = concat("\033[200~x".getBytes(StandardCharsets.US_ASCII),
+            bytes(0xE6, 0xBC));
+        byte[] end = concat(bytes(0xA2),
+            "y\033[201~".getBytes(StandardCharsets.US_ASCII));
+        ChunkedSessionInput input = new ChunkedSessionInput(80, 25, start, end);
+        input.holdFrom(1);
+        terminal = new ECMA48Terminal(mockBackend, null, input, outputStream);
+
+        Thread.sleep(400L);
+        input.releaseAll();
+
+        String pasted = null;
+        long deadline = System.currentTimeMillis() + 1000L;
+        List<TInputEvent> events = new ArrayList<>();
+        while ((pasted == null) && (System.currentTimeMillis() < deadline)) {
+            events.clear();
+            terminal.getEvents(events);
+            for (TInputEvent event : events) {
+                if (event instanceof TPasteEvent paste) {
+                    pasted = paste.getText();
+                }
+            }
+            Thread.sleep(10L);
+        }
+        assertEquals("x漢y", pasted);
+    }
+
+    @Test
+    @DisplayName("Incomplete mouse report does not swallow the following input")
+    void testIncompleteMouseReport() throws Exception {
+        // ESC interrupts the first report; the SGR report must survive.
+        terminal = createByteTerminal(80, 25,
+            "\033[M\033[<0;5;6M".getBytes(StandardCharsets.US_ASCII));
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 1);
+        assertEquals(1, mouseEvents.size());
+        assertEquals(4, mouseEvents.get(0).getX());
+        assertEquals(5, mouseEvents.get(0).getY());
+
+        // A truncated report times out and its bytes become keystrokes.
+        terminal.closeTerminal();
+        terminal = createByteTerminal(80, 25,
+            "\033[M a".getBytes(StandardCharsets.US_ASCII));
+        List<TInputEvent> events = collectInputEvents(terminal, 2);
+        assertEquals(2, events.size(), events.toString());
+        assertKeyChar(events.get(0), ' ');
+        assertKeyChar(events.get(1), 'a');
+    }
+
+    @Test
+    @DisplayName("Caller-supplied Latin-1 Reader still decodes X10 coordinates")
+    void testReaderPathLatin1X10() throws Exception {
+        ChunkedSessionInput input = new ChunkedSessionInput(250, 250,
+            bytes(0x1B, '[', 'M', 32, 200 + 32, 0xFF));
+        terminal = new ECMA48Terminal(mockBackend, null, input,
+            new InputStreamReader(input, StandardCharsets.ISO_8859_1),
+            new PrintWriter(outputStream));
+        List<TMouseEvent> mouseEvents = collectMouseEvents(terminal, 1);
+        assertEquals(1, mouseEvents.size());
+        assertEquals(199, mouseEvents.get(0).getX());
+        assertEquals(222, mouseEvents.get(0).getY());
+    }
+
+    @Test
+    @DisplayName("Caller-supplied UTF-8 Reader decodes 1005 coordinates and Unicode keys")
+    void testReaderPathUtf8() throws Exception {
+        ChunkedSessionInput input = new ChunkedSessionInput(400, 300,
+            concat(bytes(0x1B, '[', 'M', 32),
+                "\u014C\u011Aé".getBytes(StandardCharsets.UTF_8)));
+        Reader reader = new InputStreamReader(input, StandardCharsets.UTF_8);
+        terminal = new ECMA48Terminal(mockBackend, null, input, reader,
+            new PrintWriter(outputStream));
+        List<TInputEvent> events = collectInputEvents(terminal, 2);
+        assertEquals(2, events.size(), events.toString());
+        TMouseEvent mouse = (TMouseEvent) events.get(0);
+        assertEquals(299, mouse.getX());
+        assertEquals(249, mouse.getY());
+        assertKeyChar(events.get(1), 'é');
+    }
+
+    @Test
+    @DisplayName("Startup queries whether UTF-8 mouse mode 1005 is active")
+    void testQueriesMode1005() {
+        terminal = createTerminal();
+        terminal.flushPhysical();
+        String output = outputStream.toString(StandardCharsets.UTF_8);
+        assertTrue(output.contains("\033[?1005$p"), escapeForDisplay(output));
+        // Mouse mode selection itself is unchanged: SGR is still preferred.
+        assertTrue(output.contains("\033[?1002;1003;1005;1006h"));
+    }
+
     // Helper methods
 
     private ECMA48Terminal createTerminal() {
@@ -1804,6 +2170,206 @@ class ECMA48TerminalTest {
             fail("Failed to create terminal: " + e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * An InputStream that delivers its data in fixed chunks, one chunk per
+     * read() call, and that reports a fixed window size.
+     */
+    private static final class ChunkedSessionInput extends InputStream
+        implements SessionInfo {
+
+        private final List<byte[]> chunks = new ArrayList<>();
+        private final TSessionInfo sessionInfo;
+        private int chunkIndex = 0;
+        private int chunkOffset = 0;
+        private int releasedChunks = Integer.MAX_VALUE;
+
+        ChunkedSessionInput(final int width, final int height,
+            final byte[]... data) {
+            sessionInfo = new TSessionInfo(width, height);
+            chunks.addAll(List.of(data));
+        }
+
+        /**
+         * Make chunks from index onwards unavailable until releaseAll().
+         */
+        synchronized void holdFrom(final int index) {
+            releasedChunks = index;
+        }
+
+        synchronized void releaseAll() {
+            releasedChunks = Integer.MAX_VALUE;
+        }
+
+        @Override
+        public synchronized int available() {
+            if ((chunkIndex >= chunks.size()) || (chunkIndex >= releasedChunks)) {
+                return 0;
+            }
+            return chunks.get(chunkIndex).length - chunkOffset;
+        }
+
+        @Override
+        public synchronized int read() {
+            byte[] one = new byte[1];
+            return read(one, 0, 1) == 1 ? (one[0] & 0xFF) : -1;
+        }
+
+        @Override
+        public synchronized int read(final byte[] b, final int off,
+            final int len) {
+            if (chunkIndex >= chunks.size()) {
+                return -1;
+            }
+            if (chunkIndex >= releasedChunks) {
+                return 0;
+            }
+            byte[] chunk = chunks.get(chunkIndex);
+            int n = Math.min(len, chunk.length - chunkOffset);
+            System.arraycopy(chunk, chunkOffset, b, off, n);
+            chunkOffset += n;
+            if (chunkOffset == chunk.length) {
+                chunkIndex++;
+                chunkOffset = 0;
+            }
+            return n;
+        }
+
+        @Override
+        public long getStartTime() {
+            return sessionInfo.getStartTime();
+        }
+
+        @Override
+        public int getIdleTime() {
+            return sessionInfo.getIdleTime();
+        }
+
+        @Override
+        public void setIdleTime(final int seconds) {
+            sessionInfo.setIdleTime(seconds);
+        }
+
+        @Override
+        public String getUsername() {
+            return sessionInfo.getUsername();
+        }
+
+        @Override
+        public void setUsername(final String username) {
+            sessionInfo.setUsername(username);
+        }
+
+        @Override
+        public String getLanguage() {
+            return sessionInfo.getLanguage();
+        }
+
+        @Override
+        public void setLanguage(final String language) {
+            sessionInfo.setLanguage(language);
+        }
+
+        @Override
+        public int getWindowWidth() {
+            return sessionInfo.getWindowWidth();
+        }
+
+        @Override
+        public int getWindowHeight() {
+            return sessionInfo.getWindowHeight();
+        }
+
+        @Override
+        public void queryWindowSize() {
+            // Fixed size
+        }
+    }
+
+    private static byte[] bytes(final int... values) {
+        byte[] result = new byte[values.length];
+        for (int i = 0; i < values.length; i++) {
+            result[i] = (byte) values[i];
+        }
+        return result;
+    }
+
+    private static byte[] concat(final byte[]... parts) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        for (byte[] part : parts) {
+            out.writeBytes(part);
+        }
+        return out.toByteArray();
+    }
+
+    /**
+     * Create a terminal on the raw byte input path, delivering each chunk
+     * in a separate read.
+     */
+    private ECMA48Terminal createByteTerminal(final int width,
+        final int height, final byte[]... chunks) throws Exception {
+        return new ECMA48Terminal(mockBackend, null,
+            new ChunkedSessionInput(width, height, chunks), outputStream);
+    }
+
+    /**
+     * Collect keypress and mouse events, in order.
+     */
+    private List<TInputEvent> collectInputEvents(final ECMA48Terminal t,
+        final int maxEvents) throws InterruptedException {
+        List<TInputEvent> result = new ArrayList<>();
+        List<TInputEvent> events = new ArrayList<>();
+        long deadline = System.currentTimeMillis() + 1000L;
+        while (System.currentTimeMillis() < deadline
+            && result.size() < maxEvents) {
+            if (t.hasEvents()) {
+                events.clear();
+                t.getEvents(events);
+                for (TInputEvent event : events) {
+                    if ((event instanceof TMouseEvent)
+                        || (event instanceof TKeypressEvent)) {
+                        result.add(event);
+                    }
+                }
+            } else {
+                Thread.sleep(10L);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Collect keypress and mouse events that are already queued, waiting
+     * at most the given time for more.
+     */
+    private List<TInputEvent> collectInputEventsFor(final ECMA48Terminal t,
+        final long millis) throws InterruptedException {
+        List<TInputEvent> result = new ArrayList<>();
+        List<TInputEvent> events = new ArrayList<>();
+        long deadline = System.currentTimeMillis() + millis;
+        do {
+            events.clear();
+            t.getEvents(events);
+            for (TInputEvent event : events) {
+                if ((event instanceof TMouseEvent)
+                    || (event instanceof TKeypressEvent)) {
+                    result.add(event);
+                }
+            }
+            if (System.currentTimeMillis() < deadline) {
+                Thread.sleep(10L);
+            }
+        } while (System.currentTimeMillis() < deadline);
+        return result;
+    }
+
+    private static void assertKeyChar(final TInputEvent event,
+        final int expected) {
+        assertTrue(event instanceof TKeypressEvent, String.valueOf(event));
+        TKeypressEvent keypress = (TKeypressEvent) event;
+        assertFalse(keypress.getKey().isFnKey(), keypress.toString());
+        assertEquals(expected, keypress.getKey().getChar(), keypress.toString());
     }
 
     private List<TMouseEvent> collectMouseEvents(final ECMA48Terminal t,
