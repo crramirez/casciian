@@ -209,6 +209,39 @@ class LegacyMouseReportDecoderTest {
     }
 
     @Test
+    @DisplayName("Coordinate 0x20 (position 0) aborts the report")
+    void coordinateBelowPositionOneAborts() {
+        LegacyMouseReportDecoder decoder = new LegacyMouseReportDecoder();
+        assertEquals(ABORT, feed(decoder, 32, 0x20));
+        assertArrayEquals(new int[] {32, 0x20}, decoder.takeLeftovers());
+
+        decoder.setEncoding(Encoding.X10);
+        assertEquals(ABORT, feed(decoder, 32, 0x21, 0x20));
+        assertArrayEquals(new int[] {32, 0x21, 0x20}, decoder.takeLeftovers());
+    }
+
+    @Test
+    @DisplayName("Confirmed 1005 encoding aborts an incomplete report on timeout")
+    void confirmedUtf8IncompleteAbortsOnTimeout() {
+        LegacyMouseReportDecoder decoder = new LegacyMouseReportDecoder();
+        decoder.setEncoding(Encoding.UTF8);
+        assertEquals(NEED_MORE, feed(decoder, 32, 0xC3, 0xA0));
+        assertEquals(ABORT, decoder.timeout());
+        assertArrayEquals(new int[] {32, 0xC3, 0xA0}, decoder.takeLeftovers());
+        assertEquals(Encoding.UTF8, decoder.getEncoding());
+    }
+
+    @Test
+    @DisplayName("Confirmed 1005 encoding aborts invalid UTF-8 instead of using X10")
+    void confirmedUtf8InvalidAborts() {
+        LegacyMouseReportDecoder decoder = new LegacyMouseReportDecoder();
+        decoder.setEncoding(Encoding.UTF8);
+        assertEquals(ABORT, feed(decoder, 32, 0x80));
+        assertArrayEquals(new int[] {32, 0x80}, decoder.takeLeftovers());
+        assertEquals(Encoding.UTF8, decoder.getEncoding());
+    }
+
+    @Test
     @DisplayName("Incomplete report aborts on timeout and is handed back")
     void incompleteReportAbortsOnTimeout() {
         LegacyMouseReportDecoder decoder = new LegacyMouseReportDecoder();

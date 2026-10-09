@@ -57,6 +57,9 @@ package casciian.backend;
  *       atomically, so if nothing completes the 1005 reading before
  *       {@link #timeout()} is called the report is decoded as X10.</li>
  * </ul>
+ * Once the encoding is known it is authoritative: with {@link Encoding#UTF8}
+ * only a complete 1005 report is accepted, and with {@link Encoding#X10}
+ * only a complete X10 report.
  * Malformed or incomplete reports are aborted, and the collected bytes are
  * handed back to the caller to be processed as ordinary input.
  *
@@ -290,6 +293,17 @@ final class LegacyMouseReportDecoder {
         }
 
         int utf8 = parseUtf8();
+        if (encoding == Encoding.UTF8) {
+            // Mode 1005 is confirmed: only a complete UTF-8 report counts.
+            if (utf8 == PARSE_COMPLETE) {
+                return acceptUtf8();
+            }
+            if ((utf8 == PARSE_INVALID) || timedOut) {
+                return abort();
+            }
+            return NEED_MORE;
+        }
+
         if (utf8 == PARSE_COMPLETE) {
             if ((encoding == Encoding.UNKNOWN)
                 && (utf8Consumed > 3)
@@ -339,7 +353,7 @@ final class LegacyMouseReportDecoder {
         if (index == 0) {
             return b >= 0x20;
         }
-        return (b == 0) || (b >= 0x20);
+        return (b == 0) || (b >= 0x21);
     }
 
     /**

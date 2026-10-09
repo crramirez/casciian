@@ -3880,6 +3880,8 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private void processByte(final List<TInputEvent> events, final int b) {
         if (state == ParseState.MOUSE) {
+            // Each byte of the report refreshes the inactivity timeout.
+            mouseTime = System.currentTimeMillis();
             handleLegacyMouseResult(events, legacyMouseDecoder.add(b));
             return;
         }
@@ -4622,6 +4624,7 @@ public class ECMA48Terminal extends LogicalScreen
                 // mouse reports in processByte().  Each character is one
                 // value, which is right for 1005 through a UTF-8 Reader and
                 // for X10 through a Latin-1 Reader.
+                mouseTime = nowTime;
                 appendToLastParam(ch);
                 String mouseParam = params.getFirst();
                 if (mouseParam.length() == 3) {
