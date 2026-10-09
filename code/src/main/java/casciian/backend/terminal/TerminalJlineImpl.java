@@ -16,13 +16,16 @@
 package casciian.backend.terminal;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.AbstractWindowsTerminal;
 import org.jline.utils.InfoCmp;
+import org.jline.utils.NonBlockingInputStream;
 
 /**
  * JLine-based terminal implementation for raw/cooked mode handling.
@@ -30,6 +33,15 @@ import org.jline.utils.InfoCmp;
  * <p>This implementation uses JLine's terminal abstraction to set terminal
  * attributes in a platform-agnostic way. On Windows, JLine uses native
  * Windows Console APIs (WriteConsoleW) for proper Unicode support.
+ *
+ * <p>Input: on POSIX systems JLine's {@code input()} is the raw tty byte
+ * stream (its {@code reader()} is merely a UTF-8 decoder layered on top), so
+ * this class exposes those bytes through {@link #readBytes(byte[], int, int)}
+ * and the caller decodes UTF-8 itself.  This keeps legacy X10 mouse
+ * coordinate bytes (0x80-0xFF) intact.  On the native Windows console JLine
+ * synthesizes input from console events as UTF-16 characters (mouse events
+ * are always synthesized in SGR format), its {@code input()} is a lossy
+ * re-encoding of that character stream, so the character reader is used.
  */
 @SuppressWarnings("CallToPrintStackTrace")
 public class TerminalJlineImpl implements Terminal {
@@ -55,6 +67,12 @@ public class TerminalJlineImpl implements Terminal {
     private final boolean debugToStderr;
 
     /**
+     * If true, input is read as raw bytes from JLine's input stream rather
+     * than from its decoding reader.
+     */
+    private final boolean byteInput;
+
+    /**
      * Create a new JLine terminal implementation.
      * The JLine terminal is created immediately in the constructor.
      *
@@ -74,6 +92,8 @@ public class TerminalJlineImpl implements Terminal {
 
             // Only assign to field after all initialization succeeds
             jlineTerminal = tempTerminal;
+            byteInput = !(tempTerminal instanceof AbstractWindowsTerminal)
+                && (tempTerminal.input() instanceof NonBlockingInputStream);
 
             if (debugToStderr) {
                 String keyMouseCapability = jlineTerminal.getStringCapability(
@@ -267,6 +287,15 @@ public class TerminalJlineImpl implements Terminal {
             throw new IllegalStateException("Terminal not initialized");
         }
 
+        if (byteInput) {
+            NonBlockingInputStream input = (NonBlockingInputStream) jlineTerminal.input();
+            int amount = input.available();
+            if (amount > 0) {
+                return amount;
+            }
+            return input.peek(TIMEOUT) < 0 ? 0 : 1;
+        }
+
         var reader = jlineTerminal.reader();
         int amount = reader.available();
         if (amount > 0) {
@@ -294,6 +323,43 @@ public class TerminalJlineImpl implements Terminal {
     @Override
     public int read(char[] buffer, int off, int len) throws IOException {
         return jlineTerminal.reader().readBuffered(buffer, off, len, TIMEOUT);
+    }
+
+    /**
+     * Raw byte input is supported when JLine exposes the tty byte stream
+     * directly (POSIX terminals), but not on the native Windows console.
+     *
+     * @return true if {@link #readBytes(byte[], int, int)} is supported
+     */
+    @Override
+    public boolean isByteInputSupported() {
+        return byteInput;
+    }
+
+    /**
+     * Read raw bytes from JLine's input stream with a short timeout.
+     *
+     * @param buffer the byte array to read data into
+     * @param off the starting offset in the buffer
+     * @param len the maximum number of bytes to read
+     * @return the number of bytes read (0 if the read timed out), or -1 if
+     * end of stream is reached
+     * @throws IOException if an I/O error occurs
+     * @throws UnsupportedOperationException if raw byte input is not
+     * supported by this terminal
+     */
+    @Override
+    public int readBytes(byte[] buffer, int off, int len) throws IOException {
+        if (!byteInput) {
+            throw new UnsupportedOperationException(
+                "Raw byte input is not supported by this JLine terminal");
+        }
+        InputStream input = jlineTerminal.input();
+        int rc = ((NonBlockingInputStream) input).readBuffered(buffer, off, len, TIMEOUT);
+        if (rc == NonBlockingInputStream.READ_EXPIRED) {
+            return 0;
+        }
+        return rc;
     }
 
     /**

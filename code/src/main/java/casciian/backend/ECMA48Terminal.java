@@ -279,6 +279,43 @@ public class ECMA48Terminal extends LogicalScreen
     private long escapeTime;
 
     /**
+     * How long to wait for the rest of an ESC [ M mouse report, or for the
+     * remaining bytes of a UTF-8 character, before giving up on it.
+     */
+    private static final long INCOMPLETE_INPUT_TIMEOUT_MILLIS = 100;
+
+    /**
+     * If true, input is read as raw bytes and decoded here (UTF-8 for text,
+     * raw bytes for legacy X10 mouse coordinates).  If false, input is read
+     * as characters from a Reader (caller-supplied Readers, or the native
+     * Windows console), in which case X10 coordinate bytes 0x80-0xFF may
+     * already have been replaced by the Reader's charset decoder.
+     */
+    private boolean byteInput;
+
+    /**
+     * UTF-8 decoder for the byte input path.
+     */
+    private final Utf8InputDecoder utf8Decoder = new Utf8InputDecoder();
+
+    /**
+     * Decoder for the bytes of an ESC [ M mouse report on the byte input
+     * path.  Its encoding (X10 vs UTF-8/1005) persists across reports.
+     */
+    private final LegacyMouseReportDecoder legacyMouseDecoder =
+        new LegacyMouseReportDecoder();
+
+    /**
+     * The time we entered MOUSE.
+     */
+    private long mouseTime;
+
+    /**
+     * The time the last raw input byte was received.
+     */
+    private long lastByteTime;
+
+    /**
      * The time we last checked the window size.  We try not to spawn stty
      * more than once per second.
      */
@@ -812,6 +849,7 @@ public class ECMA48Terminal extends LogicalScreen
 
         // Always create a terminal instance - it manages streams and features
         terminal = TerminalFactory.create(input, output, DEBUG_TO_STDERR);
+        byteInput = terminal.isByteInputSupported();
 
         this.input = terminal.getReader();
 
@@ -855,6 +893,11 @@ public class ECMA48Terminal extends LogicalScreen
             // the flags on the stack Casciian never actually runs on, and they
             // would silently have no effect.
             this.terminal.enableMouseReporting(true);
+
+            // Ask whether UTF-8 mouse coordinates (1005) took effect, to
+            // tell legacy X10 reports from 1005 reports (both start with
+            // ESC [ M).  See LegacyMouseReportDecoder.
+            this.output.printf("%s", xtermQueryMode(1005));
 
             enableBracketedPaste();
 
@@ -960,6 +1003,8 @@ public class ECMA48Terminal extends LogicalScreen
         // Create a terminal instance with the pre-wired streams
         // This allows future delegation of terminal features
         terminal = TerminalFactory.create(input, reader, writer, DEBUG_TO_STDERR);
+        // The caller's Reader is the only consumer of the stream.
+        byteInput = terminal.isByteInputSupported();
 
         this.input = reader;
 
@@ -1000,6 +1045,11 @@ public class ECMA48Terminal extends LogicalScreen
         // the flags on the stack Casciian never actually runs on, and they
         // would silently have no effect.
             this.terminal.enableMouseReporting(true);
+
+            // Ask whether UTF-8 mouse coordinates (1005) took effect, to
+            // tell legacy X10 reports from 1005 reports (both start with
+            // ESC [ M).  See LegacyMouseReportDecoder.
+            this.output.printf("%s", xtermQueryMode(1005));
 
         enableBracketedPaste();
 
@@ -1763,7 +1813,8 @@ public class ECMA48Terminal extends LogicalScreen
         boolean done = false;
         // available() will often return > 1, so we need to read in chunks to
         // stay caught up.
-        char[] readBuffer = new char[128];
+        char[] readBuffer = byteInput ? null : new char[128];
+        byte[] byteBuffer = byteInput ? new byte[128] : null;
         List<TInputEvent> events = new ArrayList<>();
 
         while (!done && !stopReaderThread) {
@@ -1790,17 +1841,26 @@ public class ECMA48Terminal extends LogicalScreen
                         System.err.printf("%d bytes to read.\n", n);
                     }
 
-                    if (readBuffer.length < n) {
-                        // The buffer wasn't big enough, make it huger
-                        readBuffer = new char[readBuffer.length * 2];
-                    }
+                    int rc;
+                    if (byteInput) {
+                        if (byteBuffer.length < n) {
+                            // The buffer wasn't big enough, make it huger
+                            byteBuffer = new byte[byteBuffer.length * 2];
+                        }
+                        rc = terminal.readBytes(byteBuffer, 0, byteBuffer.length);
+                    } else {
+                        if (readBuffer.length < n) {
+                            // The buffer wasn't big enough, make it huger
+                            readBuffer = new char[readBuffer.length * 2];
+                        }
 
-                    if (DEBUG_TO_STDERR) {
-                        System.err.printf("B4 read(): readBuffer.length = %d\n",
-                            readBuffer.length);
-                    }
+                        if (DEBUG_TO_STDERR) {
+                            System.err.printf("B4 read(): readBuffer.length = %d\n",
+                                readBuffer.length);
+                        }
 
-                    int rc = terminal.read(readBuffer, 0, readBuffer.length);
+                        rc = terminal.read(readBuffer, 0, readBuffer.length);
+                    }
 
                     if (rc == -1) {
                         if (DEBUG_TO_STDERR) {
@@ -1813,15 +1873,29 @@ public class ECMA48Terminal extends LogicalScreen
                         if (DEBUG_TO_STDERR) {
                             StringBuilder sb = new StringBuilder();
                             for (int i = 0; i < rc; i++) {
-                                sb.append(readBuffer[i]);
+                                if (byteInput) {
+                                    sb.append(String.format("%02x ",
+                                            byteBuffer[i] & 0xFF));
+                                } else {
+                                    sb.append(readBuffer[i]);
+                                }
                             }
                             System.err.printf("%d rc = %d INPUT: ",
                                 System.currentTimeMillis(), rc);
                             System.err.println(sb);
                         }
-                        for (int i = 0; i < rc; i++) {
-                            int ch = readBuffer[i];
-                            processChar(events, (char) ch);
+                        if (byteInput) {
+                            if (rc > 0) {
+                                lastByteTime = System.currentTimeMillis();
+                            }
+                            for (int i = 0; i < rc; i++) {
+                                processByte(events, byteBuffer[i] & 0xFF);
+                            }
+                        } else {
+                            for (int i = 0; i < rc; i++) {
+                                int ch = readBuffer[i];
+                                processChar(events, (char) ch);
+                            }
                         }
                         getIdleEvents(events);
                         // Add to the queue for the backend thread to be able
@@ -2881,6 +2955,7 @@ public class ECMA48Terminal extends LogicalScreen
         xtversionResponse.setLength(0);
         oscResponse.setLength(0);
         pasteText.setLength(0);
+        legacyMouseDecoder.reset();
     }
 
     /**
@@ -3024,13 +3099,22 @@ public class ECMA48Terminal extends LogicalScreen
      * <a href="http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking">XTerm
      * Control Sequences: Mouse Tracking</a>
      *
+     * <p>The values are already decoded from either the legacy X10 or the
+     * UTF-8 (1005) encoding, and still carry the protocol's +32 offset.
+     *
+     * @param cb the button value Cb
+     * @param cx the column value Cx: 1-based column + 32, or 0 if the
+     * column is beyond what the encoding can represent
+     * @param cy the row value Cy: 1-based row + 32, or 0 if the row is beyond
+     * what the encoding can represent
      * @return a MOUSE_MOTION, MOUSE_UP, or MOUSE_DOWN event
      */
-    private TInputEvent parseMouse() {
-        String firstParam = params.getFirst();
-        int buttons = firstParam.charAt(0) - 32;
-        int x = firstParam.charAt(1) - 32 - 1;
-        int y = firstParam.charAt(2) - 32 - 1;
+    private TInputEvent parseMouse(final int cb, final int cx, final int cy) {
+        int buttons = cb - 32;
+        // xterm sends NUL for a position it cannot encode; that position is
+        // past the right/bottom edge, so it is clamped below.
+        int x = (cx == 0) ? Integer.MAX_VALUE : cx - 32 - 1;
+        int y = (cy == 0) ? Integer.MAX_VALUE : cy - 32 - 1;
 
         // Clamp X and Y to the physical screen coordinates.
         if (x >= windowResize.getWidth()) {
@@ -3416,6 +3500,33 @@ public class ECMA48Terminal extends LogicalScreen
                 resetParser();
             }
         }
+
+        // Incomplete or ambiguous ESC [ M mouse report.  Terminals write
+        // each report in one go, so if it is still unfinished it is either
+        // a complete X10 report that also looks like the start of a 1005
+        // report, or garbage.
+        if ((state == ParseState.MOUSE)
+            && (nowTime - mouseTime > INCOMPLETE_INPUT_TIMEOUT_MILLIS)
+        ) {
+            if (byteInput) {
+                handleLegacyMouseResult(queue, legacyMouseDecoder.timeout());
+            } else {
+                String partial = params.getFirst();
+                resetParser();
+                for (int i = 0; i < partial.length(); i++) {
+                    processChar(queue, partial.charAt(i));
+                }
+            }
+        }
+
+        // Incomplete UTF-8 character that was never finished.
+        if (byteInput
+            && utf8Decoder.hasPending()
+            && (nowTime - lastByteTime > INCOMPLETE_INPUT_TIMEOUT_MILLIS)
+        ) {
+            utf8Decoder.reset();
+            processCodePoint(queue, Utf8InputDecoder.REPLACEMENT);
+        }
     }
 
     /**
@@ -3768,6 +3879,78 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Parses the next raw input byte (byte input path).
+     *
+     * <p>Raw byte interpretation is kept separate from Unicode decoding:
+     * while an ESC [ M mouse report is being collected the bytes go,
+     * undecoded, to the {@link LegacyMouseReportDecoder}, so that legacy X10
+     * coordinate bytes 0x80-0xFF are not mangled.  All other bytes are
+     * decoded as UTF-8 and handed to {@link #processChar(List, char)} exactly
+     * as a UTF-8 Reader would have delivered them.
+     *
+     * @param events list to append new events to
+     * @param b      the byte, as an unsigned value 0-255
+     */
+    private void processByte(final List<TInputEvent> events, final int b) {
+        if (state == ParseState.MOUSE) {
+            handleLegacyMouseResult(events, legacyMouseDecoder.add(b));
+            return;
+        }
+        int codePoint = utf8Decoder.decode(b);
+        if (codePoint == Utf8InputDecoder.MALFORMED_RETRY) {
+            // b interrupted an incomplete character: replace that, then
+            // process b on its own.  (U+FFFD cannot start a mouse report.)
+            processCodePoint(events, Utf8InputDecoder.REPLACEMENT);
+            codePoint = utf8Decoder.decode(b);
+        }
+        if (codePoint >= 0) {
+            processCodePoint(events, codePoint);
+        }
+    }
+
+    /**
+     * Pass a decoded code point to the character parser, as UTF-16.
+     *
+     * @param events    list to append new events to
+     * @param codePoint the Unicode code point
+     */
+    private void processCodePoint(final List<TInputEvent> events,
+                                  final int codePoint) {
+        if (Character.isBmpCodePoint(codePoint)) {
+            processChar(events, (char) codePoint);
+        } else {
+            processChar(events, Character.highSurrogate(codePoint));
+            processChar(events, Character.lowSurrogate(codePoint));
+        }
+    }
+
+    /**
+     * Act on a result of the {@link LegacyMouseReportDecoder}.
+     *
+     * @param events list to append new events to
+     * @param result the decoder result
+     */
+    private void handleLegacyMouseResult(final List<TInputEvent> events,
+                                         final int result) {
+        if (result == LegacyMouseReportDecoder.NEED_MORE) {
+            return;
+        }
+        if (result == LegacyMouseReportDecoder.COMPLETE) {
+            events.add(parseMouse(legacyMouseDecoder.getButtons(),
+                    legacyMouseDecoder.getX(), legacyMouseDecoder.getY()));
+        } else if (DEBUG_TO_STDERR) {
+            System.err.println("Discarding malformed ESC [ M mouse report");
+        }
+        // Take the leftovers before resetting: processing them may start a
+        // new mouse report.
+        int[] leftovers = legacyMouseDecoder.takeLeftovers();
+        resetParser();
+        for (int leftover : leftovers) {
+            processByte(events, leftover);
+        }
+    }
+
+    /**
      * Parses the next character of input to see if an InputEvent is
      * fully here.
      *
@@ -3934,8 +4117,10 @@ public class ECMA48Terminal extends LogicalScreen
                             resetParser();
                             return;
                         case 'M':
-                            // Mouse position
+                            // Mouse position, legacy X10 or UTF-8 (1005)
+                            // coordinates
                             state = ParseState.MOUSE;
+                            mouseTime = nowTime;
                             return;
                         case '<':
                             // Mouse position, SGR (1006) coordinates
@@ -4391,6 +4576,23 @@ public class ECMA48Terminal extends LogicalScreen
                                 if (params.size() == 2) {
                                     String pd = params.getFirst();
                                     String ps = params.get(1);
+                                    if (pd.equals("1005")) {
+                                        // UTF-8 mouse coordinates: set
+                                        // (1) or permanently set (3) means
+                                        // ESC [ M reports use 1005;
+                                        // anything else (reset, or not
+                                        // recognized at all) means X10.
+                                        boolean utf8Mouse = ps.equals("1")
+                                            || ps.equals("3");
+                                        if (DEBUG_TO_STDERR) {
+                                            System.err.println("DECRPM: " +
+                                                "ESC [ M mouse encoding is " +
+                                                (utf8Mouse ? "UTF-8" : "X10"));
+                                        }
+                                        legacyMouseDecoder.setEncoding(utf8Mouse
+                                            ? LegacyMouseReportDecoder.Encoding.UTF8
+                                            : LegacyMouseReportDecoder.Encoding.X10);
+                                    }
                                     if (ps.equals("1")          // Set
                                         || ps.equals("2")       // Reset
                                         || ps.equals("3")       // Permanently set
@@ -4429,10 +4631,16 @@ public class ECMA48Terminal extends LogicalScreen
                 return;
 
             case MOUSE:
+                // Character input path only: the byte input path decodes
+                // mouse reports in processByte().  Each character is one
+                // value, which is right for 1005 through a UTF-8 Reader and
+                // for X10 through a Latin-1 Reader.
                 appendToLastParam(ch);
-                if (params.getFirst().length() == 3) {
+                String mouseParam = params.getFirst();
+                if (mouseParam.length() == 3) {
                     // We have enough to generate a mouse event
-                    events.add(parseMouse());
+                    events.add(parseMouse(mouseParam.charAt(0),
+                            mouseParam.charAt(1), mouseParam.charAt(2)));
                     resetParser();
                 }
                 return;
