@@ -152,12 +152,73 @@ class TWindowKeyboardMoveTest {
         assertEquals(originalX, window.getX());
     }
 
+    @Test
+    void subclassOnKeypressDoesNotStealKeysDuringKeyboardMove() {
+        KeyStealingWindow window = new KeyStealingWindow(
+            new TApplication(new HeadlessBackend()));
+        int originalX = window.getX();
+        int originalY = window.getY();
+        int originalWidth = window.getWidth();
+        int originalHeight = window.getHeight();
+
+        dispatch(window, kbCtrlF5);
+        dispatch(window, kbRight);
+        dispatch(window, kbDown);
+        dispatch(window, kbShiftRight);
+        dispatch(window, kbShiftDown);
+        dispatch(window, kbEnter);
+
+        assertEquals(originalX + 1, window.getX());
+        assertEquals(originalY + 1, window.getY());
+        assertEquals(originalWidth + 1, window.getWidth());
+        assertEquals(originalHeight + 1, window.getHeight());
+        assertEquals(1, window.stolenCount);
+
+        dispatch(window, kbRight);
+        assertEquals(2, window.stolenCount);
+        assertEquals(originalX + 1, window.getX());
+    }
+
     private TestWindow window() {
         return new TestWindow(new TApplication(new HeadlessBackend()));
     }
 
     private void press(final TWidget widget, final TKeypress keypress) {
         widget.onKeypress(new TKeypressEvent(null, keypress));
+    }
+
+    private void dispatch(final TWidget widget, final TKeypress keypress) {
+        widget.handleEvent(new TKeypressEvent(null, keypress));
+    }
+
+    /**
+     * A window whose onKeypress() consumes arrow keys before TWindow sees
+     * them, as TImageWindow does.
+     */
+    private static class KeyStealingWindow extends TWindow {
+        private int stolenCount;
+
+        KeyStealingWindow(final TApplication app) {
+            super(app, "key-stealing", 40, 10, RESIZABLE);
+        }
+
+        @Override
+        public void onKeypress(final TKeypressEvent keypress) {
+            if (keypress.equals(kbCtrlF5)) {
+                stolenCount++;
+                super.onKeypress(keypress);
+                return;
+            }
+            if (keypress.equals(kbRight) || keypress.equals(kbDown)
+                || keypress.equals(kbShiftRight)
+                || keypress.equals(kbShiftDown)
+                || keypress.equals(kbEnter)
+            ) {
+                stolenCount++;
+                return;
+            }
+            super.onKeypress(keypress);
+        }
     }
 
     private static class TestWindow extends TWindow {

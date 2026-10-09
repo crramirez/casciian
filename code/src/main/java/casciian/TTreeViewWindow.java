@@ -188,12 +188,6 @@ public class TTreeViewWindow extends TScrollableWindow {
      */
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
-        if (inKeyboardResize) {
-            // Let TWindow do its job.
-            super.onKeypress(keypress);
-            return;
-        }
-
         // Give the shortcut bar a shot at this.
         if (statusBar != null) {
             if (statusBar.statusBarKeypress(keypress)) {
