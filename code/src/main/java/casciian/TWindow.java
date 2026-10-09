@@ -31,6 +31,7 @@ import casciian.bits.ColorTheme;
 import casciian.bits.GraphicsChars;
 import casciian.bits.StringUtils;
 import casciian.event.TCommandEvent;
+import casciian.event.TInputEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMenuEvent;
 import casciian.event.TMouseEvent;
@@ -766,95 +767,7 @@ public class TWindow extends TWidget {
     @Override
     public void onKeypress(final TKeypressEvent keypress) {
 
-        // ESC or ENTER - Exit size/move
-        if ((inWindowMove || inWindowResize)
-            && (keypress.equals(kbEsc) || keypress.equals(kbEnter))
-        ) {
-            inWindowMove = false;
-            inWindowResize = false;
-            return;
-        }
-
-        if (inKeyboardResize) {
-
-            // ESC - Cancel size/move
-            if (keypress.equals(kbEsc)) {
-                boolean sizeChanged = (getWidth() != keyboardResizeWidth)
-                    || (getHeight() != keyboardResizeHeight);
-                setX(keyboardResizeX);
-                setY(keyboardResizeY);
-                inKeyboardResize = false;
-                if (sizeChanged) {
-                    setWidth(keyboardResizeWidth);
-                    setHeight(keyboardResizeHeight);
-                    onResize(new TResizeEvent(keypress.getBackend(),
-                            TResizeEvent.Type.WIDGET, getWidth(), getHeight()));
-                }
-                return;
-            }
-
-            // ENTER - Accept size/move
-            if (keypress.equals(kbEnter)) {
-                inKeyboardResize = false;
-                return;
-            }
-
-            if (keypress.equals(kbLeft) && (getX() > 0)) {
-                setX(getX() - 1);
-            }
-            if (keypress.equals(kbRight)
-                && (getX() < getScreen().getWidth() - 1)
-            ) {
-                setX(getX() + 1);
-            }
-            if (keypress.equals(kbDown)
-                && (getY() < application.getDesktopBottom() - 1)
-            ) {
-                setY(getY() + 1);
-            }
-            if (keypress.equals(kbUp) && (getY() > 1)) {
-                setY(getY() - 1);
-            }
-
-            /*
-             * Only permit keyboard resizing if the window was RESIZABLE and
-             * there is a window border.
-             */
-            if (((flags & RESIZABLE) != 0)
-                && (getBorderStyle() != BorderStyle.NONE)
-            ) {
-
-                if (keypress.equals(kbShiftLeft)
-                    && ((getWidth() > minimumWindowWidth)
-                        || (minimumWindowWidth <= 0))
-                ) {
-                    setWidth(getWidth() - 1);
-                }
-                if (keypress.equals(kbShiftRight)
-                    && ((getWidth() < maximumWindowWidth)
-                        || (maximumWindowWidth <= 0))
-                ) {
-                    setWidth(getWidth() + 1);
-                }
-                if (keypress.equals(kbShiftUp)
-                    && ((getHeight() > minimumWindowHeight)
-                        || (minimumWindowHeight <= 0))
-                ) {
-                    setHeight(getHeight() - 1);
-                }
-                if (keypress.equals(kbShiftDown)
-                    && ((getHeight() < maximumWindowHeight)
-                        || (maximumWindowHeight <= 0))
-                ) {
-                    setHeight(getHeight() + 1);
-                }
-
-                // Pass a resize event to my children
-                onResize(new TResizeEvent(keypress.getBackend(),
-                        TResizeEvent.Type.WIDGET, getWidth(), getHeight()));
-
-            } // if ((flags & RESIZABLE) != 0)
-
+        if (handleMovementKeypress(keypress)) {
             return;
         }
 
@@ -913,6 +826,127 @@ public class TWindow extends TWidget {
 
         // I didn't take it, pass it on to my children
         super.onKeypress(keypress);
+    }
+
+    /**
+     * Consume event.  While the window is being moved or resized, keystrokes
+     * belong to the window itself and are handled here before any subclass
+     * onKeypress() override or child widget gets a chance to see them.
+     *
+     * @param event keyboard, mouse, resize, command, or menu event
+     */
+    @Override
+    public void handleEvent(final TInputEvent event) {
+        if (isEnabled()
+            && (event instanceof TKeypressEvent)
+            && handleMovementKeypress((TKeypressEvent) event)
+        ) {
+            return;
+        }
+        super.handleEvent(event);
+    }
+
+    /**
+     * Handle a keystroke while the window is in a move/size state.
+     *
+     * @param keypress keystroke event
+     * @return true if the keystroke was consumed by the move/size state
+     */
+    private boolean handleMovementKeypress(final TKeypressEvent keypress) {
+
+        // ESC or ENTER - Exit size/move
+        if ((inWindowMove || inWindowResize)
+            && (keypress.equals(kbEsc) || keypress.equals(kbEnter))
+        ) {
+            inWindowMove = false;
+            inWindowResize = false;
+            return true;
+        }
+
+        if (inKeyboardResize) {
+
+            // ESC - Cancel size/move
+            if (keypress.equals(kbEsc)) {
+                boolean sizeChanged = (getWidth() != keyboardResizeWidth)
+                    || (getHeight() != keyboardResizeHeight);
+                setX(keyboardResizeX);
+                setY(keyboardResizeY);
+                inKeyboardResize = false;
+                if (sizeChanged) {
+                    setWidth(keyboardResizeWidth);
+                    setHeight(keyboardResizeHeight);
+                    onResize(new TResizeEvent(keypress.getBackend(),
+                            TResizeEvent.Type.WIDGET, getWidth(), getHeight()));
+                }
+                return true;
+            }
+
+            // ENTER - Accept size/move
+            if (keypress.equals(kbEnter)) {
+                inKeyboardResize = false;
+                return true;
+            }
+
+            if (keypress.equals(kbLeft) && (getX() > 0)) {
+                setX(getX() - 1);
+            }
+            if (keypress.equals(kbRight)
+                && (getX() < getScreen().getWidth() - 1)
+            ) {
+                setX(getX() + 1);
+            }
+            if (keypress.equals(kbDown)
+                && (getY() < application.getDesktopBottom() - 1)
+            ) {
+                setY(getY() + 1);
+            }
+            if (keypress.equals(kbUp) && (getY() > 1)) {
+                setY(getY() - 1);
+            }
+
+            /*
+             * Only permit keyboard resizing if the window was RESIZABLE and
+             * there is a window border.
+             */
+            if (((flags & RESIZABLE) != 0)
+                && (getBorderStyle() != BorderStyle.NONE)
+            ) {
+
+                if (keypress.equals(kbShiftLeft)
+                    && ((getWidth() > minimumWindowWidth)
+                        || (minimumWindowWidth <= 0))
+                ) {
+                    setWidth(getWidth() - 1);
+                }
+                if (keypress.equals(kbShiftRight)
+                    && ((getWidth() < maximumWindowWidth)
+                        || (maximumWindowWidth <= 0))
+                ) {
+                    setWidth(getWidth() + 1);
+                }
+                if (keypress.equals(kbShiftUp)
+                    && ((getHeight() > minimumWindowHeight)
+                        || (minimumWindowHeight <= 0))
+                ) {
+                    setHeight(getHeight() - 1);
+                }
+                if (keypress.equals(kbShiftDown)
+                    && ((getHeight() < maximumWindowHeight)
+                        || (maximumWindowHeight <= 0))
+                ) {
+                    setHeight(getHeight() + 1);
+                }
+
+                // Pass a resize event to my children
+                onResize(new TResizeEvent(keypress.getBackend(),
+                        TResizeEvent.Type.WIDGET, getWidth(), getHeight()));
+
+            } // if ((flags & RESIZABLE) != 0)
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
