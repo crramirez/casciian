@@ -436,6 +436,24 @@ public class DemoApplication extends TApplication {
             return true;
         }
 
+        if (menu.getId() == 10026) {
+            SystemProperties.setPaletteColor(isMenuItemChecked(menu.getId()));
+            return true;
+        }
+
+        if (menu.getId() == 10027) {
+            SystemProperties.setRgbColor(isMenuItemChecked(menu.getId()));
+            return true;
+        }
+
+        if (menu.getId() == 10028) {
+            SystemProperties.setPaletteColor(false);
+            SystemProperties.setRgbColor(false);
+            setMenuItemChecked(10026, false);
+            setMenuItemChecked(10027, false);
+            return true;
+        }
+
         if (menu.getId() == 10016) {
             // Enable/disable menu icons.
             TMenuItem menuItem = getMenuItem(menu.getId());
@@ -767,10 +785,25 @@ public class DemoApplication extends TApplication {
         themesMenu.addItem(10025, i18n.getString("themeVSCodeLight"));
         demoMenu.addItem(10004, i18n.getString("applyCasciianDefaults"));
         demoMenu.addSeparator();
-        TMenuItem gradients = demoMenu.addItem(10010,
+        TSubMenu renderingMenu = demoMenu.addSubMenu(
+            i18n.getString("rendering"));
+        TMenuItem gradients = renderingMenu.addItem(10010,
             i18n.getString("useGradients"));
         gradients.setCheckable(true);
         gradients.setChecked(false);
+        TMenuItem translucenceItem = renderingMenu.addItem(10015,
+            i18n.getString("translucence"));
+        translucenceItem.setCheckable(true);
+        translucenceItem.setChecked(SystemProperties.isTranslucence());
+        TMenuItem paletteColorItem = renderingMenu.addItem(10026,
+            i18n.getString("paletteColors"));
+        paletteColorItem.setCheckable(true);
+        paletteColorItem.setChecked(SystemProperties.isPaletteColor());
+        TMenuItem rgbColorItem = renderingMenu.addItem(10027,
+            i18n.getString("rgbColors"));
+        rgbColorItem.setCheckable(true);
+        rgbColorItem.setChecked(SystemProperties.isRgbColor());
+        renderingMenu.addItem(10028, i18n.getString("standardColors"));
         TMenuItem textMouseItem = demoMenu.addItem(10013,
             i18n.getString("textMouse"));
         textMouseItem.setCheckable(true);
@@ -779,10 +812,6 @@ public class DemoApplication extends TApplication {
             i18n.getString("animations"));
         animationsItem.setCheckable(true);
         animationsItem.setChecked(SystemProperties.isAnimations());
-        TMenuItem translucenceItem = demoMenu.addItem(10015,
-            i18n.getString("translucence"));
-        translucenceItem.setCheckable(true);
-        translucenceItem.setChecked(SystemProperties.isTranslucence());
         TMenuItem menuIconsItem = demoMenu.addItem(10016,
             i18n.getString("menuIcons"));
         menuIconsItem.setCheckable(true);
