@@ -326,6 +326,9 @@ public class TFileOpenBox extends TDialog {
             ) {
                 // Directory list will be changing, update the status bar.
                 super.onKeypress(keypress);
+                if (directoryList.getSelectedIndex() < 0) {
+                    return;
+                }
 
                 try {
                     getStatusBar().setText(directoryList.getPath().
