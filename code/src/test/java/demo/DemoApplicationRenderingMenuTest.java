@@ -34,13 +34,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DemoApplicationRenderingMenuTest {
 
     private DemoApplication application;
+    private CountingHeadlessBackend backend;
 
     @BeforeEach
     void setUp() {
         SystemProperties.setPaletteColor(false);
         SystemProperties.setRgbColor(false);
         SystemProperties.setTranslucence(false);
-        application = new DemoApplication(new HeadlessBackend());
+        backend = new CountingHeadlessBackend();
+        application = new DemoApplication(backend);
     }
 
     @AfterEach
@@ -110,5 +112,57 @@ class DemoApplicationRenderingMenuTest {
 
         assertTrue(application.getMenuItem(10026).isChecked());
         assertTrue(application.getMenuItem(10027).isChecked());
+    }
+
+    @Test
+    void colorModeChangesClearPhysicalScreenAndDefaultsResetModes() {
+        int clearCount = backend.getPhysicalClearCount();
+
+        TMenuItem palette = application.getMenuItem(10026);
+        palette.setChecked(true);
+        assertTrue(application.onMenu(new TMenuEvent(
+            application.getBackend(), 10026)));
+        assertTrue(backend.getPhysicalClearCount() > clearCount);
+
+        clearCount = backend.getPhysicalClearCount();
+        TMenuItem rgb = application.getMenuItem(10027);
+        rgb.setChecked(true);
+        assertTrue(application.onMenu(new TMenuEvent(
+            application.getBackend(), 10027)));
+        assertTrue(backend.getPhysicalClearCount() > clearCount);
+
+        clearCount = backend.getPhysicalClearCount();
+        assertTrue(application.onMenu(new TMenuEvent(
+            application.getBackend(), 10028)));
+        assertTrue(backend.getPhysicalClearCount() > clearCount);
+
+        palette.setChecked(true);
+        application.onMenu(new TMenuEvent(application.getBackend(), 10026));
+        rgb.setChecked(true);
+        application.onMenu(new TMenuEvent(application.getBackend(), 10027));
+        clearCount = backend.getPhysicalClearCount();
+
+        assertTrue(application.onMenu(new TMenuEvent(
+            application.getBackend(), 10004)));
+
+        assertFalse(SystemProperties.isPaletteColor());
+        assertFalse(SystemProperties.isRgbColor());
+        assertFalse(palette.isChecked());
+        assertFalse(rgb.isChecked());
+        assertTrue(backend.getPhysicalClearCount() > clearCount);
+    }
+
+    private static class CountingHeadlessBackend extends HeadlessBackend {
+        private int physicalClearCount;
+
+        @Override
+        public synchronized void clearPhysical() {
+            physicalClearCount++;
+            super.clearPhysical();
+        }
+
+        int getPhysicalClearCount() {
+            return physicalClearCount;
+        }
     }
 }

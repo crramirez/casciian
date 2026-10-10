@@ -364,6 +364,8 @@ public class DemoApplication extends TApplication {
 
             SystemProperties.setTextMouse(false);
             SystemProperties.setTranslucence(false);
+            SystemProperties.setPaletteColor(false);
+            SystemProperties.setRgbColor(false);
             SystemProperties.setMenuIcons(false);
             SystemProperties.setShadowOpacity(60);
 
@@ -373,9 +375,12 @@ public class DemoApplication extends TApplication {
             setMenuItemChecked(10015, false);  // translucence
             setMenuItemChecked(10016, false);  // menuIcons
             setMenuItemChecked(10010, false);  // gradients
+            setMenuItemChecked(10026, false);  // palette colors
+            setMenuItemChecked(10027, false);  // RGB colors
 
             // Disable gradients for all windows
             setUseGradientAllSupportedWindows(false);
+            getScreen().clearPhysical();
 
             // Apply bland look
             return applyBlandLook();
@@ -438,11 +443,13 @@ public class DemoApplication extends TApplication {
 
         if (menu.getId() == 10026) {
             SystemProperties.setPaletteColor(isMenuItemChecked(menu.getId()));
+            getScreen().clearPhysical();
             return true;
         }
 
         if (menu.getId() == 10027) {
             SystemProperties.setRgbColor(isMenuItemChecked(menu.getId()));
+            getScreen().clearPhysical();
             return true;
         }
 
@@ -451,6 +458,7 @@ public class DemoApplication extends TApplication {
             SystemProperties.setRgbColor(false);
             setMenuItemChecked(10026, false);
             setMenuItemChecked(10027, false);
+            getScreen().clearPhysical();
             return true;
         }
 
