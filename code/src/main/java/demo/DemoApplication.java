@@ -364,6 +364,8 @@ public class DemoApplication extends TApplication {
 
             SystemProperties.setTextMouse(false);
             SystemProperties.setTranslucence(false);
+            SystemProperties.setPaletteColor(false);
+            SystemProperties.setRgbColor(false);
             SystemProperties.setMenuIcons(false);
             SystemProperties.setShadowOpacity(60);
 
@@ -373,9 +375,12 @@ public class DemoApplication extends TApplication {
             setMenuItemChecked(10015, false);  // translucence
             setMenuItemChecked(10016, false);  // menuIcons
             setMenuItemChecked(10010, false);  // gradients
+            setMenuItemChecked(10026, false);  // palette colors
+            setMenuItemChecked(10027, false);  // RGB colors
 
             // Disable gradients for all windows
             setUseGradientAllSupportedWindows(false);
+            getScreen().clearPhysical();
 
             // Apply bland look
             return applyBlandLook();
@@ -433,6 +438,27 @@ public class DemoApplication extends TApplication {
             // Enable/disable translucence.
             TMenuItem menuItem = getMenuItem(menu.getId());
             SystemProperties.setTranslucence(menuItem.isChecked());
+            return true;
+        }
+
+        if (menu.getId() == 10026) {
+            SystemProperties.setPaletteColor(isMenuItemChecked(menu.getId()));
+            getScreen().clearPhysical();
+            return true;
+        }
+
+        if (menu.getId() == 10027) {
+            SystemProperties.setRgbColor(isMenuItemChecked(menu.getId()));
+            getScreen().clearPhysical();
+            return true;
+        }
+
+        if (menu.getId() == 10028) {
+            SystemProperties.setPaletteColor(false);
+            SystemProperties.setRgbColor(false);
+            setMenuItemChecked(10026, false);
+            setMenuItemChecked(10027, false);
+            getScreen().clearPhysical();
             return true;
         }
 
@@ -767,10 +793,25 @@ public class DemoApplication extends TApplication {
         themesMenu.addItem(10025, i18n.getString("themeVSCodeLight"));
         demoMenu.addItem(10004, i18n.getString("applyCasciianDefaults"));
         demoMenu.addSeparator();
-        TMenuItem gradients = demoMenu.addItem(10010,
+        TSubMenu renderingMenu = demoMenu.addSubMenu(
+            i18n.getString("rendering"));
+        TMenuItem gradients = renderingMenu.addItem(10010,
             i18n.getString("useGradients"));
         gradients.setCheckable(true);
         gradients.setChecked(false);
+        TMenuItem translucenceItem = renderingMenu.addItem(10015,
+            i18n.getString("translucence"));
+        translucenceItem.setCheckable(true);
+        translucenceItem.setChecked(SystemProperties.isTranslucence());
+        TMenuItem paletteColorItem = renderingMenu.addItem(10026,
+            i18n.getString("paletteColors"));
+        paletteColorItem.setCheckable(true);
+        paletteColorItem.setChecked(SystemProperties.isPaletteColor());
+        TMenuItem rgbColorItem = renderingMenu.addItem(10027,
+            i18n.getString("rgbColors"));
+        rgbColorItem.setCheckable(true);
+        rgbColorItem.setChecked(SystemProperties.isRgbColor());
+        renderingMenu.addItem(10028, i18n.getString("standardColors"));
         TMenuItem textMouseItem = demoMenu.addItem(10013,
             i18n.getString("textMouse"));
         textMouseItem.setCheckable(true);
@@ -779,10 +820,6 @@ public class DemoApplication extends TApplication {
             i18n.getString("animations"));
         animationsItem.setCheckable(true);
         animationsItem.setChecked(SystemProperties.isAnimations());
-        TMenuItem translucenceItem = demoMenu.addItem(10015,
-            i18n.getString("translucence"));
-        translucenceItem.setCheckable(true);
-        translucenceItem.setChecked(SystemProperties.isTranslucence());
         TMenuItem menuIconsItem = demoMenu.addItem(10016,
             i18n.getString("menuIcons"));
         menuIconsItem.setCheckable(true);
