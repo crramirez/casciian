@@ -4827,7 +4827,7 @@ public class TApplication implements Runnable {
     }
 
     /**
-     * Unregister a menu item and its keyboard accelerator.  Sub-menu's will be
+     * Unregister a menu item and its keyboard accelerator.  Submenus will be
      * searched recursively.
      *
      * @param item the item to unregister

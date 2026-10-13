@@ -377,7 +377,6 @@ public class DemoApplication extends TApplication {
 
             // Disable gradients for all windows
             setUseGradientAllSupportedWindows(false);
-            getScreen().clearPhysical();
 
             // Apply bland look
             return applyBlandLook();
