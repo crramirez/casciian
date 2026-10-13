@@ -154,10 +154,20 @@ class DemoApplicationRenderingMenuTest {
         final int selectedId, final int languageId) {
 
         selectMenuItem(selectedId);
+        TMenuItem oldItem = application.getMenuItem(selectedId);
         assertTrue(application.onMenu(new TMenuEvent(
             application.getBackend(), languageId)));
 
+        assertThat(application.getMenuItem(selectedId)).isNotSameAs(oldItem);
         assertColorMode(selectedId);
+        for (int menuId: new int[] {10026, 10027, 10028}) {
+            selectMenuItem(menuId);
+            assertColorMode(menuId);
+        }
+        selectMenuItem(10026);
+        assertTrue(application.onMenu(new TMenuEvent(
+            application.getBackend(), 10004)));
+        assertColorMode(10028);
     }
 
     private void selectMenuItem(final int menuId) {
