@@ -20,12 +20,15 @@ package demo;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import casciian.backend.HeadlessBackend;
 import casciian.backend.SystemProperties;
 import casciian.event.TMenuEvent;
 import casciian.menu.TMenuItem;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -63,6 +66,8 @@ class DemoApplicationRenderingMenuTest {
         assertSame(gradients.getParent(), translucence.getParent());
         assertSame(gradients.getParent(), palette.getParent());
         assertSame(gradients.getParent(), rgb.getParent());
+        assertSame(gradients.getParent(),
+            application.getMenuItem(10028).getParent());
         assertNotSame(gradients.getParent(),
             application.getMenuItem(10013).getParent());
     }
@@ -98,20 +103,81 @@ class DemoApplicationRenderingMenuTest {
         assertFalse(SystemProperties.isRgbColor());
         assertFalse(palette.isChecked());
         assertFalse(rgb.isChecked());
+        assertTrue(application.getMenuItem(10028).isChecked());
         assertTrue(gradients.isChecked());
         assertTrue(translucence.isChecked());
         assertTrue(SystemProperties.isTranslucence());
     }
 
-    @Test
-    void colorMenuChecksReflectSettingsSetBeforeStartup() {
-        SystemProperties.setPaletteColor(true);
-        SystemProperties.setRgbColor(true);
+    @ParameterizedTest
+    @CsvSource({
+        "false, false, 10028",
+        "true, false, 10026",
+        "false, true, 10027",
+        "true, true, 10027"
+    })
+    void colorMenuChecksReflectSettingsSetBeforeStartup(
+        final boolean paletteColor, final boolean rgbColor,
+        final int selectedId) {
 
+        SystemProperties.setPaletteColor(paletteColor);
+        SystemProperties.setRgbColor(rgbColor);
         application = new DemoApplication(new HeadlessBackend());
 
-        assertTrue(application.getMenuItem(10026).isChecked());
-        assertTrue(application.getMenuItem(10027).isChecked());
+        assertColorMode(selectedId);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "10026, 10026", "10026, 10027", "10026, 10028",
+        "10027, 10026", "10027, 10027", "10027, 10028",
+        "10028, 10026", "10028, 10027", "10028, 10028"
+    })
+    void colorModeSelectionsAreExclusiveEvenWhenReselected(
+        final int initialId, final int selectedId) {
+
+        selectMenuItem(initialId);
+        assertColorMode(initialId);
+        int clearCount = backend.getPhysicalClearCount();
+        selectMenuItem(selectedId);
+
+        assertColorMode(selectedId);
+        assertThat(backend.getPhysicalClearCount()).isGreaterThan(clearCount);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "10026, 10005", "10027, 10005", "10028, 10005",
+        "10026, 10006", "10027, 10006", "10028, 10006"
+    })
+    void rebuildingMenusPreservesExclusiveColorMode(
+        final int selectedId, final int languageId) {
+
+        selectMenuItem(selectedId);
+        assertTrue(application.onMenu(new TMenuEvent(
+            application.getBackend(), languageId)));
+
+        assertColorMode(selectedId);
+    }
+
+    private void selectMenuItem(final int menuId) {
+        TMenuItem item = application.getMenuItem(menuId);
+        // Checkable menu items toggle before the application handles the event.
+        item.setChecked(!item.isChecked());
+        assertThat(application.onMenu(new TMenuEvent(
+            application.getBackend(), menuId))).isTrue();
+    }
+
+    private void assertColorMode(final int selectedId) {
+        for (int menuId: new int[] {10026, 10027, 10028}) {
+            assertThat(application.getMenuItem(menuId).isChecked())
+                .as("checked state of color mode %s", menuId)
+                .isEqualTo(menuId == selectedId);
+        }
+        assertThat(SystemProperties.isPaletteColor())
+            .isEqualTo(selectedId == 10026);
+        assertThat(SystemProperties.isRgbColor())
+            .isEqualTo(selectedId == 10027);
     }
 
     @Test
@@ -149,6 +215,7 @@ class DemoApplicationRenderingMenuTest {
         assertFalse(SystemProperties.isRgbColor());
         assertFalse(palette.isChecked());
         assertFalse(rgb.isChecked());
+        assertTrue(application.getMenuItem(10028).isChecked());
         assertTrue(backend.getPhysicalClearCount() > clearCount);
     }
 
