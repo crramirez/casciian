@@ -364,8 +364,7 @@ public class DemoApplication extends TApplication {
 
             SystemProperties.setTextMouse(false);
             SystemProperties.setTranslucence(false);
-            SystemProperties.setPaletteColor(false);
-            SystemProperties.setRgbColor(false);
+            selectColorMode(10028);
             SystemProperties.setMenuIcons(false);
             SystemProperties.setShadowOpacity(60);
 
@@ -375,12 +374,9 @@ public class DemoApplication extends TApplication {
             setMenuItemChecked(10015, false);  // translucence
             setMenuItemChecked(10016, false);  // menuIcons
             setMenuItemChecked(10010, false);  // gradients
-            setMenuItemChecked(10026, false);  // palette colors
-            setMenuItemChecked(10027, false);  // RGB colors
 
             // Disable gradients for all windows
             setUseGradientAllSupportedWindows(false);
-            getScreen().clearPhysical();
 
             // Apply bland look
             return applyBlandLook();
@@ -441,24 +437,9 @@ public class DemoApplication extends TApplication {
             return true;
         }
 
-        if (menu.getId() == 10026) {
-            SystemProperties.setPaletteColor(isMenuItemChecked(menu.getId()));
-            getScreen().clearPhysical();
-            return true;
-        }
-
-        if (menu.getId() == 10027) {
-            SystemProperties.setRgbColor(isMenuItemChecked(menu.getId()));
-            getScreen().clearPhysical();
-            return true;
-        }
-
-        if (menu.getId() == 10028) {
-            SystemProperties.setPaletteColor(false);
-            SystemProperties.setRgbColor(false);
-            setMenuItemChecked(10026, false);
-            setMenuItemChecked(10027, false);
-            getScreen().clearPhysical();
+        if ((menu.getId() == 10026) || (menu.getId() == 10027)
+            || (menu.getId() == 10028)) {
+            selectColorMode(menu.getId());
             return true;
         }
 
@@ -522,6 +503,15 @@ public class DemoApplication extends TApplication {
         if (isMenuItemChecked(10010)) {
             setUseGradientAllSupportedWindows(true);
         }
+    }
+
+    private void selectColorMode(final int menuId) {
+        SystemProperties.setPaletteColor(menuId == 10026);
+        SystemProperties.setRgbColor(menuId == 10027);
+        setMenuItemChecked(10026, menuId == 10026);
+        setMenuItemChecked(10027, menuId == 10027);
+        setMenuItemChecked(10028, menuId == 10028);
+        getScreen().clearPhysical();
     }
 
     private void applyRoundBorders() {
@@ -806,12 +796,15 @@ public class DemoApplication extends TApplication {
         TMenuItem paletteColorItem = renderingMenu.addItem(10026,
             i18n.getString("paletteColors"));
         paletteColorItem.setCheckable(true);
-        paletteColorItem.setChecked(SystemProperties.isPaletteColor());
         TMenuItem rgbColorItem = renderingMenu.addItem(10027,
             i18n.getString("rgbColors"));
         rgbColorItem.setCheckable(true);
-        rgbColorItem.setChecked(SystemProperties.isRgbColor());
-        renderingMenu.addItem(10028, i18n.getString("standardColors"));
+        TMenuItem standardColorItem = renderingMenu.addItem(10028,
+            i18n.getString("standardColors"));
+        standardColorItem.setCheckable(true);
+        // RGB takes precedence over palette colors in the terminal renderer.
+        selectColorMode(SystemProperties.isRgbColor() ? 10027
+            : (SystemProperties.isPaletteColor() ? 10026 : 10028));
         TMenuItem textMouseItem = demoMenu.addItem(10013,
             i18n.getString("textMouse"));
         textMouseItem.setCheckable(true);

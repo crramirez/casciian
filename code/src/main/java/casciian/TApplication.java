@@ -4827,15 +4827,16 @@ public class TApplication implements Runnable {
     }
 
     /**
-     * Remove the keyboard accelerators of a menu item.  Sub-menu's will be
+     * Unregister a menu item and its keyboard accelerator.  Submenus will be
      * searched recursively.
      *
-     * @param item the item with the keyboard accelerator to remove
+     * @param item the item to unregister
      */
-    private final void removeMenuAccelerator(final TMenuItem item) {
+    private final void unregisterMenuItem(final TMenuItem item) {
+        menuItems.remove(item);
         if (item instanceof TSubMenu) {
             for (TMenuItem subMenuItem: ((TSubMenu) item).getMenuItems()) {
-                removeMenuAccelerator(subMenuItem);
+                unregisterMenuItem(subMenuItem);
             }
             return;
         }
@@ -4865,20 +4866,10 @@ public class TApplication implements Runnable {
         closeMenu();
         menus.remove(menu);
 
-        // Remove keyboard accelerators, recursively.
+        // Unregister menu items and keyboard accelerators, recursively.
         for (TWidget w: menu.getChildren()) {
             if (w instanceof TMenuItem) {
-                if (w instanceof TMenuItem) {
-                    TMenuItem thisItem = (TMenuItem) w;
-                    removeMenuAccelerator(thisItem);
-                    List<TMenuItem> newMenuItems = new ArrayList<>();
-                    for (TMenuItem item: menuItems) {
-                        if (item.getId() != thisItem.getId()) {
-                            newMenuItems.add(item);
-                        }
-                    }
-                    menuItems = newMenuItems;
-                }
+                unregisterMenuItem((TMenuItem) w);
             }
         }
 
