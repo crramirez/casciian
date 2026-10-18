@@ -349,6 +349,26 @@ public final class AnsiParser {
      * @return list of laid-out lines
      */
     public static List<Line> layout(final RichText richText, final int width) {
+        return layout(richText, width, run -> null);
+    }
+
+    /**
+     * Lay out text and standalone image blocks. The renderer receives an image
+     * run and returns rows of cells already fitted to {@code width}; returning
+     * null displays the alternative text instead. This callback permits screen
+     * pixel metrics and image protocols to remain outside the text model.
+     * One adjacent newline is absorbed at each block boundary; additional
+     * newlines retain their blank rows. Without a renderer, the two-argument
+     * overload always uses alternative text.
+     *
+     * @param richText model to lay out
+     * @param width maximum number of cell columns
+     * @param imageRenderer renderer for image runs (must not be null)
+     * @return laid-out rows
+     */
+    public static List<Line> layout(final RichText richText, final int width,
+            final java.util.function.Function<RichText.Run,
+                List<List<Cell>>> imageRenderer) {
         if (richText == null || width <= 0) {
             return Collections.emptyList();
         }
@@ -356,14 +376,47 @@ public final class AnsiParser {
         List<Line> lines = new ArrayList<>();
         List<Cell> currentLine = new ArrayList<>();
         int col = 0;
+        boolean afterImage = false;
+        boolean skipImageNewline = false;
 
         for (RichText.Run run : richText.getRuns()) {
             CellAttributes attr = run.attributes();
+            if (run.isImage()) {
+                if (!currentLine.isEmpty()) {
+                    lines.add(new Line(currentLine));
+                    currentLine = new ArrayList<>();
+                }
+                List<List<Cell>> imageRows = imageRenderer.apply(run);
+                if (imageRows == null || imageRows.isEmpty()) {
+                    lines.addAll(layout(RichText.builder()
+                        .append(run.getText(), attr).build(), width));
+                } else {
+                    for (List<Cell> row : imageRows) {
+                        lines.add(new Line(row));
+                    }
+                }
+                col = 0;
+                afterImage = true;
+                skipImageNewline = true;
+                continue;
+            }
             String runText = run.getText();
             int i = 0;
             while (i < runText.length()) {
                 int ch = runText.codePointAt(i);
                 int charCount = Character.charCount(ch);
+                if (skipImageNewline) {
+                    if (ch == '\r') {
+                        i += charCount;
+                        continue;
+                    }
+                    skipImageNewline = false;
+                    if (ch == '\n') {
+                        i += charCount;
+                        continue;
+                    }
+                }
+                afterImage = false;
 
                 if (ch == '\n') {
                     // Line feed: finish current line, start new one
@@ -416,7 +469,7 @@ public final class AnsiParser {
         // Add the last line if it still has buffered content, or if the
         // cursor is at column 0 with nothing buffered (empty input or a
         // trailing newline) so a final empty line is emitted.
-        if (!currentLine.isEmpty() || col == 0) {
+        if (!currentLine.isEmpty() || (col == 0 && !afterImage)) {
             lines.add(new Line(currentLine));
         }
 

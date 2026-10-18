@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * RichText is a lightweight, effectively immutable representation of styled
@@ -37,8 +38,8 @@ import java.util.List;
  * </pre>
  *
  * <p>
- * A {@code RichText} is a sequence of {@link Run}s.  Each run is one
- * contiguous string sharing the same {@link CellAttributes}.  The model is
+ * A {@code RichText} is a sequence of {@link Run}s.  Each run is text or a
+ * block image with alternative text and {@link CellAttributes}.  The model is
  * deliberately independent of terminal width and of ANSI: it does not convert
  * characters into cells and it does not perform wrapping.  Those concerns
  * belong to the layout stage.
@@ -51,8 +52,9 @@ public final class RichText {
     // ------------------------------------------------------------------------
 
     /**
-     * A run is one contiguous string of text sharing a single
-     * {@link CellAttributes}.  Runs are immutable; the attributes are
+     * A run is one contiguous string of text or a standalone image with a
+     * file path and alternative text, sharing a single {@link CellAttributes}.
+     * Runs are immutable; the attributes are
      * defensively copied on the way in and on the way out so callers cannot
      * mutate the shared state of a {@link RichText}.
      */
@@ -62,6 +64,8 @@ public final class RichText {
          * The run text.  May contain newlines and other control characters.
          */
         private final String text;
+
+        private final String imagePath;
 
         /**
          * The attributes shared by every character in this run.  This
@@ -76,12 +80,36 @@ public final class RichText {
          * @param attributes the attributes for the run (copied)
          */
         Run(final String text, final CellAttributes attributes) {
+            this(text, attributes, null);
+        }
+
+        private Run(final String text, final CellAttributes attributes,
+                final String imagePath) {
             this.text = (text == null) ? "" : text;
             this.attributes = new CellAttributes(attributes);
+            this.imagePath = imagePath;
         }
 
         /**
-         * Get the run text.
+         * Whether this run is a standalone image block.
+         *
+         * @return true for an image, including one with empty alternative text
+         */
+        public boolean isImage() {
+            return imagePath != null;
+        }
+
+        /**
+         * Get the image file path. Parsing does not open this file.
+         *
+         * @return the path, or null for a text run
+         */
+        public String getImagePath() {
+            return imagePath;
+        }
+
+        /**
+         * Get the run text, or alternative text for an image.
          *
          * @return the text of this run
          */
@@ -115,12 +143,13 @@ public final class RichText {
                 return false;
             }
             return text.equals(that.text)
+                && Objects.equals(imagePath, that.imagePath)
                 && attributes.equals(that.attributes);
         }
 
         @Override
         public int hashCode() {
-            return (31 * text.hashCode()) + attributes.hashCode();
+            return Objects.hash(text, attributes, imagePath);
         }
 
         @Override
@@ -166,13 +195,13 @@ public final class RichText {
     }
 
     /**
-     * Return true if this rich text contains no characters.
+     * Return true if this rich text contains neither text nor image blocks.
      *
-     * @return true if there are no runs (or only empty runs)
+     * @return true if there are no text characters and no images
      */
     public boolean isEmpty() {
         for (Run run : runs) {
-            if (!run.getText().isEmpty()) {
+            if (run.isImage() || !run.getText().isEmpty()) {
                 return false;
             }
         }
@@ -180,7 +209,8 @@ public final class RichText {
     }
 
     /**
-     * Get the plain text (all run text concatenated, without styling).
+     * Get the plain text (all run text and image alternative text concatenated,
+     * without styling).
      *
      * @return the concatenated text of every run
      */
@@ -251,8 +281,8 @@ public final class RichText {
     public static final class Builder {
 
         /**
-         * The runs collected so far.  Adjacent runs with equal attributes are
-         * merged as they are appended.
+         * The runs collected so far. Adjacent text runs with equal attributes
+         * are merged; image runs always remain distinct.
          */
         private final List<Run> runs = new ArrayList<>();
 
@@ -277,6 +307,54 @@ public final class RichText {
          */
         public Builder append(final String text) {
             return append(text, styles.peek());
+        }
+
+        /**
+         * Append a model, preserving image blocks and styles.
+         *
+         * @param text the model to append
+         * @return this builder
+         */
+        public Builder appendRichText(final RichText text) {
+            if (text != null) {
+                for (Run run : text.getRuns()) {
+                    if (run.isImage()) {
+                        image(run.getImagePath(), run.getText(),
+                            run.getAttributes());
+                    } else {
+                        append(run.getText(), run.getAttributes());
+                    }
+                }
+            }
+            return this;
+        }
+
+        /**
+         * Append a standalone image using the current style. Images are loaded
+         * by the displaying widget, not by this builder.
+         *
+         * @param path image file path (not null)
+         * @param alt alternative text, used when the image cannot be loaded
+         * @return this builder
+         */
+        public Builder image(final String path, final String alt) {
+            return image(path, alt, styles.peek());
+        }
+
+        /**
+         * Append a standalone image with explicit alternative-text attributes.
+         *
+         * @param path image file path (not null)
+         * @param alt alternative text (null means empty)
+         * @param attributes image and alternative-text attributes
+         * @return this builder
+         */
+        public Builder image(final String path, final String alt,
+                final CellAttributes attributes) {
+            runs.add(new Run(alt, attributes == null
+                ? defaultAttributes() : attributes,
+                Objects.requireNonNull(path, "path")));
+            return this;
         }
 
         /**
@@ -378,7 +456,7 @@ public final class RichText {
 
             if (!runs.isEmpty()) {
                 Run last = runs.get(runs.size() - 1);
-                if (last.attributes().equals(attributes)) {
+                if (!last.isImage() && last.attributes().equals(attributes)) {
                     runs.set(runs.size() - 1,
                         new Run(last.getText() + text, attributes));
                     return;
