@@ -28,7 +28,7 @@ import java.util.Objects;
  * escape sequences, the {@link CasciianMarkupParser Casciian markup language},
  * and the programmatic {@link Builder} all produce a {@code RichText}, which
  * can then be laid out into {@link Cell} grids for a given width by
- * {@link AnsiParser#layout(RichText, int)}.
+ * {@link RichTextLayout#layout(RichText, int)}.
  *
  * <pre>
  * ANSI ──────────────┐

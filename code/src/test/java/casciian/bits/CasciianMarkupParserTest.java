@@ -456,7 +456,7 @@ class CasciianMarkupParserTest {
     @Test
     void testLayoutOfMarkup() {
         RichText text = CasciianMarkupParser.parse("[bold]AB[/]CD");
-        List<AnsiParser.Line> lines = AnsiParser.layout(text, 80);
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(text, 80);
         List<Cell> cells = lines.get(0).getCells();
         assertTrue(cells.get(0).isBold());
         assertTrue(cells.get(1).isBold());

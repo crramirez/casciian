@@ -31,6 +31,7 @@ import casciian.bits.CellAttributes;
 import casciian.bits.ColorTheme;
 import casciian.bits.ImageRGB;
 import casciian.bits.RichText;
+import casciian.bits.RichTextLayout;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.image.decoders.ImageDecoderRegistry;
@@ -75,7 +76,7 @@ public class TTextAnsi extends TScrollable {
     /**
      * Parsed lines of cells.
      */
-    private List<AnsiParser.Line> lines;
+    private List<RichTextLayout.Line> lines;
 
     /**
      * Maximum width of any single line in cells.
@@ -175,7 +176,7 @@ public class TTextAnsi extends TScrollable {
         int topY = 0;
 
         for (int i = begin; i < lines.size(); i++) {
-            AnsiParser.Line line = lines.get(i);
+            RichTextLayout.Line line = lines.get(i);
             List<Cell> cells = line.getCells();
 
             // Draw cells for this line
@@ -422,7 +423,7 @@ public class TTextAnsi extends TScrollable {
         imageTextHeight = getScreen() == null ? 0 : getScreen().getTextHeight();
         layoutWidth = getWidth();
         final int contentWidth = displayWidth;
-        lines = AnsiParser.layout(richText, displayWidth,
+        lines = RichTextLayout.layout(richText, displayWidth,
             run -> renderImage(run, contentWidth));
         computeBounds();
     }
@@ -592,7 +593,7 @@ public class TTextAnsi extends TScrollable {
      */
     private void computeBounds() {
         maxLineWidth = 0;
-        for (AnsiParser.Line line : lines) {
+        for (RichTextLayout.Line line : lines) {
             if (line.getWidth() > maxLineWidth) {
                 maxLineWidth = line.getWidth();
             }

@@ -30,6 +30,7 @@ import casciian.TWindow;
 import casciian.bits.AnsiParser;
 import casciian.bits.CasciianMarkupParser;
 import casciian.bits.RichText;
+import casciian.bits.RichTextLayout;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMenuEvent;
@@ -258,7 +259,7 @@ public class DemoAnsiMarkupWindow extends TWindow {
             while (newline >= 0) {
                 line.append(runText.substring(from, newline),
                     run.getAttributes());
-                displayLine += AnsiParser.layout(line.build(), width).size();
+                displayLine += RichTextLayout.layout(line.build(), width).size();
                 starts.add(displayLine);
                 line = RichText.builder();
                 from = newline + 1;

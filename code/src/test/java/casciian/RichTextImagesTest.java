@@ -26,12 +26,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import casciian.backend.HeadlessBackend;
 import casciian.backend.SystemProperties;
-import casciian.bits.AnsiParser;
 import casciian.bits.ArrayImageRGB;
 import casciian.bits.CasciianMarkupParser;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.RichText;
+import casciian.bits.RichTextLayout;
 import casciian.image.decoders.ImageDecoder;
 import casciian.image.decoders.ImageDecoderRegistry;
 
@@ -106,7 +106,7 @@ class RichTextImagesTest {
     })
     void alternativeTextUsesStandaloneRows(final String markup,
             final String rows) {
-        assertThat(AnsiParser.layout(CasciianMarkupParser.parse(
+        assertThat(RichTextLayout.layout(CasciianMarkupParser.parse(
             markup.replace("\\n", "\n").replace("\\r", "\r")), 6)
             .stream().map(RichTextImagesTest::lineText).toList())
             .containsExactly(rows.split(",", -1));
@@ -116,7 +116,7 @@ class RichTextImagesTest {
     void customLayoutRendererPreservesImageCellsAndBlockBoundaries() {
         Cell cell = new Cell();
         cell.setImage(new ArrayImageRGB(2, 2));
-        List<AnsiParser.Line> lines = AnsiParser.layout(
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(
             CasciianMarkupParser.parse("a[image=x][/]\nb"), 4,
             run -> List.of(List.of(cell), List.of(cell)));
         assertThat(lines).hasSize(4);
@@ -290,7 +290,7 @@ class RichTextImagesTest {
             widget.getAbsoluteY() + y);
     }
 
-    private static String lineText(final AnsiParser.Line line) {
+    private static String lineText(final RichTextLayout.Line line) {
         StringBuilder text = new StringBuilder();
         for (Cell cell : line.getCells()) {
             text.appendCodePoint(cell.getChar());
