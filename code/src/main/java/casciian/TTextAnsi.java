@@ -91,6 +91,8 @@ public class TTextAnsi extends TScrollable {
     private int imageTextHeight;
     private TImage.DisplayMode imageMode;
     private int layoutWidth;
+    private CellAttributes imageBackground;
+    private int imageBackgroundColor;
     private int[] sourceLineStarts;
 
     /**
@@ -429,6 +431,8 @@ public class TTextAnsi extends TScrollable {
         imageTextWidth = getScreen() == null ? 0 : getScreen().getTextWidth();
         imageTextHeight = getScreen() == null ? 0 : getScreen().getTextHeight();
         imageMode = imageDisplayMode();
+        imageBackground = new CellAttributes(getWidgetColor(ColorTheme.TTEXT));
+        imageBackgroundColor = resolveImageBackgroundColor(imageBackground);
         layoutWidth = getWidth();
         final int contentWidth = displayWidth;
         Map<RenderedImageKey, List<List<Cell>>> previous = renderedImages;
@@ -447,12 +451,25 @@ public class TTextAnsi extends TScrollable {
         Screen screen = getScreen();
         int textWidth = screen == null ? 0 : screen.getTextWidth();
         int textHeight = screen == null ? 0 : screen.getTextHeight();
+        CellAttributes background = new CellAttributes(
+            getWidgetColor(ColorTheme.TTEXT));
+        int backgroundColor = resolveImageBackgroundColor(background);
         if (layoutWidth != getWidth()
                 || imageTextWidth != textWidth
                 || imageTextHeight != textHeight
-                || imageMode != imageDisplayMode()) {
+                || imageMode != imageDisplayMode()
+                || !imageBackground.equals(background)
+                || imageBackgroundColor != backgroundColor) {
             reflowData();
         }
+    }
+
+    private int resolveImageBackgroundColor(final CellAttributes background) {
+        TApplication application = getApplication();
+        if (application == null || application.getBackend() == null) {
+            return 0;
+        }
+        return application.getBackend().attrToBackgroundColor(background);
     }
 
     /**
@@ -498,13 +515,10 @@ public class TTextAnsi extends TScrollable {
         if (decoded.isEmpty()) {
             return null;
         }
-        CellAttributes background = new CellAttributes(
-            getWidgetColor(ColorTheme.TTEXT));
-        int backgroundColor = getApplication().getBackend()
-            .attrToBackgroundColor(background);
         RenderedImageKey key = new RenderedImageKey(run.getImagePath(),
-            contentWidth, imageTextWidth, imageTextHeight, background,
-            backgroundColor, imageMode);
+            contentWidth, imageTextWidth, imageTextHeight,
+            new CellAttributes(imageBackground), imageBackgroundColor,
+            imageMode);
         List<List<Cell>> rows = renderedImages.get(key);
         if (rows == null) {
             rows = previous.get(key);
@@ -513,9 +527,9 @@ public class TTextAnsi extends TScrollable {
             ImageRGB image = ImageCellRenderer.fit(decoded.get(),
                 contentWidth * imageTextWidth, Integer.MAX_VALUE, false);
             image = ImageCellRenderer.pad(image, imageTextWidth,
-                imageTextHeight, backgroundColor);
+                imageTextHeight, imageBackgroundColor);
             Cell[][] cells = ImageCellRenderer.render(image, imageTextWidth,
-                imageTextHeight, background, imageMode, true);
+                imageTextHeight, imageBackground, imageMode, true);
             rows = new ArrayList<>();
             for (int y = 0; y < cells[0].length; y++) {
                 List<Cell> row = new ArrayList<>();

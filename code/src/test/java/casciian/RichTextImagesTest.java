@@ -30,6 +30,7 @@ import casciian.bits.ArrayImageRGB;
 import casciian.bits.CasciianMarkupParser;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
+import casciian.bits.ColorTheme;
 import casciian.bits.RichText;
 import casciian.bits.RichTextLayout;
 import casciian.event.TResizeEvent;
@@ -328,6 +329,37 @@ class RichTextImagesTest {
         } finally {
             ImageDecoderRegistry.getInstance().unregisterDecoder(decoder);
             SystemProperties.setImageFallbackDisplayMode(previousMode);
+        }
+    }
+
+    @Test
+    void paddedImageBackgroundTracksThemeChanges() throws IOException {
+        ImageDecoder decoder = registerImage(5, 5);
+        try {
+            PixelBackend backend = new PixelBackend();
+            TApplication application = new TApplication(backend);
+            application.getTheme().setColorFromString(ColorTheme.TTEXT,
+                "white on black");
+            TWindow window = new TWindow(application, "images", 0, 0, 40, 20);
+            TTextAnsi widget = new TTextAnsi(window, "", 0, 0, 5, 5);
+            widget.setMarkup("[image=\"" + IMAGE_PATH + "\"]unused[/]");
+            widget.drawChildren();
+            Cell initial = new Cell(cell(widget, 0, 0));
+            int initialBackground = initial.getImage().getRGB(3, 7);
+
+            application.getTheme().setColorFromString(ColorTheme.TTEXT,
+                "white on red");
+            widget.drawChildren();
+            Cell updated = new Cell(cell(widget, 0, 0));
+            int expectedBackground = backend.attrToBackgroundColor(
+                application.getTheme().getColor(ColorTheme.TTEXT, false));
+
+            assertThat(updated.getImage().getRGB(3, 7))
+                .isNotEqualTo(initialBackground)
+                .isEqualTo(expectedBackground);
+            assertThat(updated.getImageId()).isNotEqualTo(initial.getImageId());
+        } finally {
+            ImageDecoderRegistry.getInstance().unregisterDecoder(decoder);
         }
     }
 
