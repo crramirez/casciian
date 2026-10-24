@@ -30,9 +30,11 @@ public final class RichTextLayout {
      */
     public static final class Line {
         private final List<Cell> cells;
+        private final int sourceLine;
 
-        Line(final List<Cell> cells) {
+        Line(final List<Cell> cells, final int sourceLine) {
             this.cells = List.copyOf(cells);
+            this.sourceLine = sourceLine;
         }
 
         /**
@@ -51,6 +53,17 @@ public final class RichTextLayout {
          */
         public int getWidth() {
             return cells.size();
+        }
+
+        /**
+         * Get the zero-based logical source line (counting line feeds in the
+         * rich text, including image alternative text and line feeds absorbed
+         * at image block boundaries) on which this display line starts.
+         *
+         * @return the logical source line
+         */
+        public int getSourceLine() {
+            return sourceLine;
         }
     }
 
@@ -103,6 +116,7 @@ public final class RichTextLayout {
         List<Line> lines = new ArrayList<>();
         List<Cell> currentLine = new ArrayList<>();
         int col = 0;
+        int source = 0;
         boolean afterImage = false;
         boolean skipImageNewline = false;
 
@@ -110,18 +124,23 @@ public final class RichTextLayout {
             CellAttributes attr = run.attributes();
             if (run.isImage()) {
                 if (!currentLine.isEmpty()) {
-                    lines.add(new Line(currentLine));
+                    lines.add(new Line(currentLine, source));
                     currentLine = new ArrayList<>();
                 }
                 List<List<Cell>> imageRows = imageRenderer.apply(run);
                 if (imageRows == null || imageRows.isEmpty()) {
-                    lines.addAll(layout(RichText.builder()
-                        .append(run.getText(), attr).build(), width));
+                    for (Line line : layout(RichText.builder()
+                            .append(run.getText(), attr).build(), width)) {
+                        lines.add(new Line(line.getCells(),
+                            source + line.getSourceLine()));
+                    }
                 } else {
                     for (List<Cell> row : imageRows) {
-                        lines.add(new Line(row));
+                        lines.add(new Line(row, source));
                     }
                 }
+                source += (int) run.getText().chars()
+                    .filter(c -> c == '\n').count();
                 col = 0;
                 afterImage = true;
                 skipImageNewline = true;
@@ -139,6 +158,7 @@ public final class RichTextLayout {
                     }
                     skipImageNewline = false;
                     if (ch == '\n') {
+                        source++;
                         i += charCount;
                         continue;
                     }
@@ -147,9 +167,10 @@ public final class RichTextLayout {
 
                 if (ch == '\n') {
                     // Line feed: finish current line, start new one
-                    lines.add(new Line(currentLine));
+                    lines.add(new Line(currentLine, source));
                     currentLine = new ArrayList<>();
                     col = 0;
+                    source++;
                 } else if (ch == '\r') {
                     // Carriage return: move cursor to beginning of line
                     col = 0;
@@ -173,7 +194,7 @@ public final class RichTextLayout {
                     if (col > 0 && col + charWidth > width) {
                         // Delayed wrap: the previous character filled the
                         // line, so wrap now that another character arrives.
-                        lines.add(new Line(currentLine));
+                        lines.add(new Line(currentLine, source));
                         currentLine = new ArrayList<>();
                         col = 0;
                     }
@@ -197,7 +218,7 @@ public final class RichTextLayout {
         // cursor is at column 0 with nothing buffered (empty input or a
         // trailing newline) so a final empty line is emitted.
         if (!currentLine.isEmpty() || (col == 0 && !afterImage)) {
-            lines.add(new Line(currentLine));
+            lines.add(new Line(currentLine, source));
         }
 
         return lines;

@@ -141,8 +141,9 @@ public final class CasciianMarkupParser {
                             if (markup.startsWith("[[", i)) {
                                 alt.append('[');
                                 i += 2;
-                            } else if (markup.startsWith("[/]", i)) {
-                                i += 3;
+                            } else if (markup.charAt(i) == '['
+                                    && isClosingTag(markup, i)) {
+                                i = findClose(markup, i + 1) + 1;
                                 break;
                             } else {
                                 alt.append(markup.charAt(i++));
@@ -293,6 +294,19 @@ public final class CasciianMarkupParser {
             builder.append(run.toString(), attr);
             run.setLength(0);
         }
+    }
+
+    /**
+     * Determine whether the tag opened at {@code open} is a closing tag such
+     * as {@code [/]} or {@code [/image]}.
+     *
+     * @param s the source string
+     * @param open the index of the opening {@code [}
+     * @return true if a complete closing tag starts at {@code open}
+     */
+    private static boolean isClosingTag(final String s, final int open) {
+        int close = findClose(s, open + 1);
+        return close >= 0 && s.substring(open + 1, close).trim().startsWith("/");
     }
 
     /**

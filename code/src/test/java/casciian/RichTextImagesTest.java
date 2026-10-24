@@ -32,6 +32,7 @@ import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.RichText;
 import casciian.bits.RichTextLayout;
+import casciian.event.TResizeEvent;
 import casciian.image.decoders.ImageDecoder;
 import casciian.image.decoders.ImageDecoderRegistry;
 
@@ -256,6 +257,74 @@ class RichTextImagesTest {
                 .isEqualTo(expected.getForeColorRGB());
             assertThat(rendered.getBackColorRGB())
                 .isEqualTo(expected.getBackColorRGB());
+        } finally {
+            ImageDecoderRegistry.getInstance().unregisterDecoder(decoder);
+            SystemProperties.setImageFallbackDisplayMode(previousMode);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"[/image]", "[ /bold ]", "[/]"})
+    void explicitClosingTagsEndImageBody(final String closing) {
+        List<RichText.Run> runs = CasciianMarkupParser.parse(
+            "[image=x]A[[/image] lt" + closing + "tail").getRuns();
+        assertThat(runs).hasSize(2);
+        assertThat(runs.getFirst().getText()).isEqualTo("A[/image] lt");
+        assertThat(runs.getLast().getText()).isEqualTo("tail");
+    }
+
+    @Test
+    void sourceLineStartsCountRenderedImageRows() throws IOException {
+        ImageDecoder decoder = registerImage(8, 80);
+        try {
+            TTextAnsi widget = widget(new PixelBackend(), 5);
+            widget.setMarkup("Before\n[image=\"" + IMAGE_PATH
+                + "\"]Alt[/]\nAfter");
+            assertThat(widget.getSourceLineStarts()).containsExactly(0, 2, 12);
+            widget.setMarkup("Before\n[image=\"missing\"]Alt[/]\nAfter");
+            assertThat(widget.getSourceLineStarts()).containsExactly(0, 2, 3);
+        } finally {
+            ImageDecoderRegistry.getInstance().unregisterDecoder(decoder);
+        }
+    }
+
+    @Test
+    void widgetResizeKeepsScrollOffsetPermittedByFinalSize() {
+        TTextAnsi widget = new TTextAnsi(null, "x".repeat(60), 0, 0, 6, 10);
+        widget.setVerticalValue(3);
+        widget.onResize(new TResizeEvent(null,
+            TResizeEvent.Type.WIDGET, 11, 4));
+        assertThat(widget.getVerticalValue()).isEqualTo(3);
+    }
+
+    @Test
+    void imageDisplayModeChangesReflowAndAppendsReuseTiles()
+            throws IOException {
+        String previousMode = SystemProperties.getImageFallbackDisplayMode();
+        ImageDecoder decoder = registerImage(8, 8);
+        try {
+            PixelBackend backend = new PixelBackend();
+            TTextAnsi widget = widget(backend, 5);
+            widget.setMarkup("[image=\"" + IMAGE_PATH + "\"]unused[/]");
+            widget.drawChildren();
+            Cell tile = new Cell(cell(widget, 0, 0));
+            assertThat(tile.isImage()).isTrue();
+
+            widget.appendText("tail");
+            widget.drawChildren();
+            assertThat(cell(widget, 0, 0).getImage()).isSameAs(tile.getImage());
+            assertThat(cell(widget, 0, 0).getImageId())
+                .isEqualTo(tile.getImageId());
+
+            backend.bitmap = false;
+            SystemProperties.setImageFallbackDisplayMode("halves");
+            widget.drawChildren();
+            Cell halves = new Cell(cell(widget, 0, 0));
+            assertThat(halves.isImage()).isFalse();
+            SystemProperties.setImageFallbackDisplayMode("solid");
+            widget.drawChildren();
+            assertThat(cell(widget, 0, 0).getChar())
+                .isNotEqualTo(halves.getChar());
         } finally {
             ImageDecoderRegistry.getInstance().unregisterDecoder(decoder);
             SystemProperties.setImageFallbackDisplayMode(previousMode);
