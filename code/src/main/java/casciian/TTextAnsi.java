@@ -15,16 +15,27 @@
  */
 package casciian;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
+import casciian.backend.Screen;
+import casciian.backend.SystemProperties;
 import casciian.bits.AnsiParser;
 import casciian.bits.CasciianMarkupParser;
 import casciian.bits.Cell;
 import casciian.bits.CellAttributes;
 import casciian.bits.ColorTheme;
+import casciian.bits.ImageRGB;
 import casciian.bits.RichText;
+import casciian.bits.RichTextLayout;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
+import casciian.image.decoders.ImageDecoderRegistry;
 import static casciian.TKeypress.*;
 
 /**
@@ -66,12 +77,30 @@ public class TTextAnsi extends TScrollable {
     /**
      * Parsed lines of cells.
      */
-    private List<AnsiParser.Line> lines;
+    private List<RichTextLayout.Line> lines;
 
     /**
      * Maximum width of any single line in cells.
      */
     private int maxLineWidth;
+
+    private final Map<String, Optional<ImageRGB>> images = new HashMap<>();
+    private Map<RenderedImageKey, List<List<Cell>>> renderedImages =
+        new HashMap<>();
+    private int imageTextWidth;
+    private int imageTextHeight;
+    private TImage.DisplayMode imageMode;
+    private int layoutWidth;
+    private int[] sourceLineStarts;
+
+    /**
+     * Everything that determines the rendered cell rows of an image block, so
+     * unchanged images keep their tiles (and image IDs) across reflows.
+     */
+    private record RenderedImageKey(String path, int contentWidth,
+        int textWidth, int textHeight, CellAttributes background,
+        int backgroundColor, TImage.DisplayMode mode) {
+    }
 
     // ------------------------------------------------------------------------
     // Constructors -----------------------------------------------------------
@@ -145,6 +174,7 @@ public class TTextAnsi extends TScrollable {
      */
     @Override
     public void draw() {
+        reflowIfStale();
         CellAttributes defaultColor = getWidgetColor(ColorTheme.TTEXT);
         CellAttributes defaultColorBright = getWidgetColor(ColorTheme.TTEXT_BOLD);
 
@@ -153,7 +183,7 @@ public class TTextAnsi extends TScrollable {
         int topY = 0;
 
         for (int i = begin; i < lines.size(); i++) {
-            AnsiParser.Line line = lines.get(i);
+            RichTextLayout.Line line = lines.get(i);
             List<Cell> cells = line.getCells();
 
             // Draw cells for this line
@@ -218,6 +248,10 @@ public class TTextAnsi extends TScrollable {
             final CellAttributes defaultColor,
             final CellAttributes defaultColorBright) {
 
+        if (cell.isImage()) {
+            putCharXY(col, topY, cell);
+            return;
+        }
         TWindow w = getWindow();
         boolean modal = (w != null) && w.isModal();
         boolean darkTheme = getTheme().isDarkTheme(modal);
@@ -392,8 +426,107 @@ public class TTextAnsi extends TScrollable {
         if (displayWidth < 1) {
             displayWidth = 1;
         }
-        lines = AnsiParser.layout(richText, displayWidth);
+        imageTextWidth = getScreen() == null ? 0 : getScreen().getTextWidth();
+        imageTextHeight = getScreen() == null ? 0 : getScreen().getTextHeight();
+        imageMode = imageDisplayMode();
+        layoutWidth = getWidth();
+        final int contentWidth = displayWidth;
+        Map<RenderedImageKey, List<List<Cell>>> previous = renderedImages;
+        renderedImages = new HashMap<>();
+        lines = RichTextLayout.layout(richText, displayWidth,
+            run -> renderImage(run, contentWidth, previous));
+        sourceLineStarts = null;
         computeBounds();
+    }
+
+    /**
+     * Reflow if the width, screen cell pixel metrics, or effective image
+     * display mode changed since the last layout.
+     */
+    private void reflowIfStale() {
+        Screen screen = getScreen();
+        int textWidth = screen == null ? 0 : screen.getTextWidth();
+        int textHeight = screen == null ? 0 : screen.getTextHeight();
+        if (layoutWidth != getWidth()
+                || imageTextWidth != textWidth
+                || imageTextHeight != textHeight
+                || imageMode != imageDisplayMode()) {
+            reflowData();
+        }
+    }
+
+    /**
+     * Get the effective image display mode for the current backend.
+     *
+     * @return the display mode, or null if there is no backend
+     */
+    private TImage.DisplayMode imageDisplayMode() {
+        TApplication application = getApplication();
+        if (application == null || application.getBackend() == null) {
+            return null;
+        }
+        if (application.getBackend().isImageProtocolSupported()) {
+            return TImage.DisplayMode.BITMAP;
+        }
+        return "solid".equals(SystemProperties.getImageFallbackDisplayMode())
+            ? TImage.DisplayMode.BLOCKS : TImage.DisplayMode.UNICODE_HALVES;
+    }
+
+    private List<List<Cell>> renderImage(final RichText.Run run,
+            final int contentWidth,
+            final Map<RenderedImageKey, List<List<Cell>>> previous) {
+        if (imageMode == null || imageTextWidth <= 0 || imageTextHeight <= 0
+                || imageTextWidth == Integer.MAX_VALUE
+                || imageTextHeight == Integer.MAX_VALUE
+                || imageTextWidth > Integer.MAX_VALUE / contentWidth) {
+            return null;
+        }
+        Optional<ImageRGB> decoded = images.computeIfAbsent(run.getImagePath(),
+            path -> {
+                try {
+                    Path file = Path.of(path);
+                    if (file.getFileName() == null) {
+                        return Optional.empty();
+                    }
+                    return Optional.ofNullable(ImageDecoderRegistry.getInstance()
+                        .decodeImage(file)).filter(image ->
+                            image.getWidth() > 0 && image.getHeight() > 0);
+                } catch (IOException | RuntimeException e) {
+                    return Optional.empty();
+                }
+            });
+        if (decoded.isEmpty()) {
+            return null;
+        }
+        CellAttributes background = new CellAttributes(
+            getWidgetColor(ColorTheme.TTEXT));
+        int backgroundColor = getApplication().getBackend()
+            .attrToBackgroundColor(background);
+        RenderedImageKey key = new RenderedImageKey(run.getImagePath(),
+            contentWidth, imageTextWidth, imageTextHeight, background,
+            backgroundColor, imageMode);
+        List<List<Cell>> rows = renderedImages.get(key);
+        if (rows == null) {
+            rows = previous.get(key);
+        }
+        if (rows == null) {
+            ImageRGB image = ImageCellRenderer.fit(decoded.get(),
+                contentWidth * imageTextWidth, Integer.MAX_VALUE, false);
+            image = ImageCellRenderer.pad(image, imageTextWidth,
+                imageTextHeight, backgroundColor);
+            Cell[][] cells = ImageCellRenderer.render(image, imageTextWidth,
+                imageTextHeight, background, imageMode, true);
+            rows = new ArrayList<>();
+            for (int y = 0; y < cells[0].length; y++) {
+                List<Cell> row = new ArrayList<>();
+                for (Cell[] column : cells) {
+                    row.add(column[y]);
+                }
+                rows.add(row);
+            }
+        }
+        renderedImages.put(key, rows);
+        return rows;
     }
 
     // ------------------------------------------------------------------------
@@ -422,13 +555,18 @@ public class TTextAnsi extends TScrollable {
     /**
      * Set the styled text directly from a {@link RichText} model.  This makes
      * the given model canonical; {@link #getText()} will then return its plain
-     * text.
+     * text (including image alternative text). Image blocks are loaded through
+     * {@link ImageDecoderRegistry}, proportionally shrunk only when wider than
+     * the content area, and occupy their own rows. Unsupported or unreadable
+     * files display alternative text. Terminal image fallback matches TImage.
      *
      * @param richText the styled text to display
      */
     public void setRichText(final RichText richText) {
         this.richText = (richText == null)
             ? RichText.builder().build() : richText;
+        images.clear();
+        renderedImages.clear();
         this.text = this.richText.getPlainText();
         resetAppendState();
         reflowData();
@@ -441,6 +579,33 @@ public class TTextAnsi extends TScrollable {
      */
     public RichText getRichText() {
         return richText;
+    }
+
+    /**
+     * Get the display line on which each logical source line starts.  Source
+     * lines are separated by line feeds in the rich text (for markup, these
+     * are the markup's own lines).  Image blocks count their rendered rows,
+     * so this reflects the current image-aware layout.
+     *
+     * @return the first display line for each source line, in order
+     */
+    public int[] getSourceLineStarts() {
+        reflowIfStale();
+        if (sourceLineStarts == null) {
+            int count = (int) richText.getPlainText().chars()
+                .filter(c -> c == '\n').count() + 1;
+            int[] starts = new int[count];
+            int display = 0;
+            for (int source = 0; source < count; source++) {
+                while (display < lines.size() - 1
+                        && lines.get(display).getSourceLine() < source) {
+                    display++;
+                }
+                starts[source] = display;
+            }
+            sourceLineStarts = starts;
+        }
+        return sourceLineStarts.clone();
     }
 
     /**
@@ -465,9 +630,9 @@ public class TTextAnsi extends TScrollable {
             text += newText;
         }
         RichText.Builder builder = RichText.builder();
+        builder.appendRichText(richText);
         CellAttributes activeAttr = null;
         for (RichText.Run run : richText.getRuns()) {
-            builder.append(run.getText(), run.getAttributes());
             activeAttr = run.getAttributes();
         }
         AnsiParser.RichTextParseResult appended = AnsiParser.parseRichText(
@@ -491,6 +656,8 @@ public class TTextAnsi extends TScrollable {
         AnsiParser.RichTextParseResult parsed = AnsiParser.parseRichText(
             source, null);
         richText = parsed.getRichText();
+        images.clear();
+        renderedImages.clear();
         appendState = parsed.getFinalAttributes();
     }
 
@@ -508,7 +675,7 @@ public class TTextAnsi extends TScrollable {
      */
     private void computeBounds() {
         maxLineWidth = 0;
-        for (AnsiParser.Line line : lines) {
+        for (RichTextLayout.Line line : lines) {
             if (line.getWidth() > maxLineWidth) {
                 maxLineWidth = line.getWidth();
             }
