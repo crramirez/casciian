@@ -15,8 +15,7 @@
  */
 package demo;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 import casciian.TApplication;
 import casciian.TEditor;
@@ -29,7 +28,6 @@ import casciian.TWidget;
 import casciian.TWindow;
 import casciian.bits.AnsiParser;
 import casciian.bits.CasciianMarkupParser;
-import casciian.bits.RichText;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMenuEvent;
@@ -98,16 +96,6 @@ public class DemoAnsiMarkupWindow extends TWindow {
      * position regardless of which side changed.
      */
     private boolean forceEditorToViewer = true;
-
-    /**
-     * The rich text the source line map was computed for.
-     */
-    private RichText mappedText;
-
-    /**
-     * The viewer width the source line map was computed for.
-     */
-    private int mappedWidth = -1;
 
     /**
      * For each source line, the index of the first viewer line it produces.
@@ -229,46 +217,17 @@ public class DemoAnsiMarkupWindow extends TWindow {
     }
 
     /**
-     * Get the map from source line to first viewer line, recomputing it
-     * when the viewer text or width changed.
+     * Get the map from source line to first viewer line from the viewer's
+     * image-aware layout, forcing a resynchronization when it changed.
      *
      * @return the viewer line where each source line starts
      */
     private int[] getSourceLineStarts() {
-        RichText text = viewer.getRichText();
-        int width = Math.max(1, viewer.getWidth() - 1);
-        if ((text == mappedText) && (width == mappedWidth)) {
-            return sourceLineStarts;
+        int[] starts = viewer.getSourceLineStarts();
+        if (!Arrays.equals(starts, sourceLineStarts)) {
+            sourceLineStarts = starts;
+            forceEditorToViewer = true;
         }
-        mappedText = text;
-        mappedWidth = width;
-        forceEditorToViewer = true;
-
-        // Markup newlines are literal, so source line N of the markup is
-        // logical line N of the rich text.  Lay out each logical line at the
-        // viewer width to find how many viewer lines it wraps to.
-        List<Integer> starts = new ArrayList<>();
-        starts.add(0);
-        int displayLine = 0;
-        RichText.Builder line = RichText.builder();
-        for (RichText.Run run : text.getRuns()) {
-            String runText = run.getText();
-            int from = 0;
-            int newline = runText.indexOf('\n');
-            while (newline >= 0) {
-                line.append(runText.substring(from, newline),
-                    run.getAttributes());
-                displayLine += AnsiParser.layout(line.build(), width).size();
-                starts.add(displayLine);
-                line = RichText.builder();
-                from = newline + 1;
-                newline = runText.indexOf('\n', from);
-            }
-            line.append(runText.substring(from), run.getAttributes());
-        }
-
-        sourceLineStarts = starts.stream().mapToInt(Integer::intValue)
-            .toArray();
         return sourceLineStarts;
     }
 

@@ -69,6 +69,10 @@ import java.util.Locale;
  *       Inside quoted values, {@code \"} escapes a double quote and
  *       {@code \\} escapes a backslash; other backslashes are literal.
  *       Unquoted values do not interpret backslash escapes.</li>
+ *   <li>{@code [image="file path" ]Alt-text[/]} inserts a standalone image
+ *       block. Its body is literal alternative text (double {@code [} to
+ *       escape it); images are loaded only when displayed. Styling on the tag
+ *       or its enclosing scope applies to alternative text.</li>
  * </ul>
  */
 public final class CasciianMarkupParser {
@@ -122,6 +126,32 @@ public final class CasciianMarkupParser {
                     }
                 } else {
                     CellAttributes attr = parseTag(body, scopes.peek());
+                    String imagePath = null;
+                    for (String token : tokenize(body)) {
+                        int eq = token.indexOf('=');
+                        if (eq >= 0 && token.substring(0, eq)
+                                .equalsIgnoreCase("image")) {
+                            imagePath = unquote(token.substring(eq + 1));
+                        }
+                    }
+                    if (imagePath != null) {
+                        StringBuilder alt = new StringBuilder();
+                        i = close + 1;
+                        while (i < len) {
+                            if (markup.startsWith("[[", i)) {
+                                alt.append('[');
+                                i += 2;
+                            } else if (markup.charAt(i) == '['
+                                    && isClosingTag(markup, i)) {
+                                i = findClose(markup, i + 1) + 1;
+                                break;
+                            } else {
+                                alt.append(markup.charAt(i++));
+                            }
+                        }
+                        builder.image(imagePath, alt.toString(), attr);
+                        continue;
+                    }
                     scopes.push(attr);
                 }
                 i = close + 1;
@@ -156,11 +186,15 @@ public final class CasciianMarkupParser {
         }
         StringBuilder markup = new StringBuilder();
         for (RichText.Run run : text.getRuns()) {
-            if (run.getText().isEmpty()) {
+            if (!run.isImage() && run.getText().isEmpty()) {
                 continue;
             }
             CellAttributes attr = run.getAttributes();
             List<String> tokens = new ArrayList<>();
+            if (run.isImage()) {
+                tokens.add("image=\"" + run.getImagePath()
+                    .replace("\\", "\\\\").replace("\"", "\\\"") + "\"");
+            }
             if (attr.isBold()) {
                 tokens.add("bold");
             }
@@ -260,6 +294,19 @@ public final class CasciianMarkupParser {
             builder.append(run.toString(), attr);
             run.setLength(0);
         }
+    }
+
+    /**
+     * Determine whether the tag opened at {@code open} is a closing tag such
+     * as {@code [/]} or {@code [/image]}.
+     *
+     * @param s the source string
+     * @param open the index of the opening {@code [}
+     * @return true if a complete closing tag starts at {@code open}
+     */
+    private static boolean isClosingTag(final String s, final int open) {
+        int close = findClose(s, open + 1);
+        return close >= 0 && s.substring(open + 1, close).trim().startsWith("/");
     }
 
     /**

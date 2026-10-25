@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link RichText} and its {@link RichText.Builder}.
@@ -162,13 +163,13 @@ class RichTextTest {
     }
 
     // -----------------------------------------------------------------------
-    // Layout (RichText -> Cells) via AnsiParser.layout
+    // Layout (RichText -> Cells) via RichTextLayout.layout
     // -----------------------------------------------------------------------
 
     @Test
     void testLayoutWraps() {
         RichText text = RichText.builder().append("ABCDE").build();
-        List<AnsiParser.Line> lines = AnsiParser.layout(text, 3);
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(text, 3);
         assertEquals(2, lines.size());
         assertEquals("ABC", cellsToString(lines.get(0)));
         assertEquals("DE", cellsToString(lines.get(1)));
@@ -181,7 +182,7 @@ class RichTextTest {
             .append("a")
             .append("b", bold)
             .build();
-        List<AnsiParser.Line> lines = AnsiParser.layout(text, 80);
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(text, 80);
         List<Cell> cells = lines.get(0).getCells();
         assertFalse(cells.get(0).isBold());
         assertTrue(cells.get(1).isBold());
@@ -190,10 +191,65 @@ class RichTextTest {
     @Test
     void testLayoutNewlinesInRunText() {
         RichText text = RichText.builder().append("a\nb").build();
-        List<AnsiParser.Line> lines = AnsiParser.layout(text, 80);
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(text, 80);
         assertEquals(2, lines.size());
         assertEquals("a", cellsToString(lines.get(0)));
         assertEquals("b", cellsToString(lines.get(1)));
+    }
+
+    @Test
+    void testLayoutEmptyAndInvalidInputs() {
+        RichText empty = RichText.builder().build();
+        assertThat(RichTextLayout.layout(null, 4)).isEmpty();
+        assertThat(RichTextLayout.layout(null, 4, run -> null)).isEmpty();
+        for (int width : new int[] {0, -1}) {
+            assertThat(RichTextLayout.layout(empty, width)).isEmpty();
+            assertThat(RichTextLayout.layout(empty, width, run -> null))
+                .isEmpty();
+        }
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(empty, 4);
+        assertThat(lines).hasSize(1);
+        assertThat(lines.getFirst().getWidth()).isZero();
+    }
+
+    @Test
+    void testLayoutControlCharactersAcrossStyledRuns() {
+        RichText text = RichText.builder().append("abc\t")
+            .append("\bX\rY\n", CellAttributes.builder().bold(true).build())
+            .build();
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(text, 4);
+        assertThat(lines).extracting(RichTextTest::cellsToString)
+            .containsExactly("YbcX", "");
+        assertThat(lines.getFirst().getWidth()).isEqualTo(4);
+        assertThat(lines.getFirst().getCells().getFirst().isBold()).isTrue();
+        assertThat(lines.getFirst().getCells().get(1).isBold()).isFalse();
+        assertThat(lines.getFirst().getCells().getLast().isBold()).isTrue();
+    }
+
+    @Test
+    void testLayoutWideCharactersAtWidthBoundary() {
+        RichText text = RichText.builder().append("a界b").build();
+        assertThat(RichTextLayout.layout(text, 2))
+            .extracting(RichTextTest::cellsToString)
+            .containsExactly("a", "界 ", "b");
+        assertThat(RichTextLayout.layout(text, 1))
+            .extracting(RichTextTest::cellsToString)
+            .containsExactly("a", "界", "b");
+    }
+
+    @Test
+    void testAnsiParseRetainsCompatibleLines() {
+        String source = "ab\033[1;31m界\tX\rY\n";
+        List<AnsiParser.Line> parsed = AnsiParser.parse(source, 4);
+        List<RichTextLayout.Line> laidOut =
+            RichTextLayout.layout(AnsiParser.toRichText(source), 4);
+        assertThat(parsed).hasSameSizeAs(laidOut);
+        for (int i = 0; i < parsed.size(); i++) {
+            assertThat(parsed.get(i).getWidth())
+                .isEqualTo(laidOut.get(i).getWidth());
+            assertThat(parsed.get(i).getCells())
+                .containsExactlyElementsOf(laidOut.get(i).getCells());
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -212,7 +268,7 @@ class RichTextTest {
     // Helpers
     // -----------------------------------------------------------------------
 
-    private static String cellsToString(final AnsiParser.Line line) {
+    private static String cellsToString(final RichTextLayout.Line line) {
         StringBuilder sb = new StringBuilder();
         for (Cell cell : line.getCells()) {
             sb.appendCodePoint(cell.getChar());
