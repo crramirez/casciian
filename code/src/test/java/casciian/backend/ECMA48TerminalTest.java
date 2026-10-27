@@ -2117,7 +2117,11 @@ class ECMA48TerminalTest {
         String output = outputStream.toString(StandardCharsets.UTF_8);
         assertTrue(output.contains("\033[?1005$p"), escapeForDisplay(output));
         // Mouse mode selection itself is unchanged: SGR is still preferred.
-        assertTrue(output.contains("\033[?1002;1003;1005;1006h"));
+        // Each mode is sent separately (JediTerm only honors the first
+        // DECSET parameter), with SGR (1006) last so that it wins.
+        assertTrue(output.contains(
+            "\033[?1002h\033[?1003h\033[?1005h\033[?1006h"),
+            escapeForDisplay(output));
     }
 
     // Helper methods

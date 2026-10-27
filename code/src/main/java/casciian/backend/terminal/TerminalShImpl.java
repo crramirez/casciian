@@ -208,10 +208,17 @@ public class TerminalShImpl implements Terminal {
      * @return the string to emit to xterm
      */
     private String mouse(final boolean on) {
+        // Each private mode is sent in its own sequence: some terminals
+        // (e.g. JediTerm, used by the JetBrains IDEs) only honor the first
+        // parameter of a multi-parameter DECSET/DECRST.  The order also
+        // matters for terminals where the last selected mouse mode or
+        // encoding wins: 1003 after 1002, and SGR (1006) after UTF-8 (1005).
         if (on) {
-            return "\033[?1004h\033[?1002;1003;1005;1006h\033[?1049h\033^hideMousePointer\033\\";
+            return "\033[?1004h\033[?1002h\033[?1003h\033[?1005h\033[?1006h"
+                + "\033[?1049h\033^hideMousePointer\033\\";
         }
-        return "\033[?1004l\033[?1002;1003;1006;1005l\033[?1049l\033^showMousePointer\033\\";
+        return "\033[?1004l\033[?1003l\033[?1002l\033[?1006l\033[?1005l"
+            + "\033[?1049l\033^showMousePointer\033\\";
     }
 
     /**
