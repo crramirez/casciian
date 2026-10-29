@@ -256,6 +256,19 @@ are affected; cells that already carry a true RGB color are left untouched.
 This is enabled automatically for terminals such as Konsole whose default
 16-color palette has low contrast between normal and bright colors.
 
+**VS Code integrated terminal:** VS Code supports 16, 256 and 24-bit colors,
+but its `terminal.integrated.minimumContrastRatio` setting (default `4.5`)
+recolors any text foreground that does not meet that contrast ratio against its
+background. Box-drawing and block characters are exempt, so borders look right
+while low-contrast text such as modal window titles and the `[■]` close button
+(bright white on light gray) is shown in a different color. Escape sequences
+cannot disable this behavior, so the RGB and palette modes do not fix it. To see
+Casciian's real colors, add this to VS Code's `settings.json`:
+
+```json
+"terminal.integrated.minimumContrastRatio": 1
+```
+
 On the input side, `AnsiParser` and the ECMA-48 terminal emulator apply
 received `38;5;n` / `48;5;n` sequences as a palette index directly (rather
 than resolving the index to RGB), so parsed cells preserve the compact
