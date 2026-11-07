@@ -332,6 +332,30 @@ class KittyImageManagerTest {
     }
 
     @Test
+    @DisplayName("Colliding run hashes retain distinct source tile snapshots")
+    void collidingRunHashesKeepDistinctTiles() {
+        ArrayImageRGB firstImage = new ArrayImageRGB(4, 4);
+        firstImage.fillRect(0, 0, 4, 4, 0xFF112233);
+        ArrayImageRGB secondImage = new ArrayImageRGB(4, 4);
+        secondImage.fillRect(0, 0, 4, 4, 0xFF112233);
+        List<Cell> firstRun = List.of(imageCell(1000, firstImage),
+            imageCell(100000, secondImage));
+        List<Cell> secondRun = List.of(imageCell(1001, firstImage),
+            imageCell(70209, secondImage));
+
+        String firstId = parse(manager.show(0, 0, firstRun, GOTO, false))
+            .getFirst().keys().get("i");
+        List<KittyImageEncoderTest.Command> second =
+            parse(manager.show(2, 0, secondRun, GOTO, false));
+
+        assertThat(second).singleElement().satisfies(command ->
+            assertThat(command.keys()).containsEntry("a", "T"));
+        assertThat(second.getFirst().keys().get("i")).isNotEqualTo(firstId);
+        assertThat(manager.matchesPlacement(2, 0, secondRun)).isTrue();
+        assertThat(manager.show(2, 0, secondRun, GOTO, false)).isEmpty();
+    }
+
+    @Test
     @DisplayName("RGBA tile resizing filters premultiplied color and alpha")
     void rgbaResizeDoesNotBleedTransparentColor() {
         manager = new KittyImageManager(new KittyImageEncoder(

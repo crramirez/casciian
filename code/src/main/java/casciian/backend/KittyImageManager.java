@@ -406,8 +406,13 @@ final class KittyImageManager {
         assert (cell.isImage());
 
         int sourceId = persistentImageId(cell);
-        int imageId = findImageId(cell, columns);
-        boolean alreadyPlaced = matchesPlacement(x, y, cell, columns);
+        boolean multiCellRun = sourceCells.size() > 1;
+        int imageId = multiCellRun
+            ? findImageId(runSourceId(sourceCells), sourceCells)
+            : findImageId(cell, columns);
+        boolean alreadyPlaced = multiCellRun
+            ? matchesPlacement(x, y, sourceCells)
+            : matchesPlacement(x, y, cell, columns);
         if (alreadyPlaced && sourceId == 0) {
             imageId = getPlacedImageId(x, y);
         }
