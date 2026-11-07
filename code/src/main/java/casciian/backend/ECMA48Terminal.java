@@ -474,6 +474,12 @@ public class ECMA48Terminal extends LogicalScreen
     private boolean kittyGraphicsQuery = false;
 
     /**
+     * The expected response body to the kitty graphics support query.
+     */
+    private static final String KITTY_GRAPHICS_QUERY_RESPONSE = "Gi="
+        + KittyImageEncoder.QUERY_IMAGE_ID + ";OK";
+
+    /**
      * The kitty graphics image/placement tracker, or null if not created
      * yet.
      */
@@ -4760,14 +4766,20 @@ public class ECMA48Terminal extends LogicalScreen
                         == 0x1B)
                 ) {
                     // This is ST, end of the line.
-                    apcResponse(apcResponse.substring(0,
-                        apcResponse.length() - 1));
+                    apcResponse(KITTY_GRAPHICS_QUERY_RESPONSE);
                     resetParser();
                     return;
                 }
 
-                // Continue collecting until we see ST.
-                apcResponse.append(ch);
+                String candidate = apcResponse.toString() + ch;
+                if (KITTY_GRAPHICS_QUERY_RESPONSE.startsWith(candidate)
+                    || (candidate.equals(KITTY_GRAPHICS_QUERY_RESPONSE
+                    + (char) 0x1B))
+                ) {
+                    apcResponse.append(ch);
+                } else {
+                    recoverIncompleteApc(events, candidate);
+                }
                 return;
 
             case PASTE:
@@ -5141,6 +5153,24 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Treat an APC that does not match the outstanding kitty query as an
+     * Alt-_ keypress and parse its buffered characters again as input.
+     *
+     * @param events list to append new input events to
+     * @param buffered characters collected after the Alt-_ prefix
+     */
+    private void recoverIncompleteApc(final List<TInputEvent> events,
+        final String buffered) {
+        kittyGraphicsQuery = false;
+        resetParser();
+        events.add(new TKeypressEvent(backend, false, 0, '_',
+            true, false, false));
+        for (int i = 0; i < buffered.length(); i++) {
+            processChar(events, buffered.charAt(i));
+        }
+    }
+
+    /**
      * Read the kitty graphics options from System properties:
      * casciian.ECMA48.kittyImages, casciian.ECMA48.kittyImageFormat, and
      * casciian.ECMA48.kittyImageCompression.
@@ -5267,20 +5297,27 @@ public class ECMA48Terminal extends LogicalScreen
                     sb.append(manager.remove(x, y));
                     continue;
                 }
+                ComplexCell pCell = physical[x][y];
+                boolean sameImage = lCell.isImage() && pCell.isImage()
+                    && (lCell.getImageId() > 0)
+                    && (lCell.getImageId() == pCell.getImageId())
+                    && (lCell.isInvertedImage() == pCell.isInvertedImage());
+                boolean backgroundChanged = paintBackground
+                    && (attrToBackgroundColor(lCell)
+                    != attrToBackgroundColor(pCell));
                 if (!reallyCleared
                     && (manager.getPlacedImageId(x, y) != 0)
-                    && lCell.equals(physical[x][y])
+                    && sameImage
+                    && !backgroundChanged
                 ) {
                     continue;
                 }
                 physical[x][y].setTo(lCell);
 
                 String goXY = gotoXY(x, y);
-                String show = manager.show(x, y, lCell, goXY);
-                if (show.isEmpty()) {
-                    continue;
-                }
+                String show = manager.show(x, y, lCell, goXY, !sameImage);
                 if (paintBackground) {
+                    sb.append("\033[0m");
                     sb.append(goXY);
                     sb.append(colorRGB(attrToBackgroundColor(lCell), false));
                     sb.append(' ');

@@ -233,6 +233,22 @@ final class KittyImageManager {
      */
     String show(final int x, final int y, final Cell cell,
         final String gotoXY) {
+        return show(x, y, cell, gotoXY, false);
+    }
+
+    /**
+     * Ensure an image cell is shown on a text cell.
+     *
+     * @param x column
+     * @param y row
+     * @param cell the image cell
+     * @param gotoXY the escape sequence that moves the cursor to (x, y)
+     * @param force if true, re-place an already placed image
+     * @return the escape sequences to emit, or "" if the cell is already
+     * shown
+     */
+    String show(final int x, final int y, final Cell cell,
+        final String gotoXY, final boolean force) {
 
         if ((x < 0) || (y < 0) || (x >= width) || (y >= height)) {
             return "";
@@ -241,13 +257,16 @@ final class KittyImageManager {
 
         int imageId = persistentImageId(cell);
         if ((imageId != 0) && (placed[x][y] == imageId)
-            && transmitted.containsKey(imageId)
+            && transmitted.containsKey(imageId) && !force
         ) {
             return "";
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append(remove(x, y));
+        boolean alreadyPlaced = (imageId != 0) && (placed[x][y] == imageId);
+        if (!alreadyPlaced) {
+            sb.append(remove(x, y));
+        }
         if (imageId == 0) {
             imageId = nextEphemeralId();
         }
@@ -263,7 +282,9 @@ final class KittyImageManager {
             storageUsed += cost;
         }
         placed[x][y] = imageId;
-        placementCounts.merge(imageId, 1, Integer::sum);
+        if (!alreadyPlaced) {
+            placementCounts.merge(imageId, 1, Integer::sum);
+        }
         sb.append(evict());
         return sb.toString();
     }

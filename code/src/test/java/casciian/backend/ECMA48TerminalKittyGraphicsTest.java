@@ -121,6 +121,24 @@ class ECMA48TerminalKittyGraphicsTest {
     }
 
     @Test
+    @DisplayName("An incomplete APC returns Alt-_ and reparses buffered input")
+    void incompleteQueryReplyRecoversInput() {
+        terminal = createTerminal("\033_G\033[?62;4cz");
+
+        List<TInputEvent> events = waitForEvents(3);
+
+        assertThat(events).hasSize(3);
+        assertThat(((TKeypressEvent) events.get(0)).getKey().getChar())
+            .isEqualTo('_');
+        assertThat(((TKeypressEvent) events.get(0)).getKey().isAlt())
+            .isTrue();
+        assertThat(((TKeypressEvent) events.get(1)).getKey().getChar())
+            .isEqualTo('G');
+        assertThat(((TKeypressEvent) events.get(2)).getKey().getChar())
+            .isEqualTo('z');
+    }
+
+    @Test
     @DisplayName("Image cells are transmitted once and then only re-placed")
     void imageCellsUseImageIdCache() {
         terminal = createTerminal(KITTY_REPLY);
@@ -151,6 +169,29 @@ class ECMA48TerminalKittyGraphicsTest {
         assertThat(written()).contains("x");
 
         // Nothing changed: nothing sent.
+        outputStream.reset();
+        terminal.flushPhysical();
+        assertThat(parse(written())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Clearing physical cells re-places cached kitty images")
+    void physicalClearReplacesImageWithoutRetransmitting() {
+        terminal = createTerminal(KITTY_REPLY);
+        waitForKitty();
+        terminal.putCharXY(2, 1, imageCell(500));
+        terminal.flushPhysical();
+        outputStream.reset();
+
+        terminal.clearPhysical();
+        terminal.flushPhysical();
+
+        List<KittyImageEncoderTest.Command> commands = parse(written());
+        assertThat(commands).singleElement().satisfies(c ->
+            assertThat(c.keys()).containsEntry("a", "p")
+                .containsEntry("i", "500"));
+        assertThat(commands.getFirst().payload()).isEmpty();
+
         outputStream.reset();
         terminal.flushPhysical();
         assertThat(parse(written())).isEmpty();
@@ -189,6 +230,36 @@ class ECMA48TerminalKittyGraphicsTest {
         assertThat(parse(written())).singleElement().satisfies(c ->
             assertThat(c.keys()).containsEntry("f", "32")
                 .doesNotContainKey("o"));
+    }
+
+    @Test
+    @DisplayName("RGBA backing spaces repaint changed backgrounds with reset SGR")
+    void rgbaBackgroundChangeRepaintsBackingCell() {
+        System.setProperty("casciian.ECMA48.kittyImageFormat", "rgba");
+        terminal = createTerminal(KITTY_REPLY);
+        waitForKitty();
+        terminal.putCharXY(1, 1, imageCell(3));
+
+        CellAttributes attributes = new CellAttributes();
+        attributes.setBackColorRGB(0x123456);
+        attributes.setReverse(true);
+        attributes.setUnderlineStyle(CellAttributes.UNDERLINE_STYLE_SINGLE);
+        terminal.putAttrXY(1, 1, attributes);
+        terminal.flushPhysical();
+        outputStream.reset();
+
+        attributes = new CellAttributes();
+        attributes.setBackColorRGB(0xABCDEF);
+        terminal.putAttrXY(1, 1, attributes);
+        terminal.flushPhysical();
+
+        String written = written();
+        assertThat(parse(written)).isEmpty();
+        assertThat(written).contains("\033[0m")
+            .contains("\033[48;2;171;205;239m ")
+            .doesNotContain("\033[4m", "\033[7m");
+        assertThat(written.indexOf("\033[0m"))
+            .isLessThan(written.indexOf("\033[48;2;171;205;239m "));
     }
 
     // ------------------------------------------------------------------------
