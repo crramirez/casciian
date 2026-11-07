@@ -316,7 +316,7 @@ public class LogicalScreen implements Screen {
      * @return if true, the logical screen is not in sync with the physical
      * screen
      */
-    public final boolean isDirty() {
+    public boolean isDirty() {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 if (logical[x][y].isBlink()) {
