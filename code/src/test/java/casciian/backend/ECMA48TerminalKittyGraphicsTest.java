@@ -198,6 +198,24 @@ class ECMA48TerminalKittyGraphicsTest {
     }
 
     @Test
+    @DisplayName("Resizing deletes cached Kitty images")
+    void resizeResetsKittyImageCache() {
+        terminal = createTerminal(KITTY_REPLY);
+        waitForKitty();
+        terminal.putCharXY(2, 1, imageCell(500));
+        terminal.flushPhysical();
+        outputStream.reset();
+
+        terminal.setDimensions(terminal.getWidth() + 1, terminal.getHeight());
+        terminal.flushPhysical();
+
+        List<KittyImageEncoderTest.Command> commands = parse(written());
+        assertThat(commands).singleElement().satisfies(c ->
+            assertThat(c.keys()).containsEntry("d", "I")
+                .containsEntry("i", "500"));
+    }
+
+    @Test
     @DisplayName("Turning kitty images off frees the terminal's images")
     void disablingFreesImages() {
         terminal = createTerminal(KITTY_REPLY);
@@ -254,12 +272,18 @@ class ECMA48TerminalKittyGraphicsTest {
         terminal.flushPhysical();
 
         String written = written();
-        assertThat(parse(written)).isEmpty();
+        List<KittyImageEncoderTest.Command> commands = parse(written);
+        assertThat(commands).singleElement().satisfies(c ->
+            assertThat(c.keys()).containsEntry("a", "p")
+                .containsEntry("i", "3"));
+        assertThat(commands.getFirst().payload()).isEmpty();
         assertThat(written).contains("\033[0m")
             .contains("\033[48;2;171;205;239m ")
             .doesNotContain("\033[4m", "\033[7m");
         assertThat(written.indexOf("\033[0m"))
             .isLessThan(written.indexOf("\033[48;2;171;205;239m "));
+        assertThat(written.indexOf("\033[48;2;171;205;239m "))
+            .isLessThan(written.indexOf("\033_Ga=p"));
     }
 
     // ------------------------------------------------------------------------

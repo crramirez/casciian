@@ -5315,7 +5315,8 @@ public class ECMA48Terminal extends LogicalScreen
                 physical[x][y].setTo(lCell);
 
                 String goXY = gotoXY(x, y);
-                String show = manager.show(x, y, lCell, goXY, !sameImage);
+                String show = manager.show(x, y, lCell, goXY,
+                    !sameImage || backgroundChanged);
                 if (paintBackground) {
                     sb.append("\033[0m");
                     sb.append(goXY);
