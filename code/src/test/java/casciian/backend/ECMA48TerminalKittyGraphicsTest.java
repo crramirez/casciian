@@ -515,7 +515,7 @@ class ECMA48TerminalKittyGraphicsTest {
         outputStream.reset();
         terminal.flushPhysical();
         KittyImageEncoderTest.Command upload = parse(written()).getFirst();
-        assertRunPixels(upload, 4, 0x00112233, 0x80445566);
+        assertRunPixels(upload, 4, 0x00000000, 0x80445566);
         assertThat(written().indexOf("\033[48;2;18;52;86m "))
             .isLessThan(written().indexOf("\033_Ga=T"));
         assertThat(written().indexOf("\033[48;2;171;205;239m "))
@@ -642,11 +642,20 @@ class ECMA48TerminalKittyGraphicsTest {
             for (int x = 0; x < 2 * tileWidth; x++) {
                 int argb = x < tileWidth ? left : right;
                 int offset = (y * 2 * tileWidth + x) * bytesPerPixel;
-                assertThat(pixels[offset]).isEqualTo((byte) (argb >>> 16));
-                assertThat(pixels[offset + 1]).isEqualTo((byte) (argb >>> 8));
-                assertThat(pixels[offset + 2]).isEqualTo((byte) argb);
+                int tolerance = bytesPerPixel == 4 && (argb >>> 24) != 0
+                    ? 1 : 0;
+                assertThat(pixels[offset] & 0xFF).isBetween(
+                    Math.max(0, ((argb >>> 16) & 0xFF) - tolerance),
+                    Math.min(255, ((argb >>> 16) & 0xFF) + tolerance));
+                assertThat(pixels[offset + 1] & 0xFF).isBetween(
+                    Math.max(0, ((argb >>> 8) & 0xFF) - tolerance),
+                    Math.min(255, ((argb >>> 8) & 0xFF) + tolerance));
+                assertThat(pixels[offset + 2] & 0xFF).isBetween(
+                    Math.max(0, (argb & 0xFF) - tolerance),
+                    Math.min(255, (argb & 0xFF) + tolerance));
                 if (bytesPerPixel == 4) {
-                    assertThat(pixels[offset + 3]).isEqualTo((byte) (argb >>> 24));
+                    assertThat(pixels[offset + 3])
+                        .isEqualTo((byte) (argb >>> 24));
                 }
             }
         }

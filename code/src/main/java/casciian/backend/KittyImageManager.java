@@ -78,16 +78,30 @@ final class KittyImageManager {
         private final int height;
         private final int columns;
         private final int[] pixels;
+        private final List<TileSnapshot> tiles;
         private final long cost;
 
         CachedImage(final int sourceId, final ImageRGB image,
-            final long cost, final int columns) {
+            final long cost, final int columns, final List<Cell> cells) {
             this.sourceId = sourceId;
             this.columns = columns;
             width = image.getWidth();
             height = image.getHeight();
             pixels = image.getRGB(0, 0, width, height, null, 0, width);
+            tiles = cells.stream().map(TileSnapshot::new).toList();
             this.cost = cost;
+        }
+
+        boolean matchesTiles(final List<Cell> cells) {
+            if (columns != cells.size() || tiles.size() != cells.size()) {
+                return false;
+            }
+            for (int i = 0; i < cells.size(); i++) {
+                if (!tiles.get(i).matches(cells.get(i))) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         boolean matches(final int id, final ImageRGB image,
@@ -95,6 +109,39 @@ final class KittyImageManager {
             if (sourceId != id || this.columns != columns
                 || width != image.getWidth()
                 || height != image.getHeight()) {
+                return false;
+            }
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    if (pixels[y * width + x] != image.getRGB(x, y)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+    }
+
+    private static final class TileSnapshot {
+        private final int imageId;
+        private final int width;
+        private final int height;
+        private final int[] pixels;
+
+        TileSnapshot(final Cell cell) {
+            imageId = persistentImageId(cell);
+            ImageRGB image = cell.getImage();
+            width = image.getWidth();
+            height = image.getHeight();
+            pixels = image.getRGB(0, 0, width, height, null, 0, width);
+        }
+
+        boolean matches(final Cell cell) {
+            if (imageId != persistentImageId(cell)) {
+                return false;
+            }
+            ImageRGB image = cell.getImage();
+            if (width != image.getWidth() || height != image.getHeight()) {
                 return false;
             }
             for (int y = 0; y < height; y++) {
@@ -305,11 +352,53 @@ final class KittyImageManager {
      */
     String show(final int x, final int y, final List<Cell> cells,
         final String gotoXY, final boolean force) {
-        return show(x, y, compose(cells), gotoXY, force, cells.size());
+        if (cells.size() == 1) {
+            return show(x, y, cells.getFirst(), gotoXY, force, 1, cells);
+        }
+        int columns = cells.size();
+        if ((x < 0) || (y < 0) || (x + columns > width) || (y >= height)) {
+            return "";
+        }
+        boolean alreadyPlaced = matchesPlacement(x, y, cells);
+        int imageId = alreadyPlaced ? getPlacedImageId(x, y) : 0;
+        if ((imageId != 0) && transmitted.containsKey(imageId) && !force) {
+            return "";
+        }
+        if (imageId == 0) {
+            imageId = findImageId(runSourceId(cells), cells);
+        }
+        if (imageId == 0) {
+            return show(x, y, compose(cells), gotoXY, force, columns, cells);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        if (!alreadyPlaced) {
+            for (int column = x; column < x + columns; column++) {
+                sb.append(remove(column, y));
+            }
+        }
+        sb.append(gotoXY);
+        int placementId = placementId(x, y);
+        sb.append(KittyImageEncoder.place(imageId, placementId, columns, 1));
+        Placement placement = new Placement(imageId, x, y, columns);
+        for (int column = x; column < x + columns; column++) {
+            placed[column][y] = placement;
+        }
+        if (!alreadyPlaced) {
+            placementCounts.merge(imageId, 1, Integer::sum);
+        }
+        sb.append(evict());
+        return sb.toString();
     }
 
     private String show(final int x, final int y, final Cell cell,
         final String gotoXY, final boolean force, final int columns) {
+        return show(x, y, cell, gotoXY, force, columns, List.of(cell));
+    }
+
+    private String show(final int x, final int y, final Cell cell,
+        final String gotoXY, final boolean force, final int columns,
+        final List<Cell> sourceCells) {
 
         if ((x < 0) || (y < 0) || (x + columns > width) || (y >= height)) {
             return "";
@@ -353,7 +442,7 @@ final class KittyImageManager {
                 placementId, columns, 1));
             long cost = KittyImageEncoder.storageBytes(image);
             transmitted.put(imageId, new CachedImage(sourceId,
-                cell.getImage(), cost, columns));
+                cell.getImage(), cost, columns, sourceCells));
             if (sourceId != 0) {
                 sourceImages.computeIfAbsent(sourceId,
                     ignored -> new ArrayList<>()).add(imageId);
@@ -392,7 +481,16 @@ final class KittyImageManager {
 
     boolean matchesPlacement(final int x, final int y,
         final List<Cell> cells) {
-        return matchesPlacement(x, y, compose(cells), cells.size());
+        if ((x < 0) || (y < 0) || (x >= width) || (y >= height)) {
+            return false;
+        }
+        Placement placement = placed[x][y];
+        if ((placement == null) || (placement.x() != x)
+            || (placement.columns() != cells.size())) {
+            return false;
+        }
+        CachedImage cached = transmitted.get(placement.imageId());
+        return cached != null && cached.matchesTiles(cells);
     }
 
     private boolean matchesPlacement(final int x, final int y,
@@ -401,6 +499,25 @@ final class KittyImageManager {
         return cached != null
             && placed[x][y].x() == x && placed[x][y].columns() == columns
             && cached.matches(persistentImageId(cell), cell.getImage(), columns);
+    }
+
+    private int runSourceId(final List<Cell> cells) {
+        int sourceId = 1;
+        for (Cell cell : cells) {
+            int imageId = persistentImageId(cell);
+            if (imageId == 0) {
+                return 0;
+            }
+            ImageRGB tile = cell.getImage();
+            sourceId = 31 * sourceId + imageId;
+            sourceId = 31 * sourceId + tile.getWidth();
+            sourceId = 31 * sourceId + tile.getHeight();
+            for (int pixel : tile.getRGB(0, 0, tile.getWidth(),
+                    tile.getHeight(), null, 0, tile.getWidth())) {
+                sourceId = 31 * sourceId + pixel;
+            }
+        }
+        return (sourceId & 0x7FFFFFFF) | 1;
     }
 
     private Cell compose(final List<Cell> cells) {
@@ -445,26 +562,48 @@ final class KittyImageManager {
 
     private ImageRGB scale(final ImageRGB image, final int newWidth,
         final int newHeight) {
-        ImageRGB scaled = new ArrayImageRGB(image).scale(newWidth, newHeight);
-        if (encoder.getFormat() == KittyImageEncoder.Format.RGBA) {
-            // The shared RGB resampler discards alpha. Resample it separately
-            // as a color channel, preserving the same interpolation.
-            ImageRGB alpha = new ArrayImageRGB(image.getWidth(),
-                image.getHeight());
-            for (int y = 0; y < image.getHeight(); y++) {
-                for (int x = 0; x < image.getWidth(); x++) {
-                    alpha.setRGB(x, y, image.getRGB(x, y) >>> 24);
+        boolean rgba = encoder.getFormat() == KittyImageEncoder.Format.RGBA;
+        ArrayImageRGB source = new ArrayImageRGB(image.getWidth(),
+            image.getHeight());
+        ArrayImageRGB alpha = rgba
+            ? new ArrayImageRGB(image.getWidth(), image.getHeight()) : null;
+        for (int y = 0; y < image.getHeight(); y++) {
+            for (int x = 0; x < image.getWidth(); x++) {
+                int pixel = image.getRGB(x, y);
+                int a = (pixel >>> 24) & 0xFF;
+                int r = (pixel >>> 16) & 0xFF;
+                int g = (pixel >>> 8) & 0xFF;
+                int b = pixel & 0xFF;
+                if (rgba) {
+                    r = (r * a + 127) / 255;
+                    g = (g * a + 127) / 255;
+                    b = (b * a + 127) / 255;
+                    alpha.setRGB(x, y, a);
                 }
+                source.setRGB(x, y, (r << 16) | (g << 8) | b);
             }
-            alpha = alpha.scale(newWidth, newHeight);
+        }
+        ImageRGB scaled = source.scale(newWidth, newHeight);
+        if (rgba) {
+            ImageRGB scaledAlpha = alpha.scale(newWidth, newHeight);
             for (int y = 0; y < newHeight; y++) {
                 for (int x = 0; x < newWidth; x++) {
-                    scaled.setRGB(x, y, (scaled.getRGB(x, y) & 0xFFFFFF)
-                        | ((alpha.getRGB(x, y) & 0xFF) << 24));
+                    int a = scaledAlpha.getRGB(x, y) & 0xFF;
+                    int pixel = scaled.getRGB(x, y);
+                    int r = unpremultiply((pixel >>> 16) & 0xFF, a);
+                    int g = unpremultiply((pixel >>> 8) & 0xFF, a);
+                    int b = unpremultiply(pixel & 0xFF, a);
+                    scaled.setRGB(x, y, (a << 24) | (r << 16)
+                        | (g << 8) | b);
                 }
             }
         }
         return scaled;
+    }
+
+    private int unpremultiply(final int color, final int alpha) {
+        return alpha == 0 ? 0
+            : Math.min(255, (color * 255 + alpha / 2) / alpha);
     }
 
     String setCellSize(final int newWidth, final int newHeight) {
@@ -487,6 +626,22 @@ final class KittyImageManager {
                 CachedImage image = transmitted.get(id);
                 if (image != null
                     && image.matches(sourceId, cell.getImage(), columns)) {
+                    return id;
+                }
+            }
+        }
+        return 0;
+    }
+
+    private int findImageId(final int sourceId, final List<Cell> cells) {
+        if (sourceId == 0) {
+            return 0;
+        }
+        List<Integer> ids = sourceImages.get(sourceId);
+        if (ids != null) {
+            for (int id : ids) {
+                CachedImage image = transmitted.get(id);
+                if (image != null && image.matchesTiles(cells)) {
                     return id;
                 }
             }

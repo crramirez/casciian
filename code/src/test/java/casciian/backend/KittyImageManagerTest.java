@@ -15,6 +15,7 @@
  */
 package casciian.backend;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -308,6 +309,62 @@ class KittyImageManagerTest {
     }
 
     @Test
+    @DisplayName("An unchanged run is reused without recomposition")
+    void unchangedRunDoesNotRecompose() {
+        CountingImage firstImage = new CountingImage(2, 2);
+        CountingImage secondImage = new CountingImage(2, 2);
+        firstImage.fillRect(0, 0, 2, 2, 0xFF112233);
+        secondImage.fillRect(0, 0, 2, 2, 0xFF445566);
+        manager.setCellSize(4, 4);
+        List<Cell> run = List.of(imageCell(81, firstImage),
+            imageCell(82, secondImage));
+        manager.show(0, 0, run, GOTO, false);
+        firstImage.bulkReads = 0;
+        secondImage.bulkReads = 0;
+
+        assertThat(manager.matchesPlacement(0, 0, run)).isTrue();
+        assertThat(parse(manager.show(0, 0, run, GOTO, true)))
+            .singleElement().satisfies(c ->
+                assertThat(c.keys()).containsEntry("a", "p")
+                    .containsEntry("c", "2"));
+        assertThat(firstImage.bulkReads).isZero();
+        assertThat(secondImage.bulkReads).isZero();
+    }
+
+    @Test
+    @DisplayName("RGBA tile resizing filters premultiplied color and alpha")
+    void rgbaResizeDoesNotBleedTransparentColor() {
+        manager = new KittyImageManager(new KittyImageEncoder(
+            KittyImageEncoder.Format.RGBA, false),
+            KittyImageManager.DEFAULT_STORAGE_BUDGET);
+        manager.reset(10, 5);
+        manager.setCellSize(4, 1);
+        ArrayImageRGB image = new ArrayImageRGB(2, 1);
+        image.setRGB(0, 0, 0xFFFF0000);
+        image.setRGB(1, 0, 0x000000FF);
+        List<KittyImageEncoderTest.Command> commands =
+            parse(manager.show(0, 0, imageCell(83, image), GOTO));
+
+        String payload = commands.getFirst().payload();
+        byte[] pixels = Base64.getDecoder().decode(payload);
+        assertThat(pixels).hasSize(16);
+        boolean hasPartialAlpha = false;
+        for (int i = 0; i < pixels.length; i += 4) {
+            int red = pixels[i] & 0xFF;
+            int green = pixels[i + 1] & 0xFF;
+            int blue = pixels[i + 2] & 0xFF;
+            int alpha = pixels[i + 3] & 0xFF;
+            if (alpha > 0) {
+                assertThat(red).isEqualTo(255);
+                assertThat(green).isZero();
+                assertThat(blue).isZero();
+            }
+            hasPartialAlpha |= alpha > 0 && alpha < 255;
+        }
+        assertThat(hasPartialAlpha).isTrue();
+    }
+
+    @Test
     @DisplayName("A colliding single tile cannot reuse a differently scaled run")
     void singleTileCollisionWithRunUsesItsOwnPixelDimensions() {
         manager.setCellSize(4, 4);
@@ -338,6 +395,10 @@ class KittyImageManagerTest {
     private static Cell imageCell(final int imageId) {
         ImageRGB image = new ArrayImageRGB(4, 4);
         image.fillRect(0, 0, 4, 4, 0xFF000000 | imageId);
+        return imageCell(imageId, image);
+    }
+
+    private static Cell imageCell(final int imageId, final ImageRGB image) {
         Cell cell = new Cell();
         if (imageId > 0) {
             cell.setImage(image, imageId);
@@ -345,5 +406,22 @@ class KittyImageManagerTest {
             cell.setImage(image);
         }
         return cell;
+    }
+
+    private static final class CountingImage extends ArrayImageRGB {
+        private int bulkReads;
+
+        CountingImage(final int width, final int height) {
+            super(width, height);
+        }
+
+        @Override
+        public int[] getRGB(final int startX, final int startY, final int width,
+            final int height, final int[] rgbArray, final int offset,
+            final int scansize) {
+            bulkReads++;
+            return super.getRGB(startX, startY, width, height, rgbArray,
+                offset, scansize);
+        }
     }
 }
