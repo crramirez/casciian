@@ -476,8 +476,8 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * The expected response body to the kitty graphics support query.
      */
-    private static final String KITTY_GRAPHICS_QUERY_RESPONSE = "Gi="
-        + KittyImageEncoder.QUERY_IMAGE_ID + ";OK";
+    private static final String KITTY_GRAPHICS_QUERY_PREFIX = "Gi="
+        + KittyImageEncoder.QUERY_IMAGE_ID;
 
     /**
      * The kitty graphics image/placement tracker, or null if not created
@@ -1208,6 +1208,28 @@ public class ECMA48Terminal extends LogicalScreen
                 writer.flush();
             }
         }
+    }
+
+    @Override
+    public boolean isDirty() {
+        if (super.isDirty()) {
+            return true;
+        }
+        synchronized (this) {
+            if (isKittyImagesActive() && kittyImageManager != null) {
+                for (int x = 0; x < width; x++) {
+                    for (int y = 0; y < height; y++) {
+                        Cell cell = logical[x][y];
+                        if (cell.isImage() && cell.getImageId() > 0
+                            && !cell.isInvertedImage()
+                            && !kittyImageManager.matchesPlacement(x, y, cell)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -2795,8 +2817,10 @@ public class ECMA48Terminal extends LogicalScreen
         if (reallyCleared) {
             attr = new CellAttributes();
             sb.append(clearAll());
-            if (kittyImageManager != null) {
-                sb.append(kittyImageManager.reset(width, height));
+            synchronized (this) {
+                if (kittyImageManager != null) {
+                    sb.append(kittyImageManager.reset(width, height));
+                }
             }
         }
 
@@ -3569,6 +3593,11 @@ public class ECMA48Terminal extends LogicalScreen
             }
         }
 
+        if ((state == ParseState.APC)
+            && (nowTime - escapeTime > INCOMPLETE_INPUT_TIMEOUT_MILLIS)) {
+            recoverIncompleteApc(queue, apcResponse.toString());
+        }
+
         // Incomplete or ambiguous ESC [ M mouse report.  Terminals write
         // each report in one go, so if it is still unfinished it is either
         // a complete X10 report that also looks like the start of a 1005
@@ -4083,6 +4112,7 @@ public class ECMA48Terminal extends LogicalScreen
                 if ((ch == '_') && kittyGraphicsQuery) {
                     state = ParseState.APC;
                     apcResponse.setLength(0);
+                    escapeTime = nowTime;
                     return;
                 }
 
@@ -4529,6 +4559,8 @@ public class ECMA48Terminal extends LogicalScreen
                         case 't':
                             // windowOps
                             if ((params.size() > 2) && (params.get(0).equals("4"))) {
+                                int oldCellWidth = getTextWidth();
+                                int oldCellHeight = getTextHeight();
                                 if (DEBUG_TO_STDERR) {
                                     System.err.printf("windowOp 4t pixels: " +
                                             "height %s width %s\n",
@@ -4560,6 +4592,11 @@ public class ECMA48Terminal extends LogicalScreen
                                 if (h > 0) {
                                     cachedEstimatedTextHeight = heightPixels / h;
                                 }
+                                if (isKittyImagesActive()
+                                    && (oldCellWidth != getTextWidth()
+                                    || oldCellHeight != getTextHeight())) {
+                                    clearPhysical();
+                                }
                                 if (DEBUG_TO_STDERR) {
                                     System.err.printf("   screen pixels: %d x %d",
                                         widthPixels, heightPixels);
@@ -4575,6 +4612,8 @@ public class ECMA48Terminal extends LogicalScreen
                                     System.err.printf("             old screen size: " +
                                         "%d x %d cells\n", width, height);
                                 }
+                                int oldCellWidth = getTextWidth();
+                                int oldCellHeight = getTextHeight();
                                 try {
                                     textWidthPixels = Integer.parseInt(params.get(2));
                                     textHeightPixels = Integer.parseInt(params.get(1));
@@ -4583,6 +4622,11 @@ public class ECMA48Terminal extends LogicalScreen
                                         //noinspection CallToPrintStackTrace
                                         e.printStackTrace();
                                     }
+                                }
+                                if (isKittyImagesActive()
+                                    && (oldCellWidth != getTextWidth()
+                                    || oldCellHeight != getTextHeight())) {
+                                    clearPhysical();
                                 }
                                 if (DEBUG_TO_STDERR) {
                                     System.err.println("  new cell size: " +
@@ -4766,17 +4810,16 @@ public class ECMA48Terminal extends LogicalScreen
                         == 0x1B)
                 ) {
                     // This is ST, end of the line.
-                    apcResponse(KITTY_GRAPHICS_QUERY_RESPONSE);
+                    apcResponse(apcResponse.substring(0,
+                        apcResponse.length() - 1));
                     resetParser();
                     return;
                 }
 
                 String candidate = apcResponse.toString() + ch;
-                if (KITTY_GRAPHICS_QUERY_RESPONSE.startsWith(candidate)
-                    || (candidate.equals(KITTY_GRAPHICS_QUERY_RESPONSE
-                    + (char) 0x1B))
-                ) {
+                if (isKittyQueryResponsePrefix(candidate)) {
                     apcResponse.append(ch);
+                    escapeTime = nowTime;
                 } else {
                     recoverIncompleteApc(events, candidate);
                 }
@@ -5152,6 +5195,42 @@ public class ECMA48Terminal extends LogicalScreen
         }
     }
 
+    private boolean isKittyQueryResponsePrefix(final String candidate) {
+        if (candidate.length() > 256) {
+            return false;
+        }
+        if (KITTY_GRAPHICS_QUERY_PREFIX.startsWith(candidate)) {
+            return true;
+        }
+        if (!candidate.startsWith(KITTY_GRAPHICS_QUERY_PREFIX)) {
+            return false;
+        }
+        String rest = candidate.substring(KITTY_GRAPHICS_QUERY_PREFIX.length());
+        int separator = rest.indexOf(';');
+        String params = separator < 0 ? rest : rest.substring(0, separator);
+        if (!params.isEmpty() && !params.matches(",p=[0-9]*")
+            && !",p=".startsWith(params)) {
+            return false;
+        }
+        if (separator < 0) {
+            return true;
+        }
+        if (params.equals(",p=")) {
+            return false;
+        }
+        String message = rest.substring(separator + 1);
+        for (int i = 0; i < message.length(); i++) {
+            char c = message.charAt(i);
+            if (c == 0x1B && i == message.length() - 1) {
+                continue;
+            }
+            if (c < 0x20 || c > 0x7e) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Treat an APC that does not match the outstanding kitty query as an
      * Alt-_ keypress and parse its buffered characters again as input.
@@ -5277,13 +5356,14 @@ public class ECMA48Terminal extends LogicalScreen
      * @param restoreClearedAttributes if true, the text pass assumes the
      * attributes left by clearAll(), so restore them if they were changed
      */
-    private void flushKittyImages(final StringBuilder sb,
+    private synchronized void flushKittyImages(final StringBuilder sb,
         final boolean restoreClearedAttributes) {
 
         final KittyImageManager manager = kittyImageManager;
         if (!manager.isSized(width, height)) {
             sb.append(manager.reset(width, height));
         }
+        sb.append(manager.setCellSize(getTextWidth(), getTextHeight()));
         // Transparent RGBA pixels show the text cell underneath, so paint
         // it with the image cell's background first.
         final boolean paintBackground = (manager.getEncoder().getFormat()
@@ -5301,6 +5381,7 @@ public class ECMA48Terminal extends LogicalScreen
                 boolean sameImage = lCell.isImage() && pCell.isImage()
                     && (lCell.getImageId() > 0)
                     && (lCell.getImageId() == pCell.getImageId())
+                    && manager.matchesPlacement(x, y, lCell)
                     && (lCell.isInvertedImage() == pCell.isInvertedImage());
                 boolean backgroundChanged = paintBackground
                     && (attrToBackgroundColor(lCell)

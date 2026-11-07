@@ -15,12 +15,16 @@
  */
 package casciian.backend;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
+import casciian.bits.ArrayImageRGB;
 import casciian.bits.Cell;
+import casciian.bits.ImageRGB;
 
 /**
  * Tracks the kitty graphics images and placements that are live on a
@@ -28,13 +32,9 @@ import casciian.bits.Cell;
  * redraws only send a short placement command.
  *
  * <p>Every image cell becomes one kitty image placed over exactly one text
- * cell (the terminal does the scaling).  A cell's {@link Cell#getImageId()}
- * is used directly as its kitty image id: cells with equal ids hold equal
- * pixels, so an image that moves, is uncovered, or is repeated is re-placed
- * from the terminal's copy without resending pixel data.  Cells without an
- * id, and inverted images, get a single-use id from the upper half of the
- * 32-bit id space (which {@link Cell} ids, being positive {@code int}s,
- * never use); those images are freed as soon as they leave the screen.</p>
+ * cell.  A cell's {@link Cell#getImageId()} is used as its kitty image id
+ * when possible; colliding ids are distinguished by their pixels.  Cells
+ * without an id, and inverted images, use single-use ids.</p>
  *
  * <p>Transmitted images are remembered in least-recently-used order.  When
  * their total size exceeds the storage budget, images that are not on
@@ -47,8 +47,7 @@ final class KittyImageManager {
 
     /**
      * Default terminal-side storage budget, in bytes.  kitty's own quota is
-     * 320 MB; staying well below it means the terminal never evicts an
-     * image this manager still believes is available.
+     * 320 MB; staying well below it reduces the risk of terminal eviction.
      */
     static final long DEFAULT_STORAGE_BUDGET = 128L * 1024 * 1024;
 
@@ -70,8 +69,47 @@ final class KittyImageManager {
     /**
      * Transmitted image ids mapped to their storage cost, in access order.
      */
-    private final LinkedHashMap<Integer, Long> transmitted =
+    private final LinkedHashMap<Integer, CachedImage> transmitted =
         new LinkedHashMap<>(256, 0.75f, true);
+
+    private static final class CachedImage {
+        private final int sourceId;
+        private final int width;
+        private final int height;
+        private final int[] pixels;
+        private final long cost;
+
+        CachedImage(final int sourceId, final ImageRGB image,
+            final long cost) {
+            this.sourceId = sourceId;
+            width = image.getWidth();
+            height = image.getHeight();
+            pixels = sourceId == 0 ? null
+                : image.getRGB(0, 0, width, height, null, 0, width);
+            this.cost = cost;
+        }
+
+        boolean matches(final int id, final ImageRGB image) {
+            if (sourceId == 0 || sourceId != id || width != image.getWidth()
+                || height != image.getHeight()) {
+                return false;
+            }
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    if (pixels[y * width + x] != image.getRGB(x, y)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+    }
+
+    private final Map<Integer, List<Integer>> sourceImages =
+        new HashMap<>();
+
+    private int cellWidth = 0;
+    private int cellHeight = 0;
 
     /**
      * Number of on-screen placements of each transmitted image.
@@ -185,6 +223,7 @@ final class KittyImageManager {
             sb.append(KittyImageEncoder.deleteImage(imageId));
         }
         transmitted.clear();
+        sourceImages.clear();
         placementCounts.clear();
         storageUsed = 0;
         width = Math.max(0, newWidth);
@@ -210,11 +249,10 @@ final class KittyImageManager {
         if (count <= 0) {
             placementCounts.remove(imageId);
         }
-        if (isEphemeral(imageId)) {
-            Long cost = transmitted.remove(imageId);
-            if (cost != null) {
-                storageUsed -= cost;
-            }
+        CachedImage cached = transmitted.get(imageId);
+        if ((cached != null) && (cached.sourceId == 0)) {
+            transmitted.remove(imageId);
+            storageUsed -= cached.cost;
             return KittyImageEncoder.deleteImage(imageId);
         }
         return KittyImageEncoder.deletePlacement(imageId,
@@ -255,7 +293,8 @@ final class KittyImageManager {
         }
         assert (cell.isImage());
 
-        int imageId = persistentImageId(cell);
+        int sourceId = persistentImageId(cell);
+        int imageId = findImageId(cell);
         if ((imageId != 0) && (placed[x][y] == imageId)
             && transmitted.containsKey(imageId) && !force
         ) {
@@ -268,17 +307,29 @@ final class KittyImageManager {
             sb.append(remove(x, y));
         }
         if (imageId == 0) {
-            imageId = nextEphemeralId();
+            imageId = (sourceId != 0 && !transmitted.containsKey(sourceId))
+                ? sourceId : nextEphemeralId();
         }
         sb.append(gotoXY);
         int placementId = placementId(x, y);
         if (transmitted.get(imageId) != null) {
             sb.append(KittyImageEncoder.place(imageId, placementId, 1, 1));
         } else {
-            sb.append(encoder.transmitAndPlace(cell.getImage(), imageId,
+            ImageRGB image = cell.getImage();
+            if (cellWidth > 0 && cellHeight > 0
+                && (image.getWidth() != cellWidth
+                    || image.getHeight() != cellHeight)) {
+                image = new ArrayImageRGB(image).scale(cellWidth, cellHeight);
+            }
+            sb.append(encoder.transmitAndPlace(image, imageId,
                 placementId, 1, 1));
-            long cost = KittyImageEncoder.storageBytes(cell.getImage());
-            transmitted.put(imageId, cost);
+            long cost = KittyImageEncoder.storageBytes(image);
+            transmitted.put(imageId, new CachedImage(sourceId,
+                cell.getImage(), cost));
+            if (sourceId != 0) {
+                sourceImages.computeIfAbsent(sourceId,
+                    ignored -> new ArrayList<>()).add(imageId);
+            }
             storageUsed += cost;
         }
         placed[x][y] = imageId;
@@ -304,14 +355,36 @@ final class KittyImageManager {
         return Math.max(0, cell.getImageId());
     }
 
-    /**
-     * Check whether an id is a single-use id.
-     *
-     * @param imageId the kitty image id
-     * @return true if the image is freed once it leaves the screen
-     */
-    static boolean isEphemeral(final int imageId) {
-        return imageId < 0;
+    boolean matchesPlacement(final int x, final int y, final Cell cell) {
+        CachedImage cached = transmitted.get(getPlacedImageId(x, y));
+        return cached != null
+            && cached.matches(persistentImageId(cell), cell.getImage());
+    }
+
+    String setCellSize(final int newWidth, final int newHeight) {
+        if (cellWidth == newWidth && cellHeight == newHeight) {
+            return "";
+        }
+        cellWidth = newWidth;
+        cellHeight = newHeight;
+        return reset(width, height);
+    }
+
+    private int findImageId(final Cell cell) {
+        int sourceId = persistentImageId(cell);
+        if (sourceId == 0) {
+            return 0;
+        }
+        List<Integer> ids = sourceImages.get(sourceId);
+        if (ids != null) {
+            for (int id : ids) {
+                CachedImage image = transmitted.get(id);
+                if (image != null && image.matches(sourceId, cell.getImage())) {
+                    return id;
+                }
+            }
+        }
+        return 0;
     }
 
     /**
@@ -353,15 +426,23 @@ final class KittyImageManager {
             return "";
         }
         StringBuilder sb = new StringBuilder();
-        Iterator<Map.Entry<Integer, Long>> it =
+        Iterator<Map.Entry<Integer, CachedImage>> it =
             transmitted.entrySet().iterator();
         while ((storageUsed > storageBudget) && it.hasNext()) {
-            Map.Entry<Integer, Long> entry = it.next();
+            Map.Entry<Integer, CachedImage> entry = it.next();
             if (placementCounts.containsKey(entry.getKey())) {
                 continue;
             }
-            storageUsed -= entry.getValue();
+            CachedImage image = entry.getValue();
+            storageUsed -= image.cost;
             sb.append(KittyImageEncoder.deleteImage(entry.getKey()));
+            List<Integer> ids = sourceImages.get(image.sourceId);
+            if (ids != null) {
+                ids.remove(entry.getKey());
+                if (ids.isEmpty()) {
+                    sourceImages.remove(image.sourceId);
+                }
+            }
             it.remove();
         }
         return sb.toString();

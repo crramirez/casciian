@@ -29,12 +29,14 @@ outstanding. After DA arrives, `ESC _` is parsed as Alt-\_ again.
 ## How image cells are drawn
 
 Each image cell is sent as its own kitty image and placed over exactly one
-text cell (`c=1,r=1`). The terminal scales the image to fit the cell. Placing
-the image uses `C=1`, so the cursor does not move. This means the bottom row
+text cell (`c=1,r=1`). Tiles are scaled to the destination cell's pixel
+dimensions before transmission. Placing the image uses `C=1`, so the cursor
+does not move. This means the bottom row
 never scrolls, unlike sixel.
 
-**`Cell.getImageId()` is used as the kitty image id.** Cells with the same id
-hold the same pixels, so Casciian sends each image only once
+**`Cell.getImageId()` is normally used as the kitty image id.** Casciian
+compares pixels before reuse and assigns a distinct kitty id if cell ids
+collide. It sends each distinct image only once
 (`a=T`). If the image moves, is uncovered, or repeats, Casciian sends only a
 short placement command (`a=p`) that reuses the image the terminal already
 has. Cell ids are positive `int`s. Kitty ids are unsigned 32-bit numbers.
@@ -45,6 +47,7 @@ Some cells need a single-use id from the upper half of the id range
 - cells with no image id
 - inverted images, which are used for mouse selection
 
+Colliding persistent images also use this range, but remain cached for reuse.
 Single-use images are deleted (`a=d,d=I`) as soon as they leave the screen.
 
 Placement ids come from the cell position (`y * width + x + 1`). When an image

@@ -17,6 +17,8 @@ package casciian.backend;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,6 +111,34 @@ class ECMA48TerminalKittyGraphicsTest {
     }
 
     @Test
+    @DisplayName("Query replies with a placement id are accepted")
+    void replyWithPlacementId() {
+        terminal = createTerminal("\033_Gi=31,p=0;OK\033\\\033[?62;4c");
+        waitForKitty();
+        assertThat(drainEvents()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("A negative query response does not become keyboard input")
+    void negativeQueryReply() {
+        terminal = createTerminal("\033_Gi=31;EINVAL:bad\033\\\033[?62;4cz");
+        List<TInputEvent> events = waitForEvents(1);
+        assertThat(terminal.hasKittyImages()).isFalse();
+        assertThat(events).hasSize(1);
+        assertThat(((TKeypressEvent) events.getFirst()).getKey().getChar())
+            .isEqualTo('z');
+    }
+
+    @Test
+    @DisplayName("A partial query response times out and restores input")
+    void partialQueryReplyTimesOut() {
+        terminal = createTerminal("\033_Gi=31;");
+        List<TInputEvent> events = waitForEvents(7);
+        assertThat(((TKeypressEvent) events.getFirst()).getKey().isAlt()).isTrue();
+        assertThat(events).hasSize(7);
+    }
+
+    @Test
     @DisplayName("Without a reply, kitty images stay off and Alt-_ still works")
     void noReplyMeansUnsupported() {
         terminal = createTerminal("\033[?62;4c\033_");
@@ -175,6 +205,27 @@ class ECMA48TerminalKittyGraphicsTest {
     }
 
     @Test
+    @DisplayName("Colliding image ids trigger a redraw at the same position")
+    void collidingImageAtSamePosition() {
+        terminal = createTerminal(KITTY_REPLY);
+        waitForKitty();
+        Cell first = imageCell(500);
+        first.setChar(' ');
+        terminal.putCharXY(2, 1, first);
+        terminal.flushPhysical();
+
+        Cell second = imageCell(500);
+        second.setChar(' ');
+        second.getImage().setRGB(0, 0, 0xFF998877);
+        terminal.putCharXY(2, 1, second);
+        assertThat(terminal.isDirty()).isTrue();
+        outputStream.reset();
+        terminal.flushPhysical();
+        assertThat(parse(written())).extracting(c -> c.keys().get("a"))
+            .containsExactly("d", "T");
+    }
+
+    @Test
     @DisplayName("Clearing physical cells re-places cached kitty images")
     void physicalClearReplacesImageWithoutRetransmitting() {
         terminal = createTerminal(KITTY_REPLY);
@@ -213,6 +264,40 @@ class ECMA48TerminalKittyGraphicsTest {
         assertThat(commands).singleElement().satisfies(c ->
             assertThat(c.keys()).containsEntry("d", "I")
                 .containsEntry("i", "500"));
+    }
+
+    @Test
+    @DisplayName("A new terminal cell size invalidates and rescales cached tiles")
+    void changedCellPixelSizeReuploadsTiles() throws Exception {
+        try (PipedOutputStream input = new PipedOutputStream();
+             PipedInputStream source = new PipedInputStream(input)) {
+            terminal = new ECMA48Terminal(Mockito.mock(Backend.class), null,
+                source, outputStream);
+            input.write((KITTY_REPLY + "\033[6;16;12tz")
+                .getBytes(StandardCharsets.UTF_8));
+            input.flush();
+            waitForKey('z');
+            waitForKitty();
+            terminal.putCharXY(2, 1, imageCell(500));
+            terminal.flushPhysical();
+            assertThat(parse(written())).anySatisfy(c ->
+                assertThat(c.keys()).containsEntry("a", "T")
+                    .containsEntry("s", "12").containsEntry("v", "16"));
+            outputStream.reset();
+
+            input.write("\033[6;16;8ty".getBytes(StandardCharsets.UTF_8));
+            input.flush();
+            waitForKey('y');
+            assertThat(terminal.isDirty()).isTrue();
+            terminal.flushPhysical();
+            List<KittyImageEncoderTest.Command> commands = parse(written());
+            assertThat(commands).anySatisfy(c ->
+                assertThat(c.keys()).containsEntry("d", "I")
+                    .containsEntry("i", "500"));
+            assertThat(commands).anySatisfy(c ->
+                assertThat(c.keys()).containsEntry("a", "T")
+                    .containsEntry("s", "8").containsEntry("v", "16"));
+        }
     }
 
     @Test
@@ -343,6 +428,18 @@ class ECMA48TerminalKittyGraphicsTest {
             sleep();
         }
         return events;
+    }
+
+    private void waitForKey(final char key) {
+        List<TInputEvent> events = new ArrayList<>();
+        long deadline = System.currentTimeMillis() + TIMEOUT_MILLIS;
+        while (events.stream().noneMatch(e -> e instanceof TKeypressEvent k
+            && k.getKey().getChar() == key)) {
+            assertThat(System.currentTimeMillis()).as("key " + key)
+                .isLessThan(deadline);
+            terminal.getEvents(events);
+            sleep();
+        }
     }
 
     private static void sleep() {

@@ -71,6 +71,43 @@ class KittyImageManagerTest {
     }
 
     @Test
+    @DisplayName("Colliding source ids retain and reuse distinct pixel data")
+    void collidingIdsDoNotSharePixels() {
+        Cell first = imageCell(42);
+        Cell second = imageCell(42);
+        second.getImage().setRGB(0, 0, 0xFF123456);
+
+        String firstId = parse(manager.show(0, 0, first, GOTO))
+            .getFirst().keys().get("i");
+        Map<String, String> secondUpload = parse(manager.show(1, 0, second, GOTO))
+            .getFirst().keys();
+        assertThat(secondUpload).containsEntry("a", "T");
+        String secondId = secondUpload.get("i");
+        assertThat(secondId).isNotEqualTo(firstId);
+        assertThat(parse(manager.show(2, 0, second, GOTO)).getFirst().keys())
+            .containsEntry("a", "p").containsEntry("i", secondId);
+        assertThat(parse(manager.show(0, 0, second, GOTO)))
+            .extracting(c -> c.keys().get("a")).containsExactly("d", "p");
+        assertThat(parse(manager.show(3, 0, first, GOTO)).getFirst().keys())
+            .containsEntry("a", "p").containsEntry("i", firstId);
+    }
+
+    @Test
+    @DisplayName("Tiles are scaled to cell dimensions and re-uploaded on change")
+    void cellSizeChangesInvalidateTiles() {
+        manager.setCellSize(12, 16);
+        Cell cell = imageCell(42);
+        assertThat(parse(manager.show(0, 0, cell, GOTO)).getFirst().keys())
+            .containsEntry("s", "12").containsEntry("v", "16");
+        assertThat(parse(manager.setCellSize(8, 16)).getFirst().keys())
+            .containsEntry("d", "I").containsEntry("i", "42");
+        assertThat(parse(manager.show(0, 0, cell, GOTO)).getFirst().keys())
+            .containsEntry("a", "T").containsEntry("s", "8")
+            .containsEntry("v", "16");
+        assertThat(manager.setCellSize(8, 16)).isEmpty();
+    }
+
+    @Test
     @DisplayName("The cursor move precedes the placement")
     void gotoPrecedesPlacement() {
         String output = manager.show(0, 0, imageCell(5), GOTO);
