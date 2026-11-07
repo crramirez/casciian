@@ -350,11 +350,14 @@ class ECMA48TerminalKittyGraphicsTest {
         terminal.putAttrXY(1, 1, attributes);
         terminal.flushPhysical();
         outputStream.reset();
+        assertThat(terminal.isDirty()).isFalse();
 
         attributes = new CellAttributes();
         attributes.setBackColorRGB(0xABCDEF);
         terminal.putAttrXY(1, 1, attributes);
+        assertThat(terminal.isDirty()).isTrue();
         terminal.flushPhysical();
+        assertThat(terminal.isDirty()).isFalse();
 
         String written = written();
         List<KittyImageEncoderTest.Command> commands = parse(written);

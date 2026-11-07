@@ -1217,9 +1217,16 @@ public class ECMA48Terminal extends LogicalScreen
         }
         synchronized (this) {
             if (isKittyImagesActive() && kittyImageManager != null) {
+                final boolean paintBackground = (kittyImageManager
+                    .getEncoder().getFormat() == KittyImageEncoder.Format.RGBA);
                 for (int x = 0; x < width; x++) {
                     for (int y = 0; y < height; y++) {
                         Cell cell = logical[x][y];
+                        if (cell.isImage() && paintBackground
+                            && (attrToBackgroundColor(cell)
+                            != attrToBackgroundColor(physical[x][y]))) {
+                            return true;
+                        }
                         if (cell.isImage() && cell.getImageId() > 0
                             && !cell.isInvertedImage()
                             && !kittyImageManager.matchesPlacement(x, y, cell)) {
