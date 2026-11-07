@@ -73,6 +73,8 @@ All input is routed as `TInputEvent` subclasses (`TKeypressEvent`, `TMouseEvent`
 
 ### Image support
 
+`ECMA48Terminal` emits image cells with, in priority order: the Casciian OSC 445 protocol, the kitty graphics protocol (`KittyImageEncoder`/`KittyImageManager`, keyed by `Cell.getImageId()`; see `docs/kitty-graphics-protocol.md`), sixel, or Unicode half-blocks.
+
 `casciian.image.decoders` uses a `ServiceLoader`-based `ImageDecoderRegistry`. The core library ships only `SixelImageDecoder`; the `casciian-java-desktop` add-on and demo fat JAR add BMP/JPEG/PNG/XPM decoders as separate `ImageDecoder` service implementations.
 
 ### Optional modules (sibling Gradle projects, not in this directory)
