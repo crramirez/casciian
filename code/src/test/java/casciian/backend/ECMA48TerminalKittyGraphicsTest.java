@@ -21,6 +21,7 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import casciian.bits.ArrayImageRGB;
@@ -374,6 +375,222 @@ class ECMA48TerminalKittyGraphicsTest {
             .isLessThan(written.indexOf("\033_Ga=p"));
     }
 
+    @Test
+    @DisplayName("Horizontal tiles form one scaled image, reused on move and clear")
+    void horizontalRunGroupsPixelsAndReusesCache() {
+        System.setProperty("casciian.ECMA48.kittyImageCompression", "false");
+        terminal = createTerminal(KITTY_REPLY);
+        waitForKitty();
+        terminal.flushPhysical();
+        Cell left = solidImageCell(501, 1, 2, 0x80112233);
+        Cell right = solidImageCell(502, 3, 1, 0xFF445566);
+        terminal.putCharXY(2, 1, left);
+        terminal.putCharXY(3, 1, right);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        List<KittyImageEncoderTest.Command> commands = parse(written());
+        assertThat(commands).hasSize(1);
+        KittyImageEncoderTest.Command upload = commands.getFirst();
+        assertThat(upload.keys()).containsEntry("a", "T")
+            .containsEntry("c", "2").containsEntry("r", "1")
+            .containsEntry("C", "1")
+            .containsEntry("s", Integer.toString(2 * terminal.getTextWidth()))
+            .containsEntry("v", Integer.toString(terminal.getTextHeight()));
+        assertRunPixels(upload, 3, 0x80112233, 0xFF445566);
+        String imageId = upload.keys().get("i");
+        assertThat(terminal.isDirty()).isFalse();
+        outputStream.reset();
+        terminal.flushPhysical();
+        assertThat(parse(written())).isEmpty();
+
+        terminal.clearPhysical();
+        terminal.flushPhysical();
+        assertThat(parse(written())).singleElement().satisfies(c ->
+            assertThat(c.keys()).containsEntry("a", "p")
+                .containsEntry("i", imageId).containsEntry("c", "2"));
+        outputStream.reset();
+
+        terminal.putCharXY(2, 1, new Cell('L'));
+        terminal.putCharXY(3, 1, new Cell('R'));
+        terminal.putCharXY(5, 3, left);
+        terminal.putCharXY(6, 3, right);
+        terminal.flushPhysical();
+        commands = parse(written());
+        assertThat(commands).extracting(c -> c.keys().get("a"))
+            .containsExactly("d", "p");
+        assertThat(commands.getLast().keys()).containsEntry("i", imageId)
+            .containsEntry("c", "2");
+        assertThat(commands).allSatisfy(c -> assertThat(c.payload()).isEmpty());
+        assertThat(terminal.isDirty()).isFalse();
+    }
+
+    @Test
+    @DisplayName("A tile pixel change inside a run replaces it and restores from cache")
+    void changedInteriorTileReplacesWholeRun() {
+        terminal = createTerminal(KITTY_REPLY);
+        waitForKitty();
+        for (int x = 1; x <= 3; x++) {
+            terminal.putCharXY(x, 1, imageCell(500 + x));
+        }
+        terminal.flushPhysical();
+        outputStream.reset();
+        Cell changed = imageCell(502);
+        changed.getImage().setRGB(0, 0, 0xFF998877);
+        terminal.putCharXY(2, 1, changed);
+        assertThat(terminal.isDirty()).isTrue();
+        terminal.flushPhysical();
+        assertThat(parse(written())).extracting(c -> c.keys().get("a"))
+            .containsExactly("d", "T");
+        assertThat(parse(written()).getLast().keys()).containsEntry("c", "3");
+        assertThat(terminal.isDirty()).isFalse();
+
+        outputStream.reset();
+        terminal.putCharXY(2, 1, imageCell(502));
+        terminal.flushPhysical();
+        assertThat(parse(written())).extracting(c -> c.keys().get("a"))
+            .containsExactly("d", "p");
+    }
+
+    @Test
+    @DisplayName("Text splits and shrinks shared runs without deleting replacements")
+    void textSplitsShrinksAndMergesRuns() {
+        terminal = createTerminal(KITTY_REPLY);
+        waitForKitty();
+        for (int x = 1; x <= 5; x++) {
+            terminal.putCharXY(x, 1, imageCell(500 + x));
+        }
+        terminal.flushPhysical();
+        outputStream.reset();
+        terminal.putCharXY(3, 1, new Cell('X'));
+        terminal.flushPhysical();
+        List<KittyImageEncoderTest.Command> commands = parse(written());
+        assertThat(commands).extracting(c -> c.keys().get("a"))
+            .containsExactly("d", "T", "T");
+        assertThat(commands.subList(1, 3)).allSatisfy(c ->
+            assertThat(c.keys()).containsEntry("c", "2"));
+        assertThat(written().indexOf("\033_Ga=d"))
+            .isLessThan(written().indexOf("\033_Ga=T"));
+        assertThat(written()).contains("X");
+        assertThat(terminal.isDirty()).isFalse();
+
+        outputStream.reset();
+        terminal.putCharXY(2, 1, new Cell('Y'));
+        terminal.putCharXY(5, 1, new Cell('Z'));
+        terminal.flushPhysical();
+        commands = parse(written());
+        assertThat(commands).extracting(c -> c.keys().get("a"))
+            .containsExactly("d", "d", "T", "T");
+        assertThat(commands.subList(2, 4)).allSatisfy(c ->
+            assertThat(c.keys()).containsEntry("c", "1"));
+        assertThat(terminal.isDirty()).isFalse();
+
+        outputStream.reset();
+        for (int x = 1; x <= 5; x++) {
+            terminal.putCharXY(x, 1, imageCell(500 + x));
+        }
+        terminal.flushPhysical();
+        commands = parse(written());
+        assertThat(commands).extracting(c -> c.keys().get("a"))
+            .containsExactly("d", "d", "p");
+        assertThat(commands.getLast().keys()).containsEntry("c", "5");
+        assertThat(terminal.isDirty()).isFalse();
+    }
+
+    @Test
+    @DisplayName("RGBA runs preserve alpha and paint each backing cell before placement")
+    void rgbaRunBackgroundChangeReplacesWithoutPixels() {
+        System.setProperty("casciian.ECMA48.kittyImageFormat", "rgba");
+        System.setProperty("casciian.ECMA48.kittyImageCompression", "false");
+        terminal = createTerminal(KITTY_REPLY);
+        waitForKitty();
+        terminal.flushPhysical();
+        terminal.putCharXY(1, 1, solidImageCell(501, 1, 1, 0x00112233));
+        terminal.putCharXY(2, 1, solidImageCell(502, 1, 1, 0x80445566));
+        CellAttributes background = new CellAttributes();
+        background.setBackColorRGB(0x123456);
+        terminal.putAttrXY(1, 1, background);
+        background.setBackColorRGB(0xABCDEF);
+        terminal.putAttrXY(2, 1, background);
+        outputStream.reset();
+        terminal.flushPhysical();
+        KittyImageEncoderTest.Command upload = parse(written()).getFirst();
+        assertRunPixels(upload, 4, 0x00112233, 0x80445566);
+        assertThat(written().indexOf("\033[48;2;18;52;86m "))
+            .isLessThan(written().indexOf("\033_Ga=T"));
+        assertThat(written().indexOf("\033[48;2;171;205;239m "))
+            .isLessThan(written().indexOf("\033_Ga=T"));
+        outputStream.reset();
+
+        background.setBackColorRGB(0x998877);
+        terminal.putAttrXY(2, 1, background);
+        assertThat(terminal.isDirty()).isTrue();
+        terminal.flushPhysical();
+        assertThat(parse(written())).singleElement().satisfies(c ->
+            assertThat(c.keys()).containsEntry("a", "p")
+                .containsEntry("c", "2").containsEntry("i", upload.keys().get("i")));
+        assertThat(written()).contains("\033[48;2;153;136;119m ");
+        assertThat(terminal.isDirty()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Runs stop at text and row boundaries, including the bottom right")
+    void runsRespectScreenBoundariesAndResize() {
+        terminal = createTerminal(KITTY_REPLY);
+        waitForKitty();
+        terminal.flushPhysical();
+        int lastColumn = terminal.getWidth() - 1;
+        int lastRow = terminal.getHeight() - 1;
+        terminal.putCharXY(lastColumn - 1, lastRow - 1, imageCell(501));
+        terminal.putCharXY(lastColumn, lastRow - 1, imageCell(502));
+        terminal.putCharXY(0, lastRow, imageCell(503));
+        terminal.putCharXY(lastColumn - 1, lastRow, imageCell(504));
+        terminal.putCharXY(lastColumn, lastRow, imageCell(505));
+        outputStream.reset();
+        terminal.flushPhysical();
+        List<KittyImageEncoderTest.Command> commands = parse(written());
+        assertThat(commands).extracting(c -> c.keys().get("c"))
+            .containsExactly("2", "1", "2");
+        assertThat(commands).allSatisfy(c ->
+            assertThat(c.keys()).containsEntry("r", "1").containsEntry("C", "1"));
+        assertThat(terminal.isDirty()).isFalse();
+        outputStream.reset();
+        terminal.setDimensions(terminal.getWidth() - 1, terminal.getHeight() - 1);
+        terminal.flushPhysical();
+        assertThat(parse(written())).hasSize(3).allSatisfy(c ->
+            assertThat(c.keys()).containsEntry("a", "d").containsEntry("d", "I"));
+    }
+
+    @Test
+    @DisplayName("Inversion inside a run cannot reuse normal pixels")
+    void invertedRunIsFreedAndNormalRunIsReused() {
+        terminal = createTerminal(KITTY_REPLY);
+        waitForKitty();
+        terminal.putCharXY(1, 1, imageCell(501));
+        terminal.putCharXY(2, 1, imageCell(502));
+        terminal.flushPhysical();
+        outputStream.reset();
+        Cell inverted = imageCell(502);
+        inverted.invertImage();
+        terminal.putCharXY(2, 1, inverted);
+        assertThat(terminal.isDirty()).isTrue();
+        terminal.flushPhysical();
+        assertThat(parse(written())).extracting(c -> c.keys().get("a"))
+            .containsExactly("d", "T");
+        assertThat(terminal.isDirty()).isFalse();
+        outputStream.reset();
+        terminal.flushPhysical();
+        assertThat(parse(written())).isEmpty();
+
+        terminal.putCharXY(2, 1, imageCell(502));
+        terminal.flushPhysical();
+        List<KittyImageEncoderTest.Command> commands = parse(written());
+        assertThat(commands).extracting(c -> c.keys().get("a"))
+            .containsExactly("d", "p");
+        assertThat(commands.getFirst().keys()).containsEntry("d", "I");
+        assertThat(terminal.isDirty()).isFalse();
+    }
+
     // ------------------------------------------------------------------------
     // Helpers ----------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -404,6 +621,35 @@ class ECMA48TerminalKittyGraphicsTest {
         Cell cell = new Cell();
         cell.setImage(image, imageId);
         return cell;
+    }
+
+    private static Cell solidImageCell(final int imageId, final int width,
+        final int height, final int argb) {
+        ImageRGB image = new ArrayImageRGB(width, height);
+        image.fillRect(0, 0, width, height, argb);
+        Cell cell = new Cell();
+        cell.setImage(image, imageId);
+        return cell;
+    }
+
+    private void assertRunPixels(final KittyImageEncoderTest.Command command,
+        final int bytesPerPixel, final int left, final int right) {
+        byte[] pixels = Base64.getDecoder().decode(command.payload());
+        int tileWidth = terminal.getTextWidth();
+        int tileHeight = terminal.getTextHeight();
+        assertThat(pixels).hasSize(2 * tileWidth * tileHeight * bytesPerPixel);
+        for (int y = 0; y < tileHeight; y++) {
+            for (int x = 0; x < 2 * tileWidth; x++) {
+                int argb = x < tileWidth ? left : right;
+                int offset = (y * 2 * tileWidth + x) * bytesPerPixel;
+                assertThat(pixels[offset]).isEqualTo((byte) (argb >>> 16));
+                assertThat(pixels[offset + 1]).isEqualTo((byte) (argb >>> 8));
+                assertThat(pixels[offset + 2]).isEqualTo((byte) argb);
+                if (bytesPerPixel == 4) {
+                    assertThat(pixels[offset + 3]).isEqualTo((byte) (argb >>> 24));
+                }
+            }
+        }
     }
 
     private void waitForKitty() {

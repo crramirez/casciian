@@ -1219,17 +1219,27 @@ public class ECMA48Terminal extends LogicalScreen
             if (isKittyImagesActive() && kittyImageManager != null) {
                 final boolean paintBackground = (kittyImageManager
                     .getEncoder().getFormat() == KittyImageEncoder.Format.RGBA);
-                for (int x = 0; x < width; x++) {
-                    for (int y = 0; y < height; y++) {
-                        Cell cell = logical[x][y];
-                        if (cell.isImage() && paintBackground
-                            && (attrToBackgroundColor(cell)
-                            != attrToBackgroundColor(physical[x][y]))) {
-                            return true;
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width;) {
+                        if (!logical[x][y].isImage()) {
+                            if (kittyImageManager.getPlacedImageId(x, y) != 0) {
+                                return true;
+                            }
+                            x++;
+                            continue;
                         }
-                        if (cell.isImage() && cell.getImageId() > 0
-                            && !cell.isInvertedImage()
-                            && !kittyImageManager.matchesPlacement(x, y, cell)) {
+                        int start = x;
+                        List<Cell> cells = new ArrayList<>();
+                        while (x < width && logical[x][y].isImage()) {
+                            Cell cell = logical[x][y];
+                            if (paintBackground && (attrToBackgroundColor(cell)
+                                != attrToBackgroundColor(physical[x][y]))) {
+                                return true;
+                            }
+                            cells.add(cell);
+                            x++;
+                        }
+                        if (!kittyImageManager.matchesPlacement(start, y, cells)) {
                             return true;
                         }
                     }
@@ -2857,7 +2867,7 @@ public class ECMA48Terminal extends LogicalScreen
             }
 
             if (kittyImages) {
-                // Kitty placements are tracked per cell, so neither whole
+                // Kitty placements are tracked per run, so neither whole
                 // row redraws nor blanking images are needed.
                 continue;
             }
@@ -5354,10 +5364,9 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
-     * Place every changed image cell with the kitty graphics protocol, and
-     * remove placements from cells that no longer hold an image.  Each image
-     * cell is its own kitty image keyed by its imageId, so unchanged images
-     * are never resent.
+     * Place changed horizontal image runs with the kitty graphics protocol.
+     * Remove obsolete shared placements before drawing replacements or text.
+     * Unchanged runs and cached pixels are never retransmitted.
      *
      * @param sb StringBuilder to write escape sequences to
      * @param restoreClearedAttributes if true, the text pass assumes the
@@ -5377,42 +5386,53 @@ public class ECMA48Terminal extends LogicalScreen
             == KittyImageEncoder.Format.RGBA);
         boolean attributesChanged = false;
 
+        record KittyRun(int x, int y, List<Cell> cells, boolean redraw) {
+        }
+        List<KittyRun> runs = new ArrayList<>();
+        // Delete obsolete shared placements before drawing any replacement:
+        // a split run must not erase a new overlapping placement later.
         for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                ComplexCell lCell = logical[x][y];
-                if (!lCell.isImage()) {
+            for (int x = 0; x < width;) {
+                if (!logical[x][y].isImage()) {
                     sb.append(manager.remove(x, y));
+                    x++;
                     continue;
                 }
-                ComplexCell pCell = physical[x][y];
-                boolean sameImage = lCell.isImage() && pCell.isImage()
-                    && (lCell.getImageId() > 0)
-                    && (lCell.getImageId() == pCell.getImageId())
-                    && manager.matchesPlacement(x, y, lCell)
-                    && (lCell.isInvertedImage() == pCell.isInvertedImage());
-                boolean backgroundChanged = paintBackground
-                    && (attrToBackgroundColor(lCell)
-                    != attrToBackgroundColor(pCell));
-                if (!reallyCleared
-                    && (manager.getPlacedImageId(x, y) != 0)
-                    && sameImage
-                    && !backgroundChanged
-                ) {
-                    continue;
+                int start = x;
+                List<Cell> cells = new ArrayList<>();
+                boolean redraw = reallyCleared;
+                while (x < width && logical[x][y].isImage()) {
+                    Cell cell = logical[x][y];
+                    cells.add(cell);
+                    redraw |= !physical[x][y].isImage()
+                        || (paintBackground && (attrToBackgroundColor(cell)
+                        != attrToBackgroundColor(physical[x][y])));
+                    x++;
                 }
-                physical[x][y].setTo(lCell);
-
-                String goXY = gotoXY(x, y);
-                String show = manager.show(x, y, lCell, goXY,
-                    !sameImage || backgroundChanged);
-                if (paintBackground) {
+                boolean sameImage = manager.matchesPlacement(start, y, cells);
+                if (!sameImage) {
+                    for (int column = start; column < x; column++) {
+                        sb.append(manager.remove(column, y));
+                    }
+                }
+                runs.add(new KittyRun(start, y, cells, redraw || !sameImage));
+            }
+        }
+        for (KittyRun run : runs) {
+            for (int i = 0; i < run.cells().size(); i++) {
+                Cell cell = run.cells().get(i);
+                physical[run.x() + i][run.y()].setTo(cell);
+                if (run.redraw() && paintBackground) {
                     sb.append("\033[0m");
-                    sb.append(goXY);
-                    sb.append(colorRGB(attrToBackgroundColor(lCell), false));
+                    sb.append(gotoXY(run.x() + i, run.y()));
+                    sb.append(colorRGB(attrToBackgroundColor(cell), false));
                     sb.append(' ');
                     attributesChanged = true;
                 }
-                sb.append(show);
+            }
+            if (run.redraw()) {
+                sb.append(manager.show(run.x(), run.y(), run.cells(),
+                    gotoXY(run.x(), run.y()), true));
             }
         }
         if (attributesChanged && restoreClearedAttributes) {

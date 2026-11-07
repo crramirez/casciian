@@ -218,6 +218,123 @@ class KittyImageManagerTest {
         assertThat(manager.isTransmitted(3)).isTrue();
     }
 
+    @Test
+    @DisplayName("Removing an interior tile deletes one shared placement only")
+    void removingInteriorTileClearsRunButKeepsOtherPlacement() {
+        List<Cell> run = List.of(imageCell(41), imageCell(42), imageCell(43));
+        String imageId = parse(manager.show(1, 1, run, GOTO, false))
+            .getFirst().keys().get("i");
+        assertThat(parse(manager.show(5, 2, run, GOTO, false)))
+            .singleElement().satisfies(c ->
+                assertThat(c.keys()).containsEntry("a", "p")
+                    .containsEntry("i", imageId).containsEntry("c", "3"));
+        assertThat(parse(manager.remove(2, 1))).singleElement().satisfies(c ->
+            assertThat(c.keys()).containsEntry("d", "i")
+                .containsEntry("i", imageId).containsEntry("p", "12"));
+        for (int x = 1; x <= 3; x++) {
+            assertThat(manager.getPlacedImageId(x, 1)).isZero();
+            assertThat(manager.remove(x, 1)).isEmpty();
+        }
+        assertThat(manager.getPlacedImageId(6, 2)).isNotZero();
+        assertThat(manager.show(5, 2, run, GOTO, false)).isEmpty();
+        assertThat(manager.getStorageUsed()).isEqualTo(3 * 4 * 4 * 4);
+        assertThat(parse(manager.reset(10, 5))).hasSize(1);
+        assertThat(manager.getStorageUsed()).isZero();
+        assertThat(manager.getPlacedImageId(6, 2)).isZero();
+    }
+
+    @Test
+    @DisplayName("An overlapping run replacement removes all old placements first")
+    void overlappingRunReplacementRemovesOldRuns() {
+        manager.show(0, 0, List.of(imageCell(1), imageCell(2)), GOTO, false);
+        manager.show(2, 0, List.of(imageCell(3), imageCell(4)), GOTO, false);
+        List<Cell> merged = List.of(imageCell(2), imageCell(3));
+        List<KittyImageEncoderTest.Command> commands =
+            parse(manager.show(1, 0, merged, GOTO, false));
+        assertThat(commands).extracting(c -> c.keys().get("a"))
+            .containsExactly("d", "d", "T");
+        assertThat(manager.getPlacedImageId(0, 0)).isZero();
+        assertThat(manager.getPlacedImageId(3, 0)).isZero();
+        assertThat(manager.getPlacedImageId(1, 0)).isNotZero()
+            .isEqualTo(manager.getPlacedImageId(2, 0));
+        assertThat(manager.show(1, 0, merged, GOTO, false)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Run storage eviction counts placements, not individual tiles")
+    void evictsOnlyUnplacedRuns() {
+        manager = new KittyImageManager(new KittyImageEncoder(
+            KittyImageEncoder.Format.RGB, false), 256);
+        manager.reset(10, 5);
+        List<Cell> first = List.of(imageCell(1), imageCell(2));
+        List<Cell> second = List.of(imageCell(3), imageCell(4));
+        int firstId = managerId(manager.show(0, 0, first, GOTO, false));
+        int secondId = managerId(manager.show(2, 0, second, GOTO, false));
+        manager.show(0, 1, first, GOTO, false);
+        manager.remove(1, 0);
+        assertThat(manager.getStorageUsed()).isEqualTo(256);
+        assertThat(manager.isTransmitted(firstId)).isTrue();
+        manager.remove(1, 1);
+
+        List<KittyImageEncoderTest.Command> commands = parse(manager.show(4, 0,
+            List.of(imageCell(5), imageCell(6)), GOTO, false));
+        assertThat(commands).extracting(c -> c.keys().get("a"))
+            .containsExactly("T", "d");
+        assertThat(commands.getLast().keys()).containsEntry("d", "I")
+            .containsEntry("i", Integer.toUnsignedString(firstId));
+        assertThat(manager.isTransmitted(firstId)).isFalse();
+        assertThat(manager.isTransmitted(secondId)).isTrue();
+        assertThat(manager.getStorageUsed()).isEqualTo(256);
+        assertThat(parse(manager.reset(10, 5))).hasSize(2);
+        assertThat(manager.getStorageUsed()).isZero();
+    }
+
+    @Test
+    @DisplayName("A run containing an unidentified tile is freed as a single image")
+    void unidentifiedRunIsFreed() {
+        List<Cell> run = List.of(imageCell(1), imageCell(0));
+        int imageId = managerId(manager.show(0, 0, run, GOTO, false));
+        assertThat(Integer.toUnsignedLong(imageId)).isGreaterThanOrEqualTo(0x80000000L);
+        assertThat(manager.show(0, 0, run, GOTO, false)).isEmpty();
+        assertThat(manager.matchesPlacement(0, 0, run)).isTrue();
+        assertThat(parse(manager.show(0, 0, run, GOTO, true)))
+            .singleElement().satisfies(c ->
+                assertThat(c.keys()).containsEntry("a", "p")
+                    .containsEntry("c", "2"));
+        assertThat(parse(manager.remove(1, 0))).singleElement().satisfies(c ->
+            assertThat(c.keys()).containsEntry("d", "I"));
+        assertThat(manager.getStorageUsed()).isZero();
+        assertThat(manager.isTransmitted(imageId)).isFalse();
+    }
+
+    @Test
+    @DisplayName("A colliding single tile cannot reuse a differently scaled run")
+    void singleTileCollisionWithRunUsesItsOwnPixelDimensions() {
+        manager.setCellSize(4, 4);
+        int runId = managerId(manager.show(0, 0,
+            List.of(imageCell(1), imageCell(2)), GOTO, false));
+        ImageRGB composite = new ArrayImageRGB(8, 4);
+        composite.fillRect(0, 0, 4, 4, 0xFF000001);
+        composite.fillRect(4, 0, 4, 4, 0xFF000002);
+        Cell single = new Cell();
+        single.setImage(composite, runId);
+
+        List<KittyImageEncoderTest.Command> commands =
+            parse(manager.show(3, 0, single, GOTO));
+        assertThat(commands).singleElement().satisfies(c ->
+            assertThat(c.keys()).containsEntry("a", "T")
+                .containsEntry("s", "4").containsEntry("v", "4")
+                .containsEntry("c", "1"));
+        assertThat(commands.getFirst().keys().get("i"))
+            .isNotEqualTo(Integer.toUnsignedString(runId));
+        assertThat(manager.getStorageUsed()).isEqualTo((8 * 4 + 4 * 4) * 4);
+        assertThat(manager.show(3, 0, single, GOTO)).isEmpty();
+    }
+
+    private static int managerId(final String output) {
+        return Integer.parseUnsignedInt(parse(output).getFirst().keys().get("i"));
+    }
+
     private static Cell imageCell(final int imageId) {
         ImageRGB image = new ArrayImageRGB(4, 4);
         image.fillRect(0, 0, 4, 4, 0xFF000000 | imageId);

@@ -73,7 +73,7 @@ All input is routed as `TInputEvent` subclasses (`TKeypressEvent`, `TMouseEvent`
 
 ### Image support
 
-`ECMA48Terminal` emits image cells with, in priority order: the Casciian OSC 445 protocol, the kitty graphics protocol (`KittyImageEncoder`/`KittyImageManager`, keyed by `Cell.getImageId()`; see `docs/kitty-graphics-protocol.md`), sixel, or Unicode half-blocks.
+`ECMA48Terminal` emits image cells with, in priority order: the Casciian OSC 445 protocol, the kitty graphics protocol (`KittyImageEncoder`/`KittyImageManager`, grouping horizontal row runs with pixel-verified caching; single cells retain `Cell.getImageId()` keys; see `docs/kitty-graphics-protocol.md`), sixel, or Unicode half-blocks. Kitty run boundaries/cropping can require new uploads; obsolete shared placements are removed before replacement images or text are drawn.
 
 `casciian.image.decoders` uses a `ServiceLoader`-based `ImageDecoderRegistry`. The core library ships only `SixelImageDecoder`; the `casciian-java-desktop` add-on and demo fat JAR add BMP/JPEG/PNG/XPM decoders as separate `ImageDecoder` service implementations.
 
