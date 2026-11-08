@@ -239,6 +239,20 @@ class MarkdownDocumentParserTest {
     }
 
     @Test
+    void htmlTagsHandleLongUnquotedAttributes() {
+        String longAttribute = "x".repeat(100_000);
+        RichText text = parser.parse(
+            "<img src=\"badge.png\" alt=\"Badge\" title=" + longAttribute
+                + ">before<br title=" + longAttribute
+                + ">after<span title=" + longAttribute + ">visible</span>",
+            tempDir);
+
+        assertThat(images(text)).containsExactly(
+            tempDir.toAbsolutePath().resolve("badge.png").toString());
+        assertThat(text.getPlainText()).contains("before", "after", "visible");
+    }
+
+    @Test
     void remoteImagesBecomeHyperlinkedAlternativeText() {
         RichText text = parser.parse("![chart](https://example.com/c.png)",
             null);

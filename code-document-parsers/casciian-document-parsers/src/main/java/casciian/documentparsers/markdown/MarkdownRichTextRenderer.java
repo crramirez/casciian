@@ -82,15 +82,15 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
     private static final String[] BULLETS = { "\u2022", "\u25e6", "\u25aa" };
 
     private static final Pattern HTML_IMG = Pattern.compile(
-        "<img\\b(?:[^>\"']|\"[^\"]*\"|'[^']*')*>",
+        "<img\\b(?:[^>\"']++|\"[^\"]*+\"|'[^']*+')*+>",
         Pattern.CASE_INSENSITIVE);
     private static final Pattern HTML_BR = Pattern.compile(
-        "<br\\b(?:[^>\"']|\"[^\"]*\"|'[^']*')*>",
+        "<br\\b(?:[^>\"']++|\"[^\"]*+\"|'[^']*+')*+>",
         Pattern.CASE_INSENSITIVE);
     private static final Pattern HTML_COMMENT = Pattern.compile(
         "<!--.*?-->", Pattern.DOTALL);
     private static final Pattern HTML_TAG = Pattern.compile(
-        "<(?:[^>\"']|\"[^\"]*\"|'[^']*')*>");
+        "<(?:[^>\"']++|\"[^\"]*+\"|'[^']*+')*+>");
     private static final Pattern HTML_ATTRIBUTE = Pattern.compile(
         "\\s+([\\w:-]+)\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s>]+))",
         Pattern.CASE_INSENSITIVE);
