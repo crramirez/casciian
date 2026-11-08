@@ -82,12 +82,18 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
     private static final String[] BULLETS = { "\u2022", "\u25e6", "\u25aa" };
 
     private static final Pattern HTML_IMG = Pattern.compile(
-        "<img\\b[^>]*>", Pattern.CASE_INSENSITIVE);
+        "<img\\b(?:[^>\"']|\"[^\"]*\"|'[^']*')*>",
+        Pattern.CASE_INSENSITIVE);
     private static final Pattern HTML_BR = Pattern.compile(
-        "<br\\s*/?>", Pattern.CASE_INSENSITIVE);
+        "<br\\b(?:[^>\"']|\"[^\"]*\"|'[^']*')*>",
+        Pattern.CASE_INSENSITIVE);
     private static final Pattern HTML_COMMENT = Pattern.compile(
         "<!--.*?-->", Pattern.DOTALL);
-    private static final Pattern HTML_TAG = Pattern.compile("<[^>]*>");
+    private static final Pattern HTML_TAG = Pattern.compile(
+        "<(?:[^>\"']|\"[^\"]*\"|'[^']*')*>");
+    private static final Pattern HTML_ATTRIBUTE = Pattern.compile(
+        "\\s+([\\w:-]+)\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s>]+))",
+        Pattern.CASE_INSENSITIVE);
 
     /**
      * A line prefix applied after every line feed (list indentation, block
@@ -100,6 +106,7 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
     }
 
     private final RichText.Builder out = RichText.builder();
+    private final StringBuilder pendingText = new StringBuilder();
     private final Path baseDirectory;
 
     /**
@@ -111,6 +118,7 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
     private final Deque<CellAttributes> styles = new ArrayDeque<>();
     private final Deque<Integer> orderedListNumbers = new ArrayDeque<>();
     private final List<Prefix> prefixes = new ArrayList<>();
+    private CellAttributes pendingTextAttributes;
     private boolean lineStart = true;
     private boolean afterImage = false;
     private boolean anyOutput = false;
@@ -140,6 +148,11 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
      */
     RichText render(final Node node) {
         node.accept(this);
+        return build();
+    }
+
+    private RichText build() {
+        flushText();
         return out.build();
     }
 
@@ -359,13 +372,33 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
         flushPending();
         if (lineStart) {
             for (Prefix prefix : prefixes) {
-                out.append(prefix.text(), prefix.attributes());
+                appendOutput(prefix.text(), prefix.attributes());
             }
             lineStart = false;
         }
         afterImage = false;
-        out.append(text, attr);
+        appendOutput(text, attr);
         anyOutput = true;
+    }
+
+    private void appendOutput(final String text, final CellAttributes attr) {
+        if (pendingText.length() > 0
+            && !pendingTextAttributes.equals(attr)) {
+            flushText();
+        }
+        if (pendingText.length() == 0) {
+            pendingTextAttributes = new CellAttributes(attr);
+        }
+        pendingText.append(text);
+    }
+
+    private void flushText() {
+        if (pendingText.length() == 0) {
+            return;
+        }
+        out.append(pendingText.toString(), pendingTextAttributes);
+        pendingText.setLength(0);
+        pendingTextAttributes = null;
     }
 
     /**
@@ -379,7 +412,7 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
         if (afterImage) {
             // The layout already ends the row after an image block and
             // absorbs exactly one line feed there.
-            out.append("\n", styles.getLast());
+            appendOutput("\n", styles.getLast());
             afterImage = false;
             return;
         }
@@ -387,11 +420,11 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
             for (Prefix prefix : prefixes) {
                 String visible = prefix.text().stripTrailing();
                 if (!visible.isEmpty()) {
-                    out.append(visible, prefix.attributes());
+                    appendOutput(visible, prefix.attributes());
                 }
             }
         }
-        out.append("\n", styles.getLast());
+        appendOutput("\n", styles.getLast());
         lineStart = true;
     }
 
@@ -501,7 +534,9 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
                     null, null);
             }
             URI resolved = directory.resolve(uri).normalize();
-            String fileUri = Path.of(resolved.getPath()).toAbsolutePath()
+            URI pathUri = new URI(resolved.getScheme(),
+                resolved.getAuthority(), resolved.getPath(), null, null);
+            String fileUri = Path.of(pathUri).toAbsolutePath()
                 .normalize().toUri().toString();
             if (resolved.getRawQuery() != null) {
                 fileUri += "?" + resolved.getRawQuery();
@@ -619,6 +654,7 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
             return;
         }
         flushPending();
+        flushText();
         out.image(path, "[" + label + "]", attr);
         anyOutput = true;
         lineStart = true;
@@ -759,15 +795,14 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
      * @return the decoded value, or null
      */
     private static String htmlAttribute(final String tag, final String name) {
-        Matcher m = Pattern.compile("(?:^|\\s)" + name
-            + "\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s>]+))",
-            Pattern.CASE_INSENSITIVE).matcher(tag);
-        if (!m.find()) {
-            return null;
-        }
-        for (int g = 1; g <= 3; g++) {
-            if (m.group(g) != null) {
-                return decodeEntities(m.group(g));
+        Matcher m = HTML_ATTRIBUTE.matcher(tag);
+        while (m.find()) {
+            if (name.equalsIgnoreCase(m.group(1))) {
+                for (int g = 2; g <= 4; g++) {
+                    if (m.group(g) != null) {
+                        return decodeEntities(m.group(g));
+                    }
+                }
             }
         }
         return null;
@@ -904,7 +939,7 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
              child = child.getNext()) {
             child.accept(renderer);
         }
-        return renderer.out.build();
+        return renderer.build();
     }
 
     // ------------------------------------------------------------------------

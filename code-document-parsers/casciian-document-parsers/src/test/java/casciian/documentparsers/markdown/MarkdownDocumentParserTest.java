@@ -95,6 +95,16 @@ class MarkdownDocumentParserTest {
     }
 
     @Test
+    void manySoftBreaksAreRenderedAsOnePlainTextSequence() {
+        int wordCount = 2500;
+        String markdown = "word\n".repeat(wordCount);
+        String expected = "word ".repeat(wordCount - 1) + "word";
+
+        assertThat(parser.parse(markdown, null).getPlainText())
+            .isEqualTo(expected);
+    }
+
+    @Test
     void nestedAndOrderedListsAreIndented() {
         String markdown = """
             - one
@@ -211,6 +221,21 @@ class MarkdownDocumentParserTest {
             Path.of("/docs/badge.png").toString());
         assertThat(linesWithImages(text))
             .containsExactly("<image>", "a & b", "c");
+    }
+
+    @Test
+    void htmlTagsAndImageAttributesHandleQuotedAngleBracketsAndValues() {
+        RichText image = parser.parse(
+            "<img alt=\"A > B\" title=\"example src='wrong.png'\" "
+                + "src=\"badge.png\">", tempDir);
+
+        assertThat(images(image)).containsExactly(
+            tempDir.toAbsolutePath().resolve("badge.png").toString());
+        assertThat(image.getPlainText()).isEqualTo("[A > B]");
+
+        RichText text = parser.parse(
+            "before <span title=\"A > B\">visible</span> after", null);
+        assertThat(text.getPlainText()).isEqualTo("before visible after");
     }
 
     @Test

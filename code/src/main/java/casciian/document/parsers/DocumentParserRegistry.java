@@ -332,7 +332,11 @@ public class DocumentParserRegistry {
                 if (isRegistered(provider.type())) {
                     continue;
                 }
-                parsers.add(provider.get());
+                DocumentParser parser = provider.get();
+                if (isRegistered(parser.getClass())) {
+                    continue;
+                }
+                parsers.add(parser);
                 count++;
             } catch (ServiceConfigurationError e) {
                 System.err.println("DocumentParserRegistry: failed to load "
