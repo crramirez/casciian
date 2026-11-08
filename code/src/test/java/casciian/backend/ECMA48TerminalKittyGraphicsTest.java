@@ -376,6 +376,33 @@ class ECMA48TerminalKittyGraphicsTest {
     }
 
     @Test
+    @DisplayName("iTerm2 paints backing cell backgrounds for non-RGBA images")
+    void iterm2PaintsBackgroundForRgbImages() {
+        terminal = createTerminal("\033P>|iTerm2 3.5.0\033\\" + KITTY_REPLY);
+        waitForKitty();
+        long deadline = System.currentTimeMillis() + TIMEOUT_MILLIS;
+        while (!terminal.getTerminalVersion().contains("iTerm2")) {
+            assertThat(System.currentTimeMillis()).as("XTVERSION")
+                .isLessThan(deadline);
+            sleep();
+        }
+        terminal.flushPhysical();
+
+        Cell cell = imageCell(3);
+        cell.setBackColorRGB(0xABCDEF);
+        terminal.putCharXY(1, 1, cell);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        String written = written();
+        assertThat(parse(written)).singleElement().satisfies(c ->
+            assertThat(c.keys()).doesNotContainEntry("f", "32"));
+        assertThat(written).contains("\033[48;2;171;205;239m ");
+        assertThat(written.indexOf("\033[48;2;171;205;239m "))
+            .isLessThan(written.indexOf("\033_G"));
+    }
+
+    @Test
     @DisplayName("Horizontal tiles form one scaled image, reused on move and clear")
     void horizontalRunGroupsPixelsAndReusesCache() {
         System.setProperty("casciian.ECMA48.kittyImageCompression", "false");

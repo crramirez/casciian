@@ -85,6 +85,9 @@ keyboard input. Payloads are base64-encoded and split into chunks of at most
   color, so old text does not show through transparent pixels. A background
   change repaints the backing cells and re-places the run without resending pixels.
 
+Casciian also paints the backing cells for either format when XTVERSION
+identifies the terminal as iTerm2.
+
 zlib compression (`o=z`) is on by default.
 
 ## Configuration

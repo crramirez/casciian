@@ -128,6 +128,11 @@ public class ECMA48Terminal extends LogicalScreen
     private static final String XTVERSION_FOR_WARP = "Warp";
 
     /**
+     * String that XTVERSION should contain if the terminal is iTerm2
+     */
+    private static final String XTVERSION_FOR_ITERM2 = "iTerm2";
+
+    /**
      * VT2026 Begin Synchronized Update (BSU).
      */
     private static final String BEGIN_SYNCHRONIZED_UPDATE = "\033[?2026h";
@@ -413,6 +418,11 @@ public class ECMA48Terminal extends LogicalScreen
      * If true, we are operating on a Genuine(tm) XTerm.
      */
     private boolean isGenuineXTerm = false;
+
+    /**
+     * If true, we are operating on iTerm2.
+     */
+    private boolean isITerm2 = false;
 
     /**
      * If true, emit image data via sixel.
@@ -1217,8 +1227,7 @@ public class ECMA48Terminal extends LogicalScreen
         }
         synchronized (this) {
             if (isKittyImagesActive() && kittyImageManager != null) {
-                final boolean paintBackground = (kittyImageManager
-                    .getEncoder().getFormat() == KittyImageEncoder.Format.RGBA);
+                final boolean paintBackground = isKittyBackgroundPainted();
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width;) {
                         if (!logical[x][y].isImage()) {
@@ -3761,6 +3770,13 @@ public class ECMA48Terminal extends LogicalScreen
             setPaletteOrRgbColorIfNotConfigured();
         }
 
+        if (text.contains(XTVERSION_FOR_ITERM2)) {
+            if (DEBUG_TO_STDERR) {
+                System.err.println("  -- iTerm2 -- ");
+            }
+            isITerm2 = true;
+        }
+
         setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
     }
 
@@ -5364,6 +5380,20 @@ public class ECMA48Terminal extends LogicalScreen
     }
 
     /**
+     * Whether the text cell under a kitty image should be painted with the
+     * image cell's background color before placing the image.  Transparent
+     * RGBA pixels show the text cell underneath, and iTerm2 does not clear
+     * the cell background beneath kitty images.
+     *
+     * @return true if the background must be painted under kitty images
+     */
+    private boolean isKittyBackgroundPainted() {
+        return isITerm2 || ((kittyImageManager != null)
+            && (kittyImageManager.getEncoder().getFormat()
+                == KittyImageEncoder.Format.RGBA));
+    }
+
+    /**
      * Place changed horizontal image runs with the kitty graphics protocol.
      * Remove obsolete shared placements before drawing replacements or text.
      * Unchanged runs and cached pixels are never retransmitted.
@@ -5380,10 +5410,7 @@ public class ECMA48Terminal extends LogicalScreen
             sb.append(manager.reset(width, height));
         }
         sb.append(manager.setCellSize(getTextWidth(), getTextHeight()));
-        // Transparent RGBA pixels show the text cell underneath, so paint
-        // it with the image cell's background first.
-        final boolean paintBackground = (manager.getEncoder().getFormat()
-            == KittyImageEncoder.Format.RGBA);
+        final boolean paintBackground = isKittyBackgroundPainted();
         boolean attributesChanged = false;
 
         record KittyRun(int x, int y, List<Cell> cells, boolean redraw) {
