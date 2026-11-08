@@ -92,7 +92,7 @@ Maven Central, so users can add it as an extra dependency when they need
 it. Adding it registers the decoders automatically via `ServiceLoader`,
 so any `TImageWindow` can open the supported formats out of the box.
 
-## Document Parsers Add-on (from Casciian 1.6)
+## Document Parsers Add-on (from Casciian 2.0)
 
 Core Casciian defines a pluggable `DocumentParser` service
 (`casciian.document.parsers`) that converts documents into the `RichText`
