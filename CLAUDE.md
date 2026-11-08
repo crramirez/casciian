@@ -77,10 +77,16 @@ All input is routed as `TInputEvent` subclasses (`TKeypressEvent`, `TMouseEvent`
 
 `casciian.image.decoders` uses a `ServiceLoader`-based `ImageDecoderRegistry`. The core library ships only `SixelImageDecoder`; the `casciian-java-desktop` add-on and demo fat JAR add BMP/JPEG/PNG/XPM decoders as separate `ImageDecoder` service implementations.
 
+### Document parsers
+
+`casciian.document.parsers` mirrors the image decoders: `DocumentParser` implementations (discovered by `DocumentParserRegistry` via `ServiceLoader`, loaded in `TApplication`'s constructor) convert an `InputStream` into a `RichText`, selected by MIME type or file extension. Core ships no parser; the `code-document-parsers/` add-on provides the commonmark-java based `MarkdownDocumentParser`.
+
 ### Optional modules (sibling Gradle projects, not in this directory)
 
 - `code-java-desktop/` — adds `javax.imageio`-based image decoders
 - `code-terminal-component/` — adds `TTerminalWindow` (embedded ECMA-48 terminal emulator)
+- `code-image-decoders/` — adds pure-Java BMP/PNG/XPM image decoders
+- `code-document-parsers/` — adds the Markdown `DocumentParser` and a Markdown viewer demo
 
 ## License Headers
 

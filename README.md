@@ -92,6 +92,18 @@ Maven Central, so users can add it as an extra dependency when they need
 it. Adding it registers the decoders automatically via `ServiceLoader`,
 so any `TImageWindow` can open the supported formats out of the box.
 
+## Document Parsers Add-on (from Casciian 1.6)
+
+Core Casciian defines a pluggable `DocumentParser` service
+(`casciian.document.parsers`) that converts documents into the `RichText`
+model displayed by `TTextAnsi`. Parsers are discovered through
+`ServiceLoader` and selected by MIME type or file extension, or called
+directly with an `InputStream`. The optional
+[`casciian-document-parsers`](code-document-parsers/README.md) add-on
+provides a Markdown parser based on commonmark-java, including tables,
+task lists, hyperlinks and images. It is a separate Gradle multi-project
+under `code-document-parsers/`, with a Markdown viewer demo.
+
 ## License
 
 This project is distributed under the Apache License, Version 2.0.

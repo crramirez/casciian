@@ -1,0 +1,32 @@
+/*
+ * Multi-project settings for the Casciian Document Parsers add-on and its
+ * demo.
+ *
+ * The add-on (casciian-document-parsers) is publishable to Maven Central.
+ * Users can opt into it when they want to convert documents (Markdown, and
+ * more formats in the future) into Casciian RichText.
+ *
+ * For local development we use Gradle composite builds that point at the
+ * sibling `code/` project (and `code-image-decoders/`, used by the demo to
+ * display PNG images), so changes to them are picked up without needing to
+ * publish a snapshot first.
+ */
+rootProject.name = 'code-document-parsers'
+
+include 'casciian-document-parsers'
+include 'demo'
+
+// Composite build: substitute io.github.crramirez:casciian with the sibling
+// casciian project so local builds work without publishing first.
+includeBuild('../code') {
+    dependencySubstitution {
+        substitute module('io.github.crramirez:casciian') using project(':')
+    }
+}
+
+// The demo uses the PNG decoder from the image decoders add-on.
+includeBuild('../code-image-decoders') {
+    dependencySubstitution {
+        substitute module('io.github.crramirez:casciian-image-decoders') using project(':casciian-image-decoders')
+    }
+}
