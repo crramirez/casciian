@@ -59,6 +59,7 @@ import casciian.bits.CellAttributes;
 import casciian.bits.Clipboard;
 import casciian.bits.ColorTheme;
 import casciian.bits.StringUtils;
+import casciian.document.parsers.DocumentParserRegistry;
 import casciian.effect.Effect;
 import casciian.effect.TextCursorGlintEffect;
 import casciian.effect.WindowBurnInEffect;
@@ -930,6 +931,10 @@ public class TApplication implements Runnable {
         // decoders not exposed via ServiceLoader can still call
         // ImageDecoderRegistry.getInstance().registerDecoder(...) explicitly.
         ImageDecoderRegistry.getInstance().loadDecoders();
+
+        // Auto-discover document parsers (e.g. the Markdown parser from the
+        // casciian-document-parsers add-on) via ServiceLoader.
+        DocumentParserRegistry.getInstance().loadParsers();
 
         animationsChanged();
 

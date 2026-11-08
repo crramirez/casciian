@@ -38,6 +38,7 @@ module casciian {
     exports casciian.backend;
     exports casciian.backend.terminal;
     exports casciian.bits;
+    exports casciian.document.parsers;
     exports casciian.effect;
     exports casciian.event;
     exports casciian.help;
@@ -49,6 +50,7 @@ module casciian {
     exports casciian.texteditor;
 
     uses casciian.image.decoders.ImageDecoder;
+    uses casciian.document.parsers.DocumentParser;
 
     provides casciian.image.decoders.ImageDecoder
         with casciian.image.decoders.SixelImageDecoder;
