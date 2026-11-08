@@ -323,8 +323,11 @@ public class DocumentParserRegistry {
         int count = 0;
         Iterator<ServiceLoader.Provider<DocumentParser>> it =
             serviceLoader.stream().iterator();
-        while (it.hasNext()) {
+        while (true) {
             try {
+                if (!it.hasNext()) {
+                    break;
+                }
                 ServiceLoader.Provider<DocumentParser> provider = it.next();
                 if (isRegistered(provider.type())) {
                     continue;

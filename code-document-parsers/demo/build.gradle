@@ -99,7 +99,7 @@ tasks.register('installDemoJpms', Sync) {
 
     def unixLauncherText = '''#!/usr/bin/env sh
 APP_HOME=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-exec java --module-path "$APP_HOME/lib/*" --module casciian.document.parsers.demo/demo.DocumentParsersDemo "$@"
+exec java --module-path "$APP_HOME/lib" --module casciian.document.parsers.demo/demo.DocumentParsersDemo "$@"
 '''
     def windowsLauncherText = '''@echo off
 set APP_HOME=%~dp0..

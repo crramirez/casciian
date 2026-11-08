@@ -135,6 +135,23 @@ class DocumentParserRegistryTest {
         assertThat(registry.getParsers()).isEmpty();
     }
 
+    @Test
+    void serviceLoaderSkipsInvalidProviderDeclarations() throws IOException {
+        Path services = tempDir.resolve("META-INF/services");
+        Files.createDirectories(services);
+        Files.writeString(services.resolve(DocumentParser.class.getName()),
+            "missing.document.parser.Provider\n" + EchoParser.class.getName()
+                + "\n");
+        try (URLClassLoader loader = new URLClassLoader(
+                new URL[] { tempDir.toUri().toURL() },
+                getClass().getClassLoader())) {
+
+            assertThat(registry.loadParsers(loader)).isEqualTo(1);
+        }
+        assertThat(registry.getParsers()).hasSize(1)
+            .first().isInstanceOf(EchoParser.class);
+    }
+
     /**
      * Parser that echoes the decoded text followed by "|" and the base
      * directory, so tests can observe how the registry invoked it.

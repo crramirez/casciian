@@ -62,6 +62,22 @@ class MarkdownDocumentParserTest {
     }
 
     @Test
+    void relativeLinksResolveAgainstTheBaseDirectoryAndKeepSuffixes() {
+        Path base = tempDir.resolve("docs");
+        String destination = "guides/next%20page.md?mode=print#section";
+
+        RichText text = parser.parse("[guide](" + destination + ")", base);
+
+        assertThat(attributesOf(text, "guide").getHyperlink())
+            .isEqualTo(base.toAbsolutePath().resolve("guides/next page.md")
+                .toUri() + "?mode=print#section");
+        RichText absolute = parser.parse(
+            "[web](https://example.com/guide?q=1#top)", base);
+        assertThat(attributesOf(absolute, "web").getHyperlink())
+            .isEqualTo("https://example.com/guide?q=1#top");
+    }
+
+    @Test
     void headingsAreBoldAndTopLevelsAreUnderlined() {
         RichText text = parser.parse("# Title\n\n## Sub\n\n### Third\n\nBody",
             null);
@@ -102,6 +118,20 @@ class MarkdownDocumentParserTest {
             "",
             "3. three",
             "4. four");
+    }
+
+    @Test
+    void nestedOrderedListsKeepIndependentNumbers() {
+        String markdown = """
+            4. outer
+            5. second
+               7. inner
+               8. next
+            6. third
+            """;
+
+        assertThat(lines(parser.parse(markdown, null))).containsExactly(
+            "4. outer", "5. second 7. inner 8. next", "6. third");
     }
 
     @Test
@@ -192,6 +222,38 @@ class MarkdownDocumentParserTest {
         assertThat(text.getPlainText()).isEqualTo("[chart]");
         assertThat(attributesOf(text, "[chart]").getHyperlink())
             .isEqualTo("https://example.com/c.png");
+    }
+
+    @Test
+    void protocolRelativeImagesRemainRemote() {
+        RichText text = parser.parse("![badge](//example.com/badge.png)",
+            tempDir);
+
+        assertThat(images(text)).isEmpty();
+        assertThat(attributesOf(text, "[badge]").getHyperlink())
+            .isEqualTo("//example.com/badge.png");
+    }
+
+    @Test
+    void htmlImageAttributesDoNotMatchDataAttributes() {
+        RichText text = parser.parse(
+            "<img data-src=\"large.png\" src=\"small.png\" "
+                + "data-alt=\"Large\" alt=\"Small\">", tempDir);
+
+        assertThat(images(text)).containsExactly(
+            tempDir.toAbsolutePath().resolve("small.png").toString());
+        assertThat(text.getPlainText()).contains("[Small]");
+    }
+
+    @Test
+    void htmlBreaksSeparateWordsInsideTableCells() {
+        RichText text = parser.parse("""
+            | text |
+            | --- |
+            | first<br>second |
+            """, null);
+
+        assertThat(text.getPlainText()).contains("first second");
     }
 
     @Test

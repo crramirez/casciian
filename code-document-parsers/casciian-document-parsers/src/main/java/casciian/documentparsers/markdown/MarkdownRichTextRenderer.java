@@ -109,6 +109,7 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
     private final boolean inlineOnly;
 
     private final Deque<CellAttributes> styles = new ArrayDeque<>();
+    private final Deque<Integer> orderedListNumbers = new ArrayDeque<>();
     private final List<Prefix> prefixes = new ArrayList<>();
     private boolean lineStart = true;
     private boolean afterImage = false;
@@ -296,7 +297,7 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
             attr.setUnderlineStyle(CellAttributes.UNDERLINE_STYLE_SINGLE);
             foreColor(attr, Color.CYAN);
             if (destination != null && !destination.isEmpty()) {
-                attr.setHyperlink(destination);
+                attr.setHyperlink(resolveLinkDestination(destination));
             }
         }, () -> visitChildren(link));
     }
@@ -480,6 +481,40 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
         attr.setDefaultColor(false, false);
     }
 
+    /**
+     * Resolve a relative link destination against the document directory.
+     *
+     * @param destination the link destination
+     * @return the destination as an absolute file URI when it is relative
+     */
+    private String resolveLinkDestination(final String destination) {
+        try {
+            URI uri = new URI(destination);
+            if (uri.isAbsolute() || uri.getRawAuthority() != null
+                || baseDirectory == null) {
+                return destination;
+            }
+            URI directory = baseDirectory.toAbsolutePath().normalize().toUri();
+            if (!directory.getPath().endsWith("/")) {
+                directory = new URI(directory.getScheme(),
+                    directory.getAuthority(), directory.getPath() + "/",
+                    null, null);
+            }
+            URI resolved = directory.resolve(uri).normalize();
+            String fileUri = Path.of(resolved.getPath()).toAbsolutePath()
+                .normalize().toUri().toString();
+            if (resolved.getRawQuery() != null) {
+                fileUri += "?" + resolved.getRawQuery();
+            }
+            if (resolved.getRawFragment() != null) {
+                fileUri += "#" + resolved.getRawFragment();
+            }
+            return fileUri;
+        } catch (URISyntaxException | IllegalArgumentException e) {
+            return destination;
+        }
+    }
+
     // ------------------------------------------------------------------------
     // Lists ------------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -491,7 +526,14 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
      */
     private void visitList(final ListBlock list) {
         listDepth++;
+        if (list instanceof OrderedList ordered) {
+            orderedListNumbers.push(ordered.getMarkerStartNumber() == null
+                ? 1 : ordered.getMarkerStartNumber());
+        }
         visitChildren(list);
+        if (list instanceof OrderedList) {
+            orderedListNumbers.pop();
+        }
         listDepth--;
         endBlock(list);
     }
@@ -504,11 +546,8 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
      */
     private String listMarker(final ListItem item) {
         if (item.getParent() instanceof OrderedList ordered) {
-            int number = ordered.getMarkerStartNumber() == null
-                ? 1 : ordered.getMarkerStartNumber();
-            for (Node n = item.getPrevious(); n != null; n = n.getPrevious()) {
-                number++;
-            }
+            int number = orderedListNumbers.pop();
+            orderedListNumbers.push(number + 1);
             String delimiter = ordered.getMarkerDelimiter() == null
                 ? "." : ordered.getMarkerDelimiter();
             return number + delimiter + " ";
@@ -608,6 +647,9 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
                 }
                 return Path.of(uri).normalize().toString();
             }
+            if (scheme == null && uri.getRawAuthority() != null) {
+                return null;
+            }
             if (scheme == null && uri.getPath() != null
                 && !uri.getPath().isEmpty()) {
                 location = uri.getPath();
@@ -683,7 +725,11 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
         String[] parts = HTML_BR.split(html, -1);
         for (int i = 0; i < parts.length; i++) {
             if (i > 0) {
-                newline();
+                if (inlineOnly) {
+                    text(" ", styles.peek());
+                } else {
+                    newline();
+                }
             }
             String content = decodeEntities(
                 HTML_TAG.matcher(parts[i]).replaceAll(""));
@@ -713,7 +759,7 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
      * @return the decoded value, or null
      */
     private static String htmlAttribute(final String tag, final String name) {
-        Matcher m = Pattern.compile("\\b" + name
+        Matcher m = Pattern.compile("(?:^|\\s)" + name
             + "\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s>]+))",
             Pattern.CASE_INSENSITIVE).matcher(tag);
         if (!m.find()) {
