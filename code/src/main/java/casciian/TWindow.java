@@ -140,6 +140,11 @@ public class TWindow extends TWidget {
     protected boolean inWindowMove = false;
 
     /**
+     * If true, consume the mouse release after a title-bar double-click.
+     */
+    private boolean consumeMouseRelease = false;
+
+    /**
      * If true, then the user clicked on the bottom right corner and is
      * resizing the window.
      */
@@ -631,6 +636,11 @@ public class TWindow extends TWidget {
     public void onMouseUp(final TMouseEvent mouse) {
         this.mouse = mouse;
 
+        if (consumeMouseRelease && mouse.isMouse1()) {
+            consumeMouseRelease = false;
+            return;
+        }
+
         if ((inWindowMove) && (mouse.isMouse1())) {
             // Stop moving window
             inWindowMove = false;
@@ -689,7 +699,8 @@ public class TWindow extends TWidget {
     public void onMouseDoubleClick(final TMouseEvent mouse) {
         this.mouse = mouse;
 
-        if ((mouse.getAbsoluteY() == getY())
+        if (!(this instanceof TDesktop)
+            && (mouse.getAbsoluteY() == getY())
             && mouse.isMouse1()
             && (getX() <= mouse.getAbsoluteX())
             && (mouse.getAbsoluteX() < getX() + getWidth())
@@ -700,6 +711,7 @@ public class TWindow extends TWidget {
                 // Do not let the second click's pending move drag the
                 // freshly maximized/restored window.
                 inWindowMove = false;
+                consumeMouseRelease = true;
                 if (maximized) {
                     restore();
                 } else {

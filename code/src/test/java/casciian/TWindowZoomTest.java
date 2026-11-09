@@ -28,6 +28,7 @@ import static casciian.TCommand.cmWindowZoom;
 import static casciian.TKeypress.kbF5;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests user-initiated window zoom behavior.
@@ -123,6 +124,55 @@ class TWindowZoomTest {
 
         doubleClick(window, window.getX() + 10, window.getY() + 3);
 
+        assertEquals(width, window.getWidth());
+        assertEquals(height, window.getHeight());
+    }
+
+    @Test
+    void doubleClickOnDesktopDispatchesToChild() {
+        TApplication application = new TApplication(new HeadlessBackend());
+        TDesktop desktop = application.getDesktop();
+        int[] doubleClickCount = new int[1];
+        TWidget child = new TWidget(desktop, 0, 0, 20, 4) {
+            @Override
+            public void onMouseDoubleClick(final TMouseEvent mouse) {
+                doubleClickCount[0]++;
+            }
+        };
+
+        TMouseEvent event = mouse(desktop, TMouseEvent.Type.MOUSE_DOUBLE_CLICK,
+            5, desktop.getY());
+        assertTrue(child.mouseWouldHit(event));
+        desktop.onMouseDoubleClick(event);
+
+        assertEquals(1, doubleClickCount[0]);
+    }
+
+    @Test
+    void releaseAfterRestoreDoesNotActivateCloseButton() {
+        TWindow window = window(TWindow.RESIZABLE);
+        TApplication application = window.getApplication();
+        doubleClick(window, window.getX() + 10, window.getY());
+
+        doubleClick(window, 4, window.getY());
+
+        assertTrue(application.hasWindow(window));
+    }
+
+    @Test
+    void releaseAfterRestoreDoesNotActivateMaximizeButton() {
+        TWindow window = new TWindow(new TApplication(new HeadlessBackend()),
+            "zoom", 1, 0, 40, 10, TWindow.RESIZABLE);
+        int x = window.getX();
+        int y = window.getY();
+        int width = window.getWidth();
+        int height = window.getHeight();
+        doubleClick(window, x + 10, y);
+
+        doubleClick(window, 37, window.getY());
+
+        assertEquals(x, window.getX());
+        assertEquals(y, window.getY());
         assertEquals(width, window.getWidth());
         assertEquals(height, window.getHeight());
     }
