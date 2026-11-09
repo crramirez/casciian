@@ -16,6 +16,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['21', '27']
     defaults:
       run:
         working-directory: code
@@ -24,10 +28,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up JDK 21
+    - name: Set up JDK ${{ matrix.java }}
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: ${{ matrix.java }}
         distribution: 'temurin'
 
     # Configure Gradle for optimal use in GitHub Actions, including caching of downloaded dependencies.
@@ -36,4 +40,4 @@ jobs:
       uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
 
     - name: Build with Gradle Wrapper
-      run: ./gradlew build
+      run: ./gradlew build -PjavaToolchainVersion=${{ matrix.java }}
