@@ -681,7 +681,12 @@ final class MarkdownRichTextRenderer extends AbstractVisitor {
                 if (!"file".equalsIgnoreCase(scheme)) {
                     return null;
                 }
-                return Path.of(uri).normalize().toString();
+                if (uri.isOpaque()) {
+                    // e.g. "file:./images/a.png": a relative file reference
+                    location = uri.getSchemeSpecificPart();
+                } else {
+                    return Path.of(uri).normalize().toString();
+                }
             }
             if (scheme == null && uri.getRawAuthority() != null) {
                 return null;

@@ -212,6 +212,48 @@ class MarkdownDocumentParserTest {
     }
 
     @Test
+    void dotSlashImagesAreResolved() {
+        Path base = tempDir.toAbsolutePath();
+        RichText text = parser.parse("![a](./images/image.png)\n\n"
+            + "<img src=\"./images/b.png\">\n\n![c](<./my images/c.png>)\n\n"
+            + "![d](.\\images\\d.png)", base);
+
+        assertThat(images(text)).containsExactly(
+            base.resolve("images/image.png").toString(),
+            base.resolve("images/b.png").toString(),
+            base.resolve("my images/c.png").toString(),
+            base.resolve(".\\images\\d.png").normalize().toString());
+    }
+
+    @Test
+    void relativeFileUrisAreResolvedAgainstTheBaseDirectory() {
+        Path base = tempDir.toAbsolutePath();
+        RichText text = parser.parse("![a](file:./images/a.png)", base);
+
+        assertThat(images(text)).containsExactly(
+            base.resolve("images/a.png").toString());
+    }
+
+    @Test
+    void dotSlashImagesInNestedContexts() {
+        Path base = tempDir.toAbsolutePath();
+        RichText text = parser.parse("- ![a](./i/a.png)\n\n"
+            + "> ![b](./i/b.png)\n\n[![c](./i/c.png)](http://x.y)\n\n"
+            + "<img src=./i/d.png>\n\n<img src=\"./i/e.png\"/>\n\n"
+            + "![f][r]\n\n[r]: ./i/f.png\n\n"
+            + "<a href=\"x\"><img src=\"./i/g.png\"></a>", base);
+
+        assertThat(images(text)).containsExactly(
+            base.resolve("i/a.png").toString(),
+            base.resolve("i/b.png").toString(),
+            base.resolve("i/c.png").toString(),
+            base.resolve("i/d.png").toString(),
+            base.resolve("i/e.png").toString(),
+            base.resolve("i/f.png").toString(),
+            base.resolve("i/g.png").toString());
+    }
+
+    @Test
     void htmlImagesAreSupportedAndOtherTagsDropped() {
         RichText text = parser.parse(
             "<p align=\"center\"><img src='badge.png' alt=\"Badge\"> "
