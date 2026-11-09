@@ -12,7 +12,7 @@ group = 'io.github.crramirez'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(providers.gradleProperty('javaToolchainVersion').getOrElse('21') as int)
     }
     withSourcesJar()
     withJavadocJar()
