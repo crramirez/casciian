@@ -21,12 +21,14 @@ import casciian.backend.HeadlessBackend;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMenuEvent;
+import casciian.event.TMouseEvent;
 import casciian.menu.TMenu;
 
 import static casciian.TCommand.cmWindowZoom;
 import static casciian.TKeypress.kbF5;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests user-initiated window zoom behavior.
@@ -79,6 +81,153 @@ class TWindowZoomTest {
 
         assertNotEquals(originalWidth, window.getWidth());
         assertNotEquals(originalHeight, window.getHeight());
+    }
+
+    @Test
+    void doubleClickOnTitleBarMaximizesAndRestores() {
+        TWindow window = window(TWindow.RESIZABLE);
+        int x = window.getX();
+        int y = window.getY();
+        int width = window.getWidth();
+        int height = window.getHeight();
+
+        doubleClick(window, x + 10, y);
+
+        assertEquals(window.getScreen().getWidth(), window.getWidth());
+        assertNotEquals(height, window.getHeight());
+
+        doubleClick(window, window.getX() + 10, window.getY());
+
+        assertEquals(x, window.getX());
+        assertEquals(y, window.getY());
+        assertEquals(width, window.getWidth());
+        assertEquals(height, window.getHeight());
+    }
+
+    @Test
+    void doubleClickOnTitleBarDoesNotZoomNonResizableWindow() {
+        TWindow window = window(0);
+        int width = window.getWidth();
+        int height = window.getHeight();
+
+        doubleClick(window, window.getX() + 10, window.getY());
+
+        assertEquals(width, window.getWidth());
+        assertEquals(height, window.getHeight());
+    }
+
+    @Test
+    void doubleClickOutsideTitleBarDoesNotZoom() {
+        TWindow window = window(TWindow.RESIZABLE);
+        int width = window.getWidth();
+        int height = window.getHeight();
+
+        doubleClick(window, window.getX() + 10, window.getY() + 3);
+
+        assertEquals(width, window.getWidth());
+        assertEquals(height, window.getHeight());
+    }
+
+    @Test
+    void doubleClickOnDesktopDispatchesToChild() {
+        TApplication application = new TApplication(new HeadlessBackend());
+        TDesktop desktop = application.getDesktop();
+        int[] doubleClickCount = new int[1];
+        TWidget child = new TWidget(desktop, 0, 0, 20, 4) {
+            @Override
+            public void onMouseDoubleClick(final TMouseEvent mouse) {
+                doubleClickCount[0]++;
+            }
+        };
+
+        TMouseEvent event = mouse(desktop, TMouseEvent.Type.MOUSE_DOUBLE_CLICK,
+            5, desktop.getY());
+        assertTrue(child.mouseWouldHit(event));
+        desktop.onMouseDoubleClick(event);
+
+        assertEquals(1, doubleClickCount[0]);
+    }
+
+    @Test
+    void releaseAfterRestoreDoesNotActivateCloseButton() {
+        TWindow window = new TWindow(new TApplication(new HeadlessBackend()),
+            "zoom", 1, 0, 40, 10, TWindow.RESIZABLE);
+        TApplication application = window.getApplication();
+        doubleClick(window, window.getX() + 10, window.getY());
+
+        doubleClick(window, 4, window.getY());
+
+        assertTrue(application.hasWindow(window));
+    }
+
+    @Test
+    void releaseAfterRestoreDoesNotActivateMaximizeButton() {
+        TWindow window = new TWindow(new TApplication(new HeadlessBackend()),
+            "zoom", 1, 0, 40, 10, TWindow.RESIZABLE);
+        int x = window.getX();
+        int y = window.getY();
+        int width = window.getWidth();
+        int height = window.getHeight();
+        doubleClick(window, x + 10, y);
+
+        doubleClick(window, 37, window.getY());
+
+        assertEquals(x, window.getX());
+        assertEquals(y, window.getY());
+        assertEquals(width, window.getWidth());
+        assertEquals(height, window.getHeight());
+    }
+
+    @Test
+    void doubleClickOnMaximizeButtonDoesNotImmediatelyRestoreWindow() {
+        TWindow window = new TWindow(new TApplication(new HeadlessBackend()),
+            "zoom", 1, 0, 40, 10, TWindow.RESIZABLE);
+
+        doubleClick(window, 37, window.getY());
+
+        assertEquals(window.getScreen().getWidth(), window.getWidth());
+    }
+
+    @Test
+    void newMousePressClearsReleaseAfterFocusSwitch() {
+        TApplication application = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(application,
+            "zoom", 1, 0, 40, 10, TWindow.RESIZABLE);
+        TWindow other = new TWindow(application,
+            "other", 45, 1, 20, 8, TWindow.RESIZABLE);
+        int x = window.getX() + 10;
+        int y = window.getY();
+        doubleClick(window, x, y);
+
+        window.onMouseDoubleClick(mouse(window,
+            TMouseEvent.Type.MOUSE_DOUBLE_CLICK, x, y));
+        other.onMouseUp(mouse(other, TMouseEvent.Type.MOUSE_UP,
+            other.getX() + 10, other.getY() + 3));
+
+        int restoredX = window.getX();
+        window.onMouseDown(mouse(window, TMouseEvent.Type.MOUSE_DOWN, x, y));
+        window.onMouseUp(mouse(window, TMouseEvent.Type.MOUSE_UP, x, y));
+        window.onMouseMotion(mouse(window, TMouseEvent.Type.MOUSE_MOTION,
+            x + 1, y));
+
+        assertEquals(restoredX, window.getX());
+    }
+
+    private void doubleClick(final TWindow window, final int x, final int y) {
+        window.handleEvent(mouse(window, TMouseEvent.Type.MOUSE_DOWN, x, y));
+        window.handleEvent(mouse(window, TMouseEvent.Type.MOUSE_UP, x, y));
+        window.handleEvent(mouse(window, TMouseEvent.Type.MOUSE_DOWN, x, y));
+        window.handleEvent(mouse(window,
+                TMouseEvent.Type.MOUSE_DOUBLE_CLICK, x, y));
+        window.handleEvent(mouse(window, TMouseEvent.Type.MOUSE_UP, x, y));
+    }
+
+    private TMouseEvent mouse(final TWindow window,
+        final TMouseEvent.Type type, final int x, final int y) {
+
+        return new TMouseEvent(null, type, x - window.getX(),
+            y - window.getY(), x, y, 0, 0, true, false, false,
+            false, false, false, false, false);
     }
 
     private TWindow window(final int flags) {

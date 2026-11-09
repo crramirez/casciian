@@ -140,6 +140,28 @@ public class TWindow extends TWidget {
     protected boolean inWindowMove = false;
 
     /**
+     * If true, consume the mouse release after a title-bar double-click.
+     */
+    private boolean consumeMouseRelease = false;
+
+    /**
+     * If true, the last mouse press was a continuation of a maximize-button
+     * click at the recorded coordinates.
+     */
+    private boolean maximizeButtonDoubleClickCandidate = false;
+
+    /**
+     * If true, a maximize-button click may be followed by a double-click.
+     */
+    private boolean maximizeButtonClickPending = false;
+
+    /**
+     * Coordinates of the most recent maximize-button click.
+     */
+    private int maximizeButtonClickX;
+    private int maximizeButtonClickY;
+
+    /**
      * If true, then the user clicked on the bottom right corner and is
      * resizing the window.
      */
@@ -584,6 +606,21 @@ public class TWindow extends TWidget {
     public void onMouseDown(final TMouseEvent mouse) {
         this.mouse = mouse;
 
+        if (mouse.isMouse1()) {
+            consumeMouseRelease = false;
+            if (maximizeButtonDoubleClickCandidate) {
+                maximizeButtonDoubleClickCandidate = false;
+                maximizeButtonClickPending = false;
+            }
+            maximizeButtonDoubleClickCandidate =
+                maximizeButtonClickPending
+                && (maximizeButtonClickX == mouse.getAbsoluteX())
+                && (maximizeButtonClickY == mouse.getAbsoluteY());
+            if (!maximizeButtonDoubleClickCandidate) {
+                maximizeButtonClickPending = false;
+            }
+        }
+
         inKeyboardResize = false;
         inWindowMove = false;
         inWindowResize = false;
@@ -601,9 +638,6 @@ public class TWindow extends TWidget {
             moveWindowMouseY = mouse.getAbsoluteY();
             oldWindowX = getX();
             oldWindowY = getY();
-            if (maximized) {
-                maximized = false;
-            }
             return;
         }
         if (mouseOnResize()) {
@@ -613,9 +647,6 @@ public class TWindow extends TWidget {
             moveWindowMouseY = mouse.getAbsoluteY();
             resizeWindowWidth = getWidth();
             resizeWindowHeight = getHeight();
-            if (maximized) {
-                maximized = false;
-            }
             return;
         }
 
@@ -636,6 +667,16 @@ public class TWindow extends TWidget {
     @Override
     public void onMouseUp(final TMouseEvent mouse) {
         this.mouse = mouse;
+
+        if (maximizeButtonDoubleClickCandidate && mouse.isMouse1()) {
+            maximizeButtonDoubleClickCandidate = false;
+            maximizeButtonClickPending = false;
+        }
+
+        if (consumeMouseRelease && mouse.isMouse1()) {
+            consumeMouseRelease = false;
+            return;
+        }
 
         if ((inWindowMove) && (mouse.isMouse1())) {
             // Stop moving window
@@ -663,6 +704,9 @@ public class TWindow extends TWidget {
         if ((mouse.getAbsoluteY() == getY())
             && mouse.isMouse1()
             && mouseOnMaximize()) {
+            maximizeButtonClickX = mouse.getAbsoluteX();
+            maximizeButtonClickY = mouse.getAbsoluteY();
+            maximizeButtonClickPending = true;
             if (maximized) {
                 // Restore
                 restore();
@@ -686,6 +730,51 @@ public class TWindow extends TWidget {
     }
 
     /**
+     * Handle mouse double-clicks.  Double-clicking the title bar of a
+     * zoomable window toggles between maximized and restored.
+     *
+     * @param mouse mouse double-click event
+     */
+    @Override
+    public void onMouseDoubleClick(final TMouseEvent mouse) {
+        this.mouse = mouse;
+
+        if (maximizeButtonDoubleClickCandidate
+            && (maximizeButtonClickX == mouse.getAbsoluteX())
+            && (maximizeButtonClickY == mouse.getAbsoluteY())
+        ) {
+            maximizeButtonDoubleClickCandidate = false;
+            maximizeButtonClickPending = false;
+            super.onMouseDoubleClick(mouse);
+            return;
+        }
+
+        if (!(this instanceof TDesktop)
+            && (mouse.getAbsoluteY() == getY())
+            && mouse.isMouse1()
+            && (getX() <= mouse.getAbsoluteX())
+            && (mouse.getAbsoluteX() < getX() + getWidth())
+            && !mouseOnClose()
+            && !mouseOnMaximize()
+        ) {
+            if (canZoom() && !isModal()) {
+                // Do not let the second click's pending move drag the
+                // freshly maximized/restored window.
+                inWindowMove = false;
+                consumeMouseRelease = true;
+                if (maximized) {
+                    restore();
+                } else {
+                    maximize();
+                }
+            }
+            return;
+        }
+
+        super.onMouseDoubleClick(mouse);
+    }
+
+    /**
      * Handle mouse movements.
      *
      * @param mouse mouse motion event
@@ -695,6 +784,12 @@ public class TWindow extends TWidget {
         this.mouse = mouse;
 
         if (inWindowMove) {
+            // A real drag (not just a click) leaves the maximized state.
+            if ((mouse.getAbsoluteX() != moveWindowMouseX)
+                || (mouse.getAbsoluteY() != moveWindowMouseY)
+            ) {
+                maximized = false;
+            }
             // Move window over
             setX(oldWindowX + (mouse.getAbsoluteX() - moveWindowMouseX));
             setY(oldWindowY + (mouse.getAbsoluteY() - moveWindowMouseY));
@@ -710,6 +805,11 @@ public class TWindow extends TWidget {
         }
 
         if (inWindowResize) {
+            if ((mouse.getAbsoluteX() != moveWindowMouseX)
+                || (mouse.getAbsoluteY() != moveWindowMouseY)
+            ) {
+                maximized = false;
+            }
             // Move window over
             int newWidth = resizeWindowWidth + (mouse.getAbsoluteX()
                     - moveWindowMouseX);
