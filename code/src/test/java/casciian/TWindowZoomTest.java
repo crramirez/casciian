@@ -21,6 +21,7 @@ import casciian.backend.HeadlessBackend;
 import casciian.event.TCommandEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMenuEvent;
+import casciian.event.TMouseEvent;
 import casciian.menu.TMenu;
 
 import static casciian.TCommand.cmWindowZoom;
@@ -79,6 +80,68 @@ class TWindowZoomTest {
 
         assertNotEquals(originalWidth, window.getWidth());
         assertNotEquals(originalHeight, window.getHeight());
+    }
+
+    @Test
+    void doubleClickOnTitleBarMaximizesAndRestores() {
+        TWindow window = window(TWindow.RESIZABLE);
+        int x = window.getX();
+        int y = window.getY();
+        int width = window.getWidth();
+        int height = window.getHeight();
+
+        doubleClick(window, x + 10, y);
+
+        assertEquals(window.getScreen().getWidth(), window.getWidth());
+        assertNotEquals(height, window.getHeight());
+
+        doubleClick(window, window.getX() + 10, window.getY());
+
+        assertEquals(x, window.getX());
+        assertEquals(y, window.getY());
+        assertEquals(width, window.getWidth());
+        assertEquals(height, window.getHeight());
+    }
+
+    @Test
+    void doubleClickOnTitleBarDoesNotZoomNonResizableWindow() {
+        TWindow window = window(0);
+        int width = window.getWidth();
+        int height = window.getHeight();
+
+        doubleClick(window, window.getX() + 10, window.getY());
+
+        assertEquals(width, window.getWidth());
+        assertEquals(height, window.getHeight());
+    }
+
+    @Test
+    void doubleClickOutsideTitleBarDoesNotZoom() {
+        TWindow window = window(TWindow.RESIZABLE);
+        int width = window.getWidth();
+        int height = window.getHeight();
+
+        doubleClick(window, window.getX() + 10, window.getY() + 3);
+
+        assertEquals(width, window.getWidth());
+        assertEquals(height, window.getHeight());
+    }
+
+    private void doubleClick(final TWindow window, final int x, final int y) {
+        window.handleEvent(mouse(window, TMouseEvent.Type.MOUSE_DOWN, x, y));
+        window.handleEvent(mouse(window, TMouseEvent.Type.MOUSE_UP, x, y));
+        window.handleEvent(mouse(window, TMouseEvent.Type.MOUSE_DOWN, x, y));
+        window.handleEvent(mouse(window,
+                TMouseEvent.Type.MOUSE_DOUBLE_CLICK, x, y));
+        window.handleEvent(mouse(window, TMouseEvent.Type.MOUSE_UP, x, y));
+    }
+
+    private TMouseEvent mouse(final TWindow window,
+        final TMouseEvent.Type type, final int x, final int y) {
+
+        return new TMouseEvent(null, type, x - window.getX(),
+            y - window.getY(), x, y, 0, 0, true, false, false,
+            false, false, false, false, false);
     }
 
     private TWindow window(final int flags) {

@@ -601,9 +601,6 @@ public class TWindow extends TWidget {
             moveWindowMouseY = mouse.getAbsoluteY();
             oldWindowX = getX();
             oldWindowY = getY();
-            if (maximized) {
-                maximized = false;
-            }
             return;
         }
         if (mouseOnResize()) {
@@ -613,9 +610,6 @@ public class TWindow extends TWidget {
             moveWindowMouseY = mouse.getAbsoluteY();
             resizeWindowWidth = getWidth();
             resizeWindowHeight = getHeight();
-            if (maximized) {
-                maximized = false;
-            }
             return;
         }
 
@@ -686,6 +680,39 @@ public class TWindow extends TWidget {
     }
 
     /**
+     * Handle mouse double-clicks.  Double-clicking the title bar of a
+     * zoomable window toggles between maximized and restored.
+     *
+     * @param mouse mouse double-click event
+     */
+    @Override
+    public void onMouseDoubleClick(final TMouseEvent mouse) {
+        this.mouse = mouse;
+
+        if ((mouse.getAbsoluteY() == getY())
+            && mouse.isMouse1()
+            && (getX() <= mouse.getAbsoluteX())
+            && (mouse.getAbsoluteX() < getX() + getWidth())
+            && !mouseOnClose()
+            && !mouseOnMaximize()
+        ) {
+            if (canZoom() && !isModal()) {
+                // Do not let the second click's pending move drag the
+                // freshly maximized/restored window.
+                inWindowMove = false;
+                if (maximized) {
+                    restore();
+                } else {
+                    maximize();
+                }
+            }
+            return;
+        }
+
+        super.onMouseDoubleClick(mouse);
+    }
+
+    /**
      * Handle mouse movements.
      *
      * @param mouse mouse motion event
@@ -695,6 +722,12 @@ public class TWindow extends TWidget {
         this.mouse = mouse;
 
         if (inWindowMove) {
+            // A real drag (not just a click) leaves the maximized state.
+            if ((mouse.getAbsoluteX() != moveWindowMouseX)
+                || (mouse.getAbsoluteY() != moveWindowMouseY)
+            ) {
+                maximized = false;
+            }
             // Move window over
             setX(oldWindowX + (mouse.getAbsoluteX() - moveWindowMouseX));
             setY(oldWindowY + (mouse.getAbsoluteY() - moveWindowMouseY));
@@ -710,6 +743,11 @@ public class TWindow extends TWidget {
         }
 
         if (inWindowResize) {
+            if ((mouse.getAbsoluteX() != moveWindowMouseX)
+                || (mouse.getAbsoluteY() != moveWindowMouseY)
+            ) {
+                maximized = false;
+            }
             // Move window over
             int newWidth = resizeWindowWidth + (mouse.getAbsoluteX()
                     - moveWindowMouseX);
