@@ -145,6 +145,23 @@ public class TWindow extends TWidget {
     private boolean consumeMouseRelease = false;
 
     /**
+     * If true, the last mouse press was a continuation of a maximize-button
+     * click at the recorded coordinates.
+     */
+    private boolean maximizeButtonDoubleClickCandidate = false;
+
+    /**
+     * If true, a maximize-button click may be followed by a double-click.
+     */
+    private boolean maximizeButtonClickPending = false;
+
+    /**
+     * Coordinates of the most recent maximize-button click.
+     */
+    private int maximizeButtonClickX;
+    private int maximizeButtonClickY;
+
+    /**
      * If true, then the user clicked on the bottom right corner and is
      * resizing the window.
      */
@@ -589,6 +606,21 @@ public class TWindow extends TWidget {
     public void onMouseDown(final TMouseEvent mouse) {
         this.mouse = mouse;
 
+        if (mouse.isMouse1()) {
+            consumeMouseRelease = false;
+            if (maximizeButtonDoubleClickCandidate) {
+                maximizeButtonDoubleClickCandidate = false;
+                maximizeButtonClickPending = false;
+            }
+            maximizeButtonDoubleClickCandidate =
+                maximizeButtonClickPending
+                && (maximizeButtonClickX == mouse.getAbsoluteX())
+                && (maximizeButtonClickY == mouse.getAbsoluteY());
+            if (!maximizeButtonDoubleClickCandidate) {
+                maximizeButtonClickPending = false;
+            }
+        }
+
         inKeyboardResize = false;
         inWindowMove = false;
         inWindowResize = false;
@@ -636,6 +668,11 @@ public class TWindow extends TWidget {
     public void onMouseUp(final TMouseEvent mouse) {
         this.mouse = mouse;
 
+        if (maximizeButtonDoubleClickCandidate && mouse.isMouse1()) {
+            maximizeButtonDoubleClickCandidate = false;
+            maximizeButtonClickPending = false;
+        }
+
         if (consumeMouseRelease && mouse.isMouse1()) {
             consumeMouseRelease = false;
             return;
@@ -667,6 +704,9 @@ public class TWindow extends TWidget {
         if ((mouse.getAbsoluteY() == getY())
             && mouse.isMouse1()
             && mouseOnMaximize()) {
+            maximizeButtonClickX = mouse.getAbsoluteX();
+            maximizeButtonClickY = mouse.getAbsoluteY();
+            maximizeButtonClickPending = true;
             if (maximized) {
                 // Restore
                 restore();
@@ -698,6 +738,16 @@ public class TWindow extends TWidget {
     @Override
     public void onMouseDoubleClick(final TMouseEvent mouse) {
         this.mouse = mouse;
+
+        if (maximizeButtonDoubleClickCandidate
+            && (maximizeButtonClickX == mouse.getAbsoluteX())
+            && (maximizeButtonClickY == mouse.getAbsoluteY())
+        ) {
+            maximizeButtonDoubleClickCandidate = false;
+            maximizeButtonClickPending = false;
+            super.onMouseDoubleClick(mouse);
+            return;
+        }
 
         if (!(this instanceof TDesktop)
             && (mouse.getAbsoluteY() == getY())

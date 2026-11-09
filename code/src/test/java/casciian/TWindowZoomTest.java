@@ -150,7 +150,8 @@ class TWindowZoomTest {
 
     @Test
     void releaseAfterRestoreDoesNotActivateCloseButton() {
-        TWindow window = window(TWindow.RESIZABLE);
+        TWindow window = new TWindow(new TApplication(new HeadlessBackend()),
+            "zoom", 1, 0, 40, 10, TWindow.RESIZABLE);
         TApplication application = window.getApplication();
         doubleClick(window, window.getX() + 10, window.getY());
 
@@ -175,6 +176,41 @@ class TWindowZoomTest {
         assertEquals(y, window.getY());
         assertEquals(width, window.getWidth());
         assertEquals(height, window.getHeight());
+    }
+
+    @Test
+    void doubleClickOnMaximizeButtonDoesNotImmediatelyRestoreWindow() {
+        TWindow window = new TWindow(new TApplication(new HeadlessBackend()),
+            "zoom", 1, 0, 40, 10, TWindow.RESIZABLE);
+
+        doubleClick(window, 37, window.getY());
+
+        assertEquals(window.getScreen().getWidth(), window.getWidth());
+    }
+
+    @Test
+    void newMousePressClearsReleaseAfterFocusSwitch() {
+        TApplication application = new TApplication(new HeadlessBackend());
+        TWindow window = new TWindow(application,
+            "zoom", 1, 0, 40, 10, TWindow.RESIZABLE);
+        TWindow other = new TWindow(application,
+            "other", 45, 1, 20, 8, TWindow.RESIZABLE);
+        int x = window.getX() + 10;
+        int y = window.getY();
+        doubleClick(window, x, y);
+
+        window.onMouseDoubleClick(mouse(window,
+            TMouseEvent.Type.MOUSE_DOUBLE_CLICK, x, y));
+        other.onMouseUp(mouse(other, TMouseEvent.Type.MOUSE_UP,
+            other.getX() + 10, other.getY() + 3));
+
+        int restoredX = window.getX();
+        window.onMouseDown(mouse(window, TMouseEvent.Type.MOUSE_DOWN, x, y));
+        window.onMouseUp(mouse(window, TMouseEvent.Type.MOUSE_UP, x, y));
+        window.onMouseMotion(mouse(window, TMouseEvent.Type.MOUSE_MOTION,
+            x + 1, y));
+
+        assertEquals(restoredX, window.getX());
     }
 
     private void doubleClick(final TWindow window, final int x, final int y) {
