@@ -53,7 +53,8 @@ textAnsiWindow.getTextAnsiField().setRichText(doc);
 
 ## Images
 
-Images are decoded by the image decoders add-on:
+Images are decoded by the image decoders add-on. Double-click an image to
+open it in its own window, where it can be zoomed and inspected:
 
 ![Sample chart](chart.png)
 
