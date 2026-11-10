@@ -513,7 +513,7 @@ public class TTextAnsi extends TScrollable {
         final int contentWidth = displayWidth;
         Map<RenderedImageKey, List<List<Cell>>> previous = renderedImages;
         renderedImages = new HashMap<>();
-        lines = RichTextLayout.layout(richText, displayWidth,
+        lines = RichTextLayout.layout(richText, displayWidth, true,
             run -> renderImage(run, contentWidth, previous));
         sourceLineStarts = null;
         computeBounds();

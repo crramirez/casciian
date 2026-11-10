@@ -176,6 +176,46 @@ class RichTextTest {
     }
 
     @Test
+    void testLayoutWordWrapMovesWholeWords() {
+        RichText text = RichText.builder()
+            .append("hello ")
+            .append("brave", CellAttributes.builder().bold(true).build())
+            .append(" new world")
+            .build();
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(text, 8, true,
+            run -> null);
+        assertEquals(List.of("hello", "brave", "new", "world"),
+            lines.stream().map(RichTextTest::cellsToString).toList());
+        assertTrue(lines.get(1).getCells().get(0).isBold());
+    }
+
+    @Test
+    void testLayoutWordWrapKeepsWordFillingLineAndDropsBreakSpace() {
+        RichText text = RichText.builder().append("abc def ghi").build();
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(text, 7, true,
+            run -> null);
+        assertEquals(List.of("abc def", "ghi"),
+            lines.stream().map(RichTextTest::cellsToString).toList());
+    }
+
+    @Test
+    void testLayoutWordWrapSplitsWordsLongerThanWidth() {
+        RichText text = RichText.builder().append("ab abcdefgh").build();
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(text, 4, true,
+            run -> null);
+        assertEquals(List.of("ab", "abcd", "efgh"),
+            lines.stream().map(RichTextTest::cellsToString).toList());
+    }
+
+    @Test
+    void testLayoutWithoutWordWrapBreaksMidWord() {
+        RichText text = RichText.builder().append("hello world").build();
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(text, 8);
+        assertEquals(List.of("hello wo", "rld"),
+            lines.stream().map(RichTextTest::cellsToString).toList());
+    }
+
+    @Test
     void testLayoutCarriesAttributes() {
         CellAttributes bold = CellAttributes.builder().bold(true).build();
         RichText text = RichText.builder()

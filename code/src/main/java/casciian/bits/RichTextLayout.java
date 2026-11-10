@@ -127,6 +127,32 @@ public final class RichTextLayout {
     public static List<Line> layout(final RichText richText, final int width,
             final java.util.function.Function<RichText.Run,
                 List<List<Cell>>> imageRenderer) {
+        return layout(richText, width, false, imageRenderer);
+    }
+
+    /**
+     * Lay out text and standalone image blocks, optionally wrapping at word
+     * boundaries.
+     *
+     * <p>
+     * When {@code wordWrap} is true, a line that overflows is broken after
+     * the last space or tab on it, so whole words move to the next line; the
+     * breaking whitespace is dropped. Words longer than the width, or lines
+     * without any break opportunity, still wrap at the character boundary.
+     * When false, this behaves like {@link #layout(RichText, int,
+     * java.util.function.Function)}.
+     * </p>
+     *
+     * @param richText model to lay out
+     * @param width maximum number of cell columns
+     * @param wordWrap if true, wrap at word boundaries
+     * @param imageRenderer renderer for image runs (must not be null)
+     * @return laid-out rows
+     */
+    public static List<Line> layout(final RichText richText, final int width,
+            final boolean wordWrap,
+            final java.util.function.Function<RichText.Run,
+                List<List<Cell>>> imageRenderer) {
         if (richText == null || width <= 0) {
             return Collections.emptyList();
         }
@@ -148,7 +174,8 @@ public final class RichTextLayout {
                 List<List<Cell>> imageRows = imageRenderer.apply(run);
                 if (imageRows == null || imageRows.isEmpty()) {
                     for (Line line : layout(RichText.builder()
-                            .append(run.getText(), attr).build(), width)) {
+                            .append(run.getText(), attr).build(), width,
+                            wordWrap, r -> null)) {
                         lines.add(new Line(line.getCells(),
                             source + line.getSourceLine()));
                     }
@@ -212,9 +239,26 @@ public final class RichTextLayout {
                     if (col > 0 && col + charWidth > width) {
                         // Delayed wrap: the previous character filled the
                         // line, so wrap now that another character arrives.
+                        List<Cell> carried = new ArrayList<>();
+                        int carriedCol = 0;
+                        if (wordWrap && ch != ' ') {
+                            int brk = lastBreak(currentLine, col);
+                            if (brk > 0) {
+                                carried.addAll(currentLine.subList(brk + 1,
+                                        currentLine.size()));
+                                currentLine = new ArrayList<>(
+                                    currentLine.subList(0, brk));
+                                carriedCol = col - brk - 1;
+                            }
+                        }
                         lines.add(new Line(currentLine, source));
-                        currentLine = new ArrayList<>();
-                        col = 0;
+                        currentLine = carried;
+                        col = carriedCol;
+                        if (wordWrap && ch == ' ') {
+                            // The space is the break itself: drop it.
+                            i += charCount;
+                            continue;
+                        }
                     }
                     putCell(currentLine, col, ch, attr);
                     col++;
@@ -240,6 +284,25 @@ public final class RichTextLayout {
         }
 
         return lines;
+    }
+
+    /**
+     * Find the last whitespace column before {@code col} that is a word
+     * break opportunity, skipping the padding half of wide characters.
+     *
+     * @return the column index, or -1 if there is none
+     */
+    private static int lastBreak(final List<Cell> line, final int col) {
+        for (int i = Math.min(col, line.size()) - 1; i >= 0; i--) {
+            if (line.get(i).isImage() || line.get(i).getChar() != ' ') {
+                continue;
+            }
+            if (i > 0 && StringUtils.width(line.get(i - 1).getChar()) == 2) {
+                continue;
+            }
+            return i;
+        }
+        return -1;
     }
 
     /**
