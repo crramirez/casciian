@@ -57,6 +57,10 @@ Images are decoded by the image decoders add-on:
 
 ![Sample chart](chart.png)
 
+Relative image paths can also use a subdirectory:
+
+![xyz](./images/xyz.png)
+
 ---
 
 Press **F1** for help, or open *Help > About this demo*.

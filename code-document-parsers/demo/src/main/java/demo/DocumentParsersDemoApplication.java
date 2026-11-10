@@ -83,7 +83,7 @@ public final class DocumentParsersDemoApplication extends TApplication {
      * Files of the bundled sample document.
      */
     private static final List<String> SAMPLE_FILES = List.of("README.md",
-            "logo.png", "chart.png");
+            "logo.png", "chart.png", "images/xyz.png");
 
     /**
      * Folder the sample document is extracted to, created lazily.
@@ -249,6 +249,7 @@ public final class DocumentParsersDemoApplication extends TApplication {
                     throw new IOException("Missing resource " + name);
                 }
                 Path target = dir.resolve(name);
+                Files.createDirectories(target.getParent());
                 Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
                 target.toFile().deleteOnExit();
             }
