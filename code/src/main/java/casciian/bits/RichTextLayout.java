@@ -31,10 +31,17 @@ public final class RichTextLayout {
     public static final class Line {
         private final List<Cell> cells;
         private final int sourceLine;
+        private final RichText.Run imageRun;
 
         Line(final List<Cell> cells, final int sourceLine) {
+            this(cells, sourceLine, null);
+        }
+
+        Line(final List<Cell> cells, final int sourceLine,
+                final RichText.Run imageRun) {
             this.cells = List.copyOf(cells);
             this.sourceLine = sourceLine;
+            this.imageRun = imageRun;
         }
 
         /**
@@ -64,6 +71,17 @@ public final class RichTextLayout {
          */
         public int getSourceLine() {
             return sourceLine;
+        }
+
+        /**
+         * Get the image run rendered on this line.
+         *
+         * @return the image run whose rendered cells occupy this line, or
+         * null for text lines (including alternative text shown in place of
+         * an image that could not be rendered)
+         */
+        public RichText.Run getImageRun() {
+            return imageRun;
         }
     }
 
@@ -136,7 +154,7 @@ public final class RichTextLayout {
                     }
                 } else {
                     for (List<Cell> row : imageRows) {
-                        lines.add(new Line(row, source));
+                        lines.add(new Line(row, source, run));
                     }
                 }
                 source += (int) run.getText().chars()

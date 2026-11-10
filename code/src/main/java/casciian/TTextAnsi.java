@@ -15,13 +15,18 @@
  */
 package casciian;
 
+import java.io.IOError;
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 import casciian.backend.Screen;
 import casciian.backend.SystemProperties;
@@ -33,6 +38,7 @@ import casciian.bits.ColorTheme;
 import casciian.bits.ImageRGB;
 import casciian.bits.RichText;
 import casciian.bits.RichTextLayout;
+import casciian.event.TImageDoubleClickEvent;
 import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.image.decoders.ImageDecoderRegistry;
@@ -94,6 +100,12 @@ public class TTextAnsi extends TScrollable {
     private CellAttributes imageBackground;
     private int imageBackgroundColor;
     private int[] sourceLineStarts;
+
+    /**
+     * Listeners notified when the user double-clicks a rendered image.
+     */
+    private final List<Consumer<TImageDoubleClickEvent>> imageDoubleClickListeners =
+        new CopyOnWriteArrayList<>();
 
     /**
      * Everything that determines the rendered cell rows of an image block, so
@@ -389,6 +401,71 @@ public class TTextAnsi extends TScrollable {
     }
 
     /**
+     * Handle mouse double-click events.  Double-clicking a rendered image
+     * notifies the registered image double-click listeners.
+     *
+     * @param mouse mouse button double-click event
+     * @see #addImageDoubleClickListener(Consumer)
+     */
+    @Override
+    public void onMouseDoubleClick(final TMouseEvent mouse) {
+        if (mouse.isMouse1() && !imageDoubleClickListeners.isEmpty()) {
+            RichText.Run run = getImageRunAt(mouse.getX(), mouse.getY());
+            if (run != null) {
+                TImageDoubleClickEvent event = new TImageDoubleClickEvent(
+                    fullPath(run.getImagePath()), run.getText(), mouse);
+                for (Consumer<TImageDoubleClickEvent> listener
+                        : imageDoubleClickListeners) {
+                    listener.accept(event);
+                }
+                return;
+            }
+        }
+
+        // Pass to children
+        super.onMouseDoubleClick(mouse);
+    }
+
+    /**
+     * Get the image run rendered at a widget-relative position.
+     *
+     * @param x column relative to this widget
+     * @param y row relative to this widget
+     * @return the image run, or null if no rendered image cell is there
+     */
+    private RichText.Run getImageRunAt(final int x, final int y) {
+        if (x < 0 || y < 0 || x >= getWidth() - 1 || y >= getHeight() - 1) {
+            return null;
+        }
+        reflowIfStale();
+        int row = vScroller.getValue() + y;
+        if (row >= lines.size()) {
+            return null;
+        }
+        RichTextLayout.Line line = lines.get(row);
+        int col = hScroller.getValue() + x;
+        if (line.getImageRun() == null || col >= line.getWidth()
+                || !line.getCells().get(col).isImage()) {
+            return null;
+        }
+        return line.getImageRun();
+    }
+
+    /**
+     * Convert an image path to an absolute, normalized path when possible.
+     *
+     * @param path the image path from the rich text
+     * @return the full path, or the original path if it cannot be resolved
+     */
+    private static String fullPath(final String path) {
+        try {
+            return Path.of(path).toAbsolutePath().normalize().toString();
+        } catch (InvalidPathException | IOError | SecurityException e) {
+            return path;
+        }
+    }
+
+    /**
      * Handle keystrokes.
      *
      * @param keypress keystroke event
@@ -546,6 +623,32 @@ public class TTextAnsi extends TScrollable {
     // ------------------------------------------------------------------------
     // TTextAnsi --------------------------------------------------------------
     // ------------------------------------------------------------------------
+
+    /**
+     * Register a listener invoked when the user double-clicks (with the
+     * left mouse button) an image rendered by this widget.  The event
+     * carries the image's full path and its alternative text.  Alternative
+     * text shown in place of an image that could not be loaded does not
+     * trigger the listener.
+     *
+     * @param listener the listener to add (not null)
+     */
+    public void addImageDoubleClickListener(
+            final Consumer<TImageDoubleClickEvent> listener) {
+        imageDoubleClickListeners.add(Objects.requireNonNull(listener,
+            "listener"));
+    }
+
+    /**
+     * Unregister a listener added with
+     * {@link #addImageDoubleClickListener(Consumer)}.
+     *
+     * @param listener the listener to remove
+     */
+    public void removeImageDoubleClickListener(
+            final Consumer<TImageDoubleClickEvent> listener) {
+        imageDoubleClickListeners.remove(listener);
+    }
 
     /**
      * Set the text.

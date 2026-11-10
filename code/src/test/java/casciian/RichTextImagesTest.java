@@ -17,7 +17,9 @@ package casciian;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,6 +35,8 @@ import casciian.bits.CellAttributes;
 import casciian.bits.ColorTheme;
 import casciian.bits.RichText;
 import casciian.bits.RichTextLayout;
+import casciian.event.TImageDoubleClickEvent;
+import casciian.event.TMouseEvent;
 import casciian.event.TResizeEvent;
 import casciian.image.decoders.ImageDecoder;
 import casciian.image.decoders.ImageDecoderRegistry;
@@ -361,6 +365,56 @@ class RichTextImagesTest {
         } finally {
             ImageDecoderRegistry.getInstance().unregisterDecoder(decoder);
         }
+    }
+
+    @Test
+    void doubleClickingRenderedImageNotifiesListenersWithFullPathAndAlt()
+            throws IOException {
+        ImageDecoder decoder = registerImage(8, 80);
+        try {
+            TTextAnsi widget = widget(new PixelBackend(), 5);
+            widget.setRichText(RichText.builder().append("top\n")
+                .image(IMAGE_PATH, "a chart").append("bottom")
+                .image("missing.unknown-format", "lost").build());
+            List<TImageDoubleClickEvent> events = new ArrayList<>();
+            Consumer<TImageDoubleClickEvent> listener = events::add;
+            widget.addImageDoubleClickListener(listener);
+            widget.drawChildren();
+
+            // The image is two columns wide on rows 1 to 10.
+            widget.onMouseDoubleClick(doubleClick(widget, 0, 0));
+            widget.onMouseDoubleClick(doubleClick(widget, 2, 1));
+            assertThat(events).isEmpty();
+            // Dispatched by the enclosing window like a real double-click.
+            widget.getParent().onMouseDoubleClick(doubleClick(widget, 1, 1));
+            assertThat(events).hasSize(1);
+            assertThat(events.get(0).getImagePath()).isEqualTo(
+                Path.of(IMAGE_PATH).toAbsolutePath().normalize().toString());
+            assertThat(events.get(0).getAltText()).isEqualTo("a chart");
+
+            // Scrolled: the image's last row is on row 6, alt text on row 8.
+            widget.setVerticalValue(4);
+            widget.drawChildren();
+            widget.onMouseDoubleClick(doubleClick(widget, 0, 8));
+            widget.onMouseDoubleClick(doubleClick(widget, 0, 7));
+            assertThat(events).hasSize(1);
+            widget.onMouseDoubleClick(doubleClick(widget, 0, 6));
+            assertThat(events).hasSize(2);
+
+            widget.removeImageDoubleClickListener(listener);
+            widget.onMouseDoubleClick(doubleClick(widget, 0, 6));
+            assertThat(events).hasSize(2);
+        } finally {
+            ImageDecoderRegistry.getInstance().unregisterDecoder(decoder);
+        }
+    }
+
+    private static TMouseEvent doubleClick(final TWidget widget, final int x,
+            final int y) {
+        return new TMouseEvent(widget.getApplication().getBackend(),
+            TMouseEvent.Type.MOUSE_DOUBLE_CLICK, x, y,
+            widget.getAbsoluteX() + x, widget.getAbsoluteY() + y,
+            0, 0, true, false, false, false, false, false, false, false);
     }
 
     private static ImageDecoder registerImage(final int width, final int height)

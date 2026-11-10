@@ -51,7 +51,8 @@ What's in here?
 * **`demo`** — a small Markdown viewer TUI. It opens a bundled sample
   (with PNG images, decoded by the
   [image decoders add-on](../code-image-decoders/README.md)), lets the user
-  open any document from `File ▸ Open document...`, and shows a
+  open any document from `File ▸ Open document...`, opens any image in a
+  zoomable `TImageWindow` when it is double-clicked, and shows a
   `Help ▸ About this demo` page parsed from a stream by MIME type. A path
   to a document can also be passed on the command line.
 
@@ -112,6 +113,10 @@ RichText direct = new MarkdownDocumentParser().parse(stream, null, baseDir);
 
 TTextAnsiWindow window = new TTextAnsiWindow(app, "README", "");
 window.getTextAnsiField().setRichText(doc);
+
+// React to double-clicks on images (full path plus alternative text)
+window.getTextAnsiField().addImageDoubleClickListener(event ->
+    new TImageWindow(app, new File(event.getImagePath())));
 ```
 
 License

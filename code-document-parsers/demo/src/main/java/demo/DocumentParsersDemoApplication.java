@@ -19,14 +19,17 @@ package demo;
 import casciian.TApplication;
 import casciian.TExceptionDialog;
 import casciian.TFileOpenBox;
+import casciian.TImageWindow;
 import casciian.TTextAnsiWindow;
 import casciian.bits.RichText;
 import casciian.document.parsers.DocumentParser;
 import casciian.document.parsers.DocumentParserRegistry;
+import casciian.event.TImageDoubleClickEvent;
 import casciian.event.TMenuEvent;
 import casciian.menu.TMenu;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -56,6 +59,8 @@ import java.util.List;
  * <li>directly: any {@link DocumentParser} can be invoked with an
  * {@link InputStream}.</li>
  * </ul>
+ * <p>Double-clicking an image in a document opens it in a
+ * {@link TImageWindow}, where it can be zoomed and inspected.</p>
  */
 public final class DocumentParsersDemoApplication extends TApplication {
 
@@ -231,6 +236,28 @@ public final class DocumentParsersDemoApplication extends TApplication {
         TTextAnsiWindow window = new TTextAnsiWindow(this, title, "", 1, 1,
                 width, height);
         window.getTextAnsiField().setRichText(text);
+        window.getTextAnsiField().addImageDoubleClickListener(
+                this::openImage);
+    }
+
+    /**
+     * Open a double-clicked document image in its own window so the user can
+     * zoom and inspect it.
+     *
+     * @param event the image double-click event
+     */
+    private void openImage(final TImageDoubleClickEvent event) {
+        try {
+            TImageWindow window = new TImageWindow(this,
+                    new File(event.getImagePath()));
+            String alt = event.getAltText().strip();
+            if (!alt.isEmpty()) {
+                window.setTitle(window.getTitle() + " - " + alt);
+            }
+        } catch (IOException | RuntimeException e) {
+            messageBox("Open image", "Unable to open "
+                    + event.getImagePath() + ": " + e.getMessage());
+        }
     }
 
     /**
