@@ -163,6 +163,7 @@ public final class RichTextLayout {
         int source = 0;
         boolean afterImage = false;
         boolean skipImageNewline = false;
+        boolean pendingTabBoundary = false;
 
         for (RichText.Run run : richText.getRuns()) {
             CellAttributes attr = run.attributes();
@@ -216,16 +217,20 @@ public final class RichTextLayout {
                     currentLine = new ArrayList<>();
                     col = 0;
                     source++;
+                    pendingTabBoundary = false;
                 } else if (ch == '\r') {
                     // Carriage return: move cursor to beginning of line
                     col = 0;
+                    pendingTabBoundary = false;
                 } else if (ch == '\t') {
                     // Tab: advance to next tab stop (every 8 columns)
+                    int previousCol = col;
                     int nextTab = ((col / 8) + 1) * 8;
                     while (col < nextTab && col < width) {
                         putCell(currentLine, col, ' ', attr);
                         col++;
                     }
+                    pendingTabBoundary = wordWrap && previousCol == width;
                     // Delayed wrap: leave the cursor at column==width and
                     // only wrap when the next printable character arrives.
                 } else if (ch == '\b') {
@@ -233,6 +238,7 @@ public final class RichTextLayout {
                     if (col > 0) {
                         col--;
                     }
+                    pendingTabBoundary = false;
                 } else if (ch >= 0x20) {
                     // Printable character
                     int charWidth = StringUtils.width(ch);
@@ -241,7 +247,7 @@ public final class RichTextLayout {
                         // line, so wrap now that another character arrives.
                         List<Cell> carried = new ArrayList<>();
                         int carriedCol = 0;
-                        if (wordWrap && ch != ' ') {
+                        if (wordWrap && ch != ' ' && !pendingTabBoundary) {
                             int brk = lastBreak(currentLine, col);
                             if (brk > 0) {
                                 carried.addAll(currentLine.subList(brk + 1,
@@ -256,10 +262,12 @@ public final class RichTextLayout {
                         col = carriedCol;
                         if (wordWrap && ch == ' ') {
                             // The space is the break itself: drop it.
+                            pendingTabBoundary = false;
                             i += charCount;
                             continue;
                         }
                     }
+                    pendingTabBoundary = false;
                     putCell(currentLine, col, ch, attr);
                     col++;
                     if (charWidth == 2 && col < width) {

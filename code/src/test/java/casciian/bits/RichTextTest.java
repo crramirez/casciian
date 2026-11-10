@@ -199,6 +199,15 @@ class RichTextTest {
     }
 
     @Test
+    void testLayoutWordWrapPreservesTabAfterFullLine() {
+        RichText text = RichText.builder().append("abc def\tghi").build();
+        List<RichTextLayout.Line> lines = RichTextLayout.layout(text, 7, true,
+            run -> null);
+        assertEquals(List.of("abc def", "ghi"),
+            lines.stream().map(RichTextTest::cellsToString).toList());
+    }
+
+    @Test
     void testLayoutWordWrapSplitsWordsLongerThanWidth() {
         RichText text = RichText.builder().append("ab abcdefgh").build();
         List<RichTextLayout.Line> lines = RichTextLayout.layout(text, 4, true,
