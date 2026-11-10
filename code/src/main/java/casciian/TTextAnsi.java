@@ -444,8 +444,7 @@ public class TTextAnsi extends TScrollable {
         }
         RichTextLayout.Line line = lines.get(row);
         int col = hScroller.getValue() + x;
-        if (line.getImageRun() == null || col >= line.getWidth()
-                || !line.getCells().get(col).isImage()) {
+        if (line.getImageRun() == null || col >= line.getWidth()) {
             return null;
         }
         return line.getImageRun();

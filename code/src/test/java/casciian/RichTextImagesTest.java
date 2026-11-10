@@ -409,6 +409,43 @@ class RichTextImagesTest {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"bitmap", "halves", "solid"})
+    void doubleClickingImageStillNotifiesListenersWhenCellsAreNotImages(
+            final String mode) throws IOException {
+        String previousMode = SystemProperties.getImageFallbackDisplayMode();
+        ImageDecoder decoder = registerImage(8, 80);
+        ArrayImageRGB solidImage = new ArrayImageRGB(8, 80);
+        for (int y = 0; y < solidImage.getHeight(); y++) {
+            for (int x = 0; x < solidImage.getWidth(); x++) {
+                solidImage.setRGB(x, y, 0xFF0099FF);
+            }
+        }
+        when(decoder.decode(any(Path.class))).thenReturn(solidImage);
+        try {
+            PixelBackend backend = new PixelBackend();
+            backend.bitmap = mode.equals("bitmap");
+            if (!backend.bitmap) {
+                SystemProperties.setImageFallbackDisplayMode(mode);
+            }
+            TTextAnsi widget = widget(backend, 5);
+            widget.setRichText(RichText.builder().image(IMAGE_PATH, "a chart")
+                .build());
+            List<TImageDoubleClickEvent> events = new ArrayList<>();
+            widget.addImageDoubleClickListener(events::add);
+            widget.drawChildren();
+
+            assertThat(cell(widget, 0, 0).isImage()).isFalse();
+            widget.onMouseDoubleClick(doubleClick(widget, 0, 0));
+            widget.onMouseDoubleClick(doubleClick(widget, 2, 0));
+            assertThat(events).hasSize(1);
+            assertThat(events.getFirst().getAltText()).isEqualTo("a chart");
+        } finally {
+            ImageDecoderRegistry.getInstance().unregisterDecoder(decoder);
+            SystemProperties.setImageFallbackDisplayMode(previousMode);
+        }
+    }
+
     private static TMouseEvent doubleClick(final TWidget widget, final int x,
             final int y) {
         return new TMouseEvent(widget.getApplication().getBackend(),

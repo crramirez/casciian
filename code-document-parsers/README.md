@@ -115,8 +115,14 @@ TTextAnsiWindow window = new TTextAnsiWindow(app, "README", "");
 window.getTextAnsiField().setRichText(doc);
 
 // React to double-clicks on images (full path plus alternative text)
-window.getTextAnsiField().addImageDoubleClickListener(event ->
-    new TImageWindow(app, new File(event.getImagePath())));
+window.getTextAnsiField().addImageDoubleClickListener(event -> {
+    try {
+        new TImageWindow(app, new File(event.getImagePath()));
+    } catch (IOException e) {
+        app.messageBox("Open image",
+            "Unable to open " + event.getImagePath() + ": " + e.getMessage());
+    }
+});
 ```
 
 License
