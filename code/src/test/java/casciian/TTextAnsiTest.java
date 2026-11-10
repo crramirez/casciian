@@ -161,6 +161,14 @@ class TTextAnsiTest {
         assertEquals(longText, widget.getText());
     }
 
+    @Test
+    void testWrapsAtWordBoundaries() {
+        // Five content columns: "ab cdef gh" wraps as "ab", "cdef", "gh"
+        // (character wrapping would give only "ab cd", "ef gh").
+        TTextAnsi widget = new TTextAnsi(null, "ab cdef gh", 0, 0, 6, 1);
+        assertEquals(3, widget.getVerticalScroller().getBottomValue());
+    }
+
     private static CellAttributes attributesForChar(final RichText richText,
             final char target) {
         int index = richText.getPlainText().indexOf(target);
