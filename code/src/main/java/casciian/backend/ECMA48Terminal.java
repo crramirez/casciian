@@ -536,6 +536,8 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private volatile ImageCache iterm2Cache = null;
 
+    private ImageSnapshot[][] iterm2RenderedImages = new ImageSnapshot[0][0];
+
     /**
      * The Unicode glyph post-rendered string cache.
      * Volatile to ensure visibility when the cache is written by one thread
@@ -776,14 +778,45 @@ public class ECMA48Terminal extends LogicalScreen
      * LRU cache for rendered image strings.
      * Uses LinkedHashMap with access-order for automatic LRU eviction.
      */
+    private static final class ImageSnapshot {
+        private final int width;
+        private final int height;
+        private final int[] pixels;
+
+        ImageSnapshot(final ImageRGB image) {
+            width = image.getWidth();
+            height = image.getHeight();
+            pixels = image.getRGB(0, 0, width, height, null, 0, width);
+        }
+
+        boolean matches(final ImageRGB image) {
+            if (image == null || width != image.getWidth()
+                || height != image.getHeight()) {
+                return false;
+            }
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    if (pixels[y * width + x] != image.getRGB(x, y)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+    }
+
     private static class ImageCache {
+
+        private record Entry(String data, List<ImageSnapshot> snapshots,
+                             long cost) {
+        }
 
         /**
          * The entries stored in the cache using LinkedHashMap for LRU ordering.
          * LinkedHashMap with accessOrder=true automatically moves accessed entries to the end,
          * making the first entry always the least recently used.
          */
-        private final java.util.LinkedHashMap<String, String> cache;
+        private final java.util.LinkedHashMap<String, Entry> cache;
 
         /**
          * The maximum number of entries retained.
@@ -855,7 +888,21 @@ public class ECMA48Terminal extends LogicalScreen
          * list of cells is not in the cache
          */
         public synchronized String get(final ArrayList<Cell> cells) {
-            return cache.get(makeKey(cells));
+            Entry entry = cache.get(makeKey(cells));
+            if (entry == null) {
+                return null;
+            }
+            if (entry.snapshots() != null) {
+                if (entry.snapshots().size() != cells.size()) {
+                    return null;
+                }
+                for (int i = 0; i < cells.size(); i++) {
+                    if (!entry.snapshots().get(i).matches(cells.get(i).getImage())) {
+                        return null;
+                    }
+                }
+            }
+            return entry.data();
         }
 
         /**
@@ -866,24 +913,35 @@ public class ECMA48Terminal extends LogicalScreen
          */
         public synchronized void put(final ArrayList<Cell> cells, final String data) {
             String key = makeKey(cells);
-            if (data.length() > maxPayloadBytes) {
-                String previous = cache.remove(key);
+            long cost = data.length();
+            if (maxPayloadBytes != Long.MAX_VALUE) {
+                cost = 128L + 2L * (data.length() + (long) key.length());
+                for (Cell cell : cells) {
+                    ImageRGB image = cell.getImage();
+                    cost += 64L + 4L * image.getWidth() * image.getHeight();
+                }
+            }
+            if (cost > maxPayloadBytes) {
+                Entry previous = cache.remove(key);
                 if (previous != null) {
-                    cachedPayloadBytes -= previous.length();
+                    cachedPayloadBytes -= previous.cost();
                 }
                 return;
             }
-            String previous = cache.put(key, data);
+            List<ImageSnapshot> snapshots = maxPayloadBytes == Long.MAX_VALUE
+                ? null : cells.stream()
+                    .map(cell -> new ImageSnapshot(cell.getImage())).toList();
+            Entry previous = cache.put(key, new Entry(data, snapshots, cost));
             if (previous != null) {
-                cachedPayloadBytes -= previous.length();
+                cachedPayloadBytes -= previous.cost();
             }
-            cachedPayloadBytes += data.length();
+            cachedPayloadBytes += cost;
             while ((cache.size() > maxEntries)
                 || (cachedPayloadBytes > maxPayloadBytes)) {
-                java.util.Iterator<java.util.Map.Entry<String, String>> iterator =
+                java.util.Iterator<java.util.Map.Entry<String, Entry>> iterator =
                     cache.entrySet().iterator();
-                java.util.Map.Entry<String, String> eldest = iterator.next();
-                cachedPayloadBytes -= eldest.getValue().length();
+                java.util.Map.Entry<String, Entry> eldest = iterator.next();
+                cachedPayloadBytes -= eldest.getValue().cost();
                 iterator.remove();
             }
         }
@@ -1311,12 +1369,14 @@ public class ECMA48Terminal extends LogicalScreen
             return true;
         }
         synchronized (this) {
-            if (isITerm2BackgroundPainted()) {
+            if (isITerm2ImagesActive()) {
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
                         if (logical[x][y].isImage()
-                            && (attrToBackgroundColor(logical[x][y])
-                                != attrToBackgroundColor(physical[x][y]))) {
+                            && (!matchesITerm2RenderedImage(x, y)
+                                || (isITerm2BackgroundPainted()
+                                    && attrToBackgroundColor(logical[x][y])
+                                        != attrToBackgroundColor(physical[x][y])))) {
                             return true;
                         }
                     }
@@ -2799,10 +2859,18 @@ public class ECMA48Terminal extends LogicalScreen
     private void forEachImageRun(final ImageRunConsumer consumer) {
         final boolean compositeBackground = isITerm2BackgroundPainted();
         final boolean splitIncompatibleTiles = isITerm2ImagesActive();
+        if (splitIncompatibleTiles
+            && (iterm2RenderedImages.length != width
+                || (width > 0 && iterm2RenderedImages[0].length != height))) {
+            iterm2RenderedImages = new ImageSnapshot[width][height];
+        }
         for (int y = 0; y < height; y++) {
             int x = 0;
             while (x < width) {
                 if (!logical[x][y].isImage()) {
+                    if (splitIncompatibleTiles) {
+                        iterm2RenderedImages[x][y] = null;
+                    }
                     x++;
                     continue;
                 }
@@ -2828,7 +2896,9 @@ public class ECMA48Terminal extends LogicalScreen
                         iterm2Cache = null;
                     }
                     if (cell.equals(physical[right][y])
-                        && !reallyCleared && !backgroundChanged) {
+                        && !reallyCleared && !backgroundChanged
+                        && (!splitIncompatibleTiles
+                            || matchesITerm2RenderedImage(right, y))) {
                         break;
                     }
                     right++;
@@ -2840,7 +2910,12 @@ public class ECMA48Terminal extends LogicalScreen
 
                     // Physical is always updated.
                     physical[x + i][y].setTo(logical[x + i][y]);
+                    if (splitIncompatibleTiles) {
+                        iterm2RenderedImages[x + i][y] =
+                            new ImageSnapshot(logical[x + i][y].getImage());
+                    }
                 }
+
                 if (!cellsToDraw.isEmpty()) {
                     ensureImageCache();
                     consumer.accept(x, y, cellsToDraw);
@@ -2849,6 +2924,13 @@ public class ECMA48Terminal extends LogicalScreen
                 x = (right > x) ? right : (x + 1);
             }
         }
+    }
+
+    private boolean matchesITerm2RenderedImage(final int x, final int y) {
+        return x < iterm2RenderedImages.length
+            && y < iterm2RenderedImages[x].length
+            && iterm2RenderedImages[x][y] != null
+            && iterm2RenderedImages[x][y].matches(logical[x][y].getImage());
     }
 
     /**
@@ -6376,6 +6458,8 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private void setCustomSystemColors() {
         String previousCommand = buildSendPaletteCommand();
+        int previousForeColor = DEFAULT_FORECOLOR;
+        int previousBackColor = DEFAULT_BACKCOLOR;
 
         MYBLACK = getCustomColor("casciian.ECMA48.color0", MYBLACK);
         MYRED = getCustomColor("casciian.ECMA48.color1", MYRED);
@@ -6399,7 +6483,14 @@ public class ECMA48Terminal extends LogicalScreen
         DEFAULT_BACKCOLOR = getCustomColor("casciian.ECMA48.color49",
             DEFAULT_BACKCOLOR);
 
-        if (!previousCommand.equals(buildSendPaletteCommand())) {
+        boolean paletteChanged = !previousCommand.equals(buildSendPaletteCommand());
+        if (paletteChanged || previousForeColor != DEFAULT_FORECOLOR
+            || previousBackColor != DEFAULT_BACKCOLOR) {
+            iterm2Cache = null;
+            clearPhysical();
+            reallyCleared = true;
+        }
+        if (paletteChanged) {
             sendPalette();
         }
     }

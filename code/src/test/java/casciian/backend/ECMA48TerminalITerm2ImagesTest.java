@@ -301,6 +301,65 @@ class ECMA48TerminalITerm2ImagesTest {
     }
 
     @Test
+    @DisplayName("Same-ID replacements and mutations redraw away from the cursor")
+    void sameIdImageChangesRedraw() {
+        terminal = createTerminal(ITERM2 + "\033[?62;4c");
+        waitForITerm2();
+        terminal.flushPhysical();
+
+        terminal.putCharXY(3, 5, imageCell(12, 2, 1, 0xFF102030));
+        terminal.flushPhysical();
+        assertThat(terminal.isDirty()).isFalse();
+
+        Cell replacement = imageCell(12, 2, 1, 0xFFA0B0C0);
+        terminal.putCharXY(3, 5, replacement);
+        assertThat(terminal.isDirty()).isTrue();
+        outputStream.reset();
+        terminal.flushPhysical();
+        assertThat(BmpImageEncoderTest.decode(parse(written()).getFirst().data())
+            .pixels()[0][0]).isEqualTo(0xFFA0B0C0);
+
+        terminal.putCharXY(3, 5, imageCell(12, 1, 2, 0xFFA0B0C0));
+        assertThat(terminal.isDirty()).isTrue();
+        outputStream.reset();
+        terminal.flushPhysical();
+        assertThat(BmpImageEncoderTest.decode(parse(written()).getFirst().data())
+            .height()).isEqualTo(2);
+
+        Cell mutable = imageCell(12, 1, 2, 0xFF112233);
+        terminal.putCharXY(3, 5, mutable);
+        terminal.flushPhysical();
+        mutable.getImage().setRGB(0, 0, 0xFF445566);
+        assertThat(terminal.isDirty()).isTrue();
+        outputStream.reset();
+        terminal.flushPhysical();
+        assertThat(BmpImageEncoderTest.decode(parse(written()).getFirst().data())
+            .pixels()[0][0]).isEqualTo(0xFF445566);
+        assertThat(terminal.isDirty()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Hash collisions cannot reuse a different cached image")
+    void imageCacheVerifiesPixels() {
+        terminal = createTerminal(ITERM2 + "\033[?62;4c");
+        waitForITerm2();
+        terminal.flushPhysical();
+
+        Cell first = imageCellWithPixels(0, 2, 1, 0xFF000000, 0xFFFF0000);
+        Cell second = imageCellWithPixels(0, 2, 1, 0xFF080000, 0xFF070000);
+        assertThat(first.hashCode()).isEqualTo(second.hashCode());
+        terminal.putCharXY(3, 5, first);
+        terminal.flushPhysical();
+        terminal.putCharXY(3, 7, second);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        assertThat(parse(written())).singleElement().satisfies(image ->
+            assertThat(BmpImageEncoderTest.decode(image.data()).pixels()[0])
+                .containsExactly(0xFF080000, 0xFF070000));
+    }
+
+    @Test
     @DisplayName("iTerm2 cache is bounded by encoded payload size")
     void imageCacheEvictsPayloadsBySize() {
         int[] encodeCount = {0};
@@ -349,6 +408,48 @@ class ECMA48TerminalITerm2ImagesTest {
     }
 
     @Test
+    @DisplayName("iTerm2 cache includes pixel snapshots in its memory budget")
+    void imageCacheBoundsPixelSnapshots() {
+        int[] encodeCount = {0};
+        ImageEncoder encoder = new ImageEncoder() {
+            @Override
+            public String getName() {
+                return "small-payload";
+            }
+
+            @Override
+            public String getMimeType() {
+                return "image/small-payload";
+            }
+
+            @Override
+            public int getPriority() {
+                return 100;
+            }
+
+            @Override
+            public byte[] encode(final ImageRGB image, final boolean alpha) {
+                encodeCount[0]++;
+                return new byte[] {1};
+            }
+        };
+        ImageEncoderRegistry.getInstance().registerEncoder(encoder);
+        registered.add(encoder);
+        System.setProperty("casciian.ECMA48.iterm2ImageEncoder", "small-payload");
+        terminal = createTerminal(ITERM2 + "\033[?62;4c");
+        waitForITerm2();
+        terminal.flushPhysical();
+
+        Cell large = imageCell(42, 1500, 1500, 0xFF102030);
+        terminal.putCharXY(3, 5, large);
+        terminal.flushPhysical();
+        terminal.putCharXY(3, 7, large);
+        terminal.flushPhysical();
+
+        assertThat(encodeCount[0]).isEqualTo(2);
+    }
+
+    @Test
     @DisplayName("OSC system color updates invalidate cached RGBA images")
     void oscColorUpdateInvalidatesCachedImages() {
         System.setProperty("casciian.ECMA48.iterm2ImageFormat", "rgba");
@@ -379,6 +480,42 @@ class ECMA48TerminalITerm2ImagesTest {
         terminal.oscResponse("4;0;rgb:%02x/%02x/%02x".formatted(
             (originalBlack >>> 16) & 0xFF, (originalBlack >>> 8) & 0xFF,
             originalBlack & 0xFF));
+    }
+
+    @Test
+    @DisplayName("Reloading custom palette colors invalidates RGBA images")
+    void customPaletteUpdateInvalidatesCachedImages() {
+        System.setProperty("casciian.ECMA48.iterm2ImageFormat", "rgba");
+        terminal = createTerminal(ITERM2 + "\033[?62;4c");
+        waitForITerm2();
+        Cell black = new Cell();
+        black.setBackColor(Color.BLACK);
+        int originalBlack = ECMA48Terminal.attrToBackgroundColor(black);
+        try {
+            System.setProperty("casciian.ECMA48.color0", "000000");
+            terminal.reloadOptions();
+            Cell cell = solidImageCell(33, 0x80000000);
+            cell.setBackColor(Color.BLACK);
+            terminal.putCharXY(3, 5, cell);
+            outputStream.reset();
+            terminal.flushPhysical();
+            int before = BmpImageEncoderTest.decode(parse(written()).getFirst()
+                .data()).pixels()[0][0];
+
+            System.setProperty("casciian.ECMA48.color0", "ff0000");
+            terminal.reloadOptions();
+            assertThat(terminal.isDirty()).isTrue();
+            outputStream.reset();
+            terminal.flushPhysical();
+            assertThat(parse(written())).singleElement().satisfies(image ->
+                assertThat(BmpImageEncoderTest.decode(image.data()).pixels()[0][0])
+                    .isNotEqualTo(before));
+        } finally {
+            System.clearProperty("casciian.ECMA48.color0");
+            terminal.oscResponse("4;0;rgb:%02x/%02x/%02x".formatted(
+                (originalBlack >>> 16) & 0xFF, (originalBlack >>> 8) & 0xFF,
+                originalBlack & 0xFF));
+        }
     }
 
     @Test
@@ -563,7 +700,11 @@ class ECMA48TerminalITerm2ImagesTest {
         ImageRGB image = new ArrayImageRGB(width, height);
         image.setRGB(0, 0, width, height, pixels, 0, width);
         Cell cell = new Cell();
-        cell.setImage(image, imageId);
+        if (imageId == 0) {
+            cell.setImage(image);
+        } else {
+            cell.setImage(image, imageId);
+        }
         return cell;
     }
 
