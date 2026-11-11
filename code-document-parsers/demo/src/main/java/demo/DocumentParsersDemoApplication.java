@@ -108,6 +108,7 @@ public final class DocumentParsersDemoApplication extends TApplication {
 
         super(backendType);
 
+        addToolMenu();
         TMenu fileMenu = addMenu("&File");
         fileMenu.addItem(MID_OPEN_DOCUMENT, "&Open document...");
         fileMenu.addItem(MID_OPEN_SAMPLE, "Open &sample");
