@@ -8,5 +8,6 @@ widget hierarchy, and house style.
 | Document | Covers |
 |---|---|
 | [kitty-keyboard-protocol.md](kitty-keyboard-protocol.md) | Unambiguous key reporting (CSI u): the handshake, the decoder, why Ctrl+I no longer collapses into Tab, and how to test it against a real terminal |
+| [iterm2-inline-images.md](iterm2-inline-images.md) | iTerm2 inline images (OSC 1337): detection, top priority on iTerm2, the built-in 24/32-bit BMP encoder, and the pluggable `ImageEncoder` service for PNG/JPEG add-ons |
 | [bracketed-paste.md](bracketed-paste.md) | Terminal paste detection, `TPasteEvent`, and integration with Casciian's internal clipboard and `cmPaste` command |
 | [osc7-working-directory.md](osc7-working-directory.md) | Reporting the current working directory to the hosting terminal (OSC 7): where it lives across the `Screen`/`Backend` hierarchy, and how it auto-syncs with `SystemProperties` |

@@ -56,6 +56,9 @@ import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TPasteEvent;
 import casciian.event.TResizeEvent;
+import casciian.image.encoders.BmpImageEncoder;
+import casciian.image.encoders.ImageEncoder;
+import casciian.image.encoders.ImageEncoderRegistry;
 
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
@@ -494,6 +497,30 @@ public class ECMA48Terminal extends LogicalScreen
      * yet.
      */
     private KittyImageManager kittyImageManager = null;
+
+    /**
+     * If true, emit image data via the iTerm2 inline images protocol if
+     * the terminal is iTerm2.
+     */
+    private boolean iterm2ImagesAllowed = true;
+
+    /**
+     * If true, XTVERSION identified the terminal as iTerm2, which supports
+     * the iTerm2 inline images protocol.
+     */
+    private volatile boolean iterm2ImagesDetected = false;
+
+    /**
+     * The iTerm2 inline images encoder, or null if not created yet.
+     */
+    private volatile ITerm2ImageEncoder iterm2ImageEncoder = null;
+
+    /**
+     * The iTerm2 inline images post-rendered string cache.
+     * Volatile to ensure visibility when the cache is written by one thread
+     * and accessed by another.
+     */
+    private volatile ImageCache iterm2Cache = null;
 
     /**
      * The Unicode glyph post-rendered string cache.
@@ -1804,6 +1831,7 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         reloadKittyImageOptions();
+        reloadITerm2ImageOptions();
 
         String destroyImagesStr = System.getProperty("casciian.ECMA48.explicitlyDestroyImages",
             "auto").toLowerCase();
@@ -2740,7 +2768,11 @@ public class ECMA48Terminal extends LogicalScreen
      * it has not been created yet.
      */
     private void ensureImageCache() {
-        if (jexerImageOption != JexerImageOption.DISABLED) {
+        if (isITerm2ImagesActive()) {
+            if (iterm2Cache == null) {
+                iterm2Cache = new ImageCache(height * width * 10);
+            }
+        } else if (jexerImageOption != JexerImageOption.DISABLED) {
             if (jexerCache == null) {
                 jexerCache = new ImageCache(height * width * 10);
             }
@@ -2767,6 +2799,9 @@ public class ECMA48Terminal extends LogicalScreen
     private String encodeImage(final int x, final int y,
         final ArrayList<Cell> cells) {
 
+        if (isITerm2ImagesActive()) {
+            return toITerm2Image(x, y, cells);
+        }
         if (jexerImageOption != JexerImageOption.DISABLED) {
             return toJexerImage(x, y, cells);
         }
@@ -2915,6 +2950,10 @@ public class ECMA48Terminal extends LogicalScreen
         } else {
             forEachImageRun((x, y, cells) -> sb.append(encodeImage(x, y, cells)));
         }
+        if ((attr != null) && isITerm2BackgroundPainted()) {
+            // The text pass assumes the attributes left by clearAll().
+            sb.append("\033[0;37;40m");
+        }
 
         // Draw the text part now.
         for (int y = 0; y < height; y++) {
@@ -2953,7 +2992,7 @@ public class ECMA48Terminal extends LogicalScreen
      */
     public boolean isImageProtocolSupported() {
         return sixel || (jexerImageOption != JexerImageOption.DISABLED)
-            || isKittyImagesActive();
+            || isKittyImagesActive() || isITerm2ImagesActive();
     }
 
     /**
@@ -3775,6 +3814,7 @@ public class ECMA48Terminal extends LogicalScreen
                 System.err.println("  -- iTerm2 -- ");
             }
             isITerm2 = true;
+            enableITerm2Images();
         }
 
         setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
@@ -5340,15 +5380,16 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * Check whether images are currently emitted with the kitty graphics
-     * protocol.  The Casciian image protocol has priority, and kitty has
-     * priority over sixel.
+     * protocol.  The iTerm2 and Casciian image protocols have priority, and
+     * kitty has priority over sixel.
      *
      * @return true if the terminal supports kitty graphics and it is enabled
      */
     private boolean isKittyImagesActive() {
         return kittyImagesAllowed && kittyImagesDetected
             && (kittyImageManager != null)
-            && (jexerImageOption == JexerImageOption.DISABLED);
+            && (jexerImageOption == JexerImageOption.DISABLED)
+            && !isITerm2ImagesActive();
     }
 
     /**
@@ -5469,6 +5510,200 @@ public class ECMA48Terminal extends LogicalScreen
 
     // ------------------------------------------------------------------------
     // End kitty graphics protocol output support -----------------------------
+    // ------------------------------------------------------------------------
+
+    // ------------------------------------------------------------------------
+    // iTerm2 inline images protocol output support ---------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Read the iTerm2 inline images options from System properties:
+     * casciian.ECMA48.iterm2Images, casciian.ECMA48.iterm2ImageFormat, and
+     * casciian.ECMA48.iterm2ImageEncoder.
+     */
+    private void reloadITerm2ImageOptions() {
+        boolean allowed = !System.getProperty("casciian.ECMA48.iterm2Images",
+            "true").trim().equalsIgnoreCase("false");
+        boolean alpha = System.getProperty(
+            "casciian.ECMA48.iterm2ImageFormat", "rgb").trim()
+            .equalsIgnoreCase("rgba");
+        ImageEncoder fileEncoder = resolveITerm2FileEncoder(System.getProperty(
+            "casciian.ECMA48.iterm2ImageEncoder", "auto"), alpha);
+
+        synchronized (this) {
+            ITerm2ImageEncoder old = iterm2ImageEncoder;
+            boolean sameEncoder = (old != null)
+                && (old.getFileEncoder().getClass() == fileEncoder.getClass())
+                && (old.isAlpha() == (alpha && fileEncoder.supportsAlpha()));
+            if ((allowed == iterm2ImagesAllowed) && sameEncoder) {
+                return;
+            }
+            iterm2ImagesAllowed = allowed;
+            if (!sameEncoder) {
+                iterm2ImageEncoder = new ITerm2ImageEncoder(fileEncoder, alpha);
+                iterm2Cache = null;
+            }
+            clearPhysical();
+        }
+    }
+
+    /**
+     * Select the image file encoder for the iTerm2 protocol.  A configured
+     * name or MIME type wins; otherwise the registered encoder with the
+     * highest priority is used, falling back to the built-in BMP encoder.
+     *
+     * @param name the configured encoder name, MIME type, or "auto"
+     * @param alpha if true, prefer encoders that keep alpha
+     * @return the encoder
+     */
+    private static ImageEncoder resolveITerm2FileEncoder(final String name,
+        final boolean alpha) {
+
+        ImageEncoderRegistry registry = ImageEncoderRegistry.getInstance();
+        String key = (name == null) ? "" : name.trim();
+        if (!key.isEmpty() && !key.equalsIgnoreCase("auto")) {
+            ImageEncoder named = registry.findEncoder(key).orElse(null);
+            if (named != null) {
+                return named;
+            }
+        }
+        return registry.getPreferredEncoder(alpha)
+            .orElseGet(BmpImageEncoder::new);
+    }
+
+    /**
+     * Turn on the iTerm2 inline images protocol after XTVERSION identified
+     * iTerm2.  Any kitty images already drawn are freed, and every image
+     * cell is redrawn with the new protocol.
+     */
+    private void enableITerm2Images() {
+        synchronized (this) {
+            boolean kittyWasActive = isKittyImagesActive();
+            iterm2ImagesDetected = true;
+            if (!isITerm2ImagesActive()) {
+                return;
+            }
+            if (DEBUG_TO_STDERR) {
+                System.err.println("  -- iTerm2 inline images enabled --");
+            }
+            if (kittyWasActive) {
+                writeKittyReset(kittyImageManager);
+            }
+            clearPhysical();
+        }
+    }
+
+    /**
+     * Check whether images are currently emitted with the iTerm2 inline
+     * images protocol.  It has top priority when the terminal is iTerm2.
+     *
+     * @return true if the terminal is iTerm2 and the protocol is enabled
+     */
+    private boolean isITerm2ImagesActive() {
+        return iterm2ImagesAllowed && iterm2ImagesDetected
+            && (iterm2ImageEncoder != null);
+    }
+
+    /**
+     * Get the iTerm2 inline images protocol flag.
+     *
+     * @return true if this terminal is emitting images with the iTerm2
+     * inline images protocol
+     */
+    public boolean hasITerm2Images() {
+        return isITerm2ImagesActive();
+    }
+
+    /**
+     * Set the iTerm2 inline images output flag.  Images are only emitted
+     * with the iTerm2 protocol if the terminal was also identified as
+     * iTerm2.
+     *
+     * @param iterm2Images if true, then images will be emitted with the
+     *                     iTerm2 inline images protocol when supported
+     */
+    public void setHasITerm2Images(final boolean iterm2Images) {
+        // Don't step on the screen refresh thread.
+        synchronized (this) {
+            boolean kittyWasActive = isKittyImagesActive();
+            iterm2ImagesAllowed = iterm2Images;
+            if (kittyWasActive && !isKittyImagesActive()) {
+                writeKittyReset(kittyImageManager);
+            }
+            clearPhysical();
+        }
+    }
+
+    /**
+     * Whether the SGR background is set to the image cell's background
+     * color before an iTerm2 image, so that transparent pixels show it.
+     *
+     * @return true if images are sent with alpha
+     */
+    private boolean isITerm2BackgroundPainted() {
+        final ITerm2ImageEncoder encoder = iterm2ImageEncoder;
+        return isITerm2ImagesActive() && (encoder != null) && encoder.isAlpha();
+    }
+
+    /**
+     * Create an iTerm2 inline image string representing a row of several
+     * cells containing bitmap data.
+     *
+     * @param x     column coordinate.  0 is the left-most column.
+     * @param y     row coordinate.  0 is the top-most row.
+     * @param cells the cells containing the bitmap data
+     * @return the string to emit to an ANSI / ECMA-style terminal
+     */
+    private String toITerm2Image(final int x, final int y,
+        final ArrayList<Cell> cells) {
+
+        assert (cells != null);
+        assert (!cells.isEmpty());
+        assert (cells.getFirst().getImage() != null);
+
+        final ITerm2ImageEncoder encoder = iterm2ImageEncoder;
+        StringBuilder sb = new StringBuilder();
+        sb.append(sortableGotoXY(x, y));
+        if (encoder.isAlpha()) {
+            // Transparent pixels show the background of the cells the
+            // image is drawn into.
+            sb.append("\033[0m");
+            sb.append(colorRGB(attrToBackgroundColor(cells.getFirst()), false));
+        }
+
+        // Capture the volatile cache reference once to avoid race
+        // conditions where another thread may set it to null.
+        final ImageCache cache = iterm2Cache;
+        boolean saveInCache = true;
+        for (Cell cell : cells) {
+            if (cell.isInvertedImage()) {
+                saveInCache = false;
+                break;
+            }
+            // Compute the hashcode so that the cell image hash is available
+            // for looking up in the image cache.
+            //noinspection ResultOfMethodCallIgnored
+            cell.hashCode();
+        }
+        if (saveInCache && (cache != null)) {
+            String cachedResult = cache.get(cells);
+            if (cachedResult != null) {
+                return sb.append(cachedResult).toString();
+            }
+        }
+
+        // iTerm2 stretches the image over the cells itself, so the tiles
+        // are joined without rescaling (which would also discard alpha).
+        String image = encoder.transmitAndPlace(cellsToImage(cells, false),
+            cells.size(), 1);
+        if (saveInCache && (cache != null)) {
+            cache.put(cells, image);
+        }
+        return sb.append(image).toString();
+    }
+
+    // ------------------------------------------------------------------------
+    // End iTerm2 inline images protocol output support -----------------------
     // ------------------------------------------------------------------------
 
     /**
@@ -5690,6 +5925,21 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the image resized to the current text cell size
      */
     private ImageRGB cellsToImage(final List<Cell> cells) {
+        return cellsToImage(cells, true);
+    }
+
+    /**
+     * Convert a horizontal range of cell's image data into a single
+     * continuous image.
+     *
+     * @param cells the cells containing image data
+     * @param scaleToCells if true, rescale the image to the current text
+     *                     cell size; the rescale discards alpha
+     * @return the joined image
+     */
+    private ImageRGB cellsToImage(final List<Cell> cells,
+        final boolean scaleToCells) {
+
         ImageRGB firstImage = cells.getFirst().getImage();
         int tileWidth = firstImage.getWidth();
         int tileHeight = firstImage.getHeight();
@@ -5755,8 +6005,9 @@ public class ECMA48Terminal extends LogicalScreen
             image.fillRect(startX, 0, remainingWidth, tileHeight, MYBLACK);
         }
 
-        if ((image.getWidth() != cells.size() * getTextWidth())
-            || (image.getHeight() != getTextHeight())
+        if (scaleToCells
+            && ((image.getWidth() != cells.size() * getTextWidth())
+                || (image.getHeight() != getTextHeight()))
         ) {
             image = image.scale(cells.size() * getTextWidth(), getTextHeight());
         }

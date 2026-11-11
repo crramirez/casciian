@@ -43,6 +43,7 @@ module casciian {
     exports casciian.event;
     exports casciian.help;
     exports casciian.image.decoders;
+    exports casciian.image.encoders;
     exports casciian.io;
     exports casciian.layout;
     exports casciian.menu;
@@ -50,8 +51,11 @@ module casciian {
     exports casciian.texteditor;
 
     uses casciian.image.decoders.ImageDecoder;
+    uses casciian.image.encoders.ImageEncoder;
     uses casciian.document.parsers.DocumentParser;
 
     provides casciian.image.decoders.ImageDecoder
         with casciian.image.decoders.SixelImageDecoder;
+    provides casciian.image.encoders.ImageEncoder
+        with casciian.image.encoders.BmpImageEncoder;
 }
