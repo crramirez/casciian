@@ -17,6 +17,7 @@ package casciian.backend;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -131,6 +132,28 @@ class ECMA48TerminalITerm2ImagesTest {
     }
 
     @Test
+    @DisplayName("Reloading options frees kitty placements when iTerm2 takes over")
+    void reloadOptionsResetsKittyPlacements() {
+        System.setProperty("casciian.ECMA48.iterm2Images", "false");
+        terminal = createTerminal(ITERM2 + KITTY_REPLY);
+        waitFor(() -> terminal.hasKittyImages());
+        waitFor(() -> terminal.getTerminalVersion().contains("iTerm2"));
+        terminal.flushPhysical();
+
+        terminal.putCharXY(0, 0, solidImageCell(7, 0xFF102030));
+        outputStream.reset();
+        terminal.flushPhysical();
+        assertThat(written()).contains("\033_Ga=T");
+
+        System.setProperty("casciian.ECMA48.iterm2Images", "true");
+        outputStream.reset();
+        terminal.reloadOptions();
+
+        assertThat(terminal.hasKittyImages()).isFalse();
+        assertThat(written()).contains("\033_Ga=d");
+    }
+
+    @Test
     @DisplayName("Turning iTerm2 images off falls back to kitty graphics")
     void disablingFallsBackToKitty() {
         System.setProperty("casciian.ECMA48.iterm2Images", "false");
@@ -168,16 +191,19 @@ class ECMA48TerminalITerm2ImagesTest {
     }
 
     @Test
-    @DisplayName("RGBA sends a 32-bit BMP over the cell background color")
-    void rgbaKeepsAlphaAndPaintsBackground() {
+    @DisplayName("RGBA images composite each tile over its own cell background")
+    void rgbaCompositesTilesOverTheirCellBackgrounds() {
         System.setProperty("casciian.ECMA48.iterm2ImageFormat", "rgba");
         terminal = createTerminal(ITERM2 + "\033[?62;4c");
         waitForITerm2();
         terminal.flushPhysical();
 
-        Cell cell = solidImageCell(3, 0x40102030);
-        cell.setBackColorRGB(0xABCDEF);
-        terminal.putCharXY(1, 1, cell);
+        Cell left = solidImageCell(3, 0x00000000);
+        left.setBackColorRGB(0xFF0000);
+        Cell right = solidImageCell(4, 0x00000000);
+        right.setBackColorRGB(0x0000FF);
+        terminal.putCharXY(1, 1, left);
+        terminal.putCharXY(2, 1, right);
         outputStream.reset();
         terminal.flushPhysical();
 
@@ -186,9 +212,46 @@ class ECMA48TerminalITerm2ImagesTest {
             BmpImageEncoderTest.Bmp bmp = BmpImageEncoderTest.decode(
                 image.data());
             assertThat(bmp.bitsPerPixel()).isEqualTo(32);
-            assertThat(bmp.pixels()[0][0]).isEqualTo(0x40102030);
+            assertThat(bmp.pixels()[0][0]).isEqualTo(0xFFFF0000);
+            assertThat(bmp.pixels()[0][8]).isEqualTo(0xFF0000FF);
         });
-        assertThat(written).contains("\033[0m\033[48;2;171;205;239m\033]1337;");
+        assertThat(terminal.isDirty()).isFalse();
+
+        Cell changedRight = solidImageCell(4, 0x00000000);
+        changedRight.setBackColorRGB(0x00FF00);
+        terminal.putCharXY(2, 1, changedRight);
+        assertThat(terminal.isDirty()).isTrue();
+        outputStream.reset();
+        terminal.flushPhysical();
+        assertThat(parse(written())).singleElement().satisfies(image ->
+            assertThat(BmpImageEncoderTest.decode(image.data()).pixels()[0][0])
+                .isEqualTo(0xFF00FF00));
+    }
+
+    @Test
+    @DisplayName("Runs with incompatible tile dimensions are sent separately")
+    void incompatibleTileDimensionsSplitIntoSeparateRuns() {
+        terminal = createTerminal(ITERM2 + "\033[?62;4c");
+        waitForITerm2();
+        terminal.flushPhysical();
+
+        terminal.putCharXY(0, 0, imageCell(10, 1, 2, 0xFF102030));
+        terminal.putCharXY(1, 0, imageCell(11, 3, 1, 0xFFA0B0C0));
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        List<InlineImage> images = parse(written());
+        assertThat(images).hasSize(2);
+        assertThat(BmpImageEncoderTest.decode(images.get(0).data()))
+            .satisfies(bmp -> {
+                assertThat(bmp.width()).isEqualTo(1);
+                assertThat(bmp.height()).isEqualTo(2);
+            });
+        assertThat(BmpImageEncoderTest.decode(images.get(1).data()))
+            .satisfies(bmp -> {
+                assertThat(bmp.width()).isEqualTo(3);
+                assertThat(bmp.height()).isEqualTo(1);
+            });
     }
 
     @Test
@@ -243,6 +306,79 @@ class ECMA48TerminalITerm2ImagesTest {
                 .isEqualTo(8));
     }
 
+    @Test
+    @DisplayName("Reloading options installs the selected encoder instance")
+    void reloadOptionsReplacesConfiguredEncoderInstance() {
+        ImageEncoder first = new NamedEncoder("first", false);
+        ImageEncoder second = new NamedEncoder("second", false);
+        ImageEncoderRegistry.getInstance().registerEncoder(first);
+        ImageEncoderRegistry.getInstance().registerEncoder(second);
+        registered.add(first);
+        registered.add(second);
+
+        System.setProperty("casciian.ECMA48.iterm2ImageEncoder", "first");
+        terminal = createTerminal(ITERM2 + "\033[?62;4c");
+        waitForITerm2();
+        terminal.flushPhysical();
+        terminal.putCharXY(0, 0, solidImageCell(5, 0xFF102030));
+        outputStream.reset();
+        terminal.flushPhysical();
+        assertThat(new String(parse(written()).getFirst().data(),
+            StandardCharsets.US_ASCII)).isEqualTo("first");
+
+        System.setProperty("casciian.ECMA48.iterm2ImageEncoder", "second");
+        outputStream.reset();
+        terminal.reloadOptions();
+        terminal.flushPhysical();
+        assertThat(new String(parse(written()).getFirst().data(),
+            StandardCharsets.US_ASCII)).isEqualTo("second");
+    }
+
+    @Test
+    @DisplayName("BMP fallback uses the selected encoder's alpha behavior")
+    void fallbackPreservesOpaqueEncoderBehavior() {
+        System.setProperty("casciian.ECMA48.iterm2ImageFormat", "rgba");
+        ImageEncoder failing = new ImageEncoder() {
+            @Override
+            public String getName() {
+                return "failing";
+            }
+
+            @Override
+            public String getMimeType() {
+                return "image/failing";
+            }
+
+            @Override
+            public int getPriority() {
+                return 100;
+            }
+
+            @Override
+            public byte[] encode(final ImageRGB image, final boolean alpha)
+                throws IOException {
+                throw new IOException("expected test failure");
+            }
+        };
+        ImageEncoderRegistry.getInstance().registerEncoder(failing);
+        registered.add(failing);
+        System.setProperty("casciian.ECMA48.iterm2ImageEncoder", "failing");
+
+        terminal = createTerminal(ITERM2 + "\033[?62;4c");
+        waitForITerm2();
+        terminal.flushPhysical();
+        terminal.putCharXY(0, 0, solidImageCell(6, 0x40102030));
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        assertThat(parse(written())).singleElement().satisfies(image -> {
+            BmpImageEncoderTest.Bmp bmp = BmpImageEncoderTest.decode(
+                image.data());
+            assertThat(bmp.bitsPerPixel()).isEqualTo(24);
+            assertThat(bmp.pixels()[0][0]).isEqualTo(0xFF102030);
+        });
+    }
+
     // ------------------------------------------------------------------------
     // Helpers ----------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -283,11 +419,51 @@ class ECMA48TerminalITerm2ImagesTest {
     }
 
     private static Cell solidImageCell(final int imageId, final int argb) {
-        ImageRGB image = new ArrayImageRGB(8, 16);
-        image.fillRect(0, 0, 8, 16, argb);
+        return imageCell(imageId, 8, 16, argb);
+    }
+
+    private static Cell imageCell(final int imageId, final int width,
+        final int height, final int argb) {
+        ImageRGB image = new ArrayImageRGB(width, height);
+        image.fillRect(0, 0, width, height, argb);
         Cell cell = new Cell();
         cell.setImage(image, imageId);
         return cell;
+    }
+
+    private static final class NamedEncoder implements ImageEncoder {
+        private final String name;
+        private final boolean alpha;
+
+        private NamedEncoder(final String name, final boolean alpha) {
+            this.name = name;
+            this.alpha = alpha;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String getMimeType() {
+            return "image/" + name;
+        }
+
+        @Override
+        public int getPriority() {
+            return 10;
+        }
+
+        @Override
+        public boolean supportsAlpha() {
+            return alpha;
+        }
+
+        @Override
+        public byte[] encode(final ImageRGB image, final boolean keepAlpha) {
+            return name.getBytes(StandardCharsets.US_ASCII);
+        }
     }
 
     private void waitForITerm2() {

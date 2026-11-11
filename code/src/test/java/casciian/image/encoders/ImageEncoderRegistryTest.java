@@ -15,7 +15,15 @@
  */
 package casciian.image.encoders;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import casciian.bits.ImageRGB;
@@ -24,6 +32,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
  * Tests for encoder discovery and selection.
@@ -89,6 +98,47 @@ class ImageEncoderRegistryTest {
 
         assertThat(registry.loadEncoders()).isZero();
         assertThat(registry.getEncoders()).hasSize(before);
+    }
+
+    @Test
+    @DisplayName("Malformed service entries do not stop provider discovery")
+    void malformedServiceEntryDoesNotStopDiscovery() throws Exception {
+        URL serviceFile = URL.of(URI.create("memory:image-encoders"),
+            new URLStreamHandler() {
+                @Override
+                protected URLConnection openConnection(final URL url) {
+                    return new URLConnection(url) {
+                        @Override
+                        public void connect() {
+                        }
+
+                        @Override
+                        public java.io.InputStream getInputStream() {
+                            String providers = "not a valid provider\n"
+                                + BmpImageEncoder.class.getName() + "\n";
+                            return new ByteArrayInputStream(providers.getBytes(
+                                StandardCharsets.UTF_8));
+                        }
+                    };
+                }
+            });
+        ClassLoader classLoader = new ClassLoader(
+            ImageEncoderRegistryTest.class.getClassLoader()) {
+            @Override
+            public java.util.Enumeration<URL> getResources(final String name)
+                throws IOException {
+                if (name.equals("META-INF/services/"
+                    + ImageEncoder.class.getName())) {
+                    return Collections.enumeration(List.of(serviceFile));
+                }
+                return super.getResources(name);
+            }
+        };
+
+        assertThatCode(() -> registry.loadEncoders(classLoader))
+            .doesNotThrowAnyException();
+        assertThat(registry.getEncoders())
+            .hasAtLeastOneElementOfType(BmpImageEncoder.class);
     }
 
     /**

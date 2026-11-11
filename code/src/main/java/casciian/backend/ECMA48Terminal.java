@@ -1253,6 +1253,17 @@ public class ECMA48Terminal extends LogicalScreen
             return true;
         }
         synchronized (this) {
+            if (isITerm2BackgroundPainted()) {
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        if (logical[x][y].isImage()
+                            && (attrToBackgroundColor(logical[x][y])
+                                != attrToBackgroundColor(physical[x][y]))) {
+                            return true;
+                        }
+                    }
+                }
+            }
             if (isKittyImagesActive() && kittyImageManager != null) {
                 final boolean paintBackground = isKittyBackgroundPainted();
                 for (int y = 0; y < height; y++) {
@@ -2728,21 +2739,40 @@ public class ECMA48Terminal extends LogicalScreen
      * @param consumer the receiver for each run found
      */
     private void forEachImageRun(final ImageRunConsumer consumer) {
+        final boolean compositeBackground = isITerm2BackgroundPainted();
+        final boolean splitIncompatibleTiles = isITerm2ImagesActive();
         for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
+            int x = 0;
+            while (x < width) {
                 if (!logical[x][y].isImage()) {
+                    x++;
                     continue;
                 }
 
+                Cell firstCell = logical[x][y];
+                int tileWidth = firstCell.getImage().getWidth();
+                int tileHeight = firstCell.getImage().getHeight();
                 int right = x;
                 // This little loop is a *HUGE* bottleneck for image cells
                 // when imageId is not set.  Higher layers of code should
                 // always aim to set imageId before putting it on the screen.
-                while ((right < width)
-                    && (logical[right][y].isImage())
-                    && (!logical[right][y].equals(physical[right][y])
-                    || reallyCleared)
-                ) {
+                while (right < width && logical[right][y].isImage()) {
+                    Cell cell = logical[right][y];
+                    if (splitIncompatibleTiles
+                        && ((cell.getImage().getWidth() != tileWidth)
+                            || (cell.getImage().getHeight() != tileHeight))) {
+                        break;
+                    }
+                    boolean backgroundChanged = compositeBackground
+                        && (attrToBackgroundColor(cell)
+                            != attrToBackgroundColor(physical[right][y]));
+                    if (backgroundChanged) {
+                        iterm2Cache = null;
+                    }
+                    if (cell.equals(physical[right][y])
+                        && !reallyCleared && !backgroundChanged) {
+                        break;
+                    }
                     right++;
                 }
 
@@ -2758,7 +2788,7 @@ public class ECMA48Terminal extends LogicalScreen
                     consumer.accept(x, y, cellsToDraw);
                 }
 
-                x = right;
+                x = (right > x) ? right : (x + 1);
             }
         }
     }
@@ -5532,8 +5562,9 @@ public class ECMA48Terminal extends LogicalScreen
 
         synchronized (this) {
             ITerm2ImageEncoder old = iterm2ImageEncoder;
+            boolean kittyWasActive = isKittyImagesActive();
             boolean sameEncoder = (old != null)
-                && (old.getFileEncoder().getClass() == fileEncoder.getClass())
+                && (old.getFileEncoder() == fileEncoder)
                 && (old.isAlpha() == (alpha && fileEncoder.supportsAlpha()));
             if ((allowed == iterm2ImagesAllowed) && sameEncoder) {
                 return;
@@ -5542,6 +5573,9 @@ public class ECMA48Terminal extends LogicalScreen
             if (!sameEncoder) {
                 iterm2ImageEncoder = new ITerm2ImageEncoder(fileEncoder, alpha);
                 iterm2Cache = null;
+            }
+            if (kittyWasActive && !isKittyImagesActive()) {
+                writeKittyReset(kittyImageManager);
             }
             clearPhysical();
         }
@@ -5664,12 +5698,6 @@ public class ECMA48Terminal extends LogicalScreen
         final ITerm2ImageEncoder encoder = iterm2ImageEncoder;
         StringBuilder sb = new StringBuilder();
         sb.append(sortableGotoXY(x, y));
-        if (encoder.isAlpha()) {
-            // Transparent pixels show the background of the cells the
-            // image is drawn into.
-            sb.append("\033[0m");
-            sb.append(colorRGB(attrToBackgroundColor(cells.getFirst()), false));
-        }
 
         // Capture the volatile cache reference once to avoid race
         // conditions where another thread may set it to null.
@@ -5694,8 +5722,8 @@ public class ECMA48Terminal extends LogicalScreen
 
         // iTerm2 stretches the image over the cells itself, so the tiles
         // are joined without rescaling (which would also discard alpha).
-        String image = encoder.transmitAndPlace(cellsToImage(cells, false),
-            cells.size(), 1);
+        String image = encoder.transmitAndPlace(
+            cellsToImage(cells, false, encoder.isAlpha()), cells.size(), 1);
         if (saveInCache && (cache != null)) {
             cache.put(cells, image);
         }
@@ -5939,6 +5967,21 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private ImageRGB cellsToImage(final List<Cell> cells,
         final boolean scaleToCells) {
+        return cellsToImage(cells, scaleToCells, false);
+    }
+
+    /**
+     * Convert a horizontal range of cell images into one image, optionally
+     * compositing each tile against its own cell background.
+     *
+     * @param cells the cells containing image data
+     * @param scaleToCells if true, rescale to the current text cell size
+     * @param compositeBackground if true, composite transparent pixels over
+     *                            each cell's background color
+     * @return the joined image
+     */
+    private ImageRGB cellsToImage(final List<Cell> cells,
+        final boolean scaleToCells, final boolean compositeBackground) {
 
         ImageRGB firstImage = cells.getFirst().getImage();
         int tileWidth = firstImage.getWidth();
@@ -6005,6 +6048,19 @@ public class ECMA48Terminal extends LogicalScreen
             image.fillRect(startX, 0, remainingWidth, tileHeight, MYBLACK);
         }
 
+        if (compositeBackground) {
+            for (int i = 0; i < cells.size(); i++) {
+                int[] pixels = image.getRGB(i * tileWidth, 0, tileWidth,
+                    tileHeight, null, 0, tileWidth);
+                int background = attrToBackgroundColor(cells.get(i));
+                for (int pixel = 0; pixel < pixels.length; pixel++) {
+                    pixels[pixel] = compositePixel(pixels[pixel], background);
+                }
+                image.setRGB(i * tileWidth, 0, tileWidth, tileHeight, pixels,
+                    0, tileWidth);
+            }
+        }
+
         if (scaleToCells
             && ((image.getWidth() != cells.size() * getTextWidth())
                 || (image.getHeight() != getTextHeight()))
@@ -6013,6 +6069,30 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         return image;
+    }
+
+    /**
+     * Composite an ARGB pixel over an opaque RGB background.
+     *
+     * @param pixel the ARGB pixel
+     * @param background the background RGB color
+     * @return the opaque composited pixel
+     */
+    private static int compositePixel(final int pixel,
+        final int background) {
+
+        int alpha = pixel >>> 24;
+        if (alpha == 255) {
+            return pixel;
+        }
+        int inverseAlpha = 255 - alpha;
+        int red = ((((pixel >>> 16) & 0xFF) * alpha)
+            + (((background >>> 16) & 0xFF) * inverseAlpha) + 127) / 255;
+        int green = ((((pixel >>> 8) & 0xFF) * alpha)
+            + (((background >>> 8) & 0xFF) * inverseAlpha) + 127) / 255;
+        int blue = (((pixel & 0xFF) * alpha)
+            + ((background & 0xFF) * inverseAlpha) + 127) / 255;
+        return 0xFF000000 | (red << 16) | (green << 8) | blue;
     }
 
     // ------------------------------------------------------------------------

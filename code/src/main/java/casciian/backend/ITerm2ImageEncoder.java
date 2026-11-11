@@ -104,7 +104,7 @@ final class ITerm2ImageEncoder {
         try {
             data = fileEncoder.encode(image, isAlpha());
         } catch (IOException | RuntimeException e) {
-            data = new BmpImageEncoder().encode(image, alpha);
+            data = new BmpImageEncoder().encode(image, isAlpha());
         }
         return inlineImage(data, columns, rows);
     }

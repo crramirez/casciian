@@ -240,8 +240,11 @@ public class ImageEncoderRegistry {
         int count = 0;
         Iterator<ServiceLoader.Provider<ImageEncoder>> it =
             serviceLoader.stream().iterator();
-        while (it.hasNext()) {
+        while (true) {
             try {
+                if (!it.hasNext()) {
+                    break;
+                }
                 ServiceLoader.Provider<ImageEncoder> provider = it.next();
                 Class<? extends ImageEncoder> type = provider.type();
                 if (encoders.stream().anyMatch(e -> e.getClass() == type)) {
