@@ -37,6 +37,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import casciian.backend.terminal.OsUtils;
 import casciian.backend.terminal.Terminal;
@@ -134,6 +136,18 @@ public class ECMA48Terminal extends LogicalScreen
      * String that XTVERSION should contain if the terminal is iTerm2
      */
     private static final String XTVERSION_FOR_ITERM2 = "iTerm2";
+
+    /**
+     * Minimum iTerm2 version supporting the no-cursor-movement image option.
+     */
+    private static final Pattern ITERM2_VERSION = Pattern.compile(
+        "iTerm2\\s+(\\d+)\\.(\\d+)");
+
+    /**
+     * Maximum encoded payload size retained by the iTerm2 image cache.
+     */
+    private static final long ITERM2_IMAGE_CACHE_MAX_PAYLOAD_BYTES =
+        8L * 1024 * 1024;
 
     /**
      * VT2026 Begin Synchronized Update (BSU).
@@ -772,6 +786,22 @@ public class ECMA48Terminal extends LogicalScreen
         private final java.util.LinkedHashMap<String, String> cache;
 
         /**
+         * The maximum number of entries retained.
+         */
+        private final int maxEntries;
+
+        /**
+         * The maximum encoded payload size retained, or {@link Long#MAX_VALUE}
+         * when the cache is limited only by entry count.
+         */
+        private final long maxPayloadBytes;
+
+        /**
+         * The encoded payload size currently retained.
+         */
+        private long cachedPayloadBytes;
+
+        /**
          * Approximate number of characters per hashCode in the cache key.
          * Used for StringBuilder capacity estimation.
          */
@@ -780,19 +810,24 @@ public class ECMA48Terminal extends LogicalScreen
         /**
          * Public constructor.
          *
-         * @param maxSize the maximum size of the cache
+         * @param maxSize the maximum number of entries
          */
         public ImageCache(final int maxSize) {
-            // Create LinkedHashMap with access-order (accessOrder=true) and automatic eviction.
-            // removeEldestEntry is called after insertion, so size() > maxSize means we just
-            // exceeded the limit and need to evict the eldest entry.
-            this.cache = new java.util.LinkedHashMap<>(maxSize + 1, 0.75f, true) {
-                @Override
-                protected boolean removeEldestEntry(java.util.Map.Entry<String, String> eldest) {
-                    // Use the LinkedHashMap's own size() method (not ImageCache.size())
-                    return this.size() > maxSize;
-                }
-            };
+            this(maxSize, Long.MAX_VALUE);
+        }
+
+        /**
+         * Constructor for a cache limited by both entry count and encoded
+         * payload size.
+         *
+         * @param maxEntries the maximum number of entries
+         * @param maxPayloadBytes the maximum encoded payload size in bytes
+         */
+        public ImageCache(final int maxEntries, final long maxPayloadBytes) {
+            this.maxEntries = maxEntries;
+            this.maxPayloadBytes = maxPayloadBytes;
+            this.cache = new java.util.LinkedHashMap<>(
+                Math.min(maxEntries + 1, 16), 0.75f, true);
         }
 
         /**
@@ -804,7 +839,10 @@ public class ECMA48Terminal extends LogicalScreen
         private String makeKey(final ArrayList<Cell> cells) {
             StringBuilder sb = new StringBuilder(cells.size() * CHARS_PER_HASHCODE);
             for (Cell cell : cells) {
-                sb.append(cell.hashCode());
+                ImageRGB image = cell.getImage();
+                sb.append(cell.hashCode()).append('/')
+                    .append(image.getWidth()).append('x')
+                    .append(image.getHeight()).append(';');
             }
             return sb.toString();
         }
@@ -827,7 +865,27 @@ public class ECMA48Terminal extends LogicalScreen
          * @param data  the image string representing these cells
          */
         public synchronized void put(final ArrayList<Cell> cells, final String data) {
-            cache.put(makeKey(cells), data);
+            String key = makeKey(cells);
+            if (data.length() > maxPayloadBytes) {
+                String previous = cache.remove(key);
+                if (previous != null) {
+                    cachedPayloadBytes -= previous.length();
+                }
+                return;
+            }
+            String previous = cache.put(key, data);
+            if (previous != null) {
+                cachedPayloadBytes -= previous.length();
+            }
+            cachedPayloadBytes += data.length();
+            while ((cache.size() > maxEntries)
+                || (cachedPayloadBytes > maxPayloadBytes)) {
+                java.util.Iterator<java.util.Map.Entry<String, String>> iterator =
+                    cache.entrySet().iterator();
+                java.util.Map.Entry<String, String> eldest = iterator.next();
+                cachedPayloadBytes -= eldest.getValue().length();
+                iterator.remove();
+            }
         }
     }
 
@@ -2800,7 +2858,8 @@ public class ECMA48Terminal extends LogicalScreen
     private void ensureImageCache() {
         if (isITerm2ImagesActive()) {
             if (iterm2Cache == null) {
-                iterm2Cache = new ImageCache(height * width * 10);
+                iterm2Cache = new ImageCache(height * width * 10,
+                    ITERM2_IMAGE_CACHE_MAX_PAYLOAD_BYTES);
             }
         } else if (jexerImageOption != JexerImageOption.DISABLED) {
             if (jexerCache == null) {
@@ -3844,10 +3903,32 @@ public class ECMA48Terminal extends LogicalScreen
                 System.err.println("  -- iTerm2 -- ");
             }
             isITerm2 = true;
-            enableITerm2Images();
+            if (isITerm2ImageVersionSupported()) {
+                enableITerm2Images();
+            }
         }
 
         setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
+    }
+
+    /**
+     * Check whether the detected iTerm2 version supports
+     * {@code doNotMoveCursor=1}.
+     *
+     * @return true for iTerm2 3.5 or later
+     */
+    private boolean isITerm2ImageVersionSupported() {
+        Matcher matcher = ITERM2_VERSION.matcher(terminalVersion);
+        if (!matcher.find()) {
+            return false;
+        }
+        try {
+            int major = Integer.parseInt(matcher.group(1));
+            int minor = Integer.parseInt(matcher.group(2));
+            return (major > 3) || ((major == 3) && (minor >= 5));
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     /**
@@ -3976,6 +4057,7 @@ public class ECMA48Terminal extends LogicalScreen
             setColorFromOsc(color, rgbColor);
 
             // We have changed a system color.  Redraw the entire screen.
+            iterm2Cache = null;
             clearPhysical();
             reallyCleared = true;
         } catch (NumberFormatException e) {

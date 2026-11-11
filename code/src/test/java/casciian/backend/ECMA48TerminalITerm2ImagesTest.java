@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 
 import casciian.bits.ArrayImageRGB;
 import casciian.bits.Cell;
+import casciian.bits.Color;
 import casciian.bits.ImageRGB;
 import casciian.image.encoders.BmpImageEncoderTest;
 import casciian.image.encoders.ImageEncoder;
@@ -52,6 +53,9 @@ class ECMA48TerminalITerm2ImagesTest {
 
     /** XTVERSION reply identifying iTerm2. */
     private static final String ITERM2 = "\033P>|iTerm2 3.5.0\033\\";
+
+    /** XTVERSION reply identifying an iTerm2 release before 3.5. */
+    private static final String ITERM2_3_4 = "\033P>|iTerm2 3.4.0\033\\";
 
     /** A kitty reply to the support query, then Device Attributes. */
     private static final String KITTY_REPLY = "\033_Gi=31;OK\033\\\033[?62;4c";
@@ -191,6 +195,19 @@ class ECMA48TerminalITerm2ImagesTest {
     }
 
     @Test
+    @DisplayName("iTerm2 versions before 3.5 do not enable inline images")
+    void olderITerm2DoesNotEnableInlineImages() {
+        terminal = createTerminal(ITERM2_3_4 + "\033[?62;4c");
+        waitFor(() -> terminal.getTerminalVersion().contains("iTerm2"));
+
+        terminal.putCharXY(0, 0, solidImageCell(7, 0xFF102030));
+        terminal.flushPhysical();
+
+        assertThat(terminal.hasITerm2Images()).isFalse();
+        assertThat(parse(written())).isEmpty();
+    }
+
+    @Test
     @DisplayName("RGBA images composite each tile over its own cell background")
     void rgbaCompositesTilesOverTheirCellBackgrounds() {
         System.setProperty("casciian.ECMA48.iterm2ImageFormat", "rgba");
@@ -252,6 +269,116 @@ class ECMA48TerminalITerm2ImagesTest {
                 assertThat(bmp.width()).isEqualTo(3);
                 assertThat(bmp.height()).isEqualTo(1);
             });
+    }
+
+    @Test
+    @DisplayName("iTerm2 cache keys distinguish image tile dimensions")
+    void imageCacheSeparatesTilesWithDifferentDimensions() {
+        terminal = createTerminal(ITERM2 + "\033[?62;4c");
+        waitForITerm2();
+        terminal.flushPhysical();
+
+        Cell horizontal = imageCellWithPixels(12, 2, 1,
+            0xFFFF0000, 0xFF0000FF);
+        terminal.putCharXY(0, 0, horizontal);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        Cell vertical = imageCellWithPixels(12, 1, 2,
+            0xFFFF0000, 0xFF0000FF);
+        terminal.putCharXY(0, 0, vertical);
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        assertThat(parse(written())).singleElement().satisfies(image -> {
+            BmpImageEncoderTest.Bmp bmp = BmpImageEncoderTest.decode(
+                image.data());
+            assertThat(bmp.width()).isEqualTo(1);
+            assertThat(bmp.height()).isEqualTo(2);
+            assertThat(bmp.pixels()[0][0]).isEqualTo(0xFFFF0000);
+            assertThat(bmp.pixels()[1][0]).isEqualTo(0xFF0000FF);
+        });
+    }
+
+    @Test
+    @DisplayName("iTerm2 cache is bounded by encoded payload size")
+    void imageCacheEvictsPayloadsBySize() {
+        int[] encodeCount = {0};
+        byte[] encodedImage = new byte[4 * 1024 * 1024];
+        ImageEncoder largeEncoder = new ImageEncoder() {
+            @Override
+            public String getName() {
+                return "large";
+            }
+
+            @Override
+            public String getMimeType() {
+                return "image/large";
+            }
+
+            @Override
+            public int getPriority() {
+                return 100;
+            }
+
+            @Override
+            public byte[] encode(final ImageRGB image, final boolean alpha) {
+                encodeCount[0]++;
+                return encodedImage;
+            }
+        };
+        ImageEncoderRegistry.getInstance().registerEncoder(largeEncoder);
+        registered.add(largeEncoder);
+        System.setProperty("casciian.ECMA48.iterm2ImageEncoder", "large");
+        terminal = createTerminal(ITERM2 + "\033[?62;4c");
+        waitForITerm2();
+        terminal.flushPhysical();
+
+        Cell first = solidImageCell(31, 0xFF102030);
+        Cell second = solidImageCell(32, 0xFFA0B0C0);
+        terminal.putCharXY(0, 0, first);
+        terminal.flushPhysical();
+        outputStream.reset();
+        terminal.putCharXY(0, 0, second);
+        terminal.flushPhysical();
+        outputStream.reset();
+        terminal.putCharXY(0, 0, first);
+        terminal.flushPhysical();
+
+        assertThat(encodeCount[0]).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("OSC system color updates invalidate cached RGBA images")
+    void oscColorUpdateInvalidatesCachedImages() {
+        System.setProperty("casciian.ECMA48.iterm2ImageFormat", "rgba");
+        terminal = createTerminal(ITERM2 + "\033[?62;4c");
+        waitForITerm2();
+        terminal.flushPhysical();
+        Cell originalPaletteBlack = new Cell();
+        originalPaletteBlack.setBackColor(Color.BLACK);
+        int originalBlack = ECMA48Terminal.attrToBackgroundColor(
+            originalPaletteBlack);
+        terminal.oscResponse("4;0;rgb:0000/0000/0000");
+
+        Cell cell = solidImageCell(33, 0x80000000);
+        cell.setBackColor(Color.BLACK);
+        terminal.putCharXY(0, 0, cell);
+        outputStream.reset();
+        terminal.flushPhysical();
+        int before = BmpImageEncoderTest.decode(parse(written()).getFirst()
+            .data()).pixels()[0][0];
+
+        terminal.oscResponse("4;0;rgb:ffff/0000/0000");
+        outputStream.reset();
+        terminal.flushPhysical();
+
+        assertThat(parse(written())).singleElement().satisfies(image ->
+            assertThat(BmpImageEncoderTest.decode(image.data()).pixels()[0][0])
+                .isNotEqualTo(before));
+        terminal.oscResponse("4;0;rgb:%02x/%02x/%02x".formatted(
+            (originalBlack >>> 16) & 0xFF, (originalBlack >>> 8) & 0xFF,
+            originalBlack & 0xFF));
     }
 
     @Test
@@ -426,6 +553,15 @@ class ECMA48TerminalITerm2ImagesTest {
         final int height, final int argb) {
         ImageRGB image = new ArrayImageRGB(width, height);
         image.fillRect(0, 0, width, height, argb);
+        Cell cell = new Cell();
+        cell.setImage(image, imageId);
+        return cell;
+    }
+
+    private static Cell imageCellWithPixels(final int imageId,
+        final int width, final int height, final int... pixels) {
+        ImageRGB image = new ArrayImageRGB(width, height);
+        image.setRGB(0, 0, width, height, pixels, 0, width);
         Cell cell = new Cell();
         cell.setImage(image, imageId);
         return cell;

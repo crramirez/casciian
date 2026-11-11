@@ -12,9 +12,9 @@ package, or the iTerm2 parts of `ECMA48Terminal`.
 ## Detection
 
 iTerm2 has no capability query for this protocol, so Casciian relies on the
-XTVERSION reply sent at startup. If it contains `iTerm2`, the protocol is
-turned on and every image cell is redrawn with it. Any kitty images already
-placed are freed first.
+XTVERSION reply sent at startup. The protocol is automatically enabled for
+iTerm2 3.5 and later, which support `doNotMoveCursor=1`. Any kitty images
+already placed are freed first.
 
 ## Protocol priority
 
@@ -45,7 +45,7 @@ image cell replaces that part of the image, so no explicit delete commands
 are needed (unlike kitty). Every redraw sends the file again. To avoid
 encoding it again, the escape sequence for each run is kept in an LRU cache
 keyed by the cells' images. Runs with inverted images (mouse selection) are
-not cached.
+not cached. The cache retains at most 8 MiB of encoded image commands.
 
 ## Pixel formats
 
