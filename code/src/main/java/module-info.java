@@ -57,5 +57,6 @@ module casciian {
     provides casciian.image.decoders.ImageDecoder
         with casciian.image.decoders.SixelImageDecoder;
     provides casciian.image.encoders.ImageEncoder
-        with casciian.image.encoders.BmpImageEncoder;
+        with casciian.image.encoders.BmpImageEncoder,
+            casciian.image.encoders.PngImageEncoder;
 }

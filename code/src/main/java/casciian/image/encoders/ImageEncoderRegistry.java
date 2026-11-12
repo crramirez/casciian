@@ -30,8 +30,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *
  * <p>The first time the registry is queried, it discovers
  * {@link ImageEncoder} implementations with {@link ServiceLoader}.  This
- * picks up the built-in {@link BmpImageEncoder} and any add-on encoders
- * (e.g. PNG or JPEG) on the classpath or module path.  Encoders can also be
+ * picks up the built-in {@link PngImageEncoder} and {@link BmpImageEncoder}
+ * and any add-on encoders (e.g. JPEG) on the classpath or module path.  Encoders can also be
  * registered explicitly with {@link #registerEncoder(ImageEncoder)}.</p>
  *
  * <p>{@link #getPreferredEncoder(boolean)} selects the encoder with the

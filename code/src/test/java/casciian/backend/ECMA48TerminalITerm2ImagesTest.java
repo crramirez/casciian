@@ -32,6 +32,7 @@ import casciian.bits.Cell;
 import casciian.bits.Color;
 import casciian.bits.ImageRGB;
 import casciian.image.encoders.BmpImageEncoderTest;
+import casciian.image.encoders.PngImageEncoderTest;
 import casciian.image.encoders.ImageEncoder;
 import casciian.image.encoders.ImageEncoderRegistry;
 import org.junit.jupiter.api.AfterEach;
@@ -87,8 +88,8 @@ class ECMA48TerminalITerm2ImagesTest {
     }
 
     @Test
-    @DisplayName("iTerm2 image runs are sent as one stretched 24-bit BMP")
-    void iterm2RunIsInlineBmp() {
+    @DisplayName("iTerm2 image runs are sent as one stretched 24-bit PNG")
+    void iterm2RunIsInlinePng() {
         terminal = createTerminal(ITERM2 + "\033[?62;4c");
         waitForITerm2();
         assertThat(terminal.isImageProtocolSupported()).isTrue();
@@ -107,13 +108,13 @@ class ECMA48TerminalITerm2ImagesTest {
                 .containsEntry("preserveAspectRatio", "0")
                 .containsEntry("doNotMoveCursor", "1")
                 .containsEntry("size", String.valueOf(image.data().length));
-            BmpImageEncoderTest.Bmp bmp = BmpImageEncoderTest.decode(
+            PngImageEncoderTest.Png png = PngImageEncoderTest.decode(
                 image.data());
-            assertThat(bmp.bitsPerPixel()).isEqualTo(24);
-            assertThat(bmp.width()).isEqualTo(16);
-            assertThat(bmp.height()).isEqualTo(16);
-            assertThat(bmp.pixels()[5][3]).isEqualTo(0xFF102030);
-            assertThat(bmp.pixels()[5][12]).isEqualTo(0xFFA0B0C0);
+            assertThat(png.bitsPerPixel()).isEqualTo(24);
+            assertThat(png.width()).isEqualTo(16);
+            assertThat(png.height()).isEqualTo(16);
+            assertThat(png.pixels()[5][3]).isEqualTo(0xFF102030);
+            assertThat(png.pixels()[5][12]).isEqualTo(0xFFA0B0C0);
         });
         assertThat(written).contains("\033[02;03H\033]1337;File=");
     }
@@ -226,11 +227,11 @@ class ECMA48TerminalITerm2ImagesTest {
 
         String written = written();
         assertThat(parse(written)).singleElement().satisfies(image -> {
-            BmpImageEncoderTest.Bmp bmp = BmpImageEncoderTest.decode(
+            PngImageEncoderTest.Png png = PngImageEncoderTest.decode(
                 image.data());
-            assertThat(bmp.bitsPerPixel()).isEqualTo(32);
-            assertThat(bmp.pixels()[0][0]).isEqualTo(0xFFFF0000);
-            assertThat(bmp.pixels()[0][8]).isEqualTo(0xFF0000FF);
+            assertThat(png.bitsPerPixel()).isEqualTo(32);
+            assertThat(png.pixels()[0][0]).isEqualTo(0xFFFF0000);
+            assertThat(png.pixels()[0][8]).isEqualTo(0xFF0000FF);
         });
         assertThat(terminal.isDirty()).isFalse();
 
@@ -241,7 +242,7 @@ class ECMA48TerminalITerm2ImagesTest {
         outputStream.reset();
         terminal.flushPhysical();
         assertThat(parse(written())).singleElement().satisfies(image ->
-            assertThat(BmpImageEncoderTest.decode(image.data()).pixels()[0][0])
+            assertThat(PngImageEncoderTest.decode(image.data()).pixels()[0][0])
                 .isEqualTo(0xFF00FF00));
     }
 
@@ -259,15 +260,15 @@ class ECMA48TerminalITerm2ImagesTest {
 
         List<InlineImage> images = parse(written());
         assertThat(images).hasSize(2);
-        assertThat(BmpImageEncoderTest.decode(images.get(0).data()))
-            .satisfies(bmp -> {
-                assertThat(bmp.width()).isEqualTo(1);
-                assertThat(bmp.height()).isEqualTo(2);
+        assertThat(PngImageEncoderTest.decode(images.get(0).data()))
+            .satisfies(png -> {
+                assertThat(png.width()).isEqualTo(1);
+                assertThat(png.height()).isEqualTo(2);
             });
-        assertThat(BmpImageEncoderTest.decode(images.get(1).data()))
-            .satisfies(bmp -> {
-                assertThat(bmp.width()).isEqualTo(3);
-                assertThat(bmp.height()).isEqualTo(1);
+        assertThat(PngImageEncoderTest.decode(images.get(1).data()))
+            .satisfies(png -> {
+                assertThat(png.width()).isEqualTo(3);
+                assertThat(png.height()).isEqualTo(1);
             });
     }
 
@@ -291,12 +292,12 @@ class ECMA48TerminalITerm2ImagesTest {
         terminal.flushPhysical();
 
         assertThat(parse(written())).singleElement().satisfies(image -> {
-            BmpImageEncoderTest.Bmp bmp = BmpImageEncoderTest.decode(
+            PngImageEncoderTest.Png png = PngImageEncoderTest.decode(
                 image.data());
-            assertThat(bmp.width()).isEqualTo(1);
-            assertThat(bmp.height()).isEqualTo(2);
-            assertThat(bmp.pixels()[0][0]).isEqualTo(0xFFFF0000);
-            assertThat(bmp.pixels()[1][0]).isEqualTo(0xFF0000FF);
+            assertThat(png.width()).isEqualTo(1);
+            assertThat(png.height()).isEqualTo(2);
+            assertThat(png.pixels()[0][0]).isEqualTo(0xFFFF0000);
+            assertThat(png.pixels()[1][0]).isEqualTo(0xFF0000FF);
         });
     }
 
@@ -316,14 +317,14 @@ class ECMA48TerminalITerm2ImagesTest {
         assertThat(terminal.isDirty()).isTrue();
         outputStream.reset();
         terminal.flushPhysical();
-        assertThat(BmpImageEncoderTest.decode(parse(written()).getFirst().data())
+        assertThat(PngImageEncoderTest.decode(parse(written()).getFirst().data())
             .pixels()[0][0]).isEqualTo(0xFFA0B0C0);
 
         terminal.putCharXY(3, 5, imageCell(12, 1, 2, 0xFFA0B0C0));
         assertThat(terminal.isDirty()).isTrue();
         outputStream.reset();
         terminal.flushPhysical();
-        assertThat(BmpImageEncoderTest.decode(parse(written()).getFirst().data())
+        assertThat(PngImageEncoderTest.decode(parse(written()).getFirst().data())
             .height()).isEqualTo(2);
 
         Cell mutable = imageCell(12, 1, 2, 0xFF112233);
@@ -333,7 +334,7 @@ class ECMA48TerminalITerm2ImagesTest {
         assertThat(terminal.isDirty()).isTrue();
         outputStream.reset();
         terminal.flushPhysical();
-        assertThat(BmpImageEncoderTest.decode(parse(written()).getFirst().data())
+        assertThat(PngImageEncoderTest.decode(parse(written()).getFirst().data())
             .pixels()[0][0]).isEqualTo(0xFF445566);
         assertThat(terminal.isDirty()).isFalse();
     }
@@ -355,7 +356,7 @@ class ECMA48TerminalITerm2ImagesTest {
         terminal.flushPhysical();
 
         assertThat(parse(written())).singleElement().satisfies(image ->
-            assertThat(BmpImageEncoderTest.decode(image.data()).pixels()[0])
+            assertThat(PngImageEncoderTest.decode(image.data()).pixels()[0])
                 .containsExactly(0xFF080000, 0xFF070000));
     }
 
@@ -467,7 +468,7 @@ class ECMA48TerminalITerm2ImagesTest {
         terminal.putCharXY(0, 0, cell);
         outputStream.reset();
         terminal.flushPhysical();
-        int before = BmpImageEncoderTest.decode(parse(written()).getFirst()
+        int before = PngImageEncoderTest.decode(parse(written()).getFirst()
             .data()).pixels()[0][0];
 
         terminal.oscResponse("4;0;rgb:ffff/0000/0000");
@@ -475,7 +476,7 @@ class ECMA48TerminalITerm2ImagesTest {
         terminal.flushPhysical();
 
         assertThat(parse(written())).singleElement().satisfies(image ->
-            assertThat(BmpImageEncoderTest.decode(image.data()).pixels()[0][0])
+            assertThat(PngImageEncoderTest.decode(image.data()).pixels()[0][0])
                 .isNotEqualTo(before));
         terminal.oscResponse("4;0;rgb:%02x/%02x/%02x".formatted(
             (originalBlack >>> 16) & 0xFF, (originalBlack >>> 8) & 0xFF,
@@ -499,7 +500,7 @@ class ECMA48TerminalITerm2ImagesTest {
             terminal.putCharXY(3, 5, cell);
             outputStream.reset();
             terminal.flushPhysical();
-            int before = BmpImageEncoderTest.decode(parse(written()).getFirst()
+            int before = PngImageEncoderTest.decode(parse(written()).getFirst()
                 .data()).pixels()[0][0];
 
             System.setProperty("casciian.ECMA48.color0", "ff0000");
@@ -508,7 +509,7 @@ class ECMA48TerminalITerm2ImagesTest {
             outputStream.reset();
             terminal.flushPhysical();
             assertThat(parse(written())).singleElement().satisfies(image ->
-                assertThat(BmpImageEncoderTest.decode(image.data()).pixels()[0][0])
+                assertThat(PngImageEncoderTest.decode(image.data()).pixels()[0][0])
                     .isNotEqualTo(before));
         } finally {
             System.clearProperty("casciian.ECMA48.color0");
@@ -534,7 +535,7 @@ class ECMA48TerminalITerm2ImagesTest {
 
             @Override
             public int getPriority() {
-                return 10;
+                return 20;
             }
 
             @Override

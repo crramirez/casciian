@@ -1,1 +1,2 @@
 casciian.image.encoders.BmpImageEncoder
+casciian.image.encoders.PngImageEncoder
