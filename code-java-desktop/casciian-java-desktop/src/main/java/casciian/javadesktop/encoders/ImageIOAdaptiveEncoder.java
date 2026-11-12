@@ -222,6 +222,9 @@ public class ImageIOAdaptiveEncoder implements ImageEncoder {
         if (total < minJpegPixels || total == 0) {
             return pngEncoder;
         }
+        if (maxPngColors >= Math.min(total, 0x1000000L)) {
+            return pngEncoder;
+        }
         double repeatsNeeded = minPngRepeatFraction * total;
 
         ColorSet colors = new ColorSet(maxPngColors);
@@ -247,15 +250,11 @@ public class ImageIOAdaptiveEncoder implements ImageEncoder {
                 }
             }
             remaining -= width;
-            if (alpha) {
-                // Every pixel must be checked for transparency.
-                continue;
-            }
             // Stop early once the remaining rows cannot change the result.
             if (repeats >= repeatsNeeded) {
                 return pngEncoder;
             }
-            if (manyColors && repeats + remaining < repeatsNeeded) {
+            if (!alpha && manyColors && repeats + remaining < repeatsNeeded) {
                 return jpegEncoder;
             }
         }

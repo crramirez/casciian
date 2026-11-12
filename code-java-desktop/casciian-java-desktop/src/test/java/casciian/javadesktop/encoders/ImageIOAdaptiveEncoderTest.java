@@ -18,6 +18,7 @@ package casciian.javadesktop.encoders;
 import casciian.bits.ArrayImageRGB;
 import casciian.bits.ImageRGB;
 import casciian.image.encoders.ImageEncoderRegistry;
+import casciian.image.encoders.PngImageEncoder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -81,6 +82,71 @@ class ImageIOAdaptiveEncoderTest {
     void tinyPhotoIsEncodedAsPng() throws IOException {
         assertThat(encoder.encode(photo(8, 16, 0xFF), false))
             .startsWith(PNG_SIGNATURE);
+    }
+
+    @Test
+    void pixelCutoffKeeps4095PixelsLosslessButAllowsJpegAt4096() {
+        assertThat(encoder.selectEncoder(uniqueImage(4095, 1), false))
+            .isInstanceOf(PngImageEncoder.class);
+        assertThat(encoder.selectEncoder(uniqueImage(4096, 1), false))
+            .isInstanceOf(ImageIOJpegEncoder.class);
+    }
+
+    @Test
+    void colorCutoffKeeps256ColorsLosslessButAllowsJpegAt257() {
+        ImageIOAdaptiveEncoder colorEncoder = new ImageIOAdaptiveEncoder(
+            new PngImageEncoder(), new ImageIOJpegEncoder(), 0, 256, 2.0);
+
+        assertThat(colorEncoder.selectEncoder(cyclingColors(256), false))
+            .isInstanceOf(PngImageEncoder.class);
+        assertThat(colorEncoder.selectEncoder(cyclingColors(257), false))
+            .isInstanceOf(ImageIOJpegEncoder.class);
+    }
+
+    @Test
+    void repeatCutoffKeepsExactly50PercentLosslessButAllowsJpegBelow() {
+        ImageIOAdaptiveEncoder repeatEncoder = new ImageIOAdaptiveEncoder(
+            new PngImageEncoder(), new ImageIOJpegEncoder(), 0, 0, 0.5);
+
+        assertThat(repeatEncoder.selectEncoder(repeatedPixels(32), false))
+            .isInstanceOf(PngImageEncoder.class);
+        assertThat(repeatEncoder.selectEncoder(repeatedPixels(31), false))
+            .isInstanceOf(ImageIOJpegEncoder.class);
+    }
+
+    @Test
+    void maximumColorThresholdDoesNotOverflowColorTable() {
+        ImageIOAdaptiveEncoder unlimitedColors = new ImageIOAdaptiveEncoder(
+            new PngImageEncoder(), new ImageIOJpegEncoder(), 0,
+            Integer.MAX_VALUE, 2.0);
+
+        assertThat(unlimitedColors.selectEncoder(uniqueImage(64, 64), false))
+            .isInstanceOf(PngImageEncoder.class);
+    }
+
+    @Test
+    void alphaRequestStillStopsWhenRepeatThresholdSelectsPng() {
+        var image = new ArrayImageRGB(64, 64) {
+            private int rowsRead;
+
+            @Override
+            public int[] getRGB(final int startX, final int startY,
+                final int width, final int height, final int[] rgbArray,
+                final int offset, final int scansize) {
+                rowsRead++;
+                return super.getRGB(startX, startY, width, height, rgbArray,
+                    offset, scansize);
+            }
+
+            int rowsRead() {
+                return rowsRead;
+            }
+        };
+        image.fillRect(0, 0, 64, 64, 0xFF123456);
+
+        assertThat(encoder.selectEncoder(image, true))
+            .isInstanceOf(PngImageEncoder.class);
+        assertThat(image.rowsRead()).isLessThan(64);
     }
 
     @Test
@@ -166,6 +232,47 @@ class ImageIOAdaptiveEncoderTest {
             image.fillRect(x, 3, 1, 9, 0xFFFFFFFF);
             image.fillRect(x + 1, 7, 4, 1, 0xFFFFFF55);
         }
+        return image;
+    }
+
+    private static ImageRGB uniqueImage(final int w, final int h) {
+        ImageRGB image = new ArrayImageRGB(w, h);
+        int[] pixels = new int[w * h];
+        for (int i = 0; i < pixels.length; i++) {
+            pixels[i] = 0xFF000001 | (i << 8);
+        }
+        image.setRGB(0, 0, w, h, pixels, 0, w);
+        return image;
+    }
+
+    private static ImageRGB cyclingColors(final int colorCount) {
+        int width = 128;
+        int height = 32;
+        ImageRGB image = new ArrayImageRGB(width, height);
+        int[] pixels = new int[width * height];
+        for (int i = 0; i < pixels.length; i++) {
+            pixels[i] = 0xFF000000 | ((i % colorCount) + 1);
+        }
+        image.setRGB(0, 0, width, height, pixels, 0, width);
+        return image;
+    }
+
+    private static ImageRGB repeatedPixels(final int repeatsPerRow) {
+        int width = 64;
+        int height = 64;
+        ImageRGB image = new ArrayImageRGB(width, height);
+        int[] pixels = new int[width * height];
+        int color = 1;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (x > 0 && (x & 1) != 0 && x / 2 < repeatsPerRow) {
+                    pixels[y * width + x] = pixels[y * width + x - 1];
+                } else {
+                    pixels[y * width + x] = 0xFF000000 | color++;
+                }
+            }
+        }
+        image.setRGB(0, 0, width, height, pixels, 0, width);
         return image;
     }
 
