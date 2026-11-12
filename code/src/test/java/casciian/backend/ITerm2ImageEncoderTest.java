@@ -44,7 +44,7 @@ class ITerm2ImageEncoderTest {
             + ";preserveAspectRatio=0;doNotMoveCursor=1:([A-Za-z0-9+/=]*)\007");
 
     @ParameterizedTest(name = "{0} bytes")
-    @ValueSource(ints = {1, 2, 3, 4, 5, 1000, 65537})
+    @ValueSource(ints = {1, 2, 3, 4, 5, 1000, 6144, 6145, 65537})
     @DisplayName("The payload is the complete base64 of the file")
     void payloadIsBase64OfFile(final int length) {
         byte[] data = new byte[length];

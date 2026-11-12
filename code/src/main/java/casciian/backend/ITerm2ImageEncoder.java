@@ -50,6 +50,12 @@ final class ITerm2ImageEncoder {
     private static final byte BEL = 7;
 
     /**
+     * Maximum encoded payload size for which exact Base64 allocation is
+     * smaller than the encoder's staging buffer.
+     */
+    private static final int SMALL_BASE64_MAX_LENGTH = 8192;
+
+    /**
      * The built-in encoder used when an add-on encoder fails.
      */
     private static final PngImageEncoder FALLBACK_ENCODER =
@@ -157,17 +163,23 @@ final class ITerm2ImageEncoder {
             + ";preserveAspectRatio=0;doNotMoveCursor=1:")
             .getBytes(StandardCharsets.US_ASCII);
         int base64Length = 4 * ((data.length + 2) / 3);
-        // Base64-encode straight into the final sequence, which the
-        // String constructor copies once, instead of building and copying
-        // an intermediate base64 String.
+        // Avoid an intermediate base64 String for either encoding path.
         byte[] sequence = new byte[header.length + base64Length + 1];
         System.arraycopy(header, 0, sequence, 0, header.length);
-        ArrayOutput out = new ArrayOutput(sequence, header.length);
-        try (OutputStream base64 = Base64.getEncoder().wrap(out)) {
-            base64.write(data);
-        } catch (IOException e) {
-            // ArrayOutput never throws.
-            throw new IllegalStateException(e);
+        if (base64Length <= SMALL_BASE64_MAX_LENGTH) {
+            byte[] base64 = Base64.getEncoder().encode(data);
+            System.arraycopy(base64, 0, sequence, header.length,
+                base64.length);
+        } else {
+            // Encode into the final sequence instead of an intermediate
+            // base64 array.
+            ArrayOutput out = new ArrayOutput(sequence, header.length);
+            try (OutputStream base64 = Base64.getEncoder().wrap(out)) {
+                base64.write(data);
+            } catch (IOException e) {
+                // ArrayOutput never throws.
+                throw new IllegalStateException(e);
+            }
         }
         sequence[sequence.length - 1] = BEL;
         return new String(sequence, StandardCharsets.ISO_8859_1);
