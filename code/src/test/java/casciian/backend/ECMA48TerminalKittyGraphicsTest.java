@@ -378,6 +378,8 @@ class ECMA48TerminalKittyGraphicsTest {
     @Test
     @DisplayName("iTerm2 paints backing cell backgrounds for non-RGBA images")
     void iterm2PaintsBackgroundForRgbImages() {
+        // iTerm2 inline images otherwise take priority over kitty.
+        System.setProperty("casciian.ECMA48.iterm2Images", "false");
         terminal = createTerminal("\033P>|iTerm2 3.5.0\033\\" + KITTY_REPLY);
         waitForKitty();
         long deadline = System.currentTimeMillis() + TIMEOUT_MILLIS;
@@ -626,6 +628,7 @@ class ECMA48TerminalKittyGraphicsTest {
         System.clearProperty("casciian.ECMA48.kittyImages");
         System.clearProperty("casciian.ECMA48.kittyImageFormat");
         System.clearProperty("casciian.ECMA48.kittyImageCompression");
+        System.clearProperty("casciian.ECMA48.iterm2Images");
     }
 
     private ECMA48Terminal createTerminal(final String input) {

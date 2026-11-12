@@ -21,10 +21,12 @@ outstanding. After DA arrives, `ESC _` is parsed as Alt-\_ again.
 
 ## Protocol priority
 
-1. Casciian image protocol (OSC 445), if DA reports it.
-2. Kitty graphics, if the query got an `OK` reply.
-3. Sixel, if DA reports it.
-4. Unicode half-block fallback.
+1. iTerm2 inline images, if XTVERSION reports iTerm2 (see
+   [iterm2-inline-images.md](iterm2-inline-images.md)).
+2. Casciian image protocol (OSC 445), if DA reports it.
+3. Kitty graphics, if the query got an `OK` reply.
+4. Sixel, if DA reports it.
+5. Unicode half-block fallback.
 
 ## How image cells are drawn
 
@@ -86,7 +88,9 @@ keyboard input. Payloads are base64-encoded and split into chunks of at most
   change repaints the backing cells and re-places the run without resending pixels.
 
 Casciian also paints the backing cells for either format when XTVERSION
-identifies the terminal as iTerm2.
+identifies the terminal as iTerm2. This only applies when
+`casciian.ECMA48.iterm2Images=false`, because iTerm2 inline images otherwise
+take priority.
 
 zlib compression (`o=z`) is on by default.
 

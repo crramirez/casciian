@@ -92,6 +92,15 @@ Maven Central, so users can add it as an extra dependency when they need
 it. Adding it registers the decoders automatically via `ServiceLoader`,
 so any `TImageWindow` can open the supported formats out of the box.
 
+## Image Encoders
+
+Images are drawn on iTerm2 with its inline images protocol, which takes
+priority over the other image protocols there. Core Casciian packs the
+pixels as 24-bit or 32-bit BMP files. Add-on modules can provide other
+formats, such as PNG or JPEG, by implementing the `ServiceLoader` service
+`casciian.image.encoders.ImageEncoder`. See
+[docs/iterm2-inline-images.md](docs/iterm2-inline-images.md).
+
 ## Document Parsers Add-on (from Casciian 2.0)
 
 Core Casciian defines a pluggable `DocumentParser` service

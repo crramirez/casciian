@@ -37,6 +37,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import casciian.backend.terminal.OsUtils;
 import casciian.backend.terminal.Terminal;
@@ -56,6 +58,9 @@ import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TPasteEvent;
 import casciian.event.TResizeEvent;
+import casciian.image.encoders.BmpImageEncoder;
+import casciian.image.encoders.ImageEncoder;
+import casciian.image.encoders.ImageEncoderRegistry;
 
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
@@ -131,6 +136,18 @@ public class ECMA48Terminal extends LogicalScreen
      * String that XTVERSION should contain if the terminal is iTerm2
      */
     private static final String XTVERSION_FOR_ITERM2 = "iTerm2";
+
+    /**
+     * Minimum iTerm2 version supporting the no-cursor-movement image option.
+     */
+    private static final Pattern ITERM2_VERSION = Pattern.compile(
+        "iTerm2\\s+(\\d+)\\.(\\d+)");
+
+    /**
+     * Maximum encoded payload size retained by the iTerm2 image cache.
+     */
+    private static final long ITERM2_IMAGE_CACHE_MAX_PAYLOAD_BYTES =
+        8L * 1024 * 1024;
 
     /**
      * VT2026 Begin Synchronized Update (BSU).
@@ -496,6 +513,32 @@ public class ECMA48Terminal extends LogicalScreen
     private KittyImageManager kittyImageManager = null;
 
     /**
+     * If true, emit image data via the iTerm2 inline images protocol if
+     * the terminal is iTerm2.
+     */
+    private boolean iterm2ImagesAllowed = true;
+
+    /**
+     * If true, XTVERSION identified the terminal as iTerm2, which supports
+     * the iTerm2 inline images protocol.
+     */
+    private volatile boolean iterm2ImagesDetected = false;
+
+    /**
+     * The iTerm2 inline images encoder, or null if not created yet.
+     */
+    private volatile ITerm2ImageEncoder iterm2ImageEncoder = null;
+
+    /**
+     * The iTerm2 inline images post-rendered string cache.
+     * Volatile to ensure visibility when the cache is written by one thread
+     * and accessed by another.
+     */
+    private volatile ImageCache iterm2Cache = null;
+
+    private ImageSnapshot[][] iterm2RenderedImages = new ImageSnapshot[0][0];
+
+    /**
      * The Unicode glyph post-rendered string cache.
      * Volatile to ensure visibility when the cache is written by one thread
      * and accessed by another.
@@ -735,14 +778,61 @@ public class ECMA48Terminal extends LogicalScreen
      * LRU cache for rendered image strings.
      * Uses LinkedHashMap with access-order for automatic LRU eviction.
      */
+    private static final class ImageSnapshot {
+        private final int width;
+        private final int height;
+        private final int[] pixels;
+
+        ImageSnapshot(final ImageRGB image) {
+            width = image.getWidth();
+            height = image.getHeight();
+            pixels = image.getRGB(0, 0, width, height, null, 0, width);
+        }
+
+        boolean matches(final ImageRGB image) {
+            if (image == null || width != image.getWidth()
+                || height != image.getHeight()) {
+                return false;
+            }
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    if (pixels[y * width + x] != image.getRGB(x, y)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+    }
+
     private static class ImageCache {
+
+        private record Entry(String data, List<ImageSnapshot> snapshots,
+                             long cost) {
+        }
 
         /**
          * The entries stored in the cache using LinkedHashMap for LRU ordering.
          * LinkedHashMap with accessOrder=true automatically moves accessed entries to the end,
          * making the first entry always the least recently used.
          */
-        private final java.util.LinkedHashMap<String, String> cache;
+        private final java.util.LinkedHashMap<String, Entry> cache;
+
+        /**
+         * The maximum number of entries retained.
+         */
+        private final int maxEntries;
+
+        /**
+         * The maximum encoded payload size retained, or {@link Long#MAX_VALUE}
+         * when the cache is limited only by entry count.
+         */
+        private final long maxPayloadBytes;
+
+        /**
+         * The encoded payload size currently retained.
+         */
+        private long cachedPayloadBytes;
 
         /**
          * Approximate number of characters per hashCode in the cache key.
@@ -753,19 +843,24 @@ public class ECMA48Terminal extends LogicalScreen
         /**
          * Public constructor.
          *
-         * @param maxSize the maximum size of the cache
+         * @param maxSize the maximum number of entries
          */
         public ImageCache(final int maxSize) {
-            // Create LinkedHashMap with access-order (accessOrder=true) and automatic eviction.
-            // removeEldestEntry is called after insertion, so size() > maxSize means we just
-            // exceeded the limit and need to evict the eldest entry.
-            this.cache = new java.util.LinkedHashMap<>(maxSize + 1, 0.75f, true) {
-                @Override
-                protected boolean removeEldestEntry(java.util.Map.Entry<String, String> eldest) {
-                    // Use the LinkedHashMap's own size() method (not ImageCache.size())
-                    return this.size() > maxSize;
-                }
-            };
+            this(maxSize, Long.MAX_VALUE);
+        }
+
+        /**
+         * Constructor for a cache limited by both entry count and encoded
+         * payload size.
+         *
+         * @param maxEntries the maximum number of entries
+         * @param maxPayloadBytes the maximum encoded payload size in bytes
+         */
+        public ImageCache(final int maxEntries, final long maxPayloadBytes) {
+            this.maxEntries = maxEntries;
+            this.maxPayloadBytes = maxPayloadBytes;
+            this.cache = new java.util.LinkedHashMap<>(
+                Math.min(maxEntries + 1, 16), 0.75f, true);
         }
 
         /**
@@ -777,7 +872,10 @@ public class ECMA48Terminal extends LogicalScreen
         private String makeKey(final ArrayList<Cell> cells) {
             StringBuilder sb = new StringBuilder(cells.size() * CHARS_PER_HASHCODE);
             for (Cell cell : cells) {
-                sb.append(cell.hashCode());
+                ImageRGB image = cell.getImage();
+                sb.append(cell.hashCode()).append('/')
+                    .append(image.getWidth()).append('x')
+                    .append(image.getHeight()).append(';');
             }
             return sb.toString();
         }
@@ -790,7 +888,21 @@ public class ECMA48Terminal extends LogicalScreen
          * list of cells is not in the cache
          */
         public synchronized String get(final ArrayList<Cell> cells) {
-            return cache.get(makeKey(cells));
+            Entry entry = cache.get(makeKey(cells));
+            if (entry == null) {
+                return null;
+            }
+            if (entry.snapshots() != null) {
+                if (entry.snapshots().size() != cells.size()) {
+                    return null;
+                }
+                for (int i = 0; i < cells.size(); i++) {
+                    if (!entry.snapshots().get(i).matches(cells.get(i).getImage())) {
+                        return null;
+                    }
+                }
+            }
+            return entry.data();
         }
 
         /**
@@ -800,7 +912,38 @@ public class ECMA48Terminal extends LogicalScreen
          * @param data  the image string representing these cells
          */
         public synchronized void put(final ArrayList<Cell> cells, final String data) {
-            cache.put(makeKey(cells), data);
+            String key = makeKey(cells);
+            long cost = data.length();
+            if (maxPayloadBytes != Long.MAX_VALUE) {
+                cost = 128L + 2L * (data.length() + (long) key.length());
+                for (Cell cell : cells) {
+                    ImageRGB image = cell.getImage();
+                    cost += 64L + 4L * image.getWidth() * image.getHeight();
+                }
+            }
+            if (cost > maxPayloadBytes) {
+                Entry previous = cache.remove(key);
+                if (previous != null) {
+                    cachedPayloadBytes -= previous.cost();
+                }
+                return;
+            }
+            List<ImageSnapshot> snapshots = maxPayloadBytes == Long.MAX_VALUE
+                ? null : cells.stream()
+                    .map(cell -> new ImageSnapshot(cell.getImage())).toList();
+            Entry previous = cache.put(key, new Entry(data, snapshots, cost));
+            if (previous != null) {
+                cachedPayloadBytes -= previous.cost();
+            }
+            cachedPayloadBytes += cost;
+            while ((cache.size() > maxEntries)
+                || (cachedPayloadBytes > maxPayloadBytes)) {
+                java.util.Iterator<java.util.Map.Entry<String, Entry>> iterator =
+                    cache.entrySet().iterator();
+                java.util.Map.Entry<String, Entry> eldest = iterator.next();
+                cachedPayloadBytes -= eldest.getValue().cost();
+                iterator.remove();
+            }
         }
     }
 
@@ -1226,6 +1369,19 @@ public class ECMA48Terminal extends LogicalScreen
             return true;
         }
         synchronized (this) {
+            if (isITerm2ImagesActive()) {
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        if (logical[x][y].isImage()
+                            && (!matchesITerm2RenderedImage(x, y)
+                                || (isITerm2BackgroundPainted()
+                                    && attrToBackgroundColor(logical[x][y])
+                                        != attrToBackgroundColor(physical[x][y])))) {
+                            return true;
+                        }
+                    }
+                }
+            }
             if (isKittyImagesActive() && kittyImageManager != null) {
                 final boolean paintBackground = isKittyBackgroundPainted();
                 for (int y = 0; y < height; y++) {
@@ -1804,6 +1960,7 @@ public class ECMA48Terminal extends LogicalScreen
         }
 
         reloadKittyImageOptions();
+        reloadITerm2ImageOptions();
 
         String destroyImagesStr = System.getProperty("casciian.ECMA48.explicitlyDestroyImages",
             "auto").toLowerCase();
@@ -2700,21 +2857,50 @@ public class ECMA48Terminal extends LogicalScreen
      * @param consumer the receiver for each run found
      */
     private void forEachImageRun(final ImageRunConsumer consumer) {
+        final boolean compositeBackground = isITerm2BackgroundPainted();
+        final boolean splitIncompatibleTiles = isITerm2ImagesActive();
+        if (splitIncompatibleTiles
+            && (iterm2RenderedImages.length != width
+                || (width > 0 && iterm2RenderedImages[0].length != height))) {
+            iterm2RenderedImages = new ImageSnapshot[width][height];
+        }
         for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
+            int x = 0;
+            while (x < width) {
                 if (!logical[x][y].isImage()) {
+                    if (splitIncompatibleTiles) {
+                        iterm2RenderedImages[x][y] = null;
+                    }
+                    x++;
                     continue;
                 }
 
+                Cell firstCell = logical[x][y];
+                int tileWidth = firstCell.getImage().getWidth();
+                int tileHeight = firstCell.getImage().getHeight();
                 int right = x;
                 // This little loop is a *HUGE* bottleneck for image cells
                 // when imageId is not set.  Higher layers of code should
                 // always aim to set imageId before putting it on the screen.
-                while ((right < width)
-                    && (logical[right][y].isImage())
-                    && (!logical[right][y].equals(physical[right][y])
-                    || reallyCleared)
-                ) {
+                while (right < width && logical[right][y].isImage()) {
+                    Cell cell = logical[right][y];
+                    if (splitIncompatibleTiles
+                        && ((cell.getImage().getWidth() != tileWidth)
+                            || (cell.getImage().getHeight() != tileHeight))) {
+                        break;
+                    }
+                    boolean backgroundChanged = compositeBackground
+                        && (attrToBackgroundColor(cell)
+                            != attrToBackgroundColor(physical[right][y]));
+                    if (backgroundChanged) {
+                        iterm2Cache = null;
+                    }
+                    if (cell.equals(physical[right][y])
+                        && !reallyCleared && !backgroundChanged
+                        && (!splitIncompatibleTiles
+                            || matchesITerm2RenderedImage(right, y))) {
+                        break;
+                    }
                     right++;
                 }
 
@@ -2724,15 +2910,27 @@ public class ECMA48Terminal extends LogicalScreen
 
                     // Physical is always updated.
                     physical[x + i][y].setTo(logical[x + i][y]);
+                    if (splitIncompatibleTiles) {
+                        iterm2RenderedImages[x + i][y] =
+                            new ImageSnapshot(logical[x + i][y].getImage());
+                    }
                 }
+
                 if (!cellsToDraw.isEmpty()) {
                     ensureImageCache();
                     consumer.accept(x, y, cellsToDraw);
                 }
 
-                x = right;
+                x = (right > x) ? right : (x + 1);
             }
         }
+    }
+
+    private boolean matchesITerm2RenderedImage(final int x, final int y) {
+        return x < iterm2RenderedImages.length
+            && y < iterm2RenderedImages[x].length
+            && iterm2RenderedImages[x][y] != null
+            && iterm2RenderedImages[x][y].matches(logical[x][y].getImage());
     }
 
     /**
@@ -2740,7 +2938,12 @@ public class ECMA48Terminal extends LogicalScreen
      * it has not been created yet.
      */
     private void ensureImageCache() {
-        if (jexerImageOption != JexerImageOption.DISABLED) {
+        if (isITerm2ImagesActive()) {
+            if (iterm2Cache == null) {
+                iterm2Cache = new ImageCache(height * width * 10,
+                    ITERM2_IMAGE_CACHE_MAX_PAYLOAD_BYTES);
+            }
+        } else if (jexerImageOption != JexerImageOption.DISABLED) {
             if (jexerCache == null) {
                 jexerCache = new ImageCache(height * width * 10);
             }
@@ -2767,6 +2970,9 @@ public class ECMA48Terminal extends LogicalScreen
     private String encodeImage(final int x, final int y,
         final ArrayList<Cell> cells) {
 
+        if (isITerm2ImagesActive()) {
+            return toITerm2Image(x, y, cells);
+        }
         if (jexerImageOption != JexerImageOption.DISABLED) {
             return toJexerImage(x, y, cells);
         }
@@ -2915,6 +3121,10 @@ public class ECMA48Terminal extends LogicalScreen
         } else {
             forEachImageRun((x, y, cells) -> sb.append(encodeImage(x, y, cells)));
         }
+        if ((attr != null) && isITerm2BackgroundPainted()) {
+            // The text pass assumes the attributes left by clearAll().
+            sb.append("\033[0;37;40m");
+        }
 
         // Draw the text part now.
         for (int y = 0; y < height; y++) {
@@ -2953,7 +3163,7 @@ public class ECMA48Terminal extends LogicalScreen
      */
     public boolean isImageProtocolSupported() {
         return sixel || (jexerImageOption != JexerImageOption.DISABLED)
-            || isKittyImagesActive();
+            || isKittyImagesActive() || isITerm2ImagesActive();
     }
 
     /**
@@ -3775,9 +3985,32 @@ public class ECMA48Terminal extends LogicalScreen
                 System.err.println("  -- iTerm2 -- ");
             }
             isITerm2 = true;
+            if (isITerm2ImageVersionSupported()) {
+                enableITerm2Images();
+            }
         }
 
         setXtermMousePointer(POINTER_SHAPE_LEFT_PTR);
+    }
+
+    /**
+     * Check whether the detected iTerm2 version supports
+     * {@code doNotMoveCursor=1}.
+     *
+     * @return true for iTerm2 3.5 or later
+     */
+    private boolean isITerm2ImageVersionSupported() {
+        Matcher matcher = ITERM2_VERSION.matcher(terminalVersion);
+        if (!matcher.find()) {
+            return false;
+        }
+        try {
+            int major = Integer.parseInt(matcher.group(1));
+            int minor = Integer.parseInt(matcher.group(2));
+            return (major > 3) || ((major == 3) && (minor >= 5));
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     /**
@@ -3906,6 +4139,7 @@ public class ECMA48Terminal extends LogicalScreen
             setColorFromOsc(color, rgbColor);
 
             // We have changed a system color.  Redraw the entire screen.
+            iterm2Cache = null;
             clearPhysical();
             reallyCleared = true;
         } catch (NumberFormatException e) {
@@ -5340,15 +5574,16 @@ public class ECMA48Terminal extends LogicalScreen
 
     /**
      * Check whether images are currently emitted with the kitty graphics
-     * protocol.  The Casciian image protocol has priority, and kitty has
-     * priority over sixel.
+     * protocol.  The iTerm2 and Casciian image protocols have priority, and
+     * kitty has priority over sixel.
      *
      * @return true if the terminal supports kitty graphics and it is enabled
      */
     private boolean isKittyImagesActive() {
         return kittyImagesAllowed && kittyImagesDetected
             && (kittyImageManager != null)
-            && (jexerImageOption == JexerImageOption.DISABLED);
+            && (jexerImageOption == JexerImageOption.DISABLED)
+            && !isITerm2ImagesActive();
     }
 
     /**
@@ -5469,6 +5704,204 @@ public class ECMA48Terminal extends LogicalScreen
 
     // ------------------------------------------------------------------------
     // End kitty graphics protocol output support -----------------------------
+    // ------------------------------------------------------------------------
+
+    // ------------------------------------------------------------------------
+    // iTerm2 inline images protocol output support ---------------------------
+    // ------------------------------------------------------------------------
+
+    /**
+     * Read the iTerm2 inline images options from System properties:
+     * casciian.ECMA48.iterm2Images, casciian.ECMA48.iterm2ImageFormat, and
+     * casciian.ECMA48.iterm2ImageEncoder.
+     */
+    private void reloadITerm2ImageOptions() {
+        boolean allowed = !System.getProperty("casciian.ECMA48.iterm2Images",
+            "true").trim().equalsIgnoreCase("false");
+        boolean alpha = System.getProperty(
+            "casciian.ECMA48.iterm2ImageFormat", "rgb").trim()
+            .equalsIgnoreCase("rgba");
+        ImageEncoder fileEncoder = resolveITerm2FileEncoder(System.getProperty(
+            "casciian.ECMA48.iterm2ImageEncoder", "auto"), alpha);
+
+        synchronized (this) {
+            ITerm2ImageEncoder old = iterm2ImageEncoder;
+            boolean kittyWasActive = isKittyImagesActive();
+            boolean sameEncoder = (old != null)
+                && (old.getFileEncoder() == fileEncoder)
+                && (old.isAlpha() == (alpha && fileEncoder.supportsAlpha()));
+            if (!allowed) {
+                iterm2RenderedImages = new ImageSnapshot[0][0];
+            }
+            if ((allowed == iterm2ImagesAllowed) && sameEncoder) {
+                return;
+            }
+            iterm2ImagesAllowed = allowed;
+            if (!sameEncoder) {
+                iterm2ImageEncoder = new ITerm2ImageEncoder(fileEncoder, alpha);
+                iterm2Cache = null;
+            }
+            if (kittyWasActive && !isKittyImagesActive()) {
+                writeKittyReset(kittyImageManager);
+            }
+            clearPhysical();
+        }
+    }
+
+    /**
+     * Select the image file encoder for the iTerm2 protocol.  A configured
+     * name or MIME type wins; otherwise the registered encoder with the
+     * highest priority is used, falling back to the built-in BMP encoder.
+     *
+     * @param name the configured encoder name, MIME type, or "auto"
+     * @param alpha if true, prefer encoders that keep alpha
+     * @return the encoder
+     */
+    private static ImageEncoder resolveITerm2FileEncoder(final String name,
+        final boolean alpha) {
+
+        ImageEncoderRegistry registry = ImageEncoderRegistry.getInstance();
+        String key = (name == null) ? "" : name.trim();
+        if (!key.isEmpty() && !key.equalsIgnoreCase("auto")) {
+            ImageEncoder named = registry.findEncoder(key).orElse(null);
+            if (named != null) {
+                return named;
+            }
+        }
+        return registry.getPreferredEncoder(alpha)
+            .orElseGet(BmpImageEncoder::new);
+    }
+
+    /**
+     * Turn on the iTerm2 inline images protocol after XTVERSION identified
+     * iTerm2.  Any kitty images already drawn are freed, and every image
+     * cell is redrawn with the new protocol.
+     */
+    private void enableITerm2Images() {
+        synchronized (this) {
+            boolean kittyWasActive = isKittyImagesActive();
+            iterm2ImagesDetected = true;
+            if (!isITerm2ImagesActive()) {
+                return;
+            }
+            if (DEBUG_TO_STDERR) {
+                System.err.println("  -- iTerm2 inline images enabled --");
+            }
+            if (kittyWasActive) {
+                writeKittyReset(kittyImageManager);
+            }
+            clearPhysical();
+        }
+    }
+
+    /**
+     * Check whether images are currently emitted with the iTerm2 inline
+     * images protocol.  It has top priority when the terminal is iTerm2.
+     *
+     * @return true if the terminal is iTerm2 and the protocol is enabled
+     */
+    private boolean isITerm2ImagesActive() {
+        return iterm2ImagesAllowed && iterm2ImagesDetected
+            && (iterm2ImageEncoder != null);
+    }
+
+    /**
+     * Get the iTerm2 inline images protocol flag.
+     *
+     * @return true if this terminal is emitting images with the iTerm2
+     * inline images protocol
+     */
+    public boolean hasITerm2Images() {
+        return isITerm2ImagesActive();
+    }
+
+    /**
+     * Set the iTerm2 inline images output flag.  Images are only emitted
+     * with the iTerm2 protocol if the terminal was also identified as
+     * iTerm2.
+     *
+     * @param iterm2Images if true, then images will be emitted with the
+     *                     iTerm2 inline images protocol when supported
+     */
+    public void setHasITerm2Images(final boolean iterm2Images) {
+        // Don't step on the screen refresh thread.
+        synchronized (this) {
+            boolean kittyWasActive = isKittyImagesActive();
+            iterm2ImagesAllowed = iterm2Images;
+            if (!iterm2Images) {
+                iterm2RenderedImages = new ImageSnapshot[0][0];
+            }
+            if (kittyWasActive && !isKittyImagesActive()) {
+                writeKittyReset(kittyImageManager);
+            }
+            clearPhysical();
+        }
+    }
+
+    /**
+     * Whether the SGR background is set to the image cell's background
+     * color before an iTerm2 image, so that transparent pixels show it.
+     *
+     * @return true if images are sent with alpha
+     */
+    private boolean isITerm2BackgroundPainted() {
+        final ITerm2ImageEncoder encoder = iterm2ImageEncoder;
+        return isITerm2ImagesActive() && (encoder != null) && encoder.isAlpha();
+    }
+
+    /**
+     * Create an iTerm2 inline image string representing a row of several
+     * cells containing bitmap data.
+     *
+     * @param x     column coordinate.  0 is the left-most column.
+     * @param y     row coordinate.  0 is the top-most row.
+     * @param cells the cells containing the bitmap data
+     * @return the string to emit to an ANSI / ECMA-style terminal
+     */
+    private String toITerm2Image(final int x, final int y,
+        final ArrayList<Cell> cells) {
+
+        assert (cells != null);
+        assert (!cells.isEmpty());
+        assert (cells.getFirst().getImage() != null);
+
+        final ITerm2ImageEncoder encoder = iterm2ImageEncoder;
+        StringBuilder sb = new StringBuilder();
+        sb.append(sortableGotoXY(x, y));
+
+        // Capture the volatile cache reference once to avoid race
+        // conditions where another thread may set it to null.
+        final ImageCache cache = iterm2Cache;
+        boolean saveInCache = true;
+        for (Cell cell : cells) {
+            if (cell.isInvertedImage()) {
+                saveInCache = false;
+                break;
+            }
+            // Compute the hashcode so that the cell image hash is available
+            // for looking up in the image cache.
+            //noinspection ResultOfMethodCallIgnored
+            cell.hashCode();
+        }
+        if (saveInCache && (cache != null)) {
+            String cachedResult = cache.get(cells);
+            if (cachedResult != null) {
+                return sb.append(cachedResult).toString();
+            }
+        }
+
+        // iTerm2 stretches the image over the cells itself, so the tiles
+        // are joined without rescaling (which would also discard alpha).
+        String image = encoder.transmitAndPlace(
+            cellsToImage(cells, false, encoder.isAlpha()), cells.size(), 1);
+        if (saveInCache && (cache != null)) {
+            cache.put(cells, image);
+        }
+        return sb.append(image).toString();
+    }
+
+    // ------------------------------------------------------------------------
+    // End iTerm2 inline images protocol output support -----------------------
     // ------------------------------------------------------------------------
 
     /**
@@ -5690,6 +6123,36 @@ public class ECMA48Terminal extends LogicalScreen
      * @return the image resized to the current text cell size
      */
     private ImageRGB cellsToImage(final List<Cell> cells) {
+        return cellsToImage(cells, true);
+    }
+
+    /**
+     * Convert a horizontal range of cell's image data into a single
+     * continuous image.
+     *
+     * @param cells the cells containing image data
+     * @param scaleToCells if true, rescale the image to the current text
+     *                     cell size; the rescale discards alpha
+     * @return the joined image
+     */
+    private ImageRGB cellsToImage(final List<Cell> cells,
+        final boolean scaleToCells) {
+        return cellsToImage(cells, scaleToCells, false);
+    }
+
+    /**
+     * Convert a horizontal range of cell images into one image, optionally
+     * compositing each tile against its own cell background.
+     *
+     * @param cells the cells containing image data
+     * @param scaleToCells if true, rescale to the current text cell size
+     * @param compositeBackground if true, composite transparent pixels over
+     *                            each cell's background color
+     * @return the joined image
+     */
+    private ImageRGB cellsToImage(final List<Cell> cells,
+        final boolean scaleToCells, final boolean compositeBackground) {
+
         ImageRGB firstImage = cells.getFirst().getImage();
         int tileWidth = firstImage.getWidth();
         int tileHeight = firstImage.getHeight();
@@ -5755,13 +6218,51 @@ public class ECMA48Terminal extends LogicalScreen
             image.fillRect(startX, 0, remainingWidth, tileHeight, MYBLACK);
         }
 
-        if ((image.getWidth() != cells.size() * getTextWidth())
-            || (image.getHeight() != getTextHeight())
+        if (compositeBackground) {
+            for (int i = 0; i < cells.size(); i++) {
+                int[] pixels = image.getRGB(i * tileWidth, 0, tileWidth,
+                    tileHeight, null, 0, tileWidth);
+                int background = attrToBackgroundColor(cells.get(i));
+                for (int pixel = 0; pixel < pixels.length; pixel++) {
+                    pixels[pixel] = compositePixel(pixels[pixel], background);
+                }
+                image.setRGB(i * tileWidth, 0, tileWidth, tileHeight, pixels,
+                    0, tileWidth);
+            }
+        }
+
+        if (scaleToCells
+            && ((image.getWidth() != cells.size() * getTextWidth())
+                || (image.getHeight() != getTextHeight()))
         ) {
             image = image.scale(cells.size() * getTextWidth(), getTextHeight());
         }
 
         return image;
+    }
+
+    /**
+     * Composite an ARGB pixel over an opaque RGB background.
+     *
+     * @param pixel the ARGB pixel
+     * @param background the background RGB color
+     * @return the opaque composited pixel
+     */
+    private static int compositePixel(final int pixel,
+        final int background) {
+
+        int alpha = pixel >>> 24;
+        if (alpha == 255) {
+            return pixel;
+        }
+        int inverseAlpha = 255 - alpha;
+        int red = ((((pixel >>> 16) & 0xFF) * alpha)
+            + (((background >>> 16) & 0xFF) * inverseAlpha) + 127) / 255;
+        int green = ((((pixel >>> 8) & 0xFF) * alpha)
+            + (((background >>> 8) & 0xFF) * inverseAlpha) + 127) / 255;
+        int blue = (((pixel & 0xFF) * alpha)
+            + ((background & 0xFF) * inverseAlpha) + 127) / 255;
+        return 0xFF000000 | (red << 16) | (green << 8) | blue;
     }
 
     // ------------------------------------------------------------------------
@@ -5963,6 +6464,8 @@ public class ECMA48Terminal extends LogicalScreen
      */
     private void setCustomSystemColors() {
         String previousCommand = buildSendPaletteCommand();
+        int previousForeColor = DEFAULT_FORECOLOR;
+        int previousBackColor = DEFAULT_BACKCOLOR;
 
         MYBLACK = getCustomColor("casciian.ECMA48.color0", MYBLACK);
         MYRED = getCustomColor("casciian.ECMA48.color1", MYRED);
@@ -5986,7 +6489,14 @@ public class ECMA48Terminal extends LogicalScreen
         DEFAULT_BACKCOLOR = getCustomColor("casciian.ECMA48.color49",
             DEFAULT_BACKCOLOR);
 
-        if (!previousCommand.equals(buildSendPaletteCommand())) {
+        boolean paletteChanged = !previousCommand.equals(buildSendPaletteCommand());
+        if (paletteChanged || previousForeColor != DEFAULT_FORECOLOR
+            || previousBackColor != DEFAULT_BACKCOLOR) {
+            iterm2Cache = null;
+            clearPhysical();
+            reallyCleared = true;
+        }
+        if (paletteChanged) {
             sendPalette();
         }
     }

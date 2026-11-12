@@ -73,7 +73,9 @@ All input is routed as `TInputEvent` subclasses (`TKeypressEvent`, `TMouseEvent`
 
 ### Image support
 
-`ECMA48Terminal` emits image cells with, in priority order: the Casciian OSC 445 protocol, the kitty graphics protocol (`KittyImageEncoder`/`KittyImageManager`, grouping horizontal row runs with pixel-verified caching; single cells retain `Cell.getImageId()` keys; see `docs/kitty-graphics-protocol.md`), sixel, or Unicode half-blocks. Kitty run boundaries/cropping can require new uploads; obsolete shared placements are removed before replacement images or text are drawn.
+`ECMA48Terminal` emits image cells with, in priority order: iTerm2 inline images (OSC 1337, only when XTVERSION reports iTerm2; `ITerm2ImageEncoder` packs row runs with a pluggable `ImageEncoder`; see `docs/iterm2-inline-images.md`), the Casciian OSC 445 protocol, the kitty graphics protocol (`KittyImageEncoder`/`KittyImageManager`, grouping horizontal row runs with pixel-verified caching; single cells retain `Cell.getImageId()` keys; see `docs/kitty-graphics-protocol.md`), sixel, or Unicode half-blocks. Kitty run boundaries/cropping can require new uploads; obsolete shared placements are removed before replacement images or text are drawn.
+
+`casciian.image.encoders` mirrors the decoders below for output: `ImageEncoderRegistry` discovers `ImageEncoder` services lazily and picks the highest `getPriority()`. Core ships only `BmpImageEncoder` (24-bit, or 32-bit with alpha, priority 0), so add-on PNG/JPEG encoders win by default.
 
 `casciian.image.decoders` uses a `ServiceLoader`-based `ImageDecoderRegistry`. The core library ships only `SixelImageDecoder`; the `casciian-java-desktop` add-on and demo fat JAR add BMP/JPEG/PNG/XPM decoders as separate `ImageDecoder` service implementations.
 
