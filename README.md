@@ -96,8 +96,9 @@ so any `TImageWindow` can open the supported formats out of the box.
 
 Images are drawn on iTerm2 with its inline images protocol, which takes
 priority over the other image protocols there. Core Casciian packs the
-pixels as PNG files by default (BMP is also built in). Add-on modules can
-provide other formats, such as JPEG, by implementing the `ServiceLoader` service
+pixels with its built-in pure-Java PNG encoder (`java.base` only, tuned for
+low rendering latency). Add-on modules can provide other formats, such as
+JPEG, by implementing the `ServiceLoader` service
 `casciian.image.encoders.ImageEncoder`. See
 [docs/iterm2-inline-images.md](docs/iterm2-inline-images.md).
 

@@ -21,8 +21,8 @@ import casciian.bits.ImageRGB;
 
 /**
  * Interface for image file encoder plugins.  Implementations convert an
- * {@link ImageRGB} into the bytes of an image file format (BMP, PNG,
- * JPEG, ...).  They are used, for example, to send images to terminals
+ * {@link ImageRGB} into the bytes of an image file format (PNG, JPEG,
+ * WebP, ...).  They are used, for example, to send images to terminals
  * that understand the iTerm2 inline images protocol.
  *
  * <p>Implementations are discovered by {@link ImageEncoderRegistry} via
@@ -37,7 +37,7 @@ public interface ImageEncoder {
 
     /**
      * Get the short name of the format, used to select this encoder by
-     * configuration, e.g. "bmp" or "png".
+     * configuration, e.g. "png" or "jpeg".
      *
      * @return the format name, never {@code null}
      */
@@ -53,9 +53,8 @@ public interface ImageEncoder {
     /**
      * Get the priority of this encoder.  When no encoder is explicitly
      * configured, the registered encoder with the highest priority is
-     * used.  The built-in PNG encoder has priority 10 and the built-in BMP
-     * encoder has priority 0, so an add-on encoder needs a priority above
-     * 10 to be preferred over them.
+     * used.  The built-in PNG encoder has priority 10, so an add-on
+     * encoder needs a priority above 10 to be preferred over it.
      *
      * @return the priority, higher is preferred
      */

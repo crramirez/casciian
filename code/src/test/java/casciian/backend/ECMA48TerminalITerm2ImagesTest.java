@@ -31,7 +31,6 @@ import casciian.bits.ArrayImageRGB;
 import casciian.bits.Cell;
 import casciian.bits.Color;
 import casciian.bits.ImageRGB;
-import casciian.image.encoders.BmpImageEncoderTest;
 import casciian.image.encoders.PngImageEncoderTest;
 import casciian.image.encoders.ImageEncoder;
 import casciian.image.encoders.ImageEncoderRegistry;
@@ -522,15 +521,15 @@ class ECMA48TerminalITerm2ImagesTest {
     @Test
     @DisplayName("Add-on encoders are preferred unless one is configured")
     void addOnEncoderIsPreferred() {
-        ImageEncoder png = new ImageEncoder() {
+        ImageEncoder webp = new ImageEncoder() {
             @Override
             public String getName() {
-                return "png";
+                return "webp";
             }
 
             @Override
             public String getMimeType() {
-                return "image/png";
+                return "image/webp";
             }
 
             @Override
@@ -540,12 +539,12 @@ class ECMA48TerminalITerm2ImagesTest {
 
             @Override
             public byte[] encode(final ImageRGB image, final boolean alpha) {
-                return ("PNG" + image.getWidth()).getBytes(
+                return ("WEBP" + image.getWidth()).getBytes(
                     StandardCharsets.US_ASCII);
             }
         };
-        ImageEncoderRegistry.getInstance().registerEncoder(png);
-        registered.add(png);
+        ImageEncoderRegistry.getInstance().registerEncoder(webp);
+        registered.add(webp);
 
         terminal = createTerminal(ITERM2 + "\033[?62;4c");
         waitForITerm2();
@@ -555,10 +554,10 @@ class ECMA48TerminalITerm2ImagesTest {
         terminal.flushPhysical();
         assertThat(parse(written())).singleElement().satisfies(image ->
             assertThat(new String(image.data(), StandardCharsets.US_ASCII))
-                .isEqualTo("PNG8"));
+                .isEqualTo("WEBP8"));
 
         terminal.closeTerminal();
-        System.setProperty("casciian.ECMA48.iterm2ImageEncoder", "bmp");
+        System.setProperty("casciian.ECMA48.iterm2ImageEncoder", "png");
         outputStream = new ByteArrayOutputStream();
         terminal = createTerminal(ITERM2 + "\033[?62;4c");
         waitForITerm2();
@@ -567,7 +566,7 @@ class ECMA48TerminalITerm2ImagesTest {
         outputStream.reset();
         terminal.flushPhysical();
         assertThat(parse(written())).singleElement().satisfies(image ->
-            assertThat(BmpImageEncoderTest.decode(image.data()).width())
+            assertThat(PngImageEncoderTest.decode(image.data()).width())
                 .isEqualTo(8));
     }
 
@@ -600,7 +599,7 @@ class ECMA48TerminalITerm2ImagesTest {
     }
 
     @Test
-    @DisplayName("BMP fallback uses the selected encoder's alpha behavior")
+    @DisplayName("PNG fallback uses the selected encoder's alpha behavior")
     void fallbackPreservesOpaqueEncoderBehavior() {
         System.setProperty("casciian.ECMA48.iterm2ImageFormat", "rgba");
         ImageEncoder failing = new ImageEncoder() {
@@ -637,10 +636,10 @@ class ECMA48TerminalITerm2ImagesTest {
         terminal.flushPhysical();
 
         assertThat(parse(written())).singleElement().satisfies(image -> {
-            BmpImageEncoderTest.Bmp bmp = BmpImageEncoderTest.decode(
+            PngImageEncoderTest.Png png = PngImageEncoderTest.decode(
                 image.data());
-            assertThat(bmp.bitsPerPixel()).isEqualTo(24);
-            assertThat(bmp.pixels()[0][0]).isEqualTo(0xFF102030);
+            assertThat(png.bitsPerPixel()).isEqualTo(24);
+            assertThat(png.pixels()[0][0]).isEqualTo(0xFF102030);
         });
     }
 

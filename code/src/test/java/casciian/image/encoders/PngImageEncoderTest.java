@@ -18,7 +18,10 @@ package casciian.image.encoders;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Random;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import java.util.zip.CRC32;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -27,6 +30,9 @@ import casciian.bits.ArrayImageRGB;
 import casciian.bits.ImageRGB;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -93,16 +99,96 @@ public class PngImageEncoderTest {
     }
 
     @Test
-    @DisplayName("Flat images compress far below the BMP size")
+    @DisplayName("Flat images compress far below the raw pixel size")
     void flatImagesCompress() {
         ImageRGB flat = new ArrayImageRGB(200, 100);
         flat.fillRect(0, 0, 200, 100, 0xFF336699);
 
         byte[] png = new PngImageEncoder().encode(flat, false);
-        byte[] bmp = new BmpImageEncoder().encode(flat, false);
 
         assertThat(decode(png).pixels()[99][199]).isEqualTo(0xFF336699);
-        assertThat(png.length * 50).isLessThan(bmp.length);
+        assertThat(png.length * 100).isLessThan(200 * 100 * 3);
+    }
+
+    @ParameterizedTest(name = "level {0}, {1}")
+    @MethodSource("levelsAndFilters")
+    @DisplayName("Every level and filter strategy round-trips RGB and RGBA")
+    void everyConfigurationRoundTrips(final int level,
+        final PngImageEncoder.FilterStrategy filter) {
+
+        PngImageEncoder encoder = new PngImageEncoder(level, filter);
+        int[] argb = mixedPixels(37, 21);
+        ImageRGB image = image(37, 21, argb);
+
+        Png rgb = decode(encoder.encode(image, false));
+        Png rgba = decode(encoder.encode(image, true));
+
+        for (int y = 0; y < 21; y++) {
+            for (int x = 0; x < 37; x++) {
+                assertThat(rgb.pixels()[y][x])
+                    .isEqualTo(0xFF000000 | argb[y * 37 + x]);
+                assertThat(rgba.pixels()[y][x]).isEqualTo(argb[y * 37 + x]);
+            }
+        }
+    }
+
+    static Stream<Arguments> levelsAndFilters() {
+        return IntStream.of(0, 1, 3, 6, 9).boxed().flatMap(level ->
+            Arrays.stream(PngImageEncoder.FilterStrategy.values())
+                .map(filter -> Arguments.of(level, filter)));
+    }
+
+    @Test
+    @DisplayName("Fully transparent pixels keep their color and alpha")
+    void transparentPixelsArePreserved() {
+        int[] argb = {0x00FF0000, 0x0000FF00, 0x80123456, 0xFFABCDEF};
+
+        Png png = decode(new PngImageEncoder().encode(image(2, 2, argb),
+            true));
+
+        assertThat(png.pixels()[0]).containsExactly(0x00FF0000, 0x0000FF00);
+        assertThat(png.pixels()[1]).containsExactly(0x80123456, 0xFFABCDEF);
+    }
+
+    @Test
+    @DisplayName("Single pixels and wide image runs encode correctly")
+    void smallAndWideImages() {
+        Png single = decode(new PngImageEncoder().encode(
+            image(1, 1, new int[] {0xFF010203}), false));
+        int[] run = mixedPixels(1280, 16);
+        Png wide = decode(new PngImageEncoder().encode(image(1280, 16, run),
+            false));
+
+        assertThat(single.pixels()[0]).containsExactly(0xFF010203);
+        assertThat(wide.width()).isEqualTo(1280);
+        assertThat(wide.pixels()[15][1279]).isEqualTo(0xFF000000
+            | run[15 * 1280 + 1279]);
+    }
+
+    @Test
+    @DisplayName("Incompressible images larger than one output block are intact")
+    void largeIncompressibleImage() {
+        int[] argb = randomPixels(400, 300, 3);
+
+        byte[] bytes = new PngImageEncoder().encode(image(400, 300, argb),
+            true);
+        Png png = decode(bytes);
+
+        assertThat(bytes.length).isGreaterThan(400 * 300 * 4);
+        for (int y = 0; y < 300; y++) {
+            for (int x = 0; x < 400; x++) {
+                assertThat(png.pixels()[y][x]).isEqualTo(argb[y * 400 + x]);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Output is deterministic for the same image")
+    void deterministic() {
+        ImageRGB image = image(64, 32, mixedPixels(64, 32));
+
+        assertThat(new PngImageEncoder().encode(image, true))
+            .isEqualTo(new PngImageEncoder().encode(image, true));
     }
 
     @Test
@@ -112,6 +198,50 @@ public class PngImageEncoderTest {
 
         assertThatThrownBy(() -> new PngImageEncoder().encode(empty, false))
             .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("Images too large for a byte array are rejected up front")
+    void hugeImageRejected() {
+        ImageRGB huge = org.mockito.Mockito.mock(ImageRGB.class);
+        org.mockito.Mockito.when(huge.getWidth()).thenReturn(100_000);
+        org.mockito.Mockito.when(huge.getHeight()).thenReturn(100_000);
+
+        assertThatThrownBy(() -> new PngImageEncoder().encode(huge, false))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("Invalid compression levels are rejected")
+    void invalidLevelRejected() {
+        assertThatThrownBy(() -> new PngImageEncoder(10,
+            PngImageEncoder.FilterStrategy.PAETH))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new PngImageEncoder(-1,
+            PngImageEncoder.FilterStrategy.PAETH))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /**
+     * Pixels that exercise every filter: flat areas, repeated rows,
+     * gradients, and noise, with varying alpha.
+     */
+    private static int[] mixedPixels(final int width, final int height) {
+        Random random = new Random(width * 31L + height);
+        int[] argb = new int[width * height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int pixel = switch (y % 4) {
+                case 0 -> 0xFF0000AA;
+                case 1 -> (x * 7 & 0xFF) << 24 | (x * 3 & 0xFF) << 16
+                    | (y * 9 & 0xFF) << 8 | ((x + y) & 0xFF);
+                case 2 -> (y > 2) ? argb[(y - 1) * width + x] : 0x40FFFFFF;
+                default -> random.nextInt();
+                };
+                argb[y * width + x] = pixel;
+            }
+        }
+        return argb;
     }
 
     private static int[] randomPixels(final int width, final int height,
