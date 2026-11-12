@@ -53,8 +53,9 @@ public interface ImageEncoder {
     /**
      * Get the priority of this encoder.  When no encoder is explicitly
      * configured, the registered encoder with the highest priority is
-     * used.  The built-in BMP encoder has priority 0, so any add-on encoder
-     * with a positive priority is preferred over it.
+     * used.  The built-in PNG encoder has priority 10 and the built-in BMP
+     * encoder has priority 0, so an add-on encoder needs a priority above
+     * 10 to be preferred over them.
      *
      * @return the priority, higher is preferred
      */

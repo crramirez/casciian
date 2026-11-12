@@ -27,6 +27,7 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -794,15 +795,24 @@ public class ECMA48Terminal extends LogicalScreen
                 || height != image.getHeight()) {
                 return false;
             }
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    if (pixels[y * width + x] != image.getRGB(x, y)) {
-                        return false;
-                    }
-                }
+            if (pixels.length == 0) {
+                return true;
             }
-            return true;
+            // Bulk copy and vectorized compare: this runs for every image
+            // cell on every isDirty() and flush, so per-pixel getRGB(x, y)
+            // calls are too slow.
+            int[] scratch = MATCH_SCRATCH.get();
+            if (scratch.length < pixels.length) {
+                scratch = new int[pixels.length];
+                MATCH_SCRATCH.set(scratch);
+            }
+            image.getRGB(0, 0, width, height, scratch, 0, width);
+            return Arrays.equals(pixels, 0, pixels.length,
+                scratch, 0, pixels.length);
         }
+
+        private static final ThreadLocal<int[]> MATCH_SCRATCH =
+            ThreadLocal.withInitial(() -> new int[0]);
     }
 
     private static class ImageCache {

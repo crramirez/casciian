@@ -3,8 +3,8 @@
 Status: Image cells are drawn with the
 [iTerm2 inline images protocol](https://iterm2.com/documentation-images.html)
 when the terminal is iTerm2. Pixels are packed into an image file by a
-pluggable `ImageEncoder`; the core library ships an uncompressed 24-bit /
-32-bit BMP encoder.
+pluggable `ImageEncoder`; the core library ships a PNG encoder (the default)
+and an uncompressed 24-bit / 32-bit BMP encoder.
 
 Read this before changing `ITerm2ImageEncoder`, the `casciian.image.encoders`
 package, or the iTerm2 parts of `ECMA48Terminal`.
@@ -49,13 +49,27 @@ not cached. The cache retains at most 8 MiB of encoded image commands.
 
 ## Pixel formats
 
-- `rgb` (default): the encoder is asked for an opaque image. The BMP encoder
-  writes 24-bit pixels with a `BITMAPINFOHEADER`.
-- `rgba`: alpha is kept if the encoder supports it. The BMP encoder writes
-  32-bit pixels with a `BITMAPV4HEADER` and `BI_BITFIELDS` masks, so that
-  readers honor alpha. Before each image, Casciian resets SGR and sets the
+- `rgb` (default): the encoder is asked for an opaque image. The PNG encoder
+  writes 8-bit truecolor; the BMP encoder writes 24-bit pixels with a
+  `BITMAPINFOHEADER`.
+- `rgba`: alpha is kept if the encoder supports it. The PNG encoder writes
+  8-bit truecolor with alpha; the BMP encoder writes 32-bit pixels with a
+  `BITMAPV4HEADER` and `BI_BITFIELDS` masks, so that readers honor alpha. Before each image, Casciian resets SGR and sets the
   background to the first cell's background color, so transparent pixels show
   that color.
+
+## Built-in encoders
+
+`PngImageEncoder` (priority 10) is the default. It uses only `java.base`
+(`Deflater`, `CRC32`), applies the Paeth filter to every row, and deflates at
+the fastest level. The terminal must parse and decode every byte sent, and
+uncompressed BMP costs about 4 base64 bytes per pixel: a full 120x40 screen
+of 10x20 pixel cells is about 3.8 MB per frame. PNG cuts that by roughly 2x
+for noisy photos and by up to about 40x for flat UI-like images, with similar
+encoding time.
+
+`BmpImageEncoder` (priority 0) is uncompressed and is the fallback when the
+chosen encoder fails. Select it with `casciian.ECMA48.iterm2ImageEncoder=bmp`.
 
 ## Pluggable encoders
 
@@ -64,20 +78,21 @@ not cached. The cache retains at most 8 MiB of encoded image commands.
 is used; you can also register encoders with `registerEncoder(...)` before the
 terminal is created.
 
-An add-on module (for example a PNG or JPEG encoder) implements `ImageEncoder`
+An add-on module (for example a JPEG encoder) implements `ImageEncoder`
 and declares it in `module-info.java`:
 
 ```java
 provides casciian.image.encoders.ImageEncoder
-    with com.example.PngImageEncoder;
+    with com.example.JpegImageEncoder;
 ```
 
 or in `META-INF/services/casciian.image.encoders.ImageEncoder` for the
 classpath.
 
 Unless an encoder is configured, Casciian uses the registered encoder with the
-highest `getPriority()`. The built-in `BmpImageEncoder` has priority 0, so any
-add-on encoder with a positive priority takes precedence. In `rgba` mode,
+highest `getPriority()`. The built-in `PngImageEncoder` has priority 10 and
+`BmpImageEncoder` has priority 0, so an add-on encoder needs a priority above
+10 to take precedence. In `rgba` mode,
 encoders whose `supportsAlpha()` is true are preferred. If no encoder is found,
 or the chosen encoder throws, Casciian uses BMP.
 
@@ -90,7 +105,7 @@ or the chosen encoder throws, Casciian uses BMP.
 | `casciian.ECMA48.iterm2ImageEncoder`   | `auto`, encoder name or MIME   | `auto`  |
 
 `casciian.ECMA48.iterm2ImageEncoder` matches `ImageEncoder.getName()` (for
-example `bmp`) or `getMimeType()` (for example `image/bmp`). With
+example `png` or `bmp`) or `getMimeType()` (for example `image/bmp`). With
 `casciian.ECMA48.iterm2Images=false`, iTerm2 falls back to the next protocol
 (usually kitty graphics). At runtime, `ECMA48Terminal.setHasITerm2Images(boolean)`
 turns the protocol on or off, and `hasITerm2Images()` reports whether it is in

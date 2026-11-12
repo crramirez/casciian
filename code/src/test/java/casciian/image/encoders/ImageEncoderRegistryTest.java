@@ -60,23 +60,28 @@ class ImageEncoderRegistryTest {
     }
 
     @Test
-    @DisplayName("The built-in BMP encoder is discovered and preferred alone")
-    void discoversBmp() {
+    @DisplayName("The built-in PNG encoder is preferred over built-in BMP")
+    void discoversBuiltIns() {
         assertThat(registry.getEncoders())
-            .hasAtLeastOneElementOfType(BmpImageEncoder.class);
+            .hasAtLeastOneElementOfType(BmpImageEncoder.class)
+            .hasAtLeastOneElementOfType(PngImageEncoder.class);
         assertThat(registry.getPreferredEncoder(false)).get()
-            .isInstanceOf(BmpImageEncoder.class);
+            .isInstanceOf(PngImageEncoder.class);
+        assertThat(registry.getPreferredEncoder(true)).get()
+            .isInstanceOf(PngImageEncoder.class);
         assertThat(registry.findEncoder("BMP")).get()
             .isInstanceOf(BmpImageEncoder.class);
+        assertThat(registry.findEncoder("image/png")).get()
+            .isInstanceOf(PngImageEncoder.class);
     }
 
     @Test
-    @DisplayName("Add-on encoders with higher priority win over BMP")
+    @DisplayName("Add-on encoders with higher priority win over built-ins")
     void higherPriorityWins() {
-        ImageEncoder png = register("png", 10, true);
+        ImageEncoder webp = register("webp", 20, true);
 
-        assertThat(registry.getPreferredEncoder(false)).containsSame(png);
-        assertThat(registry.findEncoder("image/png; q=1")).containsSame(png);
+        assertThat(registry.getPreferredEncoder(false)).containsSame(webp);
+        assertThat(registry.findEncoder("image/webp; q=1")).containsSame(webp);
         assertThat(registry.findEncoder("bmp")).get()
             .isInstanceOf(BmpImageEncoder.class);
     }
@@ -88,7 +93,7 @@ class ImageEncoderRegistryTest {
 
         assertThat(registry.getPreferredEncoder(false)).containsSame(jpeg);
         assertThat(registry.getPreferredEncoder(true)).get()
-            .isInstanceOf(BmpImageEncoder.class);
+            .isInstanceOf(PngImageEncoder.class);
     }
 
     @Test
