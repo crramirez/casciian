@@ -239,21 +239,21 @@ public class ImageIOAdaptiveEncoder implements ImageEncoder {
             row = image.getRGB(0, y, width, 1, swap, 0, width);
             for (int x = 0; x < width; x++) {
                 int argb = row[x];
-                if (alpha && (argb >>> 24) != 0xFF) {
-                    return pngEncoder;
-                }
                 if ((x > 0 && argb == row[x - 1])
                     || (y > 0 && argb == above[x])) {
                     repeats++;
                 } else if (!manyColors) {
                     manyColors = !colors.add(argb | 0xFF000000);
                 }
+                if (repeats >= repeatsNeeded) {
+                    return pngEncoder;
+                }
+                if (alpha && (argb >>> 24) != 0xFF) {
+                    return pngEncoder;
+                }
             }
             remaining -= width;
             // Stop early once the remaining rows cannot change the result.
-            if (repeats >= repeatsNeeded) {
-                return pngEncoder;
-            }
             if (!alpha && manyColors && repeats + remaining < repeatsNeeded) {
                 return jpegEncoder;
             }
