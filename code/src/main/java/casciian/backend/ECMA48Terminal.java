@@ -5730,6 +5730,9 @@ public class ECMA48Terminal extends LogicalScreen
             boolean sameEncoder = (old != null)
                 && (old.getFileEncoder() == fileEncoder)
                 && (old.isAlpha() == (alpha && fileEncoder.supportsAlpha()));
+            if (!allowed) {
+                iterm2RenderedImages = new ImageSnapshot[0][0];
+            }
             if ((allowed == iterm2ImagesAllowed) && sameEncoder) {
                 return;
             }
@@ -5825,6 +5828,9 @@ public class ECMA48Terminal extends LogicalScreen
         synchronized (this) {
             boolean kittyWasActive = isKittyImagesActive();
             iterm2ImagesAllowed = iterm2Images;
+            if (!iterm2Images) {
+                iterm2RenderedImages = new ImageSnapshot[0][0];
+            }
             if (kittyWasActive && !isKittyImagesActive()) {
                 writeKittyReset(kittyImageManager);
             }
