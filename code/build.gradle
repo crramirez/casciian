@@ -52,6 +52,15 @@ test {
     }
 }
 
+// PNG encoder micro-benchmark (not part of the test suite).  Pass options
+// with --args, e.g. ./gradlew pngBenchmark --args="--levels=1,6 --filters=PAETH"
+tasks.register('pngBenchmark', JavaExec) {
+    group = 'verification'
+    description = 'Benchmarks PngImageEncoder compression levels and row filters.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'casciian.image.encoders.PngEncoderBenchmark'
+}
+
 sourceSets {
     main {
         java {

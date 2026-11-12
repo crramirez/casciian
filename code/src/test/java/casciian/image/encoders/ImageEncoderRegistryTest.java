@@ -60,19 +60,19 @@ class ImageEncoderRegistryTest {
     }
 
     @Test
-    @DisplayName("The built-in PNG encoder is preferred over built-in BMP")
+    @DisplayName("PNG is the only built-in encoder and the default")
     void discoversBuiltIns() {
         assertThat(registry.getEncoders())
-            .hasAtLeastOneElementOfType(BmpImageEncoder.class)
-            .hasAtLeastOneElementOfType(PngImageEncoder.class);
+            .singleElement().isInstanceOf(PngImageEncoder.class);
         assertThat(registry.getPreferredEncoder(false)).get()
             .isInstanceOf(PngImageEncoder.class);
         assertThat(registry.getPreferredEncoder(true)).get()
             .isInstanceOf(PngImageEncoder.class);
-        assertThat(registry.findEncoder("BMP")).get()
-            .isInstanceOf(BmpImageEncoder.class);
+        assertThat(registry.findEncoder("PNG")).get()
+            .isInstanceOf(PngImageEncoder.class);
         assertThat(registry.findEncoder("image/png")).get()
             .isInstanceOf(PngImageEncoder.class);
+        assertThat(registry.findEncoder("bmp")).isEmpty();
     }
 
     @Test
@@ -82,8 +82,8 @@ class ImageEncoderRegistryTest {
 
         assertThat(registry.getPreferredEncoder(false)).containsSame(webp);
         assertThat(registry.findEncoder("image/webp; q=1")).containsSame(webp);
-        assertThat(registry.findEncoder("bmp")).get()
-            .isInstanceOf(BmpImageEncoder.class);
+        assertThat(registry.findEncoder("png")).get()
+            .isInstanceOf(PngImageEncoder.class);
     }
 
     @Test
@@ -120,7 +120,7 @@ class ImageEncoderRegistryTest {
                         @Override
                         public java.io.InputStream getInputStream() {
                             String providers = "not a valid provider\n"
-                                + BmpImageEncoder.class.getName() + "\n";
+                                + PngImageEncoder.class.getName() + "\n";
                             return new ByteArrayInputStream(providers.getBytes(
                                 StandardCharsets.UTF_8));
                         }
@@ -143,7 +143,7 @@ class ImageEncoderRegistryTest {
         assertThatCode(() -> registry.loadEncoders(classLoader))
             .doesNotThrowAnyException();
         assertThat(registry.getEncoders())
-            .hasAtLeastOneElementOfType(BmpImageEncoder.class);
+            .hasAtLeastOneElementOfType(PngImageEncoder.class);
     }
 
     /**

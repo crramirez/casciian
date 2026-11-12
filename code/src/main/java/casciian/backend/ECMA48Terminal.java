@@ -59,9 +59,9 @@ import casciian.event.TKeypressEvent;
 import casciian.event.TMouseEvent;
 import casciian.event.TPasteEvent;
 import casciian.event.TResizeEvent;
-import casciian.image.encoders.BmpImageEncoder;
 import casciian.image.encoders.ImageEncoder;
 import casciian.image.encoders.ImageEncoderRegistry;
+import casciian.image.encoders.PngImageEncoder;
 
 import static casciian.TCommand.*;
 import static casciian.TKeypress.*;
@@ -5761,7 +5761,8 @@ public class ECMA48Terminal extends LogicalScreen
     /**
      * Select the image file encoder for the iTerm2 protocol.  A configured
      * name or MIME type wins; otherwise the registered encoder with the
-     * highest priority is used, falling back to the built-in BMP encoder.
+     * highest priority is used, falling back to the built-in PNG encoder
+     * if the registry is empty.
      *
      * @param name the configured encoder name, MIME type, or "auto"
      * @param alpha if true, prefer encoders that keep alpha
@@ -5779,7 +5780,7 @@ public class ECMA48Terminal extends LogicalScreen
             }
         }
         return registry.getPreferredEncoder(alpha)
-            .orElseGet(BmpImageEncoder::new);
+            .orElseGet(PngImageEncoder::new);
     }
 
     /**
@@ -5904,6 +5905,11 @@ public class ECMA48Terminal extends LogicalScreen
         // are joined without rescaling (which would also discard alpha).
         String image = encoder.transmitAndPlace(
             cellsToImage(cells, false, encoder.isAlpha()), cells.size(), 1);
+        if (image == null) {
+            // No valid image file could be made: leave the cells blank
+            // rather than send a broken image, and do not cache that.
+            return sb.append(normal()).repeat(' ', cells.size()).toString();
+        }
         if (saveInCache && (cache != null)) {
             cache.put(cells, image);
         }
