@@ -417,6 +417,9 @@ public class PngImageEncoder implements ImageEncoder {
             for (int k = 0; k < bpp; k++) {
                 out[k + 1] = (byte) (cur[k] - ((prev[k] & 0xFF) >>> 1));
             }
+            if (measure) {
+                sum = sumAbs(out, bpp);
+            }
             for (int k = bpp; k < n; k++) {
                 int avg = ((cur[k - bpp] & 0xFF) + (prev[k] & 0xFF)) >>> 1;
                 byte residual = (byte) (cur[k] - avg);
@@ -433,6 +436,9 @@ public class PngImageEncoder implements ImageEncoder {
             for (int k = 0; k < bpp; k++) {
                 // With no left pixel, the Paeth predictor is the one above.
                 out[k + 1] = (byte) (cur[k] - prev[k]);
+            }
+            if (measure) {
+                sum = sumAbs(out, bpp);
             }
             for (int k = bpp; k < n; k++) {
                 byte residual = (byte) (cur[k] - paeth(cur[k - bpp] & 0xFF,
