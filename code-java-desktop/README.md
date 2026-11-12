@@ -37,6 +37,17 @@ What's in here?
       JPEG files, but the constructor accepts a custom regex / description
       so applications can register it for any other format ImageIO
       supports on their JVM (BMP, GIF, WBMP, …).
+    * `casciian.javadesktop.encoders.ImageIOAdaptiveEncoder` — an
+      [`ImageEncoder`](../code/src/main/java/casciian/image/encoders/ImageEncoder.java)
+      for the iTerm2 inline images protocol. With priority 20 it replaces
+      the built-in PNG encoder (priority 10) as the default. For each image
+      it picks lossless PNG (UI, text, charts, transparency, tiny images) or
+      lossy JPEG (photo-like images, typically 5–13x smaller). See
+      [iTerm2 inline images](../docs/iterm2-inline-images.md#java-desktop-add-on-automatic-pngjpeg).
+    * `casciian.javadesktop.encoders.ImageIOJpegEncoder` — a JPEG
+      `ImageEncoder` backed by `ImageIO` (name `jpeg`). It is used by the
+      adaptive encoder, and you can force it with
+      `-Dcasciian.ECMA48.iterm2ImageEncoder=jpeg`.
 * **`demo`** — a small TUI application demonstrating the add-on. It
   registers `ImageIORGBDecoder` on `ImageDecoderRegistry` and lets the
   user pick a `.png` / `.jpg` file from `File ▸ Open` to display it in a
@@ -96,6 +107,11 @@ automatically picked up by `TApplication`'s constructor via
 `ImageDecoderRegistry.getInstance().loadDecoders()`, so any
 `casciian.TImageWindow` (and any other code path going through
 `ImageDecoderRegistry`) can open PNG and JPEG files out of the box.
+
+The encoders are registered the same way, for
+`ImageEncoderRegistry`, so terminals that use the iTerm2 inline images
+protocol switch to `ImageIOAdaptiveEncoder` automatically. To keep the
+built-in PNG encoder, set `-Dcasciian.ECMA48.iterm2ImageEncoder=png`.
 
 If you need to customize the registered decoder (e.g. extend it to BMP or
 GIF), you can still register an instance manually, and it will coexist

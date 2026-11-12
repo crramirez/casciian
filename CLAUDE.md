@@ -75,7 +75,7 @@ All input is routed as `TInputEvent` subclasses (`TKeypressEvent`, `TMouseEvent`
 
 `ECMA48Terminal` emits image cells with, in priority order: iTerm2 inline images (OSC 1337, only when XTVERSION reports iTerm2; `ITerm2ImageEncoder` packs row runs with a pluggable `ImageEncoder`, PNG by default; see `docs/iterm2-inline-images.md`), the Casciian OSC 445 protocol, the kitty graphics protocol (`KittyImageEncoder`/`KittyImageManager`, grouping horizontal row runs with pixel-verified caching; single cells retain `Cell.getImageId()` keys; see `docs/kitty-graphics-protocol.md`), sixel, or Unicode half-blocks. Kitty run boundaries/cropping can require new uploads; obsolete shared placements are removed before replacement images or text are drawn.
 
-`casciian.image.encoders` mirrors the decoders below for output: `ImageEncoderRegistry` discovers `ImageEncoder` services lazily and picks the highest `getPriority()`. Core ships only `PngImageEncoder` (java.base only, priority 10, zlib level 1 + adaptive Up/Sub row filtering, streaming per-scanline deflate); add-ons need priority > 10 to win. If an add-on encoder fails, `ITerm2ImageEncoder` falls back to PNG; if no valid file can be made the run is drawn blank. Benchmark with `./gradlew pngBenchmark` (from `code/`).
+`casciian.image.encoders` mirrors the decoders below for output: `ImageEncoderRegistry` discovers `ImageEncoder` services lazily and picks the highest `getPriority()`. Core ships only `PngImageEncoder` (java.base only, priority 10, zlib level 1 + adaptive Up/Sub row filtering, streaming per-scanline deflate); add-ons need priority > 10 to win. `code-java-desktop/` adds `ImageIOAdaptiveEncoder` (priority 20: per image, PNG for alpha/tiny/≤256 colors/≥50% pixels repeating a left or upper neighbor, else ImageIO JPEG) and `ImageIOJpegEncoder` (`jpeg`, priority 5). If an add-on encoder fails, `ITerm2ImageEncoder` falls back to PNG; if no valid file can be made the run is drawn blank. Benchmark with `./gradlew pngBenchmark` (from `code/`).
 
 `casciian.image.decoders` uses a `ServiceLoader`-based `ImageDecoderRegistry`. The core library ships only `SixelImageDecoder`; the `casciian-java-desktop` add-on and demo fat JAR add BMP/JPEG/PNG/XPM decoders as separate `ImageDecoder` service implementations.
 
@@ -85,7 +85,7 @@ All input is routed as `TInputEvent` subclasses (`TKeypressEvent`, `TMouseEvent`
 
 ### Optional modules (sibling Gradle projects, not in this directory)
 
-- `code-java-desktop/` — adds `javax.imageio`-based image decoders
+- `code-java-desktop/` — adds `javax.imageio`-based image decoders and the adaptive PNG/JPEG image encoder
 - `code-terminal-component/` — adds `TTerminalWindow` (embedded ECMA-48 terminal emulator)
 - `code-image-decoders/` — adds pure-Java BMP/PNG/XPM image decoders
 - `code-document-parsers/` — adds the Markdown `DocumentParser` and a Markdown viewer demo
