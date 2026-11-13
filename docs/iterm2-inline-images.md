@@ -196,6 +196,37 @@ mode, encoders whose `supportsAlpha()` is true are preferred. If no encoder is
 registered at all, Casciian uses a default `PngImageEncoder`. If the chosen
 encoder fails, see [Failure handling](#failure-handling).
 
+### Java Desktop add-on: automatic PNG/JPEG
+
+The `casciian-java-desktop` add-on (`code-java-desktop/`) registers two
+encoders:
+
+- `ImageIOAdaptiveEncoder` (name `adaptive`, priority 20, supports alpha)
+  becomes the default. It chooses a format for each image: PNG (from the
+  built-in `PngImageEncoder`) if alpha is requested and some pixel is not
+  opaque, if the image has fewer than 4096 pixels, if it has at most 256
+  colors, or if at least half of its pixels equal their left or upper
+  neighbor. Otherwise it uses JPEG. iTerm2 detects the format from the file
+  bytes.
+- `ImageIOJpegEncoder` (name `jpeg`, priority 5, quality 0.85) is used by
+  the adaptive encoder. You can also force it with
+  `casciian.ECMA48.iterm2ImageEncoder=jpeg`.
+
+The repeated-pixel rule came from measurements on the benchmark samples and
+on real photos. On 1280x16 row runs and full images, flat UI, text
+(including anti-aliased text with 500+ colors), charts, logos and gradient
+strips repeat 64–100% of their pixels, and PNG is about the same size as
+JPEG or up to 5x smaller. Photos repeat 0–42%, and JPEG is 5–13x smaller
+and about 4x faster to encode (for example, 3.6 KB in 0.24 ms instead of
+40.7 KB in 0.97 ms). A large 2-D gradient is near the threshold (56%), so it
+stays lossless even though JPEG would be about 2x smaller. Color count alone
+is not enough: anti-aliased text has many colors but still compresses better
+as PNG.
+
+ImageIO's own PNG writer is not used. Compared with the built-in encoder it
+was 2–4x slower, and its files were up to 6x larger on gradients and alpha
+icons.
+
 ## Configuration
 
 | System property                        | Values                         | Default |

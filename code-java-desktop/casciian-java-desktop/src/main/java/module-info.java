@@ -19,7 +19,8 @@
  *
  * <p>Optional add-on that enables {@code java.desktop} capabilities for
  * Casciian-based applications. The add-on provides image decoders backed by
- * {@link javax.imageio.ImageIO} and other integrations that require a JDK
+ * {@link javax.imageio.ImageIO}, a JPEG image encoder with automatic
+ * PNG/JPEG selection, and other integrations that require a JDK
  * with full Java Desktop support.</p>
  *
  * <p>Use this module when you want to leverage Java Desktop on a regular JVM
@@ -30,8 +31,13 @@ module casciian.java.desktop {
     requires transitive java.desktop;
 
     exports casciian.javadesktop.decoders;
+    exports casciian.javadesktop.encoders;
     exports casciian.javadesktop.image;
 
     provides casciian.image.decoders.ImageDecoder
         with casciian.javadesktop.decoders.ImageIORGBDecoder;
+
+    provides casciian.image.encoders.ImageEncoder
+        with casciian.javadesktop.encoders.ImageIOAdaptiveEncoder,
+            casciian.javadesktop.encoders.ImageIOJpegEncoder;
 }

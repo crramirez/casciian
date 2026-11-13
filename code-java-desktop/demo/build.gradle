@@ -46,7 +46,9 @@ tasks.register('jarDemo', Jar) {
     // merged copy, EXCLUDE keeps only the first jar's entry and the other
     // decoder is silently dropped from ServiceLoader discovery. The merged
     // file lists ImageIORGBDecoder alongside SixelImageDecoder so both are
-    // discoverable from the fat JAR.
+    // discoverable from the fat JAR. The same applies to
+    // META-INF/services/casciian.image.encoders.ImageEncoder (PngImageEncoder
+    // plus the add-on's ImageIO encoders).
     from('src/main/demo-resources')
 
     from(sourceSets.main.output)
