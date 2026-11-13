@@ -1953,7 +1953,7 @@ public abstract class TWidget implements Comparable<TWidget> {
                 }
             }
         }
-        if (activeChild != null) {
+        if ((activeChild != null) && activeChild.isVisible()) {
             activeChild.drawChildren();
         }
 
