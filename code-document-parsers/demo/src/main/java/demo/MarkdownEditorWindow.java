@@ -293,6 +293,7 @@ public class MarkdownEditorWindow extends TWindow {
                         Math.max(1, getWidth() - 1),
                         Math.max(1, getHeight() - 1)));
                 syncScrollbars();
+                forceEditorToViewer = true;
             }
         }
 
