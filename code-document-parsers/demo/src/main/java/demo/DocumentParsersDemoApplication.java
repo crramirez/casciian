@@ -80,6 +80,21 @@ public final class DocumentParsersDemoApplication extends TApplication {
     private static final int MID_ABOUT_DEMO = 3002;
 
     /**
+     * Menu item: open a Markdown document in the live editor.
+     */
+    private static final int MID_EDIT_DOCUMENT = 3003;
+
+    /**
+     * Menu item: open the bundled sample in the live editor.
+     */
+    private static final int MID_EDIT_SAMPLE = 3004;
+
+    /**
+     * MIME type of Markdown documents.
+     */
+    private static final String MARKDOWN_MIME_TYPE = "text/markdown";
+
+    /**
      * Classpath folder holding the bundled sample document.
      */
     private static final String SAMPLE_RESOURCE_DIR = "/demo/";
@@ -113,6 +128,9 @@ public final class DocumentParsersDemoApplication extends TApplication {
         fileMenu.addItem(MID_OPEN_DOCUMENT, "&Open document...");
         fileMenu.addItem(MID_OPEN_SAMPLE, "Open &sample");
         fileMenu.addSeparator();
+        fileMenu.addItem(MID_EDIT_DOCUMENT, "&Edit Markdown...");
+        fileMenu.addItem(MID_EDIT_SAMPLE, "&Markdown editor (sample)");
+        fileMenu.addSeparator();
         fileMenu.addDefaultItem(TMenu.MID_EXIT);
         addWindowMenu();
         TMenu helpMenu = addHelpMenu();
@@ -139,6 +157,12 @@ public final class DocumentParsersDemoApplication extends TApplication {
             return true;
         case MID_ABOUT_DEMO:
             showAbout();
+            return true;
+        case MID_EDIT_DOCUMENT:
+            chooseMarkdownToEdit();
+            return true;
+        case MID_EDIT_SAMPLE:
+            editSample();
             return true;
         default:
             return super.onMenu(menu);
@@ -191,6 +215,59 @@ public final class DocumentParsersDemoApplication extends TApplication {
                     : fileName.toString(), text);
         } catch (IOException | IllegalArgumentException e) {
             messageBox("Open document", "Unable to open " + path + ": "
+                    + e.getMessage());
+        }
+    }
+
+    /**
+     * Ask the user for a Markdown file and open it in the live editor.
+     */
+    private void chooseMarkdownToEdit() {
+        try {
+            List<String> filters = DocumentParserRegistry.getInstance()
+                    .findParser(MARKDOWN_MIME_TYPE)
+                    .map(parser -> List.of(parser.getFileExtensionPattern()))
+                    .orElse(null);
+            String filename = fileOpenBox(".", TFileOpenBox.Type.OPEN,
+                    filters);
+            if (filename != null) {
+                editMarkdown(Path.of(filename));
+            }
+        } catch (IOException e) {
+            new TExceptionDialog(this, e);
+        }
+    }
+
+    /**
+     * Open the bundled sample in the live editor.
+     */
+    private void editSample() {
+        try {
+            if (sampleDirectory == null) {
+                sampleDirectory = extractSample();
+            }
+            editMarkdown(sampleDirectory.resolve(SAMPLE_FILES.get(0)));
+        } catch (IOException e) {
+            new TExceptionDialog(this, e);
+        }
+    }
+
+    /**
+     * Open a Markdown file in a {@link MarkdownEditorWindow}: an editor on
+     * the left and the live rendering on the right.  Relative images are
+     * resolved against the file's folder.
+     *
+     * @param path the Markdown file
+     */
+    private void editMarkdown(final Path path) {
+        try {
+            String markdown = Files.readString(path, StandardCharsets.UTF_8);
+            Path fileName = path.getFileName();
+            new MarkdownEditorWindow(this, "Markdown editor - "
+                    + (fileName == null ? path : fileName), markdown,
+                    path.toAbsolutePath().getParent(), this::openImage);
+        } catch (IOException | RuntimeException e) {
+            messageBox("Edit Markdown", "Unable to open " + path + ": "
                     + e.getMessage());
         }
     }
