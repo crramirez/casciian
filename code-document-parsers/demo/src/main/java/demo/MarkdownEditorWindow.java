@@ -320,7 +320,7 @@ public class MarkdownEditorWindow extends TWindow {
             int column = editor.getVisibleColumnNumber();
             int barColumn = getHorizontalValue();
             if ((barColumn != syncedColumn) && (barColumn != column)) {
-                editor.setVisibleColumnNumber(Math.max(1,
+                editor.setViewportColumn(Math.max(1,
                         Math.min(barColumn, getRightValue())));
                 column = editor.getVisibleColumnNumber();
             }
@@ -345,6 +345,15 @@ public class MarkdownEditorWindow extends TWindow {
             super(parent, text, 0, 0, 1, 1);
 
             setHighlighting(false);
+        }
+
+        /**
+         * Scroll the viewport without moving it back to keep the caret visible.
+         *
+         * @param column the new leftmost visible column, 1-based
+         */
+        void setViewportColumn(final int column) {
+            setLeftColumn(column - 1);
         }
 
         @Override
