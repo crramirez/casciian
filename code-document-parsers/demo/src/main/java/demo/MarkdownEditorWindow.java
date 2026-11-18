@@ -354,6 +354,8 @@ public class MarkdownEditorWindow extends TWindow {
          */
         void setViewportColumn(final int column) {
             setLeftColumn(column - 1);
+            setCursorX(getTextAreaX() + document.getCursor()
+                    - getLeftColumn());
         }
 
         @Override
