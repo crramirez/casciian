@@ -55,6 +55,10 @@ What's in here?
   zoomable `TImageWindow` when it is double-clicked, and shows a
   `Help ▸ About this demo` page parsed from a stream by MIME type. A path
   to a document can also be passed on the command line.
+  `File ▸ Edit Markdown...` and `File ▸ Markdown editor (sample)` open a
+  live Markdown editor: a resizable split pane with the source editor on
+  the left and the rendered document on the right, re-rendered on every
+  edit and scrolled together.
 
 Building
 --------
